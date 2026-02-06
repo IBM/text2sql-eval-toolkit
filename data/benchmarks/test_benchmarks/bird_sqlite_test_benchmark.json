@@ -1,0 +1,82 @@
+[
+  {
+    "question_id": 11,
+    "db_id": "california_schools",
+    "question": "Please list the codes of the schools with a total enrollment of over 500.",
+    "evidence": "Total enrollment can be represented by `Enrollment (K-12)` + `Enrollment (Ages 5-17)`",
+    "SQL": "SELECT T2.CDSCode FROM schools AS T1 INNER JOIN frpm AS T2 ON T1.CDSCode = T2.CDSCode WHERE T2.`Enrollment (K-12)` + T2.`Enrollment (Ages 5-17)` > 500",
+    "difficulty": "simple",
+    "sql": [
+      "SELECT T2.CDSCode FROM schools AS T1 INNER JOIN frpm AS T2 ON T1.CDSCode = T2.CDSCode WHERE T2.`Enrollment (K-12)` + T2.`Enrollment (Ages 5-17)` > 500"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 5,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      },
+      "categories": [
+        "has_join",
+        "multi_table_simple"
+      ]
+    }
+  },
+  {
+    "question_id": 12,
+    "db_id": "california_schools",
+    "question": "Among the schools with an SAT excellence rate of over 0.3, what is the highest eligible free rate for students aged 5-17?",
+    "evidence": "Excellence rate = NumGE1500 / NumTstTakr; Eligible free rates for students aged 5-17 = `Free Meal Count (Ages 5-17)` / `Enrollment (Ages 5-17)`",
+    "SQL": "SELECT MAX(CAST(T1.`Free Meal Count (Ages 5-17)` AS REAL) / T1.`Enrollment (Ages 5-17)`) FROM frpm AS T1 INNER JOIN satscores AS T2 ON T1.CDSCode = T2.cds WHERE CAST(T2.NumGE1500 AS REAL) / T2.NumTstTakr > 0.3",
+    "difficulty": "moderate",
+    "sql": [
+      "SELECT MAX(CAST(T1.`Free Meal Count (Ages 5-17)` AS REAL) / T1.`Enrollment (Ages 5-17)`) FROM frpm AS T1 INNER JOIN satscores AS T2 ON T1.CDSCode = T2.cds WHERE CAST(T2.NumGE1500 AS REAL) / T2.NumTstTakr > 0.3"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 6,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      },
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "multi_table_simple"
+      ]
+    }
+  },
+  {
+    "question_id": 36,
+    "db_id": "california_schools",
+    "question": "Under whose administration is the school with the highest number of students scoring 1500 or more on the SAT? Indicate their full names.",
+    "evidence": "full name means first name, last name; There are at most 3 administrators for each school; SAT Scores are greater or equal to 1500 refers to NumGE1500",
+    "SQL": "SELECT T2.AdmFName1, T2.AdmLName1, T2.AdmFName2, T2.AdmLName2, T2.AdmFName3, T2.AdmLName3 FROM satscores AS T1 INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode ORDER BY T1.NumGE1500 DESC LIMIT 1",
+    "difficulty": "challenging",
+    "sql": [
+      "SELECT T2.AdmFName1, T2.AdmLName1, T2.AdmFName2, T2.AdmLName2, T2.AdmFName3, T2.AdmLName3 FROM satscores AS T1 INNER JOIN schools AS T2 ON T1.cds = T2.CDSCode ORDER BY T1.NumGE1500 DESC LIMIT 1"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 9,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      },
+      "categories": [
+        "has_join",
+        "has_sorting",
+        "multi_table_simple"
+      ]
+    }
+  }
+]

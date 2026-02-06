@@ -1,0 +1,877 @@
+{
+  "wxai:meta-llama/llama-3-3-70b-instruct-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "logic_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "bird_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.6666666666666666,
+      "stddev": 0.5773502691896258
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "prompt_tokens": {
+      "average": 3499.6666666666665,
+      "stddev": 27.061657993059725
+    },
+    "completion_tokens": {
+      "average": 73.0,
+      "stddev": 32.18695387886216
+    },
+    "total_tokens": {
+      "average": 3572.6666666666665,
+      "stddev": 56.871199506721624
+    },
+    "inference_time_ms": {
+      "average": 3229.726666666667,
+      "stddev": 1659.4334241039421
+    },
+    "execution_time_ms": {
+      "average": 1.6500000000000001,
+      "stddev": 1.7182694782833103
+    },
+    "sum_total_tokens": 10718,
+    "sum_prompt_tokens": 10499,
+    "sum_completion_tokens": 219,
+    "sum_inference_time_ms": 9689.18,
+    "sum_execution_time_ms": 4.95,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 1,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 1,
+    "num_correct_subset_non_empty_execution_accuracy": 1
+  },
+  "wxai:ibm/granite-4-h-small-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "logic_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "bird_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 3479.0,
+      "stddev": 27.49545416973504
+    },
+    "completion_tokens": {
+      "average": 109.0,
+      "stddev": 55.10898293381942
+    },
+    "total_tokens": {
+      "average": 3588.0,
+      "stddev": 82.45604889879213
+    },
+    "inference_time_ms": {
+      "average": 3211.443333333333,
+      "stddev": 1479.5881894748059
+    },
+    "sum_total_tokens": 10764,
+    "sum_prompt_tokens": 10437,
+    "sum_completion_tokens": 327,
+    "sum_inference_time_ms": 9634.33,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 3,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 0,
+    "num_correct_subset_non_empty_execution_accuracy": 0
+  },
+  "wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "non_empty_execution_accuracy": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "logic_execution_accuracy": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "bird_execution_accuracy": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 3459.3333333333335,
+      "stddev": 27.610384519838426
+    },
+    "completion_tokens": {
+      "average": 73.66666666666667,
+      "stddev": 33.471380810079125
+    },
+    "total_tokens": {
+      "average": 3533.0,
+      "stddev": 58.89821729050889
+    },
+    "inference_time_ms": {
+      "average": 1245.3266666666666,
+      "stddev": 394.97816665397255
+    },
+    "execution_time_ms": {
+      "average": 4.34,
+      "stddev": 3.796722270590779
+    },
+    "sum_total_tokens": 10599,
+    "sum_prompt_tokens": 10378,
+    "sum_completion_tokens": 221,
+    "sum_inference_time_ms": 3735.98,
+    "sum_execution_time_ms": 13.02,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 0,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 3,
+    "num_correct_subset_non_empty_execution_accuracy": 3
+  },
+  "wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.6666666666666666,
+      "stddev": 0.5773502691896258
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.6666666666666666,
+      "stddev": 0.5773502691896258
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.6666666666666666,
+      "stddev": 0.5773502691896258
+    },
+    "logic_execution_accuracy": {
+      "average": 0.6666666666666666,
+      "stddev": 0.5773502691896258
+    },
+    "bird_execution_accuracy": {
+      "average": 0.6666666666666666,
+      "stddev": 0.5773502691896258
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 3496.3333333333335,
+      "stddev": 27.31910198621714
+    },
+    "completion_tokens": {
+      "average": 447.3333333333333,
+      "stddev": 188.2454072038235
+    },
+    "total_tokens": {
+      "average": 3943.6666666666665,
+      "stddev": 212.22707964190934
+    },
+    "inference_time_ms": {
+      "average": 3509.9600000000005,
+      "stddev": 1149.116604135542
+    },
+    "execution_time_ms": {
+      "average": 4.826666666666667,
+      "stddev": 3.4173137598607086
+    },
+    "sum_total_tokens": 11831,
+    "sum_prompt_tokens": 10489,
+    "sum_completion_tokens": 1342,
+    "sum_inference_time_ms": 10529.88,
+    "sum_execution_time_ms": 14.48,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 0,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 2,
+    "num_correct_subset_non_empty_execution_accuracy": 2
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline0-3attempts": {
+    "execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "logic_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "bird_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 3492.6666666666665,
+      "stddev": 7.571877794400365
+    },
+    "completion_tokens": {
+      "average": 500.6666666666667,
+      "stddev": 240.10900302432086
+    },
+    "total_tokens": {
+      "average": 3993.3333333333335,
+      "stddev": 245.50424300474592
+    },
+    "inference_time_ms": {
+      "average": 4125.296666666666,
+      "stddev": 2551.481756868611
+    },
+    "sum_total_tokens": 11980,
+    "sum_prompt_tokens": 10478,
+    "sum_completion_tokens": 1502,
+    "sum_inference_time_ms": 12375.89,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 0,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 1,
+    "num_correct_subset_non_empty_execution_accuracy": 1
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline1-3attempts": {
+    "execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "logic_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "bird_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "prompt_tokens": {
+      "average": 5785.0,
+      "stddev": 4046.088481484309
+    },
+    "completion_tokens": {
+      "average": 791.6666666666666,
+      "stddev": 753.7309422687471
+    },
+    "total_tokens": {
+      "average": 6576.666666666667,
+      "stddev": 4787.040247724405
+    },
+    "inference_time_ms": {
+      "average": 5909.69,
+      "stddev": 4649.8794722121565
+    },
+    "sum_total_tokens": 19730,
+    "sum_prompt_tokens": 17355,
+    "sum_completion_tokens": 2375,
+    "sum_inference_time_ms": 17729.07,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 1,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 0,
+    "num_correct_subset_non_empty_execution_accuracy": 0
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline2-3attempts": {
+    "execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "logic_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "bird_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 5819.666666666667,
+      "stddev": 4106.132649261752
+    },
+    "completion_tokens": {
+      "average": 919.3333333333334,
+      "stddev": 945.9082055534423
+    },
+    "total_tokens": {
+      "average": 6739.0,
+      "stddev": 5040.054860812529
+    },
+    "inference_time_ms": {
+      "average": 6792.603333333333,
+      "stddev": 7629.697291520374
+    },
+    "sum_total_tokens": 20217,
+    "sum_prompt_tokens": 17459,
+    "sum_completion_tokens": 2758,
+    "sum_inference_time_ms": 20377.81,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 0,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 1,
+    "num_correct_subset_non_empty_execution_accuracy": 1
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline3-3attempts": {
+    "execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "logic_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "bird_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.6666666666666666,
+      "stddev": 0.5773502691896258
+    },
+    "prompt_tokens": {
+      "average": 9806.0,
+      "stddev": 2226.919621360412
+    },
+    "completion_tokens": {
+      "average": 1547.6666666666667,
+      "stddev": 951.0632646324498
+    },
+    "total_tokens": {
+      "average": 11353.666666666666,
+      "stddev": 3173.682456285337
+    },
+    "inference_time_ms": {
+      "average": 26455.313333333335,
+      "stddev": 10657.677058113242
+    },
+    "sum_total_tokens": 34061,
+    "sum_prompt_tokens": 29418,
+    "sum_completion_tokens": 4643,
+    "sum_inference_time_ms": 79365.94,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 2,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 0,
+    "num_correct_subset_non_empty_execution_accuracy": 0
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline4-3attempts": {
+    "execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "logic_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "bird_execution_accuracy": {
+      "average": 0.3333333333333333,
+      "stddev": 0.5773502691896258
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 9063.666666666666,
+      "stddev": 2461.551814066349
+    },
+    "completion_tokens": {
+      "average": 1003.0,
+      "stddev": 473.59581923830365
+    },
+    "total_tokens": {
+      "average": 10066.666666666666,
+      "stddev": 2909.947479480228
+    },
+    "inference_time_ms": {
+      "average": 20950.960000000003,
+      "stddev": 3940.578258847297
+    },
+    "sum_total_tokens": 30200,
+    "sum_prompt_tokens": 27191,
+    "sum_completion_tokens": 3009,
+    "sum_inference_time_ms": 62852.88,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 3,
+    "num_eval_errors": 0,
+    "num_df_errors": 0,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 1,
+    "num_correct_subset_non_empty_execution_accuracy": 1
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline5-3attempts": {
+    "execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "logic_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "bird_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.6666666666666666,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 0.6666666666666666,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 11552.666666666666,
+      "stddev": 3978.1827509555164
+    },
+    "completion_tokens": {
+      "average": 1021.3333333333334,
+      "stddev": 451.1341263970173
+    },
+    "total_tokens": {
+      "average": 12574.0,
+      "stddev": 4429.316877352534
+    },
+    "inference_time_ms": {
+      "average": 18079.013333333332,
+      "stddev": 1922.496058825609
+    },
+    "sum_total_tokens": 37722,
+    "sum_prompt_tokens": 34658,
+    "sum_completion_tokens": 3064,
+    "sum_inference_time_ms": 54237.04,
+    "num_records": 3,
+    "num_predictions": 3,
+    "num_evaluated": 2,
+    "num_eval_errors": 1,
+    "num_df_errors": 1,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 0,
+    "num_correct_subset_non_empty_execution_accuracy": 0
+  }
+}

@@ -1,0 +1,950 @@
+{
+  "llm_judge_config": {
+    "model": {
+      "id": "wxai:meta-llama/llama-3-3-70b-instruct",
+      "decoding_method": "greedy",
+      "max_new_tokens": 512
+    },
+    "prompt_template": "You are an expert SQL evaluator. Your task is to assess whether a predicted SQL query correctly answers a natural language question, given the database schema and the ground truth SQL and result.\n\nPlease consider the following:\n- The predicted SQL may differ from the ground truth but still be valid.\n- The result dataframes may differ due to ambiguity in the question or schema.\n- Use your judgment to determine if the predicted SQL is a reasonable interpretation.\n\nRespond with one of the following verdicts:\n- \"Yes\" if the predicted SQL is correct (score: 1)\n- \"Maybe\" if the predicted SQL is possibly correct (score: 0.5)\n- \"No\" if the predicted SQL is incorrect (score: 0)\n\nStart your response with the verdict (\"Yes\", \"Maybe\", \"No\") and then provide a detailed explanation for your decision.\n\n### Question:\n{question}\n\n### Original Prompt Used for SQL Generation:\n{generation_prompt}\n\n### Ground Truth SQL:\n```sql\n{ground_truth_sql}\n```\n\n### Ground Truth Result:\n{ground_truth_df}\n\n### Predicted SQL:\n```sql\n{predicted_sql}\n```\n\n### Predicted Result (if any):\n{predicted_df}\n\n### Verdict and Explanation:"
+  },
+  "wxai:meta-llama/llama-3-3-70b-instruct-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.62,
+      "stddev": 0.49031435147801467
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.62,
+      "stddev": 0.49031435147801467
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.64,
+      "stddev": 0.4848732213850611
+    },
+    "logic_execution_accuracy": {
+      "average": 0.66,
+      "stddev": 0.47851812069840644
+    },
+    "bird_execution_accuracy": {
+      "average": 0.66,
+      "stddev": 0.4785181206984065
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.98,
+      "stddev": 0.14142135623730948
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.22,
+      "stddev": 0.41845195759648035
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.22,
+      "stddev": 0.41845195759648035
+    },
+    "sqlparse_equivalence": {
+      "average": 0.02,
+      "stddev": 0.14142135623730948
+    },
+    "sql_exact_match": {
+      "average": 0.16,
+      "stddev": 0.3703280399090206
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.24,
+      "stddev": 0.4314191105869
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.02,
+      "stddev": 0.14142135623730948
+    },
+    "prompt_tokens": {
+      "average": 1549.08,
+      "stddev": 713.2576842079114
+    },
+    "completion_tokens": {
+      "average": 73.44,
+      "stddev": 47.94050734919228
+    },
+    "total_tokens": {
+      "average": 1622.52,
+      "stddev": 706.0793225947906
+    },
+    "inference_time_ms": {
+      "average": 4774.583,
+      "stddev": 3176.848289128034
+    },
+    "execution_time_ms": {
+      "average": 45.9014,
+      "stddev": 47.267944505828915
+    },
+    "llm_score": {
+      "average": 0.96,
+      "stddev": 0.19794866372215744
+    },
+    "sum_total_tokens": 81126,
+    "sum_prompt_tokens": 77454,
+    "sum_completion_tokens": 3672,
+    "sum_inference_time_ms": 238729.15,
+    "sum_execution_time_ms": 2295.07,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 50,
+    "num_eval_errors": 0,
+    "num_df_errors": 1,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 31,
+    "num_correct_subset_non_empty_execution_accuracy": 32,
+    "num_correct_llm": 48,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:ibm/granite-4-h-small-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.56,
+      "stddev": 0.501426536422407
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.56,
+      "stddev": 0.501426536422407
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.58,
+      "stddev": 0.4985693819032899
+    },
+    "logic_execution_accuracy": {
+      "average": 0.58,
+      "stddev": 0.4985693819032899
+    },
+    "bird_execution_accuracy": {
+      "average": 0.58,
+      "stddev": 0.4985693819032899
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.98,
+      "stddev": 0.14142135623730948
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.1,
+      "stddev": 0.30304576336566325
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.1,
+      "stddev": 0.30304576336566325
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.08,
+      "stddev": 0.27404751561786966
+    },
+    "prompt_tokens": {
+      "average": 1527.08,
+      "stddev": 713.2576842079114
+    },
+    "completion_tokens": {
+      "average": 75.34,
+      "stddev": 67.29545273778662
+    },
+    "total_tokens": {
+      "average": 1602.42,
+      "stddev": 700.3519549600234
+    },
+    "inference_time_ms": {
+      "average": 3976.3452,
+      "stddev": 2152.2967397825355
+    },
+    "execution_time_ms": {
+      "average": 38.9186,
+      "stddev": 54.709624327516366
+    },
+    "llm_score": {
+      "average": 0.74,
+      "stddev": 0.44308749769345207
+    },
+    "sum_total_tokens": 80121,
+    "sum_prompt_tokens": 76354,
+    "sum_completion_tokens": 3767,
+    "sum_inference_time_ms": 198817.26,
+    "sum_execution_time_ms": 1945.93,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 50,
+    "num_eval_errors": 0,
+    "num_df_errors": 4,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 28,
+    "num_correct_subset_non_empty_execution_accuracy": 29,
+    "num_correct_llm": 37,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.62,
+      "stddev": 0.49031435147801467
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.62,
+      "stddev": 0.49031435147801467
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.66,
+      "stddev": 0.4785181206984065
+    },
+    "logic_execution_accuracy": {
+      "average": 0.68,
+      "stddev": 0.4712120714991612
+    },
+    "bird_execution_accuracy": {
+      "average": 0.64,
+      "stddev": 0.48487322138506117
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.2,
+      "stddev": 0.4040610178208843
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.22,
+      "stddev": 0.41845195759648024
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.18,
+      "stddev": 0.38808793449160356
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.22,
+      "stddev": 0.41845195759648024
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.02,
+      "stddev": 0.1414213562373095
+    },
+    "prompt_tokens": {
+      "average": 1509.38,
+      "stddev": 692.2689370645558
+    },
+    "completion_tokens": {
+      "average": 97.92,
+      "stddev": 97.63987141427377
+    },
+    "total_tokens": {
+      "average": 1607.3,
+      "stddev": 675.0478818996048
+    },
+    "inference_time_ms": {
+      "average": 2229.425,
+      "stddev": 1464.2251350942713
+    },
+    "execution_time_ms": {
+      "average": 50.1092,
+      "stddev": 38.94335628370333
+    },
+    "llm_score": {
+      "average": 0.92,
+      "stddev": 0.27404751561786966
+    },
+    "sum_total_tokens": 80365,
+    "sum_prompt_tokens": 75469,
+    "sum_completion_tokens": 4896,
+    "sum_inference_time_ms": 111471.25,
+    "sum_execution_time_ms": 2505.46,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 50,
+    "num_eval_errors": 0,
+    "num_df_errors": 1,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 31,
+    "num_correct_subset_non_empty_execution_accuracy": 33,
+    "num_correct_llm": 46,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.56,
+      "stddev": 0.501426536422407
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.56,
+      "stddev": 0.501426536422407
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.6,
+      "stddev": 0.4948716593053935
+    },
+    "logic_execution_accuracy": {
+      "average": 0.64,
+      "stddev": 0.4848732213850611
+    },
+    "bird_execution_accuracy": {
+      "average": 0.58,
+      "stddev": 0.4985693819032899
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.96,
+      "stddev": 0.19794866372215741
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.08,
+      "stddev": 0.27404751561786966
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.08,
+      "stddev": 0.27404751561786966
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "prompt_tokens": {
+      "average": 1569.68,
+      "stddev": 693.3531196810386
+    },
+    "completion_tokens": {
+      "average": 325.72,
+      "stddev": 199.7743666014747
+    },
+    "total_tokens": {
+      "average": 1895.4,
+      "stddev": 684.8560402875682
+    },
+    "inference_time_ms": {
+      "average": 3800.2334,
+      "stddev": 1772.1469637997097
+    },
+    "execution_time_ms": {
+      "average": 31.119,
+      "stddev": 26.965695299867928
+    },
+    "llm_score": {
+      "average": 0.94,
+      "stddev": 0.23989793748209523
+    },
+    "sum_total_tokens": 94770,
+    "sum_prompt_tokens": 78484,
+    "sum_completion_tokens": 16286,
+    "sum_inference_time_ms": 190011.67,
+    "sum_execution_time_ms": 1555.95,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 50,
+    "num_eval_errors": 0,
+    "num_df_errors": 2,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 28,
+    "num_correct_subset_non_empty_execution_accuracy": 30,
+    "num_correct_llm": 47,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline0-3attempts": {
+    "execution_accuracy": {
+      "average": 0.4,
+      "stddev": 0.4948716593053935
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.4,
+      "stddev": 0.4948716593053935
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.5,
+      "stddev": 0.5050762722761054
+    },
+    "logic_execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.5034574339058885
+    },
+    "bird_execution_accuracy": {
+      "average": 0.4,
+      "stddev": 0.4948716593053935
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.98,
+      "stddev": 0.1414213562373095
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.06,
+      "stddev": 0.23989793748209523
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.06,
+      "stddev": 0.23989793748209523
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.02,
+      "stddev": 0.1414213562373095
+    },
+    "prompt_tokens": {
+      "average": 1851.48,
+      "stddev": 1179.513982234087
+    },
+    "completion_tokens": {
+      "average": 530.06,
+      "stddev": 598.9164845871285
+    },
+    "total_tokens": {
+      "average": 2381.54,
+      "stddev": 1563.9125087747204
+    },
+    "inference_time_ms": {
+      "average": 5256.720600000001,
+      "stddev": 4206.690504886676
+    },
+    "llm_score": {
+      "average": 0.88,
+      "stddev": 0.3282607226593159
+    },
+    "sum_total_tokens": 119077,
+    "sum_prompt_tokens": 92574,
+    "sum_completion_tokens": 26503,
+    "sum_inference_time_ms": 262836.03,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 50,
+    "num_eval_errors": 0,
+    "num_df_errors": 1,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 20,
+    "num_correct_subset_non_empty_execution_accuracy": 25,
+    "num_correct_llm": 44,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline1-3attempts": {
+    "execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.5034574339058885
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.5034574339058885
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.5034574339058885
+    },
+    "logic_execution_accuracy": {
+      "average": 0.58,
+      "stddev": 0.4985693819032899
+    },
+    "bird_execution_accuracy": {
+      "average": 0.58,
+      "stddev": 0.4985693819032899
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.98,
+      "stddev": 0.14142135623730948
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.08,
+      "stddev": 0.27404751561786966
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.08,
+      "stddev": 0.27404751561786966
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.02,
+      "stddev": 0.14142135623730948
+    },
+    "prompt_tokens": {
+      "average": 1622.96,
+      "stddev": 852.0009332178466
+    },
+    "completion_tokens": {
+      "average": 384.42,
+      "stddev": 432.44365399153565
+    },
+    "total_tokens": {
+      "average": 2007.38,
+      "stddev": 1047.024216432418
+    },
+    "inference_time_ms": {
+      "average": 4038.1356,
+      "stddev": 2980.4892819866654
+    },
+    "llm_score": {
+      "average": 0.88,
+      "stddev": 0.32826072265931594
+    },
+    "sum_total_tokens": 100369,
+    "sum_prompt_tokens": 81148,
+    "sum_completion_tokens": 19221,
+    "sum_inference_time_ms": 201906.78,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 50,
+    "num_eval_errors": 0,
+    "num_df_errors": 1,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 27,
+    "num_correct_subset_non_empty_execution_accuracy": 27,
+    "num_correct_llm": 44,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline2-3attempts": {
+    "execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.5034574339058885
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.5034574339058885
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.56,
+      "stddev": 0.501426536422407
+    },
+    "logic_execution_accuracy": {
+      "average": 0.6,
+      "stddev": 0.49487165930539356
+    },
+    "bird_execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.5034574339058885
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.08,
+      "stddev": 0.27404751561786966
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.08,
+      "stddev": 0.27404751561786966
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 1581.86,
+      "stddev": 700.8538235900668
+    },
+    "completion_tokens": {
+      "average": 390.28,
+      "stddev": 341.4246885613044
+    },
+    "total_tokens": {
+      "average": 1972.14,
+      "stddev": 824.4131619719891
+    },
+    "inference_time_ms": {
+      "average": 4509.1956,
+      "stddev": 2769.266153342729
+    },
+    "llm_score": {
+      "average": 0.88,
+      "stddev": 0.3282607226593159
+    },
+    "sum_total_tokens": 98607,
+    "sum_prompt_tokens": 79093,
+    "sum_completion_tokens": 19514,
+    "sum_inference_time_ms": 225459.78,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 50,
+    "num_eval_errors": 0,
+    "num_df_errors": 0,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 27,
+    "num_correct_subset_non_empty_execution_accuracy": 28,
+    "num_correct_llm": 44,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline3-3attempts": {
+    "execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.02,
+      "stddev": 0.1414213562373095
+    },
+    "logic_execution_accuracy": {
+      "average": 0.2,
+      "stddev": 0.4040610178208843
+    },
+    "bird_execution_accuracy": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "is_sqlglot_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 1.0,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.06,
+      "stddev": 0.23989793748209523
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.04,
+      "stddev": 0.19794866372215741
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.06,
+      "stddev": 0.23989793748209523
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.9,
+      "stddev": 0.30304576336566325
+    },
+    "prompt_tokens": {
+      "average": 4844.04,
+      "stddev": 2119.1046526728196
+    },
+    "completion_tokens": {
+      "average": 1150.3,
+      "stddev": 489.55728646879913
+    },
+    "total_tokens": {
+      "average": 5994.34,
+      "stddev": 2130.889405283864
+    },
+    "inference_time_ms": {
+      "average": 34748.8144,
+      "stddev": 9659.218115766496
+    },
+    "llm_score": {
+      "average": 0.06,
+      "stddev": 0.2398979374820952
+    },
+    "sum_total_tokens": 299717,
+    "sum_prompt_tokens": 242202,
+    "sum_completion_tokens": 57515,
+    "sum_inference_time_ms": 1737440.72,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 50,
+    "num_eval_errors": 0,
+    "num_df_errors": 45,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 0,
+    "num_correct_subset_non_empty_execution_accuracy": 1,
+    "num_correct_llm": 3,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline4-3attempts": {
+    "execution_accuracy": {
+      "average": 0.46,
+      "stddev": 0.5055250296034367
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.46,
+      "stddev": 0.5055250296034367
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.5,
+      "stddev": 0.5036101551853349
+    },
+    "logic_execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.49782134039886416
+    },
+    "bird_execution_accuracy": {
+      "average": 0.46,
+      "stddev": 0.5055250296034367
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.92,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 0.92,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.06,
+      "stddev": 0.24963741822833801
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.04,
+      "stddev": 0.2061845709423622
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.04,
+      "stddev": 0.2061845709423622
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.06,
+      "stddev": 0.24963741822833801
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.02,
+      "stddev": 0.1474419561548971
+    },
+    "prompt_tokens": {
+      "average": 4015.74,
+      "stddev": 1768.9105046411908
+    },
+    "completion_tokens": {
+      "average": 698.22,
+      "stddev": 307.71057123890614
+    },
+    "total_tokens": {
+      "average": 4713.96,
+      "stddev": 1899.7283268778274
+    },
+    "inference_time_ms": {
+      "average": 71631.53100000002,
+      "stddev": 40629.8173005825
+    },
+    "llm_score": {
+      "average": 0.86,
+      "stddev": 0.24963741822833796
+    },
+    "sum_total_tokens": 235698,
+    "sum_prompt_tokens": 200787,
+    "sum_completion_tokens": 34911,
+    "sum_inference_time_ms": 3581576.55,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 46,
+    "num_eval_errors": 4,
+    "num_df_errors": 5,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 23,
+    "num_correct_subset_non_empty_execution_accuracy": 25,
+    "num_correct_llm": 43,
+    "num_llm_judge_errors": 0
+  },
+  "wxai:openai/gpt-oss-120b-agentic-baseline5-3attempts": {
+    "execution_accuracy": {
+      "average": 0.52,
+      "stddev": 0.5012062743707415
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.52,
+      "stddev": 0.5012062743707415
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.54,
+      "stddev": 0.49782134039886416
+    },
+    "logic_execution_accuracy": {
+      "average": 0.6,
+      "stddev": 0.48154341234307674
+    },
+    "bird_execution_accuracy": {
+      "average": 0.52,
+      "stddev": 0.5012062743707415
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.92,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 0.92,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.04,
+      "stddev": 0.2061845709423622
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.04,
+      "stddev": 0.2061845709423622
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.04,
+      "stddev": 0.2061845709423622
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.04,
+      "stddev": 0.2061845709423622
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.04,
+      "stddev": 0.2061845709423622
+    },
+    "prompt_tokens": {
+      "average": 11612.56,
+      "stddev": 6058.531638083756
+    },
+    "completion_tokens": {
+      "average": 1290.02,
+      "stddev": 593.988088902845
+    },
+    "total_tokens": {
+      "average": 12902.58,
+      "stddev": 6496.691108921087
+    },
+    "inference_time_ms": {
+      "average": 132503.8202,
+      "stddev": 49784.813790585664
+    },
+    "llm_score": {
+      "average": 0.78,
+      "stddev": 0.36315844747302034
+    },
+    "sum_total_tokens": 645129,
+    "sum_prompt_tokens": 580628,
+    "sum_completion_tokens": 64501,
+    "sum_inference_time_ms": 6625191.01,
+    "num_records": 50,
+    "num_predictions": 50,
+    "num_evaluated": 46,
+    "num_eval_errors": 4,
+    "num_df_errors": 6,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 26,
+    "num_correct_subset_non_empty_execution_accuracy": 27,
+    "num_correct_llm": 39,
+    "num_llm_judge_errors": 0
+  }
+}

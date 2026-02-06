@@ -1,0 +1,267 @@
+[
+  {
+    "id": "fe8e84cfe94e",
+    "db_id": "world_1",
+    "query": "SELECT COUNT ( * ) - ( SELECT COUNT ( * ) FROM country WHERE GNP < GNPOld AND Continent = \"South America\" ) AS diff FROM ( SELECT Name , GNP * ( 1 + 0.02 ) AS GNP , GNPOld , Continent FROM country WHERE Continent = \"North America\" AND Code IN ( SELECT Code FROM country WHERE Continent = \"North America\" ORDER BY Population DESC LIMIT 2 ) UNION ALL SELECT Name , GNP , GNPOld , Continent FROM country WHERE Continent = \"North America\" AND Code NOT IN ( SELECT Code FROM country WHERE Continent = \"North America\" ORDER BY Population DESC LIMIT 2 ) ) WHERE GNP < GNPOld AND Continent = \"North America\"",
+    "question": "Suppose the current GNP of the top two most populous countries in North America increases by 2%, how many more countries in North America than in South America have a declining GNP?",
+    "reasoning_type": "+ - * H",
+    "commonsense_knowledge": "",
+    "sql": [
+      "SELECT COUNT ( * ) - ( SELECT COUNT ( * ) FROM country WHERE GNP < GNPOld AND Continent = \"South America\" ) AS diff FROM ( SELECT Name , GNP * ( 1 + 0.02 ) AS GNP , GNPOld , Continent FROM country WHERE Continent = \"North America\" AND Code IN ( SELECT Code FROM country WHERE Continent = \"North America\" ORDER BY Population DESC LIMIT 2 ) UNION ALL SELECT Name , GNP , GNPOld , Continent FROM country WHERE Continent = \"North America\" AND Code NOT IN ( SELECT Code FROM country WHERE Continent = \"North America\" ORDER BY Population DESC LIMIT 2 ) ) WHERE GNP < GNPOld AND Continent = \"North America\""
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 5,
+        "query_column_count": 30,
+        "query_nested_count": 5,
+        "query_aggregate_count": 2,
+        "query_sort_count": 2,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      },
+      "categories": [
+        "has_aggregation",
+        "has_nested_query",
+        "has_sorting"
+      ]
+    }
+  },
+  {
+    "id": "28cb17853b98",
+    "db_id": "world_1",
+    "query": "SELECT name , GNPOld , GNP , GNP + ( GNP - GNPOld ) AS GNPFuture FROM ( SELECT name , GNPOld , 1000000.0 AS GNP , Continent FROM country WHERE Code IN ( SELECT CountryCode FROM ( SELECT CountryCode , Language , MAX ( Percentage ) FROM countrylanguage GROUP BY CountryCode ) WHERE Language = \"Chinese\" ) UNION ALL SELECT name , GNPOld , GNP , Continent FROM country WHERE Code NOT IN ( SELECT CountryCode FROM ( SELECT CountryCode , Language , MAX ( Percentage ) FROM countrylanguage GROUP BY CountryCode ) WHERE Language = \"Chinese\" ) ) WHERE Continent = \"Asia\"",
+    "question": "If the current gross national product of a country with Chinese as its main language is 1000000.0, list name, the past and current gross national product of each country in Asia, and estimate the future gross national product if the growth rate remains unchanged.",
+    "reasoning_type": "+ - H",
+    "commonsense_knowledge": "",
+    "sql": [
+      "SELECT name , GNPOld , GNP , GNP + ( GNP - GNPOld ) AS GNPFuture FROM ( SELECT name , GNPOld , 1000000.0 AS GNP , Continent FROM country WHERE Code IN ( SELECT CountryCode FROM ( SELECT CountryCode , Language , MAX ( Percentage ) FROM countrylanguage GROUP BY CountryCode ) WHERE Language = \"Chinese\" ) UNION ALL SELECT name , GNPOld , GNP , Continent FROM country WHERE Code NOT IN ( SELECT CountryCode FROM ( SELECT CountryCode , Language , MAX ( Percentage ) FROM countrylanguage GROUP BY CountryCode ) WHERE Language = \"Chinese\" ) ) WHERE Continent = \"Asia\""
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 4,
+        "query_column_count": 31,
+        "query_nested_count": 6,
+        "query_aggregate_count": 2,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      },
+      "categories": [
+        "has_aggregation",
+        "has_nested_query"
+      ]
+    }
+  },
+  {
+    "id": "ea174de3ceca",
+    "db_id": "world_1",
+    "query": "SELECT B.name FROM country A JOIN city B ON A.Code = B.CountryCode WHERE A.Continent = \"North America\" AND B.Population >= 2 * ( SELECT SUM ( Population ) FROM city WHERE District = \"Kang-won\" )",
+    "question": "What North American city has a population that is at least double the population of Kang-won?",
+    "reasoning_type": "*",
+    "commonsense_knowledge": "",
+    "sql": [
+      "SELECT B.name FROM country A JOIN city B ON A.Code = B.CountryCode WHERE A.Continent = \"North America\" AND B.Population >= 2 * ( SELECT SUM ( Population ) FROM city WHERE District = \"Kang-won\" )"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 3,
+        "query_column_count": 9,
+        "query_nested_count": 1,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      },
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "has_nested_query"
+      ]
+    }
+  },
+  {
+    "id": "de42d05841d1",
+    "db_id": "concert_singer",
+    "query": "SELECT strftime ( \"%Y\" , \"now\" ) - MIN ( Year ) AS years FROM ( SELECt Year - 3 AS Year FROM concert WHERE Theme = \"Wide Awake\" UNION ALL SELECT Year FROM concert WHERE Theme != \"Wide Awake\" )",
+    "question": "How many years ago did the earliest concert occur if the concert with the theme \"Wide Awake\" took place three years earlier?",
+    "reasoning_type": "- C H",
+    "commonsense_knowledge": "The time duration is calculated by substracting the start time from the end time.",
+    "sql": [
+      "SELECT strftime ( \"%Y\" , \"now\" ) - MIN ( Year ) AS years FROM ( SELECt Year - 3 AS Year FROM concert WHERE Theme = \"Wide Awake\" UNION ALL SELECT Year FROM concert WHERE Theme != \"Wide Awake\" )"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 9,
+        "query_nested_count": 2,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      },
+      "categories": [
+        "has_aggregation",
+        "has_nested_query"
+      ]
+    }
+  },
+  {
+    "id": "078c9c128221",
+    "db_id": "world_1",
+    "query": "SELECT Continent FROM ( SELECT Code , GNP * ( 1 + 0.005 ) AS GNP , GNPOld , Continent FROM country WHERE Code IN ( SELECT CountryCode FROM ( SELECT CountryCode , Language , MAX ( Percentage ) FROM countrylanguage GROUP BY CountryCode ) WHERE Language = \"Czech\" ) UNION ALL SELECT Code , GNP , GNPOld , Continent FROM country WHERE Code NOT IN ( SELECT CountryCode FROM ( SELECT CountryCode , Language , MAX ( Percentage ) FROM countrylanguage GROUP BY CountryCode ) WHERE Language = \"Czech\" ) ) GROUP BY Continent HAVING 100.0 * ( SUM ( GNP ) - SUM ( GNPOld ) ) / SUM ( GNPOld ) > 1.5 * ( SELECT 100.0 * ( SUM ( GNP ) - SUM ( GNPOld ) ) / SUM ( GNPOld ) FROM country WHERE Continent = \"Africa\" )",
+    "question": "Which continent would have a GNP growth rate that is at least 1.5 times greater than Africa if the GNP of countries where Czech is the dominant language increased by 0.5%?",
+    "reasoning_type": "+ - * / H",
+    "commonsense_knowledge": "",
+    "sql": [
+      "SELECT Continent FROM ( SELECT Code , GNP * ( 1 + 0.005 ) AS GNP , GNPOld , Continent FROM country WHERE Code IN ( SELECT CountryCode FROM ( SELECT CountryCode , Language , MAX ( Percentage ) FROM countrylanguage GROUP BY CountryCode ) WHERE Language = \"Czech\" ) UNION ALL SELECT Code , GNP , GNPOld , Continent FROM country WHERE Code NOT IN ( SELECT CountryCode FROM ( SELECT CountryCode , Language , MAX ( Percentage ) FROM countrylanguage GROUP BY CountryCode ) WHERE Language = \"Czech\" ) ) GROUP BY Continent HAVING 100.0 * ( SUM ( GNP ) - SUM ( GNPOld ) ) / SUM ( GNPOld ) > 1.5 * ( SELECT 100.0 * ( SUM ( GNP ) - SUM ( GNPOld ) ) / SUM ( GNPOld ) FROM country WHERE Continent = \"Africa\" )"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 5,
+        "query_column_count": 34,
+        "query_nested_count": 7,
+        "query_aggregate_count": 8,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      },
+      "categories": [
+        "has_aggregation",
+        "has_nested_query"
+      ]
+    }
+  },
+  {
+    "id": "95d36d844ab3",
+    "db_id": "world_1",
+    "query": "SELECT Continent FROM (SELECT \"1982268.0\" AS GNP, Population, Continent FROM country WHERE name = (SELECT A.name FROM country A JOIN city B ON A.Code = B.CountryCode WHERE B.name = \"Korla\" ) UNION ALL SELECT GNP, Population, Continent FROM country WHERE name != (SELECT A.name FROM country A JOIN city B ON A.Code = B.CountryCode WHERE B.name = \"Korla\" ) ) ORDER BY 1.0 * GNP / Population DESC LIMIT 1",
+    "question": "If the gross national product of the country where Korla City is located is 1982268.0, which continent is the country with the highest GNP per capita located in?",
+    "reasoning_type": "* / C H",
+    "commonsense_knowledge": "GNP per capita is computed by dividing the GNP by the population.",
+    "sql": [
+      "SELECT Continent FROM (SELECT \"1982268.0\" AS GNP, Population, Continent FROM country WHERE name = (SELECT A.name FROM country A JOIN city B ON A.Code = B.CountryCode WHERE B.name = \"Korla\" ) UNION ALL SELECT GNP, Population, Continent FROM country WHERE name != (SELECT A.name FROM country A JOIN city B ON A.Code = B.CountryCode WHERE B.name = \"Korla\" ) ) ORDER BY 1.0 * GNP / Population DESC LIMIT 1"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 6,
+        "query_column_count": 21,
+        "query_nested_count": 4,
+        "query_aggregate_count": 0,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 2
+      },
+      "categories": [
+        "has_join",
+        "has_nested_query",
+        "has_sorting"
+      ]
+    }
+  },
+  {
+    "id": "0276a4a8f662",
+    "db_id": "concert_singer",
+    "query": "SELECT C.Name , C.Age + ( A.Year - strftime ( \"%Y\" , \"now\" ) ) AS age_at_concert FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID WHERE A.Theme = \"Free choice\"",
+    "question": "What are the names and ages of the participating singers in the concert with the theme of \"Free choice\" at that time?",
+    "reasoning_type": "- + C",
+    "commonsense_knowledge": "Age is calculated by substracting date of birth from a given date.",
+    "sql": [
+      "SELECT C.Name , C.Age + ( A.Year - strftime ( \"%Y\" , \"now\" ) ) AS age_at_concert FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID WHERE A.Theme = \"Free choice\""
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 3,
+        "query_column_count": 11,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 2
+      },
+      "categories": [
+        "has_join",
+        "multi_table_simple"
+      ]
+    }
+  },
+  {
+    "id": "c673bd256584",
+    "db_id": "concert_singer",
+    "query": "SELECT Name , Age + 2001 - strftime ( \"%Y\" , \"now\" ) AS target_age FROM singer",
+    "question": "Assuming that the song \"Gentleman\" was released in the first year of the 21st century, what were the names and ages of all its singers at the time of its release?",
+    "reasoning_type": "- + C H",
+    "commonsense_knowledge": "21st century began on 1 January 2001. Age is calculated by substracting date of birth from a given date.",
+    "sql": [
+      "SELECT Name , Age + 2001 - strftime ( \"%Y\" , \"now\" ) AS target_age FROM singer"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 4,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      },
+      "categories": [
+        "single_source_basic"
+      ]
+    }
+  },
+  {
+    "id": "22ff063311c9",
+    "db_id": "concert_singer",
+    "query": "SELECT * FROM ( SELECT Name AS highest_name FROM ( SELECT Stadium_ID , Name , ( SELECT Capacity FROM stadium WHERE Name = \"Hampden Park\" ) / 10 AS Capacity , Average FROM stadium WHERE Name = \"Gayfield Park\" UNION ALL SELECt Stadium_ID , Name , Capacity , Average FROM stadium WHERE Name != \"Gayfield Park\" ) GROUP BY Stadium_ID ORDER BY 100.0 * Average / Capacity DESC LIMIT 1 ) JOIN ( SELECT COUNT ( * ) AS concerts_in_highest_stadium FROM stadium A JOIN concert B ON A.Stadium_ID = B.Stadium_ID WHERE A.Stadium_ID = ( SELECT Stadium_ID FROM ( SELECT Stadium_ID , Name , ( SELECT Capacity FROM stadium WHERE Name = \"Hampden Park\" ) / 10 AS Capacity , Average FROM stadium WHERE Name = \"Gayfield Park\" UNION ALL SELECt Stadium_ID , Name , Capacity , Average FROM stadium WHERE Name != \"Gayfield Park\" ) GROUP BY Stadium_ID ORDER BY 100.0 * Average / Capacity DESC LIMIT 1 ) ) JOIN ( SELECT Name AS lowest_name FROM ( SELECT Stadium_ID , Name , ( SELECT Capacity FROM stadium WHERE Name = \"Hampden Park\" ) / 10 AS Capacity , Average FROM stadium WHERE Name = \"Gayfield Park\" UNION ALL SELECt Stadium_ID , Name , Capacity , Average FROM stadium WHERE Name != \"Gayfield Park\" ) GROUP BY Stadium_ID ORDER BY 100.0 * Average / Capacity ASC LIMIT 1 ) JOIN ( SELECT COUNT ( * ) AS concerts_in_lowest_stadium FROM stadium A JOIN concert B ON A.Stadium_ID = B.Stadium_ID WHERE A.Stadium_ID = ( SELECT Stadium_ID FROM ( SELECT Stadium_ID , Name , ( SELECT Capacity FROM stadium WHERE Name = \"Hampden Park\" ) / 10 AS Capacity , Average FROM stadium WHERE Name = \"Gayfield Park\" UNION ALL SELECt Stadium_ID , Name , Capacity , Average FROM stadium WHERE Name != \"Gayfield Park\" ) GROUP BY Stadium_ID ORDER BY 100.0 * Average / Capacity ASC LIMIT 1 ) )",
+    "question": "What are the names of the stadiums with the highest and lowest average attendance rates, if Gayfield Park stadium has one-tenth the capacity of Hampden Park stadium, and how many concerts have been held in each of them?",
+    "reasoning_type": "* / C H",
+    "commonsense_knowledge": "Attendance rate is calculated by divding attendance amount by the capacity of the stadium.",
+    "sql": [
+      "SELECT * FROM ( SELECT Name AS highest_name FROM ( SELECT Stadium_ID , Name , ( SELECT Capacity FROM stadium WHERE Name = \"Hampden Park\" ) / 10 AS Capacity , Average FROM stadium WHERE Name = \"Gayfield Park\" UNION ALL SELECt Stadium_ID , Name , Capacity , Average FROM stadium WHERE Name != \"Gayfield Park\" ) GROUP BY Stadium_ID ORDER BY 100.0 * Average / Capacity DESC LIMIT 1 ) JOIN ( SELECT COUNT ( * ) AS concerts_in_highest_stadium FROM stadium A JOIN concert B ON A.Stadium_ID = B.Stadium_ID WHERE A.Stadium_ID = ( SELECT Stadium_ID FROM ( SELECT Stadium_ID , Name , ( SELECT Capacity FROM stadium WHERE Name = \"Hampden Park\" ) / 10 AS Capacity , Average FROM stadium WHERE Name = \"Gayfield Park\" UNION ALL SELECt Stadium_ID , Name , Capacity , Average FROM stadium WHERE Name != \"Gayfield Park\" ) GROUP BY Stadium_ID ORDER BY 100.0 * Average / Capacity DESC LIMIT 1 ) ) JOIN ( SELECT Name AS lowest_name FROM ( SELECT Stadium_ID , Name , ( SELECT Capacity FROM stadium WHERE Name = \"Hampden Park\" ) / 10 AS Capacity , Average FROM stadium WHERE Name = \"Gayfield Park\" UNION ALL SELECt Stadium_ID , Name , Capacity , Average FROM stadium WHERE Name != \"Gayfield Park\" ) GROUP BY Stadium_ID ORDER BY 100.0 * Average / Capacity ASC LIMIT 1 ) JOIN ( SELECT COUNT ( * ) AS concerts_in_lowest_stadium FROM stadium A JOIN concert B ON A.Stadium_ID = B.Stadium_ID WHERE A.Stadium_ID = ( SELECT Stadium_ID FROM ( SELECT Stadium_ID , Name , ( SELECT Capacity FROM stadium WHERE Name = \"Hampden Park\" ) / 10 AS Capacity , Average FROM stadium WHERE Name = \"Gayfield Park\" UNION ALL SELECt Stadium_ID , Name , Capacity , Average FROM stadium WHERE Name != \"Gayfield Park\" ) GROUP BY Stadium_ID ORDER BY 100.0 * Average / Capacity ASC LIMIT 1 ) )"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 16,
+        "query_column_count": 78,
+        "query_nested_count": 18,
+        "query_aggregate_count": 2,
+        "query_sort_count": 4,
+        "query_window_func_count": 0,
+        "query_join_count": 5
+      },
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "has_nested_query",
+        "has_sorting"
+      ]
+    }
+  },
+  {
+    "id": "e5f9cd370c76",
+    "db_id": "concert_singer",
+    "query": "SELECT t1.concert_ID, t1.concert_Name, 100.0 * n_female / n AS female_proportion FROM (SELECT A.concert_ID, A.concert_Name, COUNT (*) AS n_female FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID JOIN stadium D ON D.Stadium_ID = A.Stadium_ID WHERE D.Name = \"Somerset Park\" AND C.Is_male = \"F\" GROUP BY A.concert_ID UNION ALL SELECT A.concert_ID, A.concert_Name, 0 AS n_female FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID JOIN stadium D ON D.Stadium_ID = A.Stadium_ID WHERE D.Name = \"Somerset Park\" AND A.concert_ID NOT IN (SELECT A.concert_ID FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID JOIN stadium D ON D.Stadium_ID = A.Stadium_ID WHERE D.Name = \"Somerset Park\" AND C.Is_male = \"F\" GROUP BY A.concert_ID) GROUP BY A.concert_ID) t1 JOIN (SELECT A.concert_ID, A.concert_Name, COUNT (*) AS n FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID JOIN stadium D ON D.Stadium_ID = A.Stadium_ID WHERE D.Name = \"Somerset Park\" GROUP BY A.concert_ID) t2 ON t1.concert_ID = t2.concert_ID",
+    "question": "What are the ID and name of each concert held at Somerset Park stadium, and what is the percentage of female singers in each of these concert held at Somerset Park?",
+    "reasoning_type": "+ * /",
+    "commonsense_knowledge": "",
+    "sql": [
+      "SELECT t1.concert_ID, t1.concert_Name, 100.0 * n_female / n AS female_proportion FROM (SELECT A.concert_ID, A.concert_Name, COUNT (*) AS n_female FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID JOIN stadium D ON D.Stadium_ID = A.Stadium_ID WHERE D.Name = \"Somerset Park\" AND C.Is_male = \"F\" GROUP BY A.concert_ID UNION ALL SELECT A.concert_ID, A.concert_Name, 0 AS n_female FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID JOIN stadium D ON D.Stadium_ID = A.Stadium_ID WHERE D.Name = \"Somerset Park\" AND A.concert_ID NOT IN (SELECT A.concert_ID FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID JOIN stadium D ON D.Stadium_ID = A.Stadium_ID WHERE D.Name = \"Somerset Park\" AND C.Is_male = \"F\" GROUP BY A.concert_ID) GROUP BY A.concert_ID) t1 JOIN (SELECT A.concert_ID, A.concert_Name, COUNT (*) AS n FROM concert A JOIN singer_in_concert B ON A.concert_ID = B.concert_ID JOIN singer C ON B.Singer_ID = C.Singer_ID JOIN stadium D ON D.Stadium_ID = A.Stadium_ID WHERE D.Name = \"Somerset Park\" GROUP BY A.concert_ID) t2 ON t1.concert_ID = t2.concert_ID"
+    ],
+    "meta": {
+      "features": {
+        "query_table_count": 16,
+        "query_column_count": 54,
+        "query_nested_count": 4,
+        "query_aggregate_count": 2,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 13
+      },
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "has_nested_query"
+      ]
+    }
+  }
+]

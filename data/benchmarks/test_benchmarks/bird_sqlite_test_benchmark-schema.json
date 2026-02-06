@@ -1,0 +1,1246 @@
+{
+  "california_schools": {
+    "name": "california_schools",
+    "tables": {
+      "frpm": {
+        "name": "frpm",
+        "columns": [
+          {
+            "name": "CDSCode",
+            "type": "TEXT",
+            "primary_key": true,
+            "foreign_keys": [
+              {
+                "target_table": "schools",
+                "target_column": "CDSCode"
+              }
+            ],
+            "description": "",
+            "value_samples": [
+              "01100170109835",
+              "01100170112607",
+              "01100170118489",
+              "01100170123968",
+              "01100170124172"
+            ]
+          },
+          {
+            "name": "Academic Year",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "2014-2015"
+            ]
+          },
+          {
+            "name": "County Code",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "01",
+              "02",
+              "03",
+              "04",
+              "05"
+            ]
+          },
+          {
+            "name": "District Code",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              10017,
+              31609,
+              31617,
+              61119,
+              61127
+            ]
+          },
+          {
+            "name": "School Code",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "0109835",
+              "0112607",
+              "0118489",
+              "0123968",
+              "0124172"
+            ]
+          },
+          {
+            "name": "County Name",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Alameda",
+              "Alpine",
+              "Amador",
+              "Butte",
+              "Calaveras"
+            ]
+          },
+          {
+            "name": "District Name",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Alameda County Office of Education",
+              "California School for the Blind (State Special Schl)",
+              "California School for the Deaf-Fremont (State Special Schl)",
+              "Alameda Unified",
+              "Albany City Unified"
+            ]
+          },
+          {
+            "name": "School Name",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "FAME Public Charter",
+              "Envision Academy for Arts & Technology",
+              "Aspire California College Preparatory Academy",
+              "Community School for Creative Education",
+              "Yu Ming Charter"
+            ]
+          },
+          {
+            "name": "District Type",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "County Office of Education (COE)",
+              "State Special Schools",
+              "Unified School District",
+              "Elementary School District",
+              "High School District"
+            ]
+          },
+          {
+            "name": "School Type",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "K-12 Schools (Public)",
+              "High Schools (Public)",
+              "Elementary Schools (Public)",
+              "Juvenile Court Schools",
+              "County Community"
+            ]
+          },
+          {
+            "name": "Educational Option Type",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Traditional",
+              "Juvenile Court School",
+              "County Community School",
+              "State Special School",
+              "Alternative School of Choice"
+            ]
+          },
+          {
+            "name": "NSLP Provision Status",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Breakfast Provision 2",
+              "Provision 2",
+              "CEP",
+              "Lunch Provision 2",
+              "Provision 1"
+            ]
+          },
+          {
+            "name": "Charter School (Y/N)",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              1,
+              0
+            ]
+          },
+          {
+            "name": "Charter School Number",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "0728",
+              "0811",
+              "1049",
+              "1284",
+              "1296"
+            ]
+          },
+          {
+            "name": "Charter Funding Type",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Directly funded",
+              "Locally funded",
+              "Not in CS funding model"
+            ]
+          },
+          {
+            "name": "IRC",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              1,
+              0
+            ]
+          },
+          {
+            "name": "Low Grade",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "K",
+              "9",
+              "1",
+              "P",
+              "6"
+            ]
+          },
+          {
+            "name": "High Grade",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "12",
+              "8",
+              "5",
+              "Adult",
+              "6"
+            ]
+          },
+          {
+            "name": "Enrollment (K-12)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              1087.0,
+              395.0,
+              244.0,
+              191.0,
+              257.0
+            ]
+          },
+          {
+            "name": "Free Meal Count (K-12)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              565.0,
+              186.0,
+              134.0,
+              113.0,
+              14.0
+            ]
+          },
+          {
+            "name": "Percent (%) Eligible Free (K-12)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              0.519779208831647,
+              0.470886075949367,
+              0.549180327868853,
+              0.591623036649215,
+              0.0544747081712062
+            ]
+          },
+          {
+            "name": "FRPM Count (K-12)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              715.0,
+              186.0,
+              175.0,
+              139.0,
+              21.0
+            ]
+          },
+          {
+            "name": "Percent (%) Eligible FRPM (K-12)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              0.657773689052438,
+              0.470886075949367,
+              0.717213114754098,
+              0.727748691099476,
+              0.0817120622568093
+            ]
+          },
+          {
+            "name": "Enrollment (Ages 5-17)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              1070.0,
+              376.0,
+              230.0,
+              190.0,
+              257.0
+            ]
+          },
+          {
+            "name": "Free Meal Count (Ages 5-17)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              553.0,
+              182.0,
+              128.0,
+              113.0,
+              14.0
+            ]
+          },
+          {
+            "name": "Percent (%) Eligible Free (Ages 5-17)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              0.516822429906542,
+              0.484042553191489,
+              0.556521739130435,
+              0.594736842105263,
+              0.0544747081712062
+            ]
+          },
+          {
+            "name": "FRPM Count (Ages 5-17)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              702.0,
+              182.0,
+              168.0,
+              139.0,
+              21.0
+            ]
+          },
+          {
+            "name": "Percent (%) Eligible FRPM (Ages 5-17)",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              0.65607476635514,
+              0.484042553191489,
+              0.730434782608696,
+              0.731578947368421,
+              0.0817120622568093
+            ]
+          },
+          {
+            "name": "2013-14 CALPADS Fall 1 Certification Status",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              1
+            ]
+          }
+        ],
+        "description": "",
+        "table_str": ""
+      },
+      "satscores": {
+        "name": "satscores",
+        "columns": [
+          {
+            "name": "cds",
+            "type": "TEXT",
+            "primary_key": true,
+            "foreign_keys": [
+              {
+                "target_table": "schools",
+                "target_column": "CDSCode"
+              }
+            ],
+            "description": "",
+            "value_samples": [
+              "01100170000000",
+              "01100170109835",
+              "01100170112607",
+              "01100170118489",
+              "01611190000000"
+            ]
+          },
+          {
+            "name": "rtype",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "D",
+              "S"
+            ]
+          },
+          {
+            "name": "sname",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "FAME Public Charter",
+              "Envision Academy for Arts & Technology",
+              "Aspire California College Preparatory Academy",
+              "Alameda Science and Technology Institute",
+              "Nea Community Learning Center"
+            ]
+          },
+          {
+            "name": "dname",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Alameda County Office of Education",
+              "Alameda Unified",
+              "Albany City Unified",
+              "Berkeley Unified",
+              "Castro Valley Unified"
+            ]
+          },
+          {
+            "name": "cname",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Alameda",
+              "Amador",
+              "Butte",
+              "Calaveras",
+              "Colusa"
+            ]
+          },
+          {
+            "name": "enroll12",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              398,
+              62,
+              75,
+              61,
+              922
+            ]
+          },
+          {
+            "name": "NumTstTakr",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              88,
+              17,
+              71,
+              0,
+              544
+            ]
+          },
+          {
+            "name": "AvgScrRead",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              418,
+              503,
+              397,
+              521,
+              562
+            ]
+          },
+          {
+            "name": "AvgScrMath",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              418,
+              546,
+              387,
+              590,
+              573
+            ]
+          },
+          {
+            "name": "AvgScrWrite",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              417,
+              505,
+              395,
+              519,
+              555
+            ]
+          },
+          {
+            "name": "NumGE1500",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              14,
+              9,
+              5,
+              333,
+              29
+            ]
+          }
+        ],
+        "description": "",
+        "table_str": ""
+      },
+      "schools": {
+        "name": "schools",
+        "columns": [
+          {
+            "name": "CDSCode",
+            "type": "TEXT",
+            "primary_key": true,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "01100170000000",
+              "01100170109835",
+              "01100170112607",
+              "01100170118489",
+              "01100170123968"
+            ]
+          },
+          {
+            "name": "NCESDist",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "0691051",
+              "0600002",
+              "0600003",
+              "0601397",
+              "0601770"
+            ]
+          },
+          {
+            "name": "NCESSchool",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "10546",
+              "10947",
+              "12283",
+              "12844",
+              "12901"
+            ]
+          },
+          {
+            "name": "StatusType",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Active",
+              "Closed",
+              "Merged",
+              "Pending"
+            ]
+          },
+          {
+            "name": "County",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Alameda",
+              "Alpine",
+              "Amador",
+              "Butte",
+              "Calaveras"
+            ]
+          },
+          {
+            "name": "District",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Alameda County Office of Education",
+              "California School for the Blind (State Special Schl)",
+              "California School for the Deaf-Fremont (State Special Schl)",
+              "California Community College, Chancellors",
+              "Mission Valley ROC/P"
+            ]
+          },
+          {
+            "name": "School",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "FAME Public Charter",
+              "Envision Academy for Arts & Technology",
+              "Aspire California College Preparatory Academy",
+              "Community School for Creative Education",
+              "Yu Ming Charter"
+            ]
+          },
+          {
+            "name": "Street",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "313 West Winton Avenue",
+              "39899 Balentine Drive, Suite 335",
+              "1515 Webster Street",
+              "2125 Jefferson Avenue",
+              "2111 International Boulevard"
+            ]
+          },
+          {
+            "name": "StreetAbr",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "313 West Winton Ave.",
+              "39899 Balentine Dr., Ste. 335",
+              "1515 Webster St.",
+              "2125 Jefferson Ave.",
+              "2111 International Blvd."
+            ]
+          },
+          {
+            "name": "City",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Hayward",
+              "Newark",
+              "Oakland",
+              "Berkeley",
+              "San Leandro"
+            ]
+          },
+          {
+            "name": "Zip",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "94544-1136",
+              "94560-5359",
+              "94612-3355",
+              "94703-1414",
+              "94606-4903"
+            ]
+          },
+          {
+            "name": "State",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "CA"
+            ]
+          },
+          {
+            "name": "MailStreet",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "313 West Winton Avenue",
+              "39899 Balentine Drive, Suite 335",
+              "1515 Webster Street",
+              "1001 22nd Avenue, Suite 100",
+              "2111 International Boulevard"
+            ]
+          },
+          {
+            "name": "MailStrAbr",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "313 West Winton Ave.",
+              "39899 Balentine Dr., Ste. 335",
+              "1515 Webster St.",
+              "1001 22nd Ave., Ste. 100",
+              "2111 International Blvd."
+            ]
+          },
+          {
+            "name": "MailCity",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Hayward",
+              "Newark",
+              "Oakland",
+              "San Leandro",
+              "Dublin"
+            ]
+          },
+          {
+            "name": "MailZip",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "94544-1136",
+              "94560-5359",
+              "94612",
+              "94606",
+              "94606-4903"
+            ]
+          },
+          {
+            "name": "MailState",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "CA"
+            ]
+          },
+          {
+            "name": "Phone",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "(510) 887-0152",
+              "(510) 596-8901",
+              "(510) 686-4131",
+              "(510) 452-2063",
+              "(510) 842-1181"
+            ]
+          },
+          {
+            "name": "Ext",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "130",
+              "1240",
+              "1200",
+              "1311",
+              "39117"
+            ]
+          },
+          {
+            "name": "Website",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "www.acoe.org",
+              "www.envisionacademy.org/",
+              "www.aspirepublicschools.org",
+              "www.communityschoolforcreativeeducation.org",
+              "www.yumingschool.org"
+            ]
+          },
+          {
+            "name": "OpenDate",
+            "type": "DATE",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "2005-08-29",
+              "2006-08-28",
+              "2008-08-21",
+              "2011-08-22",
+              "2011-08-09"
+            ]
+          },
+          {
+            "name": "ClosedDate",
+            "type": "DATE",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "2015-07-31",
+              "2015-06-30",
+              "1989-06-30",
+              "2013-06-30",
+              "1987-06-22"
+            ]
+          },
+          {
+            "name": "Charter",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              1,
+              0
+            ]
+          },
+          {
+            "name": "CharterNum",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "0728",
+              "0811",
+              "1049",
+              "1284",
+              "1296"
+            ]
+          },
+          {
+            "name": "FundingType",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Directly funded",
+              "Locally funded",
+              "Not in CS funding model"
+            ]
+          },
+          {
+            "name": "DOC",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "00",
+              "31",
+              "34",
+              "42",
+              "54"
+            ]
+          },
+          {
+            "name": "DOCType",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "County Office of Education (COE)",
+              "State Special Schools",
+              "Non-School Locations",
+              "Joint Powers Authority (JPA)",
+              "Unified School District"
+            ]
+          },
+          {
+            "name": "SOC",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "65",
+              "66",
+              "60",
+              "10",
+              "14"
+            ]
+          },
+          {
+            "name": "SOCType",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "K-12 Schools (Public)",
+              "High Schools (Public)",
+              "Elementary Schools (Public)",
+              "County Community",
+              "Juvenile Court Schools"
+            ]
+          },
+          {
+            "name": "EdOpsCode",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "TRAD",
+              "JUV",
+              "COMM",
+              "OPP",
+              "SPEC"
+            ]
+          },
+          {
+            "name": "EdOpsName",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Traditional",
+              "Juvenile Court School",
+              "County Community School",
+              "Opportunity School",
+              "Special Education School"
+            ]
+          },
+          {
+            "name": "EILCode",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "ELEMHIGH",
+              "HS",
+              "ELEM",
+              "UG",
+              "INTMIDJR"
+            ]
+          },
+          {
+            "name": "EILName",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Elementary-High Combination",
+              "High School",
+              "Elementary",
+              "Ungraded",
+              "Intermediate/Middle/Junior High"
+            ]
+          },
+          {
+            "name": "GSoffered",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "K-12",
+              "9-12",
+              "K-8",
+              "7-12",
+              "6-8"
+            ]
+          },
+          {
+            "name": "GSserved",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "K-12",
+              "9-12",
+              "K-7",
+              "K-5",
+              "8-12"
+            ]
+          },
+          {
+            "name": "Virtual",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "P",
+              "N",
+              "F"
+            ]
+          },
+          {
+            "name": "Magnet",
+            "type": "INTEGER",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              0,
+              1
+            ]
+          },
+          {
+            "name": "Latitude",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              37.658212,
+              37.521436,
+              37.80452,
+              37.868991,
+              37.784648
+            ]
+          },
+          {
+            "name": "Longitude",
+            "type": "REAL",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              -122.09713,
+              -121.99391,
+              -122.26815,
+              -122.27844,
+              -122.23863
+            ]
+          },
+          {
+            "name": "AdmFName1",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "L Karen",
+              "Laura",
+              "Clifford",
+              "Sue",
+              "David"
+            ]
+          },
+          {
+            "name": "AdmLName1",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Monroe",
+              "Robell",
+              "Thompson",
+              "Park",
+              "Castillo"
+            ]
+          },
+          {
+            "name": "AdmEmail1",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "lkmonroe@acoe.org",
+              "laura@envisionacademy.org",
+              "cliffordt@communityschoolforcreativeeducation.org",
+              "spark@yumingschool.org",
+              "davidc@urbanmontessori.org"
+            ]
+          },
+          {
+            "name": "AdmFName2",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Sau-Lim (Lance)",
+              "Jennifer",
+              "Annalisa",
+              "Woo",
+              "David"
+            ]
+          },
+          {
+            "name": "AdmLName2",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Tsang",
+              "Koelling",
+              "Moore",
+              "Williams",
+              "Hoopes"
+            ]
+          },
+          {
+            "name": "AdmEmail2",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "stsang@unityhigh.org",
+              "jkoelling@efcps.net",
+              "annalisa.moore@neaclc.org",
+              "wwilliams@aoaschools.org",
+              "david.hoopes@alamedaclc.org"
+            ]
+          },
+          {
+            "name": "AdmFName3",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Drew",
+              "Irma",
+              "Vickie",
+              "Barbara",
+              "Kelly"
+            ]
+          },
+          {
+            "name": "AdmLName3",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "Sarratore",
+              "Munoz",
+              "Chang",
+              "Mandelbaum",
+              "Kriss"
+            ]
+          },
+          {
+            "name": "AdmEmail3",
+            "type": "TEXT",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "dsarratore@vincentacademy.org",
+              "gmunoz@piedmont.k12.ca.us",
+              "vickiechang@acoe.org",
+              "bmandelbaum@bcoe.org",
+              "kkriss@pusdk12.org"
+            ]
+          },
+          {
+            "name": "LastUpdate",
+            "type": "DATE",
+            "primary_key": false,
+            "foreign_keys": [],
+            "description": "",
+            "value_samples": [
+              "2015-06-23",
+              "2015-09-01",
+              "2015-06-18",
+              "2015-07-01",
+              "2016-07-18"
+            ]
+          }
+        ],
+        "description": "",
+        "table_str": ""
+      }
+    }
+  }
+}

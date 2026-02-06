@@ -1,0 +1,1310 @@
+[
+  {
+    "question_id": 0,
+    "db_id": "concert_singer",
+    "question": "What are all the song names by singers who are older than average?",
+    "SQL": "SELECT song_name FROM singer WHERE age  >  (SELECT avg(age) FROM singer)",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 3,
+        "query_nested_count": 1,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT song_name FROM singer WHERE age  >  (SELECT avg(age) FROM singer)"
+    ]
+  },
+  {
+    "question_id": 1,
+    "db_id": "pets_1",
+    "question": "Find number of pets owned by students who are older than 20.",
+    "SQL": "SELECT count(*) FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid WHERE T1.age  >  20",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 3,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid WHERE T1.age  >  20"
+    ]
+  },
+  {
+    "question_id": 2,
+    "db_id": "pets_1",
+    "question": "How many dog pets are raised by female students?",
+    "SQL": "SELECT count(*) FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T2.petid  =  T3.petid WHERE T1.sex  =  'F' AND T3.pettype  =  'dog'",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 3,
+        "query_column_count": 6,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 2
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T2.petid  =  T3.petid WHERE T1.sex  =  'F' AND T3.pettype  =  'dog'"
+    ]
+  },
+  {
+    "question_id": 3,
+    "db_id": "pets_1",
+    "question": "Find the major and age of students who do not have a cat pet.",
+    "SQL": "SELECT major ,  age FROM student WHERE stuid NOT IN (SELECT T1.stuid FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'cat')",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_join",
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 4,
+        "query_column_count": 9,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 2
+      }
+    },
+    "sql": [
+      "SELECT major ,  age FROM student WHERE stuid NOT IN (SELECT T1.stuid FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'cat')"
+    ]
+  },
+  {
+    "question_id": 4,
+    "db_id": "pets_1",
+    "question": "Find the first name and age of students who have a dog but do not have a cat as a pet.",
+    "SQL": "SELECT T1.fname ,  T1.age FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'dog' AND T1.stuid NOT IN (SELECT T1.stuid FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'cat')",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_join",
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 6,
+        "query_column_count": 14,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 4
+      }
+    },
+    "sql": [
+      "SELECT T1.fname ,  T1.age FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'dog' AND T1.stuid NOT IN (SELECT T1.stuid FROM student AS T1 JOIN has_pet AS T2 ON T1.stuid  =  T2.stuid JOIN pets AS T3 ON T3.petid  =  T2.petid WHERE T3.pettype  =  'cat')"
+    ]
+  },
+  {
+    "question_id": 5,
+    "db_id": "car_1",
+    "question": "What is the number of continents?",
+    "SQL": "SELECT count(*) FROM CONTINENTS;",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 0,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM CONTINENTS;"
+    ]
+  },
+  {
+    "question_id": 6,
+    "db_id": "car_1",
+    "question": "How many models does each car maker produce? List maker full name, id and the number.",
+    "SQL": "SELECT T1.FullName ,  T1.Id ,  count(*) FROM CAR_MAKERS AS T1 JOIN MODEL_LIST AS T2 ON T1.Id  =  T2.Maker GROUP BY T1.Id;",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 5,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT T1.FullName ,  T1.Id ,  count(*) FROM CAR_MAKERS AS T1 JOIN MODEL_LIST AS T2 ON T1.Id  =  T2.Maker GROUP BY T1.Id;"
+    ]
+  },
+  {
+    "question_id": 7,
+    "db_id": "car_1",
+    "question": "What model has the most different versions?",
+    "SQL": "SELECT Model FROM CAR_NAMES GROUP BY Model ORDER BY count(*) DESC LIMIT 1;",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_sorting",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT Model FROM CAR_NAMES GROUP BY Model ORDER BY count(*) DESC LIMIT 1;"
+    ]
+  },
+  {
+    "question_id": 8,
+    "db_id": "car_1",
+    "question": "How many countries has more than 2 car makers ?",
+    "SQL": "select count(*) from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country group by t1.countryid having count(*)  >  2",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 3,
+        "query_nested_count": 0,
+        "query_aggregate_count": 2,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "select count(*) from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country group by t1.countryid having count(*)  >  2"
+    ]
+  },
+  {
+    "question_id": 9,
+    "db_id": "car_1",
+    "question": "How many cars has over 6 cylinders?",
+    "SQL": "SELECT COUNT(*) FROM CARS_DATA WHERE Cylinders  >  6;",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 1,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT COUNT(*) FROM CARS_DATA WHERE Cylinders  >  6;"
+    ]
+  },
+  {
+    "question_id": 10,
+    "db_id": "car_1",
+    "question": "What are the ids and names of all countries that either have more than 3 car makers or produce fiat model ?",
+    "SQL": "select t1.countryid ,  t1.countryname from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country group by t1.countryid having count(*)  >  3 union select t1.countryid ,  t1.countryname from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country join model_list as t3 on t2.id  =  t3.maker where t3.model  =  'fiat';",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 5,
+        "query_column_count": 12,
+        "query_nested_count": 1,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 3
+      }
+    },
+    "sql": [
+      "select t1.countryid ,  t1.countryname from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country group by t1.countryid having count(*)  >  3 union select t1.countryid ,  t1.countryname from countries as t1 join car_makers as t2 on t1.countryid  =  t2.country join model_list as t3 on t2.id  =  t3.maker where t3.model  =  'fiat';"
+    ]
+  },
+  {
+    "question_id": 11,
+    "db_id": "flight_2",
+    "question": "How many airports do we have?",
+    "SQL": "SELECT count(*) FROM AIRPORTS",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 0,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM AIRPORTS"
+    ]
+  },
+  {
+    "question_id": 12,
+    "db_id": "flight_2",
+    "question": "How many flights do we have?",
+    "SQL": "SELECT count(*) FROM FLIGHTS",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 0,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM FLIGHTS"
+    ]
+  },
+  {
+    "question_id": 13,
+    "db_id": "flight_2",
+    "question": "Give the city and country for the Alton airport.",
+    "SQL": "SELECT City ,  Country FROM AIRPORTS WHERE AirportName  =  \"Alton\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 4,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT City ,  Country FROM AIRPORTS WHERE AirportName  =  \"Alton\""
+    ]
+  },
+  {
+    "question_id": 14,
+    "db_id": "flight_2",
+    "question": "Count the number of flights into ATO.",
+    "SQL": "SELECT count(*) FROM FLIGHTS WHERE DestAirport  =  \"ATO\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM FLIGHTS WHERE DestAirport  =  \"ATO\""
+    ]
+  },
+  {
+    "question_id": 15,
+    "db_id": "flight_2",
+    "question": "How many flights arriving in Aberdeen city?",
+    "SQL": "SELECT count(*) FROM FLIGHTS AS T1 JOIN AIRPORTS AS T2 ON T1.DestAirport  =  T2.AirportCode WHERE T2.City  =  \"Aberdeen\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 4,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM FLIGHTS AS T1 JOIN AIRPORTS AS T2 ON T1.DestAirport  =  T2.AirportCode WHERE T2.City  =  \"Aberdeen\""
+    ]
+  },
+  {
+    "question_id": 16,
+    "db_id": "flight_2",
+    "question": "Give the code of the airport with the least flights.",
+    "SQL": "SELECT T1.AirportCode FROM AIRPORTS AS T1 JOIN FLIGHTS AS T2 ON T1.AirportCode  =  T2.DestAirport OR T1.AirportCode  =  T2.SourceAirport GROUP BY T1.AirportCode ORDER BY count(*) LIMIT 1",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "has_sorting",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 6,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT T1.AirportCode FROM AIRPORTS AS T1 JOIN FLIGHTS AS T2 ON T1.AirportCode  =  T2.DestAirport OR T1.AirportCode  =  T2.SourceAirport GROUP BY T1.AirportCode ORDER BY count(*) LIMIT 1"
+    ]
+  },
+  {
+    "question_id": 17,
+    "db_id": "flight_2",
+    "question": "Find the number of flights landing in the city of Aberdeen or Abilene.",
+    "SQL": "SELECT count(*) FROM Flights AS T1 JOIN Airports AS T2 ON T1.DestAirport  =  T2.AirportCode WHERE T2.city  =  \"Aberdeen\" OR T2.city  =  \"Abilene\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 6,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM Flights AS T1 JOIN Airports AS T2 ON T1.DestAirport  =  T2.AirportCode WHERE T2.city  =  \"Aberdeen\" OR T2.city  =  \"Abilene\""
+    ]
+  },
+  {
+    "question_id": 18,
+    "db_id": "employee_hire_evaluation",
+    "question": "Find the name of the shops that do not hire any employee.",
+    "SQL": "SELECT name FROM shop WHERE shop_id NOT IN (SELECT shop_id FROM hiring)",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 3,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT name FROM shop WHERE shop_id NOT IN (SELECT shop_id FROM hiring)"
+    ]
+  },
+  {
+    "question_id": 19,
+    "db_id": "cre_Doc_Template_Mgt",
+    "question": "Count the number of templates.",
+    "SQL": "SELECT count(*) FROM Templates",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 0,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM Templates"
+    ]
+  },
+  {
+    "question_id": 20,
+    "db_id": "cre_Doc_Template_Mgt",
+    "question": "Count the number of templates of the type CV.",
+    "SQL": "SELECT count(*) FROM Templates WHERE template_type_code  =  \"CV\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM Templates WHERE template_type_code  =  \"CV\""
+    ]
+  },
+  {
+    "question_id": 21,
+    "db_id": "cre_Doc_Template_Mgt",
+    "question": "Show all template type codes with less than three templates.",
+    "SQL": "SELECT template_type_code FROM Templates GROUP BY template_type_code HAVING count(*)  <  3",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT template_type_code FROM Templates GROUP BY template_type_code HAVING count(*)  <  3"
+    ]
+  },
+  {
+    "question_id": 22,
+    "db_id": "course_teach",
+    "question": "Show different hometown of teachers and the number of teachers from each hometown.",
+    "SQL": "SELECT Hometown ,  COUNT(*) FROM teacher GROUP BY Hometown",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT Hometown ,  COUNT(*) FROM teacher GROUP BY Hometown"
+    ]
+  },
+  {
+    "question_id": 23,
+    "db_id": "course_teach",
+    "question": "Show names of teachers that teach at least two courses.",
+    "SQL": "SELECT T2.Name FROM course_arrange AS T1 JOIN teacher AS T2 ON T1.Teacher_ID  =  T2.Teacher_ID GROUP BY T2.Name HAVING COUNT(*)  >=  2",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 4,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT T2.Name FROM course_arrange AS T1 JOIN teacher AS T2 ON T1.Teacher_ID  =  T2.Teacher_ID GROUP BY T2.Name HAVING COUNT(*)  >=  2"
+    ]
+  },
+  {
+    "question_id": 24,
+    "db_id": "wta_1",
+    "question": "What is the best rank of losers across all matches?",
+    "SQL": "SELECT min(loser_rank) FROM matches",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 1,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT min(loser_rank) FROM matches"
+    ]
+  },
+  {
+    "question_id": 25,
+    "db_id": "wta_1",
+    "question": "List the names of all winners who played in both 2013 and 2016.",
+    "SQL": "SELECT winner_name FROM matches WHERE YEAR  =  2013 INTERSECT SELECT winner_name FROM matches WHERE YEAR  =  2016",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 4,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT winner_name FROM matches WHERE YEAR  =  2013 INTERSECT SELECT winner_name FROM matches WHERE YEAR  =  2016"
+    ]
+  },
+  {
+    "question_id": 26,
+    "db_id": "wta_1",
+    "question": "What are the country code and first name of the players who won in both tourney WTA Championships and Australian Open?",
+    "SQL": "SELECT T1.country_code ,  T1.first_name FROM players AS T1 JOIN matches AS T2 ON T1.player_id  =  T2.winner_id WHERE T2.tourney_name  =  'WTA Championships' INTERSECT SELECT T1.country_code ,  T1.first_name FROM players AS T1 JOIN matches AS T2 ON T1.player_id  =  T2.winner_id WHERE T2.tourney_name  =  'Australian Open'",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_join",
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 4,
+        "query_column_count": 10,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 2
+      }
+    },
+    "sql": [
+      "SELECT T1.country_code ,  T1.first_name FROM players AS T1 JOIN matches AS T2 ON T1.player_id  =  T2.winner_id WHERE T2.tourney_name  =  'WTA Championships' INTERSECT SELECT T1.country_code ,  T1.first_name FROM players AS T1 JOIN matches AS T2 ON T1.player_id  =  T2.winner_id WHERE T2.tourney_name  =  'Australian Open'"
+    ]
+  },
+  {
+    "question_id": 27,
+    "db_id": "wta_1",
+    "question": "List the first and last name of all players who are left / L hand in the order of birth date.",
+    "SQL": "SELECT first_name ,  last_name FROM players WHERE hand  =  'L' ORDER BY birth_date",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_sorting",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 4,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT first_name ,  last_name FROM players WHERE hand  =  'L' ORDER BY birth_date"
+    ]
+  },
+  {
+    "question_id": 28,
+    "db_id": "wta_1",
+    "question": "What is the name of the winner with the most rank points who participated in the Australian Open tournament?",
+    "SQL": "SELECT winner_name FROM matches WHERE tourney_name  =  'Australian Open' ORDER BY winner_rank_points DESC LIMIT 1",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_sorting",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 3,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT winner_name FROM matches WHERE tourney_name  =  'Australian Open' ORDER BY winner_rank_points DESC LIMIT 1"
+    ]
+  },
+  {
+    "question_id": 29,
+    "db_id": "wta_1",
+    "question": "What is the code of the country with the most players?",
+    "SQL": "SELECT country_code FROM players GROUP BY country_code ORDER BY count(*) DESC LIMIT 1",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_sorting",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT country_code FROM players GROUP BY country_code ORDER BY count(*) DESC LIMIT 1"
+    ]
+  },
+  {
+    "question_id": 30,
+    "db_id": "battle_death",
+    "question": "What are the distinct battle names which are between bulgarian commander 'Kaloyan' and latin commander 'Baldwin I'?",
+    "SQL": "SELECT name FROM battle WHERE bulgarian_commander  =  'Kaloyan' AND latin_commander  =  'Baldwin I'",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 3,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT name FROM battle WHERE bulgarian_commander  =  'Kaloyan' AND latin_commander  =  'Baldwin I'"
+    ]
+  },
+  {
+    "question_id": 31,
+    "db_id": "student_transcripts_tracking",
+    "question": "Which student has enrolled for the most times in any program? List the id, first name, middle name, last name, the number of enrollments and student id.",
+    "SQL": "SELECT T1.student_id ,  T1.first_name ,  T1.middle_name ,  T1.last_name ,  count(*) ,  T1.student_id FROM Students AS T1 JOIN Student_Enrolment AS T2 ON T1.student_id  =  T2.student_id GROUP BY T1.student_id ORDER BY count(*) DESC LIMIT 1",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "has_sorting",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 8,
+        "query_nested_count": 0,
+        "query_aggregate_count": 2,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT T1.student_id ,  T1.first_name ,  T1.middle_name ,  T1.last_name ,  count(*) ,  T1.student_id FROM Students AS T1 JOIN Student_Enrolment AS T2 ON T1.student_id  =  T2.student_id GROUP BY T1.student_id ORDER BY count(*) DESC LIMIT 1"
+    ]
+  },
+  {
+    "question_id": 32,
+    "db_id": "student_transcripts_tracking",
+    "question": "On average, when were the transcripts printed?",
+    "SQL": "SELECT avg(transcript_date) FROM Transcripts",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 1,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT avg(transcript_date) FROM Transcripts"
+    ]
+  },
+  {
+    "question_id": 33,
+    "db_id": "student_transcripts_tracking",
+    "question": "What is the last transcript release date?",
+    "SQL": "SELECT transcript_date FROM Transcripts ORDER BY transcript_date DESC LIMIT 1",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_sorting",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT transcript_date FROM Transcripts ORDER BY transcript_date DESC LIMIT 1"
+    ]
+  },
+  {
+    "question_id": 34,
+    "db_id": "tvshow",
+    "question": "What is the name and directors of all the cartoons that are ordered by air date?",
+    "SQL": "SELECT title ,  Directed_by FROM Cartoon ORDER BY Original_air_date",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_sorting",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 3,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT title ,  Directed_by FROM Cartoon ORDER BY Original_air_date"
+    ]
+  },
+  {
+    "question_id": 35,
+    "db_id": "tvshow",
+    "question": "What is the content of the series Sky Radio?",
+    "SQL": "SELECT Content FROM TV_Channel WHERE series_name = \"Sky Radio\";",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 3,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT Content FROM TV_Channel WHERE series_name = \"Sky Radio\";"
+    ]
+  },
+  {
+    "question_id": 36,
+    "db_id": "voter_1",
+    "question": "List the vote ids, phone numbers and states of all votes.",
+    "SQL": "SELECT vote_id ,  phone_number ,  state FROM votes",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 3,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT vote_id ,  phone_number ,  state FROM votes"
+    ]
+  },
+  {
+    "question_id": 37,
+    "db_id": "voter_1",
+    "question": "What are the number of votes from state 'NY' or 'CA'?",
+    "SQL": "SELECT count(*) FROM votes WHERE state  =  'NY' OR state  =  'CA'",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM votes WHERE state  =  'NY' OR state  =  'CA'"
+    ]
+  },
+  {
+    "question_id": 38,
+    "db_id": "world_1",
+    "question": "How many countries have a republic as their form of government?",
+    "SQL": "SELECT count(*) FROM country WHERE GovernmentForm  =  \"Republic\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(*) FROM country WHERE GovernmentForm  =  \"Republic\""
+    ]
+  },
+  {
+    "question_id": 39,
+    "db_id": "world_1",
+    "question": "How many different forms of governments are there in Africa?",
+    "SQL": "SELECT count(DISTINCT GovernmentForm) FROM country WHERE Continent  =  \"Africa\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 3,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT count(DISTINCT GovernmentForm) FROM country WHERE Continent  =  \"Africa\""
+    ]
+  },
+  {
+    "question_id": 40,
+    "db_id": "world_1",
+    "question": "What is name of the country that speaks the largest number of languages?",
+    "SQL": "SELECT T1.Name FROM country AS T1 JOIN countrylanguage AS T2 ON T1.Code  =  T2.CountryCode GROUP BY T1.Name ORDER BY COUNT(*) DESC LIMIT 1",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "has_sorting",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 4,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT T1.Name FROM country AS T1 JOIN countrylanguage AS T2 ON T1.Code  =  T2.CountryCode GROUP BY T1.Name ORDER BY COUNT(*) DESC LIMIT 1"
+    ]
+  },
+  {
+    "question_id": 41,
+    "db_id": "world_1",
+    "question": "Give the names of nations that speak both English and French.",
+    "SQL": "SELECT T1.Name FROM country AS T1 JOIN countrylanguage AS T2 ON T1.Code  =  T2.CountryCode WHERE T2.Language  =  \"English\" INTERSECT SELECT T1.Name FROM country AS T1 JOIN countrylanguage AS T2 ON T1.Code  =  T2.CountryCode WHERE T2.Language  =  \"French\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_join",
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 4,
+        "query_column_count": 10,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 2
+      }
+    },
+    "sql": [
+      "SELECT T1.Name FROM country AS T1 JOIN countrylanguage AS T2 ON T1.Code  =  T2.CountryCode WHERE T2.Language  =  \"English\" INTERSECT SELECT T1.Name FROM country AS T1 JOIN countrylanguage AS T2 ON T1.Code  =  T2.CountryCode WHERE T2.Language  =  \"French\""
+    ]
+  },
+  {
+    "question_id": 42,
+    "db_id": "world_1",
+    "question": "Which African countries have a smaller population than that of any country in Asia?",
+    "SQL": "SELECT Name FROM country WHERE Continent  =  \"Africa\"  AND population  <  (SELECT min(population) FROM country WHERE Continent  =  \"Asia\")",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 7,
+        "query_nested_count": 1,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT Name FROM country WHERE Continent  =  \"Africa\"  AND population  <  (SELECT min(population) FROM country WHERE Continent  =  \"Asia\")"
+    ]
+  },
+  {
+    "question_id": 43,
+    "db_id": "world_1",
+    "question": "What are the country codes for countries that do not speak English?",
+    "SQL": "SELECT CountryCode FROM countrylanguage EXCEPT SELECT CountryCode FROM countrylanguage WHERE LANGUAGE  =  \"English\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 4,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT CountryCode FROM countrylanguage EXCEPT SELECT CountryCode FROM countrylanguage WHERE LANGUAGE  =  \"English\""
+    ]
+  },
+  {
+    "question_id": 44,
+    "db_id": "orchestra",
+    "question": "Count the number of orchestras that have CD or DVD as their record format.",
+    "SQL": "SELECT COUNT(*) FROM orchestra WHERE Major_Record_Format  =  \"CD\" OR Major_Record_Format  =  \"DVD\"",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 4,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT COUNT(*) FROM orchestra WHERE Major_Record_Format  =  \"CD\" OR Major_Record_Format  =  \"DVD\""
+    ]
+  },
+  {
+    "question_id": 45,
+    "db_id": "network_1",
+    "question": "Show the names and grades of each high schooler.",
+    "SQL": "SELECT name ,  grade FROM Highschooler",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT name ,  grade FROM Highschooler"
+    ]
+  },
+  {
+    "question_id": 46,
+    "db_id": "network_1",
+    "question": "What are the names and grades for each high schooler?",
+    "SQL": "SELECT name ,  grade FROM Highschooler",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "single_source_basic"
+      ],
+      "features": {
+        "query_table_count": 1,
+        "query_column_count": 2,
+        "query_nested_count": 0,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT name ,  grade FROM Highschooler"
+    ]
+  },
+  {
+    "question_id": 47,
+    "db_id": "dog_kennels",
+    "question": "Find the states where both owners and professionals live.",
+    "SQL": "SELECT state FROM Owners INTERSECT SELECT state FROM Professionals",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 2,
+        "query_column_count": 2,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 0
+      }
+    },
+    "sql": [
+      "SELECT state FROM Owners INTERSECT SELECT state FROM Professionals"
+    ]
+  },
+  {
+    "question_id": 48,
+    "db_id": "dog_kennels",
+    "question": "Which professional did not operate any treatment on dogs? List the professional's id, role and email.",
+    "SQL": "SELECT professional_id ,  role_code ,  email_address FROM Professionals EXCEPT SELECT T1.professional_id ,  T1.role_code ,  T1.email_address FROM Professionals AS T1 JOIN Treatments AS T2 ON T1.professional_id  =  T2.professional_id",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_join",
+        "has_nested_query"
+      ],
+      "features": {
+        "query_table_count": 3,
+        "query_column_count": 8,
+        "query_nested_count": 1,
+        "query_aggregate_count": 0,
+        "query_sort_count": 0,
+        "query_window_func_count": 0,
+        "query_join_count": 1
+      }
+    },
+    "sql": [
+      "SELECT professional_id ,  role_code ,  email_address FROM Professionals EXCEPT SELECT T1.professional_id ,  T1.role_code ,  T1.email_address FROM Professionals AS T1 JOIN Treatments AS T2 ON T1.professional_id  =  T2.professional_id"
+    ]
+  },
+  {
+    "question_id": 49,
+    "db_id": "dog_kennels",
+    "question": "Which owner has paid the largest amount of money in total for their dogs? Show the owner id and zip code.",
+    "SQL": "SELECT T1.owner_id ,  T1.zip_code FROM Owners AS T1 JOIN Dogs AS T2 ON T1.owner_id  =  T2.owner_id JOIN Treatments AS T3 ON T2.dog_id  =  T3.dog_id GROUP BY T1.owner_id ORDER BY sum(T3.cost_of_treatment) DESC LIMIT 1",
+    "evidence": "",
+    "difficulty": "",
+    "meta": {
+      "categories": [
+        "has_aggregation",
+        "has_join",
+        "has_sorting",
+        "multi_table_simple"
+      ],
+      "features": {
+        "query_table_count": 3,
+        "query_column_count": 8,
+        "query_nested_count": 0,
+        "query_aggregate_count": 1,
+        "query_sort_count": 1,
+        "query_window_func_count": 0,
+        "query_join_count": 2
+      }
+    },
+    "sql": [
+      "SELECT T1.owner_id ,  T1.zip_code FROM Owners AS T1 JOIN Dogs AS T2 ON T1.owner_id  =  T2.owner_id JOIN Treatments AS T3 ON T2.dog_id  =  T3.dog_id GROUP BY T1.owner_id ORDER BY sum(T3.cost_of_treatment) DESC LIMIT 1"
+    ]
+  }
+]

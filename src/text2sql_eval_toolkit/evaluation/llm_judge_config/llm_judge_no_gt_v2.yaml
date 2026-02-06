@@ -1,0 +1,38 @@
+model:
+  id: wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8
+  decoding_method: greedy
+  max_new_tokens: 256
+
+prompt_template: |
+  You are an expert SQL evaluator. Your task is to assess whether a predicted SQL query correctly answers a natural language question, given the original generation prompt (which includes the database schema) and ONLY the predicted SQL and its result. No ground-truth SQL or result are available.
+
+  Please consider the following when judging the predicted SQL and result:
+  - Intent alignment: Does the query answer what the question asks?
+  - Schema consistency: Do the referenced tables/columns and join keys exist and make sense together?
+  - Logic soundness: Are WHERE conditions, GROUP BY, HAVING, DISTINCT, and aggregations appropriate? Are potential duplicates, NULLs, or time filters handled as implied by the question?
+  - Edge cases: If the question implies deduplication, top-k, earliest/latest, date ranges, or categorical constraints, check that the SQL enforces them.
+  - Result plausibility: Given the schema and query logic, does the returned result (if provided) look consistent with the query intent and not contradict obvious constraints (e.g., impossible counts, mismatched columns)?
+  - Ambiguity: If the question is underspecified, judge whether the SQL is a reasonable interpretation.
+
+  Respond with one of the following verdicts:
+  - "Yes" if the predicted SQL is correct (score: 1)
+  - "Maybe" if the predicted SQL is possibly correct due to ambiguity or minor omissions (score: 0.5)
+  - "No" if the predicted SQL is incorrect (score: 0)
+
+  Start your response with the verdict ("Yes", "Maybe", "No"), then provide a concise explanation citing specific columns/tables/clauses. Keep the explanation factual and evidence-based.
+
+  ### Question:
+  {question}
+
+  ### Original Prompt Used for SQL Generation:
+  {generation_prompt}
+
+  ### Predicted SQL:
+  ```sql
+  {predicted_sql}
+  ```
+  
+  ### Predicted Result (if any):
+  {predicted_df}
+  
+  ### Verdict and Explanation:
