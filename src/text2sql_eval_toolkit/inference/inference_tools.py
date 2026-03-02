@@ -16,6 +16,11 @@ try:
 except ImportError:
     OpenAI = None
 
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
 
 logger = get_logger(__name__)
 
@@ -764,6 +769,217 @@ class OpenAIClientChatAPI:
             token_usage = None
 
         # Apply post-processing
+        sql = postprocess_sql(sql)
+        logger.debug(f"Generated SQL: {sql}\n")
+        return sql, token_usage
+
+
+class GeminiClientChatAPI:
+    """
+    LLM API client using Google Gemini API via google-genai SDK.
+    """
+
+    def __init__(self, model_name: str, model_parameters: dict):
+        if genai is None:
+            raise ImportError(
+                "google-genai package is required for Gemini client. Install it with: pip install google-genai"
+            )
+
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("Missing GEMINI_API_KEY environment variable")
+
+        # Handle quoted env var values in .env files gracefully
+        api_key = api_key.strip().strip('"').strip("'")
+
+        # Force Gemini Developer API mode when using API key credentials.
+        # This avoids accidental routing to Vertex AI (aiplatform.googleapis.com),
+        # which requires OAuth2/ADC instead of API keys.
+        self.client = genai.Client(api_key=api_key, vertexai=False)
+        self.model_name = model_name
+        self.model_parameters = self._normalize_parameters(model_parameters)
+
+    def _normalize_parameters(self, model_parameters: dict) -> dict:
+        """
+        Convert toolkit model parameters into Gemini-compatible generation config.
+        """
+        params = dict(model_parameters)
+
+        # Unsupported in Gemini API
+        params.pop("decoding_method", None)
+
+        # Convert max_new_tokens / max_tokens -> max_output_tokens
+        if "max_new_tokens" in params and "max_output_tokens" not in params:
+            params["max_output_tokens"] = params.pop("max_new_tokens")
+        if "max_tokens" in params and "max_output_tokens" not in params:
+            params["max_output_tokens"] = params.pop("max_tokens")
+
+        thinking_level = params.pop("thinking_level", None)
+        thinking_budget = params.pop("thinking_budget", None)
+        if thinking_level is not None and thinking_budget is not None:
+            raise ValueError(
+                "Gemini API does not allow both thinking_level and thinking_budget in the same request"
+            )
+
+        if thinking_level is not None:
+            params["thinking_config"] = {"thinking_level": thinking_level}
+        elif thinking_budget is not None:
+            params["thinking_config"] = {"thinking_budget": thinking_budget}
+
+        return params
+
+    def _default_system_instruction(self) -> str:
+        return (
+            "You are a SQL expert. Your task is to convert natural language questions "
+            "into accurate SQL queries using the given database schema and instructions."
+        )
+
+    def _build_contents_from_messages(self, messages: list[dict[str, str]]) -> tuple[list[dict], str | None]:
+        """
+        Convert OpenAI-like chat messages into Gemini contents format.
+        """
+        system_messages = []
+        contents = []
+
+        for message in messages:
+            role = message.get("role", "user")
+            content = message.get("content", "")
+            if content is None:
+                content = ""
+
+            if role == "system":
+                if content:
+                    system_messages.append(content)
+                continue
+
+            gemini_role = "model" if role in {"assistant", "model"} else "user"
+            contents.append({"role": gemini_role, "parts": [{"text": str(content)}]})
+
+        if not contents:
+            contents = [{"role": "user", "parts": [{"text": ""}]}]
+
+        system_instruction = "\n\n".join(system_messages) if system_messages else None
+        return contents, system_instruction
+
+    def _extract_text(self, response: Any) -> str:
+        """
+        Extract text from Gemini response using robust fallbacks.
+        """
+        text = getattr(response, "text", None)
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+
+        # Fallback to candidates[0].content.parts
+        candidates = getattr(response, "candidates", None)
+        if not candidates and isinstance(response, dict):
+            candidates = response.get("candidates", [])
+
+        if candidates:
+            first_candidate = candidates[0]
+            content = getattr(first_candidate, "content", None)
+            if content is None and isinstance(first_candidate, dict):
+                content = first_candidate.get("content", {})
+
+            parts = getattr(content, "parts", None)
+            if parts is None and isinstance(content, dict):
+                parts = content.get("parts", [])
+
+            part_texts = []
+            for part in parts or []:
+                part_text = getattr(part, "text", None)
+                if part_text is None and isinstance(part, dict):
+                    part_text = part.get("text")
+                if part_text:
+                    part_texts.append(part_text)
+
+            merged = "\n".join(part_texts).strip()
+            if merged:
+                return merged
+
+        return ""
+
+    def _extract_token_usage(self, response: Any) -> dict | None:
+        """
+        Extract token usage from Gemini response metadata.
+        """
+        try:
+            usage = getattr(response, "usage_metadata", None)
+            if usage is None and isinstance(response, dict):
+                usage = response.get("usage_metadata", {})
+
+            if not usage:
+                return None
+
+            if isinstance(usage, dict):
+                prompt_tokens = usage.get("prompt_token_count", 0)
+                completion_tokens = usage.get("candidates_token_count", 0)
+                total_tokens = usage.get("total_token_count", 0)
+            else:
+                prompt_tokens = getattr(usage, "prompt_token_count", 0)
+                completion_tokens = getattr(usage, "candidates_token_count", 0)
+                total_tokens = getattr(usage, "total_token_count", 0)
+
+            return {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+            }
+        except Exception as e:
+            logger.warning(f"Could not extract token usage: {e}")
+            return None
+
+    def generate_sql(self, prompt: Any) -> tuple[str, dict | None]:
+        config = dict(self.model_parameters)
+
+        if hasattr(prompt, "prompt"):
+            contents = prompt.prompt
+            config["system_instruction"] = self._default_system_instruction()
+            logger.debug("Inference with constructed Gemini prompt\n")
+        elif isinstance(prompt, list):
+            contents, system_instruction = self._build_contents_from_messages(prompt)
+            if system_instruction:
+                config["system_instruction"] = system_instruction
+            elif "system_instruction" not in config:
+                config["system_instruction"] = self._default_system_instruction()
+            logger.debug(f"Inference with provided Gemini chat prompt: {contents}\n")
+        else:
+            raise ValueError(
+                "Incorrect prompt type. Prompt must have a 'prompt' attribute or be a list for chat prompt: "
+                f"{prompt}"
+            )
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=config,
+            )
+            logger.debug(f"Raw Gemini response: {response}\n")
+        except Exception as e:
+            error_text = str(e)
+            if (
+                "API keys are not supported by this API" in error_text
+                or "aiplatform.googleapis.com" in error_text
+                or "PredictionService.GenerateContent" in error_text
+            ):
+                logger.error(f"Gemini API request failed: {e}")
+                raise ValueError(
+                    "Gemini authentication mode mismatch: request was sent to Vertex AI "
+                    "(aiplatform), which does not accept GEMINI_API_KEY. "
+                    "Use Gemini Developer API mode with API key (this client now forces it), "
+                    "and ensure Vertex routing env vars are not set for this run "
+                    "(e.g., GOOGLE_GENAI_USE_VERTEXAI/GOOGLE_CLOUD_PROJECT/GOOGLE_CLOUD_LOCATION). "
+                    f"Original error: {e}"
+                )
+            logger.error(f"Gemini API request failed: {e}")
+            raise ValueError(f"Failed to get response from Gemini API: {e}")
+
+        sql = self._extract_text(response)
+        if not sql:
+            raise ValueError("No SQL returned by the Gemini model.")
+
+        token_usage = self._extract_token_usage(response)
+
         sql = postprocess_sql(sql)
         logger.debug(f"Generated SQL: {sql}\n")
         return sql, token_usage

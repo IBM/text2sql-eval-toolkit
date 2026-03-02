@@ -33,6 +33,7 @@ from text2sql_eval_toolkit.inference.inference_tools import (
     VLLMClientChatAPI,
     ClaudeClientChatAPI,
     OpenAIClientChatAPI,
+    GeminiClientChatAPI,
     postprocess_sql,
 )
 from text2sql_eval_toolkit.utils import (
@@ -361,6 +362,8 @@ class AgenticSQLGenerationPipeline(BasePipeline):
         """Create an LLM client based on model name."""
         if model_name.startswith("wxai:"):
             return WXAIClientChatAPI(model_name[5:], model_parameters)
+        elif model_name.startswith("gemini:"):
+            return GeminiClientChatAPI(model_name[7:], model_parameters)
         elif model_name.startswith("anthropic:"):
             return ClaudeClientChatAPI(model_name[10:], model_parameters)
         elif model_name.startswith("vllm:"):
