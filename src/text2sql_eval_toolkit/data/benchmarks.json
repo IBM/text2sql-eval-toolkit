@@ -1,0 +1,69 @@
+{
+    "bird_mini_dev_sqlite": {
+        "name": "bird_mini_dev_sqlite",
+        "description": "BIRD-SQL Mini-Dev in SQLite https://github.com/bird-bench/mini_dev",
+        "data": "benchmarks/bird_mini_dev_sqlite.json",
+        "schema": "benchmarks/bird_mini_dev_sqlite-schema.json",
+        "predictions": "results/bird_mini_dev_sqlite-predictions.json",
+        "db_engine": {
+            "db_type": "sqlite",
+            "db_folder": "benchmarks/dbs/bird/dev_databases"
+        }
+    },
+    "bird_mini_dev_postgres": {
+        "name": "bird_mini_dev_postgres",
+        "description": "BIRD-SQL Mini-Dev in PostgreSQL https://github.com/bird-bench/mini_dev",
+        "data": "benchmarks/bird_mini_dev_postgres.json",
+        "schema": "benchmarks/bird_mini_dev_postgres-schema.json",
+        "predictions": "results/bird_mini_dev_postgres-predictions.json",
+        "db_engine": {
+            "db_type": "postgres",
+            "schema_name": "public",
+            "connection_string_env_var": "POSTGRES_CONNECTION_STRING"
+        }
+    },
+    "beaver": {
+        "name": "beaver",
+        "description": "Beaver benchmark https://peterbaile.github.io/beaver/",
+        "data": "benchmarks/beaver.json",
+        "schema": "benchmarks/beaver-schema.json",
+        "predictions": "results/beaver-predictions.json",
+        "db_engine": {
+            "db_type": "mysql",
+            "connection_string_env_var": "MYSQL_CONNECTION_STRING"
+        }
+    },
+    "archer_en_dev": {
+        "name": "archer_en_dev",
+        "description": "Archer English Dev Set https://sig4kg.github.io/archer-bench/",
+        "data": "benchmarks/archer_en_dev.json",
+        "schema": "benchmarks/archer-schema.json",
+        "predictions": "results/archer_en_dev-predictions.json",
+        "db_engine": {
+            "db_type": "sqlite",
+            "db_folder": "benchmarks/dbs/archer/database"
+        }
+    },
+    "spider_dev": {
+        "name": "spider_dev",
+        "description": "Spider Dev Set - Full 1,034 questions https://yale-lily.github.io/spider",
+        "data": "benchmarks/spider-dev-converted.json",
+        "schema": "benchmarks/spider-dev-schema.json",
+        "predictions": "results/spider_dev-predictions.json",
+        "db_engine": {
+            "db_type": "sqlite",
+            "db_folder": "benchmarks/dbs/spider/database"
+        }
+    },
+    "spider_realistic": {
+        "name": "spider_realistic",
+        "description": "Spider Realistic Dataset In Structure-Grounded Pretraining for Text-to-SQL https://zenodo.org/records/5205322",
+        "data": "benchmarks/spider-realistic.json",
+        "schema": "benchmarks/spider-dev-schema.json",
+        "predictions": "results/spider_realistic-predictions.json",
+        "db_engine": {
+            "db_type": "sqlite",
+            "db_folder": "benchmarks/dbs/spider/database"
+        }
+    }
+}

@@ -4,6 +4,7 @@
 #
 
 import asyncio
+import importlib.resources as resources
 import json
 import os
 import time
@@ -14,11 +15,11 @@ from pathlib import Path
 from text2sql_eval_toolkit.logging import get_logger
 
 
-BENCHMARKS_FILE = (
-    Path(__file__).resolve().parent.parent.parent / "data" / "benchmarks.json"
+BENCHMARKS_FILE = resources.files("text2sql_eval_toolkit.data").joinpath(
+    "benchmarks.json"
 )
-TEST_BENCHMARKS_FILE = (
-    Path(__file__).resolve().parent.parent.parent / "data" / "test-benchmarks.json"
+TEST_BENCHMARKS_FILE = resources.files("text2sql_eval_toolkit.data").joinpath(
+    "test-benchmarks.json"
 )
 logger = get_logger(__name__)
 

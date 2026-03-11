@@ -68,3 +68,6 @@ package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"text2sql_eval_toolkit" = ["data/*.json"]

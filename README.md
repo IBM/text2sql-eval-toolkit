@@ -64,7 +64,18 @@ brew install uv
 
 ## Installation
 
-### Option 1: Using UV (Recommended - Fast! ⚡)
+### From PyPI
+
+```bash
+pip install text2sql-eval-toolkit
+
+# Optional: install database-specific extras
+pip install "text2sql-eval-toolkit[mysql,presto,db2]"
+```
+
+### From source (recommended for development)
+
+Using UV:
 
 ```bash
 # Clone the repository
@@ -82,7 +93,7 @@ uv pip install -e .
 uv pip install -e ".[mysql,presto,db2]"
 ```
 
-### Option 2: Using pip/conda (Traditional)
+Using pip/conda:
 
 ```bash
 # Create conda environment (or use venv)
@@ -106,6 +117,83 @@ The toolkit comes with pre-defined public benchmarks including BIRD-SQL, Spider,
 **📚 See [data/benchmarks/README.md](data/benchmarks/README.md) for complete benchmark details, setup instructions, and configuration.**
 
 ## Usage
+
+### Using the library API
+
+After installation you can import the toolkit and use both low-level and high-level evaluation APIs:
+
+**Evaluate a single prediction record in memory**
+
+```python
+from text2sql_eval_toolkit import evaluate_prediction, parse_dataframe, get_gt_sqls
+
+# record comes from a benchmark JSON entry, prediction from your model
+record = {
+    "id": "q1",
+    "sql": "SELECT * FROM customers",
+    "gt_df": some_serialized_dataframe,  # JSON in pandas orient='split' format
+}
+prediction = {
+    "predicted_sql": "SELECT * FROM customers",
+    "predicted_df": some_serialized_dataframe,  # same format
+}
+
+result = evaluate_prediction(record, prediction)
+print(result["subset_non_empty_execution_accuracy"])
+```
+
+**Evaluate a predictions JSON file**
+
+```python
+from text2sql_eval_toolkit import evaluate_predictions
+
+data, summary_df = evaluate_predictions(
+    input_file="data/results/my-benchmark-predictions.json",
+)
+print(summary_df.head())
+```
+
+**Run evaluation for a known benchmark ID**
+
+```python
+from text2sql_eval_toolkit import get_available_benchmarks, run_evaluation
+
+print(get_available_benchmarks())  # uses packaged benchmark metadata
+data, summary_df = run_evaluation("bird_mini_dev_sqlite")
+print(summary_df[["subset_non_empty_execution_accuracy_avg"]])
+```
+
+**Run SQL execution for a benchmark before evaluation**
+
+```python
+from text2sql_eval_toolkit import run_execution
+
+# Requires appropriate DB connection env vars (e.g., POSTGRES_CONNECTION_STRING)
+run_execution("bird_mini_dev_postgres")
+```
+
+**Use the inference pipelines**
+
+```python
+from text2sql_eval_toolkit import LLMSQLGenerationPipeline, AgenticSQLGenerationPipeline
+
+pipeline = LLMSQLGenerationPipeline()
+pipeline.run_pipeline(
+    benchmark_id="bird_mini_dev_sqlite",
+    model_name="wxai:ibm/granite-34b-code-instruct",
+    model_parameters={"max_new_tokens": 512},
+)
+
+agentic = AgenticSQLGenerationPipeline()
+agentic.run_pipeline(
+    benchmark_id="bird_mini_dev_sqlite",
+    model_name="wxai:ibm/granite-34b-code-instruct",
+    model_parameters={"max_new_tokens": 512},
+    max_attempts=3,
+)
+```
+
+See the docstrings of the exported functions/classes in `text2sql_eval_toolkit.__init__` for the full list of public APIs.
 
 ### Running Experiments
 
