@@ -59,6 +59,13 @@ notebook = [
   "jupyter>=1.0.0",
   "nbconvert>=7.0.0"
 ]
+dashboard = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0"
+]
+
+[project.scripts]
+text2sql-eval-dashboard = "text2sql_eval_toolkit.ui.server:main"
 
 [project.urls]
 Homepage = "https://github.com/IBM/text2sql-eval-toolkit"

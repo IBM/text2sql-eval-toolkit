@@ -40,6 +40,24 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 - **Results and Error Analysis** ([`scripts/analysis`](`scripts/analysis`)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
 - **SQL Profiling** ([`scripts/profiling`](`scripts/profiling`)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
 
+### Evaluation Dashboard (optional UI)
+
+For interactive exploration of evaluation results, error analysis, and LLM‑as‑judge configurations, the toolkit includes an optional **web dashboard** built with FastAPI and React:
+
+- Browse benchmark results in sortable, searchable, paginated tables.
+- Compare two result sets side‑by‑side for a given benchmark.
+- Drill into individual error cases with rich per‑record metrics.
+- View and edit LLM‑as‑judge YAML configs.
+- Trigger new evaluations and monitor their status from the UI.
+
+Once installed with the `dashboard` extra, you can start the UI with:
+
+```bash
+text2sql-eval-dashboard --open-browser
+```
+
+See [`dashboard/README.md`](dashboard/README.md) for full details.
+
 ## Setup
 
 ### Prerequisites
