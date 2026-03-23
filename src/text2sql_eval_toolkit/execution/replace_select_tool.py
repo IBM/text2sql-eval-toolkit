@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any, Dict
-from unitxt.text2sql_utils import replace_select_clause
+from text2sql_eval_toolkit.metrics.text2sql_utils import replace_select_clause
 from text2sql_eval_toolkit.utils import get_gt_sqls
 from text2sql_eval_toolkit.logging import get_logger
 
@@ -41,7 +41,7 @@ def replace_select_for_logic_ex(
 ) -> None:
     """
     Iterate over predictions in a JSON file, and for each prediction record's
-    'predicted_sql', call the unitxt `replace_select_clause(gt_sql, predicted_sql, dialect)`
+    'predicted_sql', call `replace_select_clause(gt_sql, predicted_sql, dialect)`
     function. If the returned SQL differs, set 'predicted_sql_revised' on that prediction.
 
     The file is updated in-place; a '.bak' backup is created alongside it.

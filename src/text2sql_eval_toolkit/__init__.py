@@ -72,7 +72,7 @@ __all__ = [
     # LLM-as-judge helpers
     "load_llm_judge_config",
     "evaluate_sql_prediction_with_llm",
-    # Low-level SQL equivalence / parsing helpers (from unitxt.text2sql_utils)
+    # Low-level SQL equivalence / parsing helpers
     "compare_result_dfs",
     "compare_dfs_bird_eval_logic",
     "is_sqlglot_parsable",

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Button,
+  ComboBox,
   Content,
   Header,
   HeaderName,
@@ -9,7 +10,12 @@ import {
 import { DataTableSkeleton, InlineNotification } from "@carbon/react";
 import { BenchmarkList } from "../views/BenchmarkList";
 import { BenchmarkDetail } from "../views/BenchmarkDetail";
+import { ErrorAnalysis } from "../views/ErrorAnalysis";
 import { PipelineDetailView } from "../views/PipelineDetailView";
+import { LLMJudgeConfigView } from "../views/LLMJudgeConfigView";
+import { RunEvaluationView } from "../views/RunEvaluationView";
+import { ToolkitInsightsView } from "../views/ToolkitInsightsView";
+import { PipelineCompareView } from "../views/PipelineCompareView";
 import { apiUrl } from "../lib/api";
 import toolkitLogo from "../assets/text2sql-eval-toolkit-logo.png";
 import githubLogo from "../assets/github.png";
@@ -33,6 +39,10 @@ export const App: React.FC = () => {
   const [selectedBenchmark, setSelectedBenchmark] = useState<string | null>(null);
   const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
   const [showBenchmarkPanel, setShowBenchmarkPanel] = useState(false);
+  const [activeView, setActiveView] = useState<
+    "home" | "benchmark" | "pipeline" | "toolkitInsights" | "pipelineCompare" | "errorAnalysis" | "llmJudge" | "runEvaluation"
+  >("home");
+  const [errorAnalysisInitialFilters, setErrorAnalysisInitialFilters] = useState<Record<string, any> | null>(null);
 
   useEffect(() => {
     const fetchBenchmarks = async () => {
@@ -68,8 +78,9 @@ export const App: React.FC = () => {
       );
     }
 
-    if (!selectedBenchmark) {
-      return (
+    if (activeView === "home") {
+      if (!selectedBenchmark) {
+        return (
         <div
           style={{
             maxWidth: "1100px",
@@ -143,40 +154,164 @@ export const App: React.FC = () => {
               onSelect={(benchmarkId) => {
                 setSelectedBenchmark(benchmarkId);
                 setSelectedPipeline(null);
+                setActiveView("benchmark");
               }}
             />
           </div>
         </div>
       );
-    }
+      }
 
-    if (selectedBenchmark && !selectedPipeline) {
+      // If user came back to "home" but has a selected benchmark, re-enter its detail view.
       return (
-        <BenchmarkDetail
-          benchmarkId={selectedBenchmark}
-          onSelectPipeline={(pipeline) => setSelectedPipeline(pipeline)}
+        <InlineNotification
+          kind="info"
+          title="Resuming benchmark view"
+          subtitle="Showing the selected benchmark summary."
+          lowContrast
         />
       );
     }
 
-    if (selectedBenchmark && selectedPipeline) {
+    if (activeView === "benchmark") {
+      return (
+        <BenchmarkDetail
+          benchmarkId={selectedBenchmark}
+          onSelectPipeline={(pipeline) => {
+            setSelectedPipeline(pipeline);
+            setActiveView("pipeline");
+          }}
+          onOpenToolkitInsights={() => {
+            setSelectedPipeline(null);
+            setActiveView("toolkitInsights");
+          }}
+          onOpenPipelineCompare={() => {
+            setSelectedPipeline(null);
+            setActiveView("pipelineCompare");
+          }}
+          onOpenErrorAnalysis={() => {
+            setErrorAnalysisInitialFilters(null);
+            setActiveView("errorAnalysis");
+          }}
+        />
+      );
+    }
+
+    if (activeView === "pipeline") {
       return (
         <PipelineDetailView
           benchmarkId={selectedBenchmark}
           pipelineName={selectedPipeline}
-          onBack={() => setSelectedPipeline(null)}
+          onBack={() => {
+            setSelectedPipeline(null);
+            setActiveView("benchmark");
+          }}
+          onOpenErrorAnalysis={(filters) => {
+            setErrorAnalysisInitialFilters(filters);
+            setActiveView("errorAnalysis");
+          }}
         />
       );
     }
 
-    return (
-      <InlineNotification
-        kind="info"
-        title="Select a benchmark"
-        subtitle="Choose a benchmark from the Benchmarks view first."
-        lowContrast
-      />
-    );
+    if (activeView === "errorAnalysis") {
+      if (!selectedBenchmark) {
+        return (
+          <InlineNotification
+            kind="info"
+            title="Select a benchmark"
+            subtitle="Choose a benchmark before running error analysis."
+            lowContrast
+          />
+        );
+      }
+      return (
+        <ErrorAnalysis
+          benchmarkId={selectedBenchmark}
+          onBack={() => setActiveView(selectedPipeline ? "pipeline" : "benchmark")}
+          initialFilters={errorAnalysisInitialFilters ?? undefined}
+        />
+      );
+    }
+
+    if (activeView === "llmJudge") {
+      return <LLMJudgeConfigView />;
+    }
+
+    if (activeView === "runEvaluation") {
+      return <RunEvaluationView benchmarks={benchmarks} />;
+    }
+
+    if (activeView === "toolkitInsights") {
+      if (!selectedBenchmark) {
+        return (
+          <div style={{ maxWidth: "720px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <h3 style={{ margin: 0 }}>Metric Insights</h3>
+            {benchmarks.length === 0 ? (
+              <InlineNotification
+                kind="info"
+                title="Loading benchmarks…"
+                subtitle="Fetching available evaluation artifacts."
+                lowContrast
+              />
+            ) : (
+              <ComboBox
+                id="metric-insights-benchmark-select"
+                titleText="Benchmark"
+                items={benchmarks}
+                itemToString={(item) => (item ? item.benchmark_id : "")}
+                selectedItem={null}
+                onChange={(e) => {
+                  const selected = e.selectedItem as BenchmarkSummary | null;
+                  if (!selected) return;
+                  setSelectedBenchmark(selected.benchmark_id);
+                  setSelectedPipeline(null);
+                }}
+                placeholder="Pick a benchmark to load evidence"
+              />
+            )}
+          </div>
+        );
+      }
+      return (
+        <ToolkitInsightsView
+          benchmarks={benchmarks}
+          benchmarkId={selectedBenchmark}
+          onSelectBenchmark={(id) => {
+            setSelectedBenchmark(id);
+            setSelectedPipeline(null);
+          }}
+          onOpenErrorAnalysis={(filters) => {
+            setErrorAnalysisInitialFilters(filters);
+            setActiveView("errorAnalysis");
+          }}
+        />
+      );
+    }
+
+    if (activeView === "pipelineCompare") {
+      if (!selectedBenchmark) {
+        return (
+          <InlineNotification
+            kind="info"
+            title="Select a benchmark"
+            subtitle="Choose a benchmark to compare pipelines."
+            lowContrast
+          />
+        );
+      }
+      return (
+        <PipelineCompareView
+          benchmarkId={selectedBenchmark}
+          onOpenErrorAnalysis={(filters) => {
+            setErrorAnalysisInitialFilters(filters);
+            setActiveView("errorAnalysis");
+          }}
+        />
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -189,12 +324,72 @@ export const App: React.FC = () => {
             e.preventDefault();
             setSelectedBenchmark(null);
             setSelectedPipeline(null);
+            setActiveView("home");
             setShowBenchmarkPanel(false);
+            setErrorAnalysisInitialFilters(null);
           }}
           style={{ cursor: "pointer" }}
         >
           Evaluation Dashboard
         </HeaderName>
+        <Button
+          kind="ghost"
+          size="sm"
+          onClick={() => {
+            setShowBenchmarkPanel(false);
+            setSelectedPipeline(null);
+            setActiveView("toolkitInsights");
+          }}
+          style={{ marginRight: "0.5rem" }}
+        >
+          Metric Insights
+        </Button>
+        <Button
+          kind="ghost"
+          size="sm"
+          onClick={() => {
+            setShowBenchmarkPanel(false);
+            setSelectedPipeline(null);
+            setActiveView("pipelineCompare");
+          }}
+          style={{ marginRight: "0.5rem" }}
+        >
+          Pipeline Compare
+        </Button>
+        <Button
+          kind="ghost"
+          size="sm"
+          onClick={() => {
+            setShowBenchmarkPanel(false);
+            setErrorAnalysisInitialFilters(null);
+            setActiveView("errorAnalysis");
+          }}
+          style={{ marginRight: "0.5rem" }}
+        >
+          Error Analysis
+        </Button>
+        <Button
+          kind="ghost"
+          size="sm"
+          onClick={() => {
+            setShowBenchmarkPanel(false);
+            setActiveView("llmJudge");
+          }}
+          style={{ marginRight: "0.5rem" }}
+        >
+          LLM Judge
+        </Button>
+        <Button
+          kind="ghost"
+          size="sm"
+          onClick={() => {
+            setShowBenchmarkPanel(false);
+            setActiveView("runEvaluation");
+          }}
+          style={{ marginRight: "0.5rem" }}
+        >
+          Run evaluation
+        </Button>
         <Button
           kind="ghost"
           size="sm"
@@ -252,6 +447,7 @@ export const App: React.FC = () => {
               onSelect={(benchmarkId) => {
                 setSelectedBenchmark(benchmarkId);
                 setSelectedPipeline(null);
+                setActiveView("benchmark");
                 setShowBenchmarkPanel(false);
               }}
             />

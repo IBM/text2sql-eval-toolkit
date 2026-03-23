@@ -144,6 +144,63 @@ class CompareResponse(BaseModel):
     rows: List[CompareRow]
 
 
+class BinaryMetricConfusionCounts(BaseModel):
+    a0b0: int
+    a0b1: int
+    a1b0: int
+    a1b1: int
+
+
+class BinaryMetricConfusionRates(BaseModel):
+    a0b0: float
+    a0b1: float
+    a1b0: float
+    a1b1: float
+
+
+class BinaryMetricConfusionByPipelineRow(BaseModel):
+    pipeline: str
+    counts: BinaryMetricConfusionCounts
+    n_valid: int
+    rates: BinaryMetricConfusionRates
+    agreement_rate: float
+    disagreement_rate: float
+
+
+class BinaryMetricConfusionByPipelineResponse(BaseModel):
+    benchmark_id: str
+    metric_a: str
+    metric_b: str
+    per_pipeline: List[BinaryMetricConfusionByPipelineRow]
+
+
+class CrossPipelineBinaryMetricConfusionCounts(BaseModel):
+    left0right0: int
+    left0right1: int
+    left1right0: int
+    left1right1: int
+
+
+class CrossPipelineBinaryMetricConfusionRates(BaseModel):
+    left0right0: float
+    left0right1: float
+    left1right0: float
+    left1right1: float
+
+
+class CrossPipelineBinaryMetricConfusionResponse(BaseModel):
+    benchmark_id: str
+    left_id: str
+    right_id: str
+    metric_left: str
+    metric_right: str
+    n_valid: int
+    counts: CrossPipelineBinaryMetricConfusionCounts
+    rates: CrossPipelineBinaryMetricConfusionRates
+    agreement_rate: float
+    disagreement_rate: float
+
+
 class LLMJudgeConfigInfo(BaseModel):
     name: str
     path: str
@@ -170,10 +227,59 @@ class JobStatus(BaseModel):
 JOBS: Dict[str, JobStatus] = {}
 JOBS_LOCK = threading.Lock()
 
+# Cache loaded evaluation records to avoid repeatedly parsing large JSON artifacts.
+EVAL_RECORDS_CACHE: Dict[str, List[Dict[str, Any]]] = {}
+EVAL_RECORDS_LOCK = threading.Lock()
+
 
 def _update_job(job: JobStatus) -> None:
     with JOBS_LOCK:
         JOBS[job.job_id] = job
+
+
+def load_eval_records(benchmark_id: str) -> List[Dict[str, Any]]:
+    """
+    Load {benchmark_id}-predictions_eval.json as a list of records.
+    Uses an in-memory cache for performance.
+    """
+    with EVAL_RECORDS_LOCK:
+        cached = EVAL_RECORDS_CACHE.get(benchmark_id)
+        if cached is not None:
+            return cached
+
+    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
+    if not eval_path.exists():
+        raise HTTPException(status_code=404, detail="Full evaluation results not found")
+
+    data = load_json(eval_path)
+    if not isinstance(data, list):
+        raise HTTPException(status_code=500, detail="Invalid evaluation JSON format")
+
+    with EVAL_RECORDS_LOCK:
+        EVAL_RECORDS_CACHE[benchmark_id] = data
+        return data
+
+
+def get_pipeline_metric_value(
+    record: Dict[str, Any], pipeline_id: str, metric_key: str
+) -> Optional[float]:
+    preds = record.get("predictions", {})
+    if not isinstance(preds, dict) or pipeline_id not in preds:
+        return None
+    eval_block = preds[pipeline_id].get("evaluation", {})
+    if not isinstance(eval_block, dict):
+        return None
+    val = eval_block.get(metric_key)
+    if isinstance(val, (int, float)):
+        return float(val)
+    return None
+
+
+def to_binary_metric(value: Optional[float]) -> Optional[int]:
+    """Metrics in this UI are binary; treat exactly 1 as positive, else 0."""
+    if value is None:
+        return None
+    return 1 if float(value) == 1.0 else 0
 
 
 @app.get("/api/benchmarks", response_model=BenchmarksResponse)
@@ -669,6 +775,169 @@ def compare_summaries(
 
     return CompareResponse(
         benchmark_id=benchmark_id, left_id=left_id, right_id=right_id, rows=rows
+    )
+
+
+@app.get(
+    "/api/benchmarks/{benchmark_id}/insights/binary-metric-confusion-by-pipeline",
+    response_model=BinaryMetricConfusionByPipelineResponse,
+)
+def binary_metric_confusion_by_pipeline(
+    benchmark_id: str,
+    metric_a: str = Query(..., description="Metric key for dimension A"),
+    metric_b: str = Query(..., description="Metric key for dimension B"),
+):
+    """
+    For each pipeline, compute binary confusion counts for (A, B).
+    Metrics are treated as binary (1 means success, anything else is 0).
+    Only records where both metric values exist are counted.
+    """
+    data = load_eval_records(benchmark_id)
+
+    per_pipeline_counts: Dict[str, Dict[str, int]] = {}
+    per_pipeline_n: Dict[str, int] = {}
+
+    def ensure(p: str) -> None:
+        if p not in per_pipeline_counts:
+            per_pipeline_counts[p] = {"a0b0": 0, "a0b1": 0, "a1b0": 0, "a1b1": 0}
+            per_pipeline_n[p] = 0
+
+    for rec in data:
+        preds = rec.get("predictions", {})
+        if not isinstance(preds, dict):
+            continue
+
+        for pipeline_id in preds.keys():
+            a_val = get_pipeline_metric_value(rec, pipeline_id, metric_a)
+            b_val = get_pipeline_metric_value(rec, pipeline_id, metric_b)
+            if a_val is None or b_val is None:
+                continue
+
+            ensure(pipeline_id)
+            a_bin = to_binary_metric(a_val)
+            b_bin = to_binary_metric(b_val)
+            if a_bin is None or b_bin is None:
+                continue
+
+            key = f"a{a_bin}b{b_bin}"
+            per_pipeline_counts[pipeline_id][key] += 1
+            per_pipeline_n[pipeline_id] += 1
+
+    per_pipeline_rows: List[BinaryMetricConfusionByPipelineRow] = []
+    for pipeline_id in sorted(per_pipeline_counts.keys()):
+        counts = per_pipeline_counts[pipeline_id]
+        n_valid = per_pipeline_n.get(pipeline_id, 0)
+
+        if n_valid <= 0:
+            rates = {"a0b0": 0.0, "a0b1": 0.0, "a1b0": 0.0, "a1b1": 0.0}
+            agreement_rate = 0.0
+        else:
+            rates = {
+                "a0b0": counts["a0b0"] / n_valid,
+                "a0b1": counts["a0b1"] / n_valid,
+                "a1b0": counts["a1b0"] / n_valid,
+                "a1b1": counts["a1b1"] / n_valid,
+            }
+            agreement_rate = (counts["a0b0"] + counts["a1b1"]) / n_valid
+
+        per_pipeline_rows.append(
+            BinaryMetricConfusionByPipelineRow(
+                pipeline=pipeline_id,
+                counts=BinaryMetricConfusionCounts(**counts),
+                n_valid=n_valid,
+                rates=BinaryMetricConfusionRates(**rates),
+                agreement_rate=agreement_rate,
+                disagreement_rate=1.0 - agreement_rate if n_valid > 0 else 0.0,
+            )
+        )
+
+    return BinaryMetricConfusionByPipelineResponse(
+        benchmark_id=benchmark_id,
+        metric_a=metric_a,
+        metric_b=metric_b,
+        per_pipeline=per_pipeline_rows,
+    )
+
+
+@app.get(
+    "/api/benchmarks/{benchmark_id}/insights/cross-pipeline-binary-metric-confusion",
+    response_model=CrossPipelineBinaryMetricConfusionResponse,
+)
+def cross_pipeline_binary_metric_confusion(
+    benchmark_id: str,
+    pipeline_left: str = Query(..., description="Left pipeline id"),
+    pipeline_right: str = Query(..., description="Right pipeline id"),
+    metric_left: str = Query("execution_accuracy", description="Metric key for left"),
+    metric_right: Optional[str] = Query(
+        None,
+        description="Metric key for right (defaults to metric_left)",
+    ),
+):
+    """
+    Compute binary confusion counts across two pipelines for a (possibly)
+    different metric. Metrics are treated as binary (1 means success).
+    Only records where both metric values exist are counted.
+    """
+    metric_right_key = metric_right or metric_left
+    data = load_eval_records(benchmark_id)
+
+    counts = {
+        "left0right0": 0,
+        "left0right1": 0,
+        "left1right0": 0,
+        "left1right1": 0,
+    }
+    n_valid = 0
+
+    for rec in data:
+        l_val = get_pipeline_metric_value(rec, pipeline_left, metric_left)
+        r_val = get_pipeline_metric_value(rec, pipeline_right, metric_right_key)
+        if l_val is None or r_val is None:
+            continue
+        l_bin = to_binary_metric(l_val)
+        r_bin = to_binary_metric(r_val)
+        if l_bin is None or r_bin is None:
+            continue
+
+        if l_bin == 0 and r_bin == 0:
+            counts["left0right0"] += 1
+        elif l_bin == 0 and r_bin == 1:
+            counts["left0right1"] += 1
+        elif l_bin == 1 and r_bin == 0:
+            counts["left1right0"] += 1
+        else:
+            counts["left1right1"] += 1
+
+        n_valid += 1
+
+    if n_valid <= 0:
+        rates = {
+            "left0right0": 0.0,
+            "left0right1": 0.0,
+            "left1right0": 0.0,
+            "left1right1": 0.0,
+        }
+        agreement_rate = 0.0
+    else:
+        rates = {
+            "left0right0": counts["left0right0"] / n_valid,
+            "left0right1": counts["left0right1"] / n_valid,
+            "left1right0": counts["left1right0"] / n_valid,
+            "left1right1": counts["left1right1"] / n_valid,
+        }
+        agreement_rate = (counts["left0right0"] + counts["left1right1"]) / n_valid
+
+    return CrossPipelineBinaryMetricConfusionResponse(
+        benchmark_id=benchmark_id,
+        left_id=pipeline_left,
+        right_id=pipeline_right,
+        metric_left=metric_left,
+        metric_right=metric_right_key,
+        n_valid=n_valid,
+        counts=CrossPipelineBinaryMetricConfusionCounts(**counts),
+        rates=CrossPipelineBinaryMetricConfusionRates(**rates),
+        agreement_rate=agreement_rate,
+        disagreement_rate=1.0 - agreement_rate if n_valid > 0 else 0.0,
     )
 
 

@@ -20,6 +20,8 @@ import { apiUrl } from "../lib/api";
 
 interface Props {
   benchmarkId: string;
+  onBack?: () => void;
+  initialFilters?: Partial<ErrorAnalysisFilters>;
 }
 
 interface ErrorRecordSummary {
@@ -28,6 +30,16 @@ interface ErrorRecordSummary {
   predictions: Record<string, Record<string, any>>;
 }
 
+type ErrorAnalysisFilters = {
+  pipeline: string;
+  metric: string;
+  value: string;
+  op: string;
+  pipeline2: string;
+  metric2: string;
+  disagree: boolean;
+};
+
 interface PaginatedErrorResponse {
   items: ErrorRecordSummary[];
   total: number;
@@ -35,37 +47,200 @@ interface PaginatedErrorResponse {
   page_size: number;
 }
 
-export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId }) => {
+type LoadOverrides = Partial<
+  ErrorAnalysisFilters & { page: number; pageSize: number; search: string }
+>;
+
+interface ErrorRecordDetail {
+  record_id: string;
+  pipeline: string;
+  question: string;
+  db_id?: string;
+  ground_truth_sql: string[];
+  predicted_sql?: string;
+  evaluation_metrics: Record<string, any>;
+  ground_truth_results: any[];
+  predicted_result: any;
+  prompt?: string;
+  llm_judge_score?: number;
+  llm_judge_explanation?: string;
+  sql_execution_error?: string;
+  inference_error?: string;
+}
+
+function escapeHtml(text: string): string {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function highlightSql(sql: string): string {
+  const escaped = escapeHtml(sql);
+  const keywords = [
+    "SELECT","FROM","WHERE","GROUP BY","ORDER BY","HAVING","LIMIT","JOIN","LEFT JOIN",
+    "RIGHT JOIN","INNER JOIN","OUTER JOIN","ON","AS","AND","OR","NOT","IN","EXISTS",
+    "COUNT","SUM","AVG","MIN","MAX","DISTINCT","CASE","WHEN","THEN","ELSE","END",
+  ];
+  const sorted = keywords.sort((a, b) => b.length - a.length);
+  let html = escaped;
+  sorted.forEach((kw) => {
+    const token = kw.replace(/\s+/g, "\\s+");
+    const re = new RegExp(`\\b${token}\\b`, "gi");
+    html = html.replace(
+      re,
+      (m) => `<span style="color:#0f62fe;font-weight:600;">${m.toUpperCase()}</span>`
+    );
+  });
+  return html;
+}
+
+function normalizeTableData(raw: any): { columns: string[]; rows: any[] } {
+  let value = raw;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return { columns: ["value"], rows: [{ value }] };
+    }
+  }
+  if (
+    value &&
+    typeof value === "object" &&
+    Array.isArray(value.columns) &&
+    Array.isArray(value.data)
+  ) {
+    const columns = value.columns.map((c: any) => String(c));
+    const rows = value.data.map((row: any[], idx: number) => {
+      const out: Record<string, any> = { id: `r-${idx}` };
+      columns.forEach((c, i) => {
+        out[c] = row?.[i];
+      });
+      return out;
+    });
+    return { columns, rows };
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return { columns: [], rows: [] };
+    if (typeof value[0] === "object" && value[0] !== null && !Array.isArray(value[0])) {
+      const columnSet = new Set<string>();
+      value.forEach((v) => Object.keys(v).forEach((k) => columnSet.add(k)));
+      const columns = Array.from(columnSet);
+      const rows = value.map((v, idx) => ({ id: `r-${idx}`, ...v }));
+      return { columns, rows };
+    }
+    const rows = value.map((v, idx) => ({ id: `r-${idx}`, value: v }));
+    return { columns: ["value"], rows };
+  }
+  if (value && typeof value === "object") {
+    return { columns: Object.keys(value), rows: [{ id: "r-0", ...value }] };
+  }
+  return { columns: ["value"], rows: [{ id: "r-0", value: String(value) }] };
+}
+
+const ResultTableView: React.FC<{ title: string; rawData: any }> = ({ title, rawData }) => {
+  const normalized = useMemo(() => normalizeTableData(rawData), [rawData]);
+  const headers: DataTableHeader[] = normalized.columns.map((c) => ({ key: c, header: c }));
+  return (
+    <section
+      style={{
+        border: "1px solid rgba(15,98,254,0.2)",
+        borderRadius: "6px",
+        padding: "0.6rem",
+        background: "#ffffff",
+      }}
+    >
+      <h4 style={{ margin: "0 0 0.5rem 0", color: "#0f62fe" }}>{title}</h4>
+      {headers.length === 0 ? (
+        <div style={{ opacity: 0.8 }}>No rows</div>
+      ) : (
+        <div style={{ maxHeight: "240px", overflow: "auto" }}>
+          <DataTable rows={normalized.rows} headers={headers} size="sm">
+            {({ rows, headers, getHeaderProps }) => (
+              <TableContainer>
+                <Table aria-label={title}>
+                  <TableHead>
+                    <TableRow>
+                      {headers.map((header) => (
+                        <TableHeader key={header.key} {...getHeaderProps({ header })}>
+                          {header.header}
+                        </TableHeader>
+                      ))}
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {rows.map((row) => (
+                      <TableRow key={row.id}>
+                        {row.cells.map((cell) => (
+                          <TableCell key={cell.id}>
+                            {cell.value == null ? "NULL" : String(cell.value)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </DataTable>
+        </div>
+      )}
+    </section>
+  );
+};
+
+export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFilters }) => {
   const [items, setItems] = useState<ErrorRecordSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [search, setSearch] = useState("");
-  const [pipeline, setPipeline] = useState("");
-  const [metric, setMetric] = useState("execution_accuracy");
-  const [value, setValue] = useState("0");
-  const [op, setOp] = useState("eq");
-  const [pipeline2, setPipeline2] = useState("");
-  const [disagree, setDisagree] = useState(false);
+  const [pipeline, setPipeline] = useState(() => initialFilters?.pipeline ?? "");
+  const [metric, setMetric] = useState(() => initialFilters?.metric ?? "execution_accuracy");
+  const [value, setValue] = useState(() => initialFilters?.value ?? "0");
+  const [op, setOp] = useState(() => initialFilters?.op ?? "eq");
+  const [pipeline2, setPipeline2] = useState(() => initialFilters?.pipeline2 ?? "");
+  const [metric2, setMetric2] = useState(
+    () => initialFilters?.metric2 ?? "subset_non_empty_execution_accuracy"
+  );
+  const [disagree, setDisagree] = useState(() => initialFilters?.disagree ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [selectedRecordPipeline, setSelectedRecordPipeline] = useState<string | null>(null);
+  const [detail, setDetail] = useState<ErrorRecordDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [showRawJson, setShowRawJson] = useState(false);
+  const [rawJsonRecord, setRawJsonRecord] = useState<Record<string, any> | null>(null);
+  const [rawJsonLoading, setRawJsonLoading] = useState(false);
+  const [rawJsonError, setRawJsonError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = async (overrides?: LoadOverrides) => {
+    const effectivePage = overrides?.page ?? page;
+    const effectivePageSize = overrides?.pageSize ?? pageSize;
+    const effectiveSearch = overrides?.search ?? search;
+    const effectivePipeline = overrides?.pipeline ?? pipeline;
+    const effectiveMetric = overrides?.metric ?? metric;
+    const effectiveValue = overrides?.value ?? value;
+    const effectiveOp = overrides?.op ?? op;
+    const effectivePipeline2 = overrides?.pipeline2 ?? pipeline2;
+    const effectiveMetric2 = overrides?.metric2 ?? metric2;
+    const effectiveDisagree = overrides?.disagree ?? disagree;
+
     try {
       setLoading(true);
       setError(null);
       const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("page_size", String(pageSize));
-      if (search) params.set("q", search);
-      if (pipeline) {
-        params.set("pipeline", pipeline);
-        if (metric) params.set("metric", metric);
-        if (value) params.set("value", value);
-        if (op) params.set("op", op);
+      params.set("page", String(effectivePage));
+      params.set("page_size", String(effectivePageSize));
+      if (effectiveSearch) params.set("q", effectiveSearch);
+      if (effectivePipeline) {
+        params.set("pipeline", effectivePipeline);
+        if (effectiveMetric) params.set("metric", effectiveMetric);
+        if (effectiveValue) params.set("value", effectiveValue);
+        if (effectiveOp) params.set("op", effectiveOp);
       }
-      if (pipeline && pipeline2 && disagree) {
-        params.set("pipeline2", pipeline2);
+      if (effectivePipeline && effectivePipeline2 && effectiveDisagree) {
+        params.set("pipeline2", effectivePipeline2);
+        if (effectiveMetric2) params.set("metric2", effectiveMetric2);
         params.set("disagree", "true");
       }
       const res = await fetch(
@@ -113,9 +288,78 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId }) => {
     [items]
   );
 
+  useEffect(() => {
+    if (!selectedRecordId || !selectedRecordPipeline) return;
+    const loadDetail = async () => {
+      try {
+        setDetailLoading(true);
+        setDetailError(null);
+        const params = new URLSearchParams();
+        params.set("pipeline", selectedRecordPipeline);
+        const res = await fetch(
+          apiUrl(
+            `/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}/detail?${params.toString()}`
+          )
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setDetail((await res.json()) as ErrorRecordDetail);
+      } catch (e: any) {
+        setDetailError(e.message || "Failed to load record details");
+      } finally {
+        setDetailLoading(false);
+      }
+    };
+    void loadDetail();
+  }, [benchmarkId, selectedRecordId, selectedRecordPipeline]);
+
+  const closeDetail = () => {
+    setSelectedRecordId(null);
+    setSelectedRecordPipeline(null);
+    setDetail(null);
+    setDetailError(null);
+    setDetailLoading(false);
+    setShowRawJson(false);
+    setRawJsonRecord(null);
+    setRawJsonError(null);
+    setRawJsonLoading(false);
+  };
+
+  useEffect(() => {
+    setShowRawJson(false);
+    setRawJsonRecord(null);
+    setRawJsonError(null);
+    setRawJsonLoading(false);
+  }, [selectedRecordId]);
+
+  const openRawJsonView = async () => {
+    if (!selectedRecordId) return;
+    setShowRawJson(true);
+    if (rawJsonRecord) return;
+    try {
+      setRawJsonLoading(true);
+      setRawJsonError(null);
+      const res = await fetch(
+        apiUrl(`/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}`)
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setRawJsonRecord((await res.json()) as Record<string, any>);
+    } catch (e: any) {
+      setRawJsonError(e.message || "Failed to load raw JSON");
+    } finally {
+      setRawJsonLoading(false);
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-      <h3 style={{ margin: 0 }}>Error analysis – {benchmarkId}</h3>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
+        <h3 style={{ margin: 0 }}>Error analysis – {benchmarkId}</h3>
+        {onBack && (
+          <Button kind="ghost" size="sm" onClick={onBack}>
+            Back
+          </Button>
+        )}
+      </div>
       <div
         style={{
           display: "grid",
@@ -142,6 +386,24 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId }) => {
           labelText="Metric"
           value={metric}
           onChange={(e) => setMetric(e.target.value)}
+        >
+          <SelectItem value="execution_accuracy" text="execution_accuracy" />
+          <SelectItem
+            value="non_empty_execution_accuracy"
+            text="non_empty_execution_accuracy"
+          />
+          <SelectItem
+            value="subset_non_empty_execution_accuracy"
+            text="subset_non_empty_execution_accuracy"
+          />
+          <SelectItem value="llm_score" text="llm_score" />
+        </Select>
+        <Select
+          id="metric2-select"
+          labelText="Metric 2 (for disagreement)"
+          value={metric2}
+          onChange={(e) => setMetric2(e.target.value)}
+          disabled={!disagree}
         >
           <SelectItem value="execution_accuracy" text="execution_accuracy" />
           <SelectItem
@@ -189,12 +451,72 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId }) => {
           <SelectItem value="false" text="No" />
           <SelectItem value="true" text="Yes" />
         </Select>
-        <div style={{ display: "flex", alignItems: "flex-end" }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <Button
+              kind="secondary"
+              size="sm"
+              disabled={!pipeline}
+              onClick={() => {
+                const p = pipeline;
+                if (!p) return;
+                setPipeline(p);
+                setPipeline2(p);
+                setMetric("execution_accuracy");
+                setMetric2("subset_non_empty_execution_accuracy");
+                setValue("0");
+                setOp("eq");
+                setDisagree(true);
+                setPage(1);
+                void load({
+                  page: 1,
+                  pipeline: p,
+                  pipeline2: p,
+                  metric: "execution_accuracy",
+                  metric2: "subset_non_empty_execution_accuracy",
+                  value: "0",
+                  op: "eq",
+                  disagree: true,
+                });
+              }}
+            >
+              Exec=0 & subset=1
+            </Button>
+            <Button
+              kind="secondary"
+              size="sm"
+              disabled={!pipeline}
+              onClick={() => {
+                const p = pipeline;
+                if (!p) return;
+                setPipeline(p);
+                setPipeline2(p);
+                setMetric("execution_accuracy");
+                setMetric2("llm_score");
+                setValue("0");
+                setOp("eq");
+                setDisagree(true);
+                setPage(1);
+                void load({
+                  page: 1,
+                  pipeline: p,
+                  pipeline2: p,
+                  metric: "execution_accuracy",
+                  metric2: "llm_score",
+                  value: "0",
+                  op: "eq",
+                  disagree: true,
+                });
+              }}
+            >
+              Exec=0 & llm=1
+            </Button>
+          </div>
           <Button
             kind="primary"
             onClick={() => {
               setPage(1);
-              void load();
+              void load({ page: 1 });
             }}
             disabled={loading}
           >
@@ -226,7 +548,22 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId }) => {
                 </TableHead>
                 <TableBody>
                   {rows.map((row) => (
-                    <TableRow key={row.id}>
+                    <TableRow
+                      key={row.id}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => {
+                        const recordId = String(row.id);
+                        const source = items.find((x) => x.record_id === recordId);
+                        const availablePipelines = Object.keys(source?.predictions ?? {});
+                        const detailPipeline =
+                          (pipeline && availablePipelines.includes(pipeline) ? pipeline : null) ||
+                          availablePipelines[0] ||
+                          null;
+                        if (!detailPipeline) return;
+                        setSelectedRecordId(recordId);
+                        setSelectedRecordPipeline(detailPipeline);
+                      }}
+                    >
                       {row.cells.map((cell) => (
                         <TableCell key={cell.id}>{cell.value}</TableCell>
                       ))}
@@ -248,6 +585,188 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId }) => {
           setPageSize(pageSize);
         }}
       />
+      {selectedRecordId && (
+        <>
+          <div
+            onClick={closeDetail}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.35)",
+              zIndex: 7400,
+            }}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "3rem",
+              right: 0,
+              bottom: 0,
+              width: "min(900px, 92vw)",
+              zIndex: 7500,
+              background: "#ffffff",
+              color: "#161616",
+              borderLeft: "1px solid rgba(0,0,0,0.12)",
+              padding: "0.85rem",
+              overflow: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.75rem",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0 }}>
+                {showRawJson
+                  ? `Raw JSON – ${selectedRecordId}`
+                  : `Record detail – ${selectedRecordId}${selectedRecordPipeline ? ` (${selectedRecordPipeline})` : ""}`}
+              </h3>
+              <div style={{ display: "flex", gap: "0.35rem" }}>
+                {showRawJson && (
+                  <Button kind="ghost" size="sm" onClick={() => setShowRawJson(false)}>
+                    Back to detail
+                  </Button>
+                )}
+                <Button kind="ghost" size="sm" onClick={closeDetail}>
+                  X
+                </Button>
+              </div>
+            </div>
+
+            {showRawJson ? (
+              <>
+                {rawJsonLoading && (
+                  <InlineNotification
+                    kind="info"
+                    title="Loading raw JSON..."
+                    subtitle="Fetching full record payload from predictions_eval"
+                    lowContrast
+                  />
+                )}
+                {rawJsonError && (
+                  <InlineNotification
+                    kind="error"
+                    title="Failed to load raw JSON"
+                    subtitle={rawJsonError}
+                    lowContrast
+                  />
+                )}
+                {rawJsonRecord && (
+                  <section>
+                    <pre
+                      style={{
+                        margin: "0.3rem 0",
+                        padding: "0.6rem",
+                        background: "#f4f4f4",
+                        borderRadius: "4px",
+                        whiteSpace: "pre-wrap",
+                        border: "1px solid rgba(15,98,254,0.2)",
+                        color: "#161616",
+                      }}
+                    >
+                      {JSON.stringify(rawJsonRecord, null, 2)}
+                    </pre>
+                  </section>
+                )}
+              </>
+            ) : (
+              <>
+                {detailLoading && (
+                  <InlineNotification kind="info" title="Loading details..." subtitle="Fetching full record detail" lowContrast />
+                )}
+                {detailError && (
+                  <InlineNotification kind="error" title="Failed to load details" subtitle={detailError} lowContrast />
+                )}
+                {detail && (
+                  <>
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Question</h4>
+                      <div style={{ whiteSpace: "pre-wrap" }}>{detail.question || "N/A"}</div>
+                    </section>
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Ground truth SQL</h4>
+                      {(detail.ground_truth_sql || []).map((sql, idx) => (
+                        <pre
+                          key={`gt-sql-${idx}`}
+                          style={{
+                            margin: "0.3rem 0",
+                            padding: "0.6rem",
+                            background: "#f4f4f4",
+                            borderRadius: "4px",
+                            whiteSpace: "pre-wrap",
+                            border: "1px solid rgba(15,98,254,0.2)",
+                            color: "#161616",
+                          }}
+                        >
+                          <code dangerouslySetInnerHTML={{ __html: highlightSql(sql) }} />
+                        </pre>
+                      ))}
+                    </section>
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Predicted SQL</h4>
+                      <pre
+                        style={{
+                          margin: "0.3rem 0",
+                          padding: "0.6rem",
+                          background: "#f4f4f4",
+                          borderRadius: "4px",
+                          whiteSpace: "pre-wrap",
+                          border: "1px solid rgba(15,98,254,0.2)",
+                          color: "#161616",
+                        }}
+                      >
+                        <code dangerouslySetInnerHTML={{ __html: highlightSql(detail.predicted_sql || "N/A") }} />
+                      </pre>
+                    </section>
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Evaluation metrics</h4>
+                      <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
+                        {JSON.stringify(detail.evaluation_metrics ?? {}, null, 2)}
+                      </pre>
+                    </section>
+                    {(detail.ground_truth_results || []).map((r, idx) => (
+                      <ResultTableView key={`gt-result-table-${idx}`} title={`Ground truth result ${idx + 1}`} rawData={r} />
+                    ))}
+                    <ResultTableView title="Predicted result" rawData={detail.predicted_result} />
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Prompt</h4>
+                      <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
+                        {detail.prompt || "N/A"}
+                      </pre>
+                    </section>
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>LLM judge</h4>
+                      <div style={{ marginBottom: "0.25rem" }}>Score: {detail.llm_judge_score ?? "N/A"}</div>
+                      <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
+                        {detail.llm_judge_explanation || "N/A"}
+                      </pre>
+                    </section>
+                    {(detail.sql_execution_error || detail.inference_error) && (
+                      <section>
+                        <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Errors</h4>
+                        <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
+                          {JSON.stringify(
+                            {
+                              sql_execution_error: detail.sql_execution_error,
+                              inference_error: detail.inference_error,
+                            },
+                            null,
+                            2
+                          )}
+                        </pre>
+                      </section>
+                    )}
+                    <div style={{ marginTop: "0.25rem", display: "flex", justifyContent: "flex-end" }}>
+                      <Button kind="secondary" size="sm" onClick={() => void openRawJsonView()}>
+                        View Raw JSON
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

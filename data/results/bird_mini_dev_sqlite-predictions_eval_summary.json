@@ -85,8 +85,8 @@
       "stddev": 318.7781841092962
     },
     "llm_score": {
-      "average": 0.846,
-      "stddev": 0.3580205452472409
+      "average": 0.856,
+      "stddev": 0.3479189137772563
     },
     "sum_total_tokens": 4065163,
     "sum_prompt_tokens": 4031853,
@@ -101,7 +101,7 @@
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 252,
     "num_correct_subset_non_empty_execution_accuracy": 270,
-    "num_correct_llm": 423,
+    "num_correct_llm": 428,
     "num_llm_judge_errors": 0
   },
   "wxai:ibm/granite-4-h-small-greedy-zero-shot-chatapi": {
@@ -182,8 +182,8 @@
       "stddev": 235.8005850046099
     },
     "llm_score": {
-      "average": 0.676,
-      "stddev": 0.46743957207464615
+      "average": 0.675,
+      "stddev": 0.4672850442700712
     },
     "sum_total_tokens": 4056380,
     "sum_prompt_tokens": 4023543,
@@ -198,7 +198,7 @@
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 203,
     "num_correct_subset_non_empty_execution_accuracy": 217,
-    "num_correct_llm": 338,
+    "num_correct_llm": 337,
     "num_llm_judge_errors": 0
   },
   "wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8-greedy-zero-shot-chatapi": {
@@ -279,8 +279,8 @@
       "stddev": 299.92053019698915
     },
     "llm_score": {
-      "average": 0.848,
-      "stddev": 0.35604584535206824
+      "average": 0.836,
+      "stddev": 0.3661991255482925
     },
     "sum_total_tokens": 4130522,
     "sum_prompt_tokens": 4086679,
@@ -295,7 +295,7 @@
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 265,
     "num_correct_subset_non_empty_execution_accuracy": 281,
-    "num_correct_llm": 424,
+    "num_correct_llm": 417,
     "num_llm_judge_errors": 0
   },
   "wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi": {
@@ -308,12 +308,12 @@
       "stddev": 0.5003574393264106
     },
     "subset_non_empty_execution_accuracy": {
-      "average": 0.568,
-      "stddev": 0.4955336952660278
+      "average": 0.572,
+      "stddev": 0.4949462991744939
     },
     "logic_execution_accuracy": {
-      "average": 0.586,
-      "stddev": 0.4926266187605602
+      "average": 0.59,
+      "stddev": 0.4918879246481013
     },
     "bird_execution_accuracy": {
       "average": 0.532,
@@ -376,8 +376,8 @@
       "stddev": 196.93999486613467
     },
     "llm_score": {
-      "average": 0.9,
-      "stddev": 0.29541599757212955
+      "average": 0.879,
+      "stddev": 0.3215218216344082
     },
     "sum_total_tokens": 4298799,
     "sum_prompt_tokens": 4128769,
@@ -391,8 +391,8 @@
     "num_df_errors": 5,
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 255,
-    "num_correct_subset_non_empty_execution_accuracy": 284,
-    "num_correct_llm": 450,
+    "num_correct_subset_non_empty_execution_accuracy": 286,
+    "num_correct_llm": 439,
     "num_llm_judge_errors": 0
   },
   "wxai:openai/gpt-oss-120b-agentic-baseline0-3attempts": {
@@ -405,12 +405,12 @@
       "stddev": 0.46588114723353646
     },
     "subset_non_empty_execution_accuracy": {
-      "average": 0.416,
-      "stddev": 0.4936712099822388
+      "average": 0.418,
+      "stddev": 0.49400255906109275
     },
     "logic_execution_accuracy": {
-      "average": 0.44,
-      "stddev": 0.4970966914836017
+      "average": 0.442,
+      "stddev": 0.49732828004375307
     },
     "bird_execution_accuracy": {
       "average": 0.35,
@@ -473,8 +473,8 @@
       "stddev": 1093.6416004078142
     },
     "llm_score": {
-      "average": 0.826,
-      "stddev": 0.37660980525666704
+      "average": 0.759,
+      "stddev": 0.42091380623641894
     },
     "sum_total_tokens": 4582564,
     "sum_prompt_tokens": 4339354,
@@ -488,8 +488,8 @@
     "num_df_errors": 3,
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 158,
-    "num_correct_subset_non_empty_execution_accuracy": 208,
-    "num_correct_llm": 413,
+    "num_correct_subset_non_empty_execution_accuracy": 209,
+    "num_correct_llm": 375,
     "num_llm_judge_errors": 0
   },
   "wxai:openai/gpt-oss-120b-agentic-baseline1-3attempts": {
@@ -570,8 +570,8 @@
       "stddev": 1077.1763365041277
     },
     "llm_score": {
-      "average": 0.806,
-      "stddev": 0.39329774826850933
+      "average": 0.723,
+      "stddev": 0.4425457799494811
     },
     "sum_total_tokens": 4408113,
     "sum_prompt_tokens": 4202140,
@@ -586,7 +586,7 @@
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 198,
     "num_correct_subset_non_empty_execution_accuracy": 221,
-    "num_correct_llm": 403,
+    "num_correct_llm": 358,
     "num_llm_judge_errors": 0
   },
   "wxai:openai/gpt-oss-120b-agentic-baseline2-3attempts": {
@@ -667,8 +667,8 @@
       "stddev": 1153.0641302288714
     },
     "llm_score": {
-      "average": 0.792,
-      "stddev": 0.4039753008938457
+      "average": 0.733,
+      "stddev": 0.4361128055058262
     },
     "sum_total_tokens": 4404773,
     "sum_prompt_tokens": 4202260,
@@ -683,7 +683,7 @@
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 192,
     "num_correct_subset_non_empty_execution_accuracy": 220,
-    "num_correct_llm": 396,
+    "num_correct_llm": 362,
     "num_llm_judge_errors": 0
   },
   "wxai:openai/gpt-oss-120b-agentic-baseline3-3attempts": {
@@ -764,8 +764,8 @@
       "stddev": 1623.4176630896766
     },
     "llm_score": {
-      "average": 0.12,
-      "stddev": 0.32585156764934553
+      "average": 0.097,
+      "stddev": 0.2959369611271506
     },
     "sum_total_tokens": 12550218,
     "sum_prompt_tokens": 11930507,
@@ -780,7 +780,7 @@
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 10,
     "num_correct_subset_non_empty_execution_accuracy": 15,
-    "num_correct_llm": 60,
+    "num_correct_llm": 48,
     "num_llm_judge_errors": 0
   },
   "wxai:openai/gpt-oss-120b-agentic-baseline4-3attempts": {
@@ -793,12 +793,12 @@
       "stddev": 0.4810606496208488
     },
     "subset_non_empty_execution_accuracy": {
-      "average": 0.408,
-      "stddev": 0.4951277041158865
+      "average": 0.412,
+      "stddev": 0.4957296833097797
     },
     "logic_execution_accuracy": {
-      "average": 0.428,
-      "stddev": 0.49777801586669346
+      "average": 0.432,
+      "stddev": 0.498200757357634
     },
     "bird_execution_accuracy": {
       "average": 0.36,
@@ -861,8 +861,8 @@
       "stddev": 9015.78467823677
     },
     "llm_score": {
-      "average": 0.842,
-      "stddev": 0.32441829531646915
+      "average": 0.8,
+      "stddev": 0.3699168883004508
     },
     "sum_total_tokens": 11641084,
     "sum_prompt_tokens": 11212742,
@@ -876,8 +876,8 @@
     "num_df_errors": 33,
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 173,
-    "num_correct_subset_non_empty_execution_accuracy": 204,
-    "num_correct_llm": 421,
+    "num_correct_subset_non_empty_execution_accuracy": 206,
+    "num_correct_llm": 400,
     "num_llm_judge_errors": 0
   },
   "wxai:openai/gpt-oss-120b-agentic-baseline5-3attempts": {
@@ -958,8 +958,8 @@
       "stddev": 8342.343827012692
     },
     "llm_score": {
-      "average": 0.522,
-      "stddev": 0.48867977352343084
+      "average": 0.506,
+      "stddev": 0.4912668912100968
     },
     "sum_total_tokens": 20829175,
     "sum_prompt_tokens": 20161441,
@@ -974,7 +974,7 @@
     "num_inference_errors": 0,
     "num_correct_non_empty_execution_accuracy": 136,
     "num_correct_subset_non_empty_execution_accuracy": 144,
-    "num_correct_llm": 261,
+    "num_correct_llm": 252,
     "num_llm_judge_errors": 0
   }
 }

@@ -20,6 +20,7 @@ interface Props {
   benchmarkId: string;
   pipelineName: string;
   onBack: () => void;
+  onOpenErrorAnalysis?: (filters: Record<string, any>) => void;
 }
 
 interface PipelineMetrics {
@@ -247,6 +248,7 @@ export const PipelineDetailView: React.FC<Props> = ({
   benchmarkId,
   pipelineName,
   onBack,
+  onOpenErrorAnalysis,
 }) => {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [errors, setErrors] = useState<ErrorRecordSummary[]>([]);
@@ -259,6 +261,10 @@ export const PipelineDetailView: React.FC<Props> = ({
   const [detail, setDetail] = useState<ErrorRecordDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [showRawJson, setShowRawJson] = useState(false);
+  const [rawJsonRecord, setRawJsonRecord] = useState<Record<string, any> | null>(null);
+  const [rawJsonLoading, setRawJsonLoading] = useState(false);
+  const [rawJsonError, setRawJsonError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -413,6 +419,36 @@ export const PipelineDetailView: React.FC<Props> = ({
     setDetail(null);
     setDetailError(null);
     setDetailLoading(false);
+    setShowRawJson(false);
+    setRawJsonRecord(null);
+    setRawJsonError(null);
+    setRawJsonLoading(false);
+  };
+
+  useEffect(() => {
+    setShowRawJson(false);
+    setRawJsonRecord(null);
+    setRawJsonError(null);
+    setRawJsonLoading(false);
+  }, [selectedRecordId]);
+
+  const openRawJsonView = async () => {
+    if (!selectedRecordId) return;
+    setShowRawJson(true);
+    if (rawJsonRecord) return;
+    try {
+      setRawJsonLoading(true);
+      setRawJsonError(null);
+      const res = await fetch(
+        apiUrl(`/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}`)
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setRawJsonRecord((await res.json()) as Record<string, any>);
+    } catch (e: any) {
+      setRawJsonError(e.message || "Failed to load raw JSON");
+    } finally {
+      setRawJsonLoading(false);
+    }
   };
 
   const formatRaw = (value: any) => {
@@ -484,6 +520,44 @@ export const PipelineDetailView: React.FC<Props> = ({
       </div>
 
       <h4 style={{ margin: "0.25rem 0 0 0" }}>Failed examples (execution_accuracy = 0)</h4>
+      {onOpenErrorAnalysis && (
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.25rem" }}>
+          <Button
+            kind="secondary"
+            size="sm"
+            onClick={() =>
+              onOpenErrorAnalysis({
+                pipeline: pipelineName,
+                metric: "execution_accuracy",
+                value: "0",
+                op: "eq",
+                pipeline2: pipelineName,
+                metric2: "subset_non_empty_execution_accuracy",
+                disagree: true,
+              })
+            }
+          >
+            Exec=0 & subset=1
+          </Button>
+          <Button
+            kind="secondary"
+            size="sm"
+            onClick={() =>
+              onOpenErrorAnalysis({
+                pipeline: pipelineName,
+                metric: "execution_accuracy",
+                value: "0",
+                op: "eq",
+                pipeline2: pipelineName,
+                metric2: "llm_score",
+                disagree: true,
+              })
+            }
+          >
+            Exec=0 & llm=1
+          </Button>
+        </div>
+      )}
       <TextInput
         id="pipeline-errors-search"
         labelText="Search failed examples"
@@ -580,28 +654,41 @@ export const PipelineDetailView: React.FC<Props> = ({
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ margin: 0 }}>
-                Record detail – {selectedRecordId}
+                {showRawJson ? `Raw JSON – ${selectedRecordId}` : `Record detail – ${selectedRecordId}`}
               </h3>
-              <Button kind="ghost" size="sm" onClick={closeDetail}>
-                X
-              </Button>
+              <div style={{ display: "flex", gap: "0.35rem" }}>
+                {showRawJson && (
+                  <Button kind="ghost" size="sm" onClick={() => setShowRawJson(false)}>
+                    Back to detail
+                  </Button>
+                )}
+                <Button kind="ghost" size="sm" onClick={closeDetail}>
+                  X
+                </Button>
+              </div>
             </div>
 
-            {detailLoading && <InlineNotification kind="info" title="Loading details..." subtitle="Fetching full record detail" lowContrast />}
-            {detailError && <InlineNotification kind="error" title="Failed to load details" subtitle={detailError} lowContrast />}
-
-            {detail && (
+            {showRawJson ? (
               <>
-                <section>
-                  <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Question</h4>
-                  <div style={{ whiteSpace: "pre-wrap" }}>{detail.question || "N/A"}</div>
-                </section>
-
-                <section>
-                  <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Ground truth SQL</h4>
-                  {(detail.ground_truth_sql || []).map((sql, idx) => (
+                {rawJsonLoading && (
+                  <InlineNotification
+                    kind="info"
+                    title="Loading raw JSON..."
+                    subtitle="Fetching full record payload from predictions_eval"
+                    lowContrast
+                  />
+                )}
+                {rawJsonError && (
+                  <InlineNotification
+                    kind="error"
+                    title="Failed to load raw JSON"
+                    subtitle={rawJsonError}
+                    lowContrast
+                  />
+                )}
+                {rawJsonRecord && (
+                  <section>
                     <pre
-                      key={`gt-sql-${idx}`}
                       style={{
                         margin: "0.3rem 0",
                         padding: "0.6rem",
@@ -612,69 +699,109 @@ export const PipelineDetailView: React.FC<Props> = ({
                         color: "#161616",
                       }}
                     >
-<code dangerouslySetInnerHTML={{ __html: highlightSql(sql) }} />
-                    </pre>
-                  ))}
-                </section>
-
-                <section>
-                  <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Predicted SQL</h4>
-                  <pre
-                    style={{
-                      margin: "0.3rem 0",
-                      padding: "0.6rem",
-                      background: "#f4f4f4",
-                      borderRadius: "4px",
-                      whiteSpace: "pre-wrap",
-                      border: "1px solid rgba(15,98,254,0.2)",
-                      color: "#161616",
-                    }}
-                  >
-<code dangerouslySetInnerHTML={{ __html: highlightSql(detail.predicted_sql || "N/A") }} />
-                  </pre>
-                </section>
-
-                <section>
-                  <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Evaluation metrics</h4>
-                  <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
-{formatRaw(detail.evaluation_metrics)}
-                  </pre>
-                </section>
-
-                {(detail.ground_truth_results || []).map((r, idx) => (
-                  <ResultTableView
-                    key={`gt-result-table-${idx}`}
-                    title={`Ground truth result ${idx + 1}`}
-                    rawData={r}
-                  />
-                ))}
-
-                <ResultTableView title="Predicted result" rawData={detail.predicted_result} />
-
-                <section>
-                  <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Prompt</h4>
-                  <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
-{detail.prompt || "N/A"}
-                  </pre>
-                </section>
-
-                <section>
-                  <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>LLM judge</h4>
-                  <div style={{ marginBottom: "0.25rem" }}>
-                    Score: {detail.llm_judge_score ?? "N/A"}
-                  </div>
-                  <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
-{detail.llm_judge_explanation || "N/A"}
-                  </pre>
-                </section>
-
-                {(detail.sql_execution_error || detail.inference_error) && (
-                  <section>
-                    <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Errors</h4>
-                    <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
-{formatRaw({ sql_execution_error: detail.sql_execution_error, inference_error: detail.inference_error })}
+                      {formatRaw(rawJsonRecord)}
                     </pre>
                   </section>
+                )}
+              </>
+            ) : (
+              <>
+                {detailLoading && <InlineNotification kind="info" title="Loading details..." subtitle="Fetching full record detail" lowContrast />}
+                {detailError && <InlineNotification kind="error" title="Failed to load details" subtitle={detailError} lowContrast />}
+
+                {detail && (
+                  <>
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Question</h4>
+                      <div style={{ whiteSpace: "pre-wrap" }}>{detail.question || "N/A"}</div>
+                    </section>
+
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Ground truth SQL</h4>
+                      {(detail.ground_truth_sql || []).map((sql, idx) => (
+                        <pre
+                          key={`gt-sql-${idx}`}
+                          style={{
+                            margin: "0.3rem 0",
+                            padding: "0.6rem",
+                            background: "#f4f4f4",
+                            borderRadius: "4px",
+                            whiteSpace: "pre-wrap",
+                            border: "1px solid rgba(15,98,254,0.2)",
+                            color: "#161616",
+                          }}
+                        >
+<code dangerouslySetInnerHTML={{ __html: highlightSql(sql) }} />
+                        </pre>
+                      ))}
+                    </section>
+
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Predicted SQL</h4>
+                      <pre
+                        style={{
+                          margin: "0.3rem 0",
+                          padding: "0.6rem",
+                          background: "#f4f4f4",
+                          borderRadius: "4px",
+                          whiteSpace: "pre-wrap",
+                          border: "1px solid rgba(15,98,254,0.2)",
+                          color: "#161616",
+                        }}
+                      >
+<code dangerouslySetInnerHTML={{ __html: highlightSql(detail.predicted_sql || "N/A") }} />
+                      </pre>
+                    </section>
+
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Evaluation metrics</h4>
+                      <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
+{formatRaw(detail.evaluation_metrics)}
+                      </pre>
+                    </section>
+
+                    {(detail.ground_truth_results || []).map((r, idx) => (
+                      <ResultTableView
+                        key={`gt-result-table-${idx}`}
+                        title={`Ground truth result ${idx + 1}`}
+                        rawData={r}
+                      />
+                    ))}
+
+                    <ResultTableView title="Predicted result" rawData={detail.predicted_result} />
+
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Prompt</h4>
+                      <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
+{detail.prompt || "N/A"}
+                      </pre>
+                    </section>
+
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>LLM judge</h4>
+                      <div style={{ marginBottom: "0.25rem" }}>
+                        Score: {detail.llm_judge_score ?? "N/A"}
+                      </div>
+                      <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
+{detail.llm_judge_explanation || "N/A"}
+                      </pre>
+                    </section>
+
+                    {(detail.sql_execution_error || detail.inference_error) && (
+                      <section>
+                        <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Errors</h4>
+                        <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>
+{formatRaw({ sql_execution_error: detail.sql_execution_error, inference_error: detail.inference_error })}
+                        </pre>
+                      </section>
+                    )}
+
+                    <div style={{ marginTop: "0.25rem", display: "flex", justifyContent: "flex-end" }}>
+                      <Button kind="secondary" size="sm" onClick={() => void openRawJsonView()}>
+                        View Raw JSON
+                      </Button>
+                    </div>
+                  </>
                 )}
               </>
             )}

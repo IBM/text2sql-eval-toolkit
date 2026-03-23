@@ -21,7 +21,7 @@ def test_top_level_import_and_symbols():
     ]:
         assert hasattr(mod, name), f"Missing expected API symbol: {name}"
 
-    # Low-level SQL comparison helpers (re-exported from unitxt)
+    # Low-level SQL comparison helpers (re-exported from toolkit metrics)
     for name in [
         "compare_result_dfs",
         "sql_exact_match",
