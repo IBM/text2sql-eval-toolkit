@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
   TextInput,
+  TextArea,
 } from "@carbon/react";
 import { apiUrl } from "../lib/api";
 
@@ -66,6 +67,25 @@ interface ErrorRecordDetail {
   llm_judge_explanation?: string;
   sql_execution_error?: string;
   inference_error?: string;
+}
+
+interface ExecuteSqlResponse {
+  benchmark_id: string;
+  db_type: string;
+  sql: string;
+  db_id?: string;
+  execution_time_ms: number;
+  row_count: number;
+  column_count: number;
+  result: any;
+}
+
+interface AddGroundTruthSqlResponse {
+  benchmark_id: string;
+  record_id: string;
+  added: boolean;
+  message: string;
+  ground_truth_count: number;
 }
 
 function escapeHtml(text: string): string {
@@ -261,10 +281,18 @@ export const PipelineDetailView: React.FC<Props> = ({
   const [detail, setDetail] = useState<ErrorRecordDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [showRawJson, setShowRawJson] = useState(false);
+  const [detailViewMode, setDetailViewMode] = useState<"detail" | "raw" | "modify">("detail");
   const [rawJsonRecord, setRawJsonRecord] = useState<Record<string, any> | null>(null);
   const [rawJsonLoading, setRawJsonLoading] = useState(false);
   const [rawJsonError, setRawJsonError] = useState<string | null>(null);
+  const [modifySourceLabel, setModifySourceLabel] = useState<string>("");
+  const [modifySql, setModifySql] = useState<string>("");
+  const [modifyLoading, setModifyLoading] = useState(false);
+  const [modifyError, setModifyError] = useState<string | null>(null);
+  const [modifyResponse, setModifyResponse] = useState<ExecuteSqlResponse | null>(null);
+  const [addGroundTruthLoading, setAddGroundTruthLoading] = useState(false);
+  const [addGroundTruthError, setAddGroundTruthError] = useState<string | null>(null);
+  const [addGroundTruthSuccess, setAddGroundTruthSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -419,22 +447,38 @@ export const PipelineDetailView: React.FC<Props> = ({
     setDetail(null);
     setDetailError(null);
     setDetailLoading(false);
-    setShowRawJson(false);
+    setDetailViewMode("detail");
     setRawJsonRecord(null);
     setRawJsonError(null);
     setRawJsonLoading(false);
+    setModifySourceLabel("");
+    setModifySql("");
+    setModifyLoading(false);
+    setModifyError(null);
+    setModifyResponse(null);
+    setAddGroundTruthLoading(false);
+    setAddGroundTruthError(null);
+    setAddGroundTruthSuccess(null);
   };
 
   useEffect(() => {
-    setShowRawJson(false);
+    setDetailViewMode("detail");
     setRawJsonRecord(null);
     setRawJsonError(null);
     setRawJsonLoading(false);
+    setModifySourceLabel("");
+    setModifySql("");
+    setModifyLoading(false);
+    setModifyError(null);
+    setModifyResponse(null);
+    setAddGroundTruthLoading(false);
+    setAddGroundTruthError(null);
+    setAddGroundTruthSuccess(null);
   }, [selectedRecordId]);
 
   const openRawJsonView = async () => {
     if (!selectedRecordId) return;
-    setShowRawJson(true);
+    setDetailViewMode("raw");
     if (rawJsonRecord) return;
     try {
       setRawJsonLoading(true);
@@ -448,6 +492,77 @@ export const PipelineDetailView: React.FC<Props> = ({
       setRawJsonError(e.message || "Failed to load raw JSON");
     } finally {
       setRawJsonLoading(false);
+    }
+  };
+
+  const openModifyQueryView = (sql: string, sourceLabel: string) => {
+    setModifySourceLabel(sourceLabel);
+    setModifySql(sql);
+    setModifyLoading(false);
+    setModifyError(null);
+    setModifyResponse(null);
+    setAddGroundTruthLoading(false);
+    setAddGroundTruthError(null);
+    setAddGroundTruthSuccess(null);
+    setDetailViewMode("modify");
+  };
+
+  const executeModifiedQuery = async () => {
+    if (!selectedRecordId || !modifySql.trim()) return;
+    try {
+      setModifyLoading(true);
+      setModifyError(null);
+      const res = await fetch(apiUrl(`/api/benchmarks/${benchmarkId}/execute`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sql: modifySql,
+          record_id: selectedRecordId,
+          db_id: detail?.db_id,
+        }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        throw new Error(payload?.detail || `HTTP ${res.status}`);
+      }
+      setModifyResponse(payload as ExecuteSqlResponse);
+      setAddGroundTruthError(null);
+      setAddGroundTruthSuccess(null);
+    } catch (e: any) {
+      setModifyError(e.message || "Failed to execute SQL");
+      setModifyResponse(null);
+    } finally {
+      setModifyLoading(false);
+    }
+  };
+
+  const addToBenchmarkGroundTruth = async () => {
+    if (!selectedRecordId || !modifySql.trim()) return;
+    const confirmed = window.confirm(
+      "Are you confident this query should be added to benchmark ground truth SQLs?"
+    );
+    if (!confirmed) return;
+    try {
+      setAddGroundTruthLoading(true);
+      setAddGroundTruthError(null);
+      setAddGroundTruthSuccess(null);
+      const res = await fetch(apiUrl(`/api/benchmarks/${benchmarkId}/ground-truth-sql`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          record_id: selectedRecordId,
+          sql: modifySql,
+        }),
+      });
+      const payload = (await res.json()) as AddGroundTruthSqlResponse | { detail?: string };
+      if (!res.ok) {
+        throw new Error((payload as { detail?: string })?.detail || `HTTP ${res.status}`);
+      }
+      setAddGroundTruthSuccess((payload as AddGroundTruthSqlResponse).message);
+    } catch (e: any) {
+      setAddGroundTruthError(e.message || "Failed to add query to benchmark ground truth");
+    } finally {
+      setAddGroundTruthLoading(false);
     }
   };
 
@@ -654,11 +769,15 @@ export const PipelineDetailView: React.FC<Props> = ({
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ margin: 0 }}>
-                {showRawJson ? `Raw JSON – ${selectedRecordId}` : `Record detail – ${selectedRecordId}`}
+                {detailViewMode === "raw"
+                  ? `Raw JSON – ${selectedRecordId}`
+                  : detailViewMode === "modify"
+                  ? `Modify Query – ${selectedRecordId}`
+                  : `Record detail – ${selectedRecordId}`}
               </h3>
               <div style={{ display: "flex", gap: "0.35rem" }}>
-                {showRawJson && (
-                  <Button kind="ghost" size="sm" onClick={() => setShowRawJson(false)}>
+                {detailViewMode !== "detail" && (
+                  <Button kind="ghost" size="sm" onClick={() => setDetailViewMode("detail")}>
                     Back to detail
                   </Button>
                 )}
@@ -668,7 +787,7 @@ export const PipelineDetailView: React.FC<Props> = ({
               </div>
             </div>
 
-            {showRawJson ? (
+            {detailViewMode === "raw" ? (
               <>
                 {rawJsonLoading && (
                   <InlineNotification
@@ -704,6 +823,104 @@ export const PipelineDetailView: React.FC<Props> = ({
                   </section>
                 )}
               </>
+            ) : detailViewMode === "modify" ? (
+              <>
+                <section>
+                  <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>
+                    Source SQL
+                  </h4>
+                  <div style={{ marginBottom: "0.35rem" }}>
+                    {modifySourceLabel || "Custom query"}
+                  </div>
+                </section>
+                <TextArea
+                  id="modify-query-sql"
+                  labelText="Editable SQL"
+                  rows={14}
+                  value={modifySql}
+                  onChange={(e) => setModifySql(e.target.value)}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                  <Button
+                    kind="secondary"
+                    size="sm"
+                    disabled={modifyLoading || !modifySql.trim()}
+                    onClick={() => void executeModifiedQuery()}
+                  >
+                    Execute
+                  </Button>
+                </div>
+                {modifyLoading && (
+                  <InlineNotification
+                    kind="info"
+                    title="Executing SQL..."
+                    subtitle="Running query against the benchmark backend"
+                    lowContrast
+                  />
+                )}
+                {modifyError && (
+                  <InlineNotification
+                    kind="error"
+                    title="SQL execution failed"
+                    subtitle={modifyError}
+                    lowContrast
+                  />
+                )}
+                {addGroundTruthError && (
+                  <InlineNotification
+                    kind="error"
+                    title="Failed to update ground truth"
+                    subtitle={addGroundTruthError}
+                    lowContrast
+                  />
+                )}
+                {addGroundTruthSuccess && (
+                  <InlineNotification
+                    kind="success"
+                    title="Ground truth updated"
+                    subtitle={addGroundTruthSuccess}
+                    lowContrast
+                  />
+                )}
+                {modifyResponse && (
+                  <>
+                    <section>
+                      <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>
+                        Execution summary
+                      </h4>
+                      <pre
+                        style={{
+                          margin: "0.3rem 0",
+                          padding: "0.6rem",
+                          background: "#f4f4f4",
+                          borderRadius: "4px",
+                          whiteSpace: "pre-wrap",
+                          color: "#161616",
+                        }}
+                      >
+                        {formatRaw({
+                          db_type: modifyResponse.db_type,
+                          db_id: modifyResponse.db_id,
+                          execution_time_ms: modifyResponse.execution_time_ms,
+                          row_count: modifyResponse.row_count,
+                          column_count: modifyResponse.column_count,
+                        })}
+                      </pre>
+                    </section>
+                    <ResultTableView title="Execution result" rawData={modifyResponse.result} />
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      <Button
+                        kind="primary"
+                        size="sm"
+                        disabled={addGroundTruthLoading || !modifySql.trim()}
+                        onClick={() => void addToBenchmarkGroundTruth()}
+                      >
+                        Add to benchmark ground truth
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </>
             ) : (
               <>
                 {detailLoading && <InlineNotification kind="info" title="Loading details..." subtitle="Fetching full record detail" lowContrast />}
@@ -719,20 +936,32 @@ export const PipelineDetailView: React.FC<Props> = ({
                     <section>
                       <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Ground truth SQL</h4>
                       {(detail.ground_truth_sql || []).map((sql, idx) => (
-                        <pre
-                          key={`gt-sql-${idx}`}
-                          style={{
-                            margin: "0.3rem 0",
-                            padding: "0.6rem",
-                            background: "#f4f4f4",
-                            borderRadius: "4px",
-                            whiteSpace: "pre-wrap",
-                            border: "1px solid rgba(15,98,254,0.2)",
-                            color: "#161616",
-                          }}
-                        >
+                        <div key={`gt-sql-${idx}`} style={{ marginBottom: "0.55rem" }}>
+                          <pre
+                            style={{
+                              margin: "0.3rem 0",
+                              padding: "0.6rem",
+                              background: "#f4f4f4",
+                              borderRadius: "4px",
+                              whiteSpace: "pre-wrap",
+                              border: "1px solid rgba(15,98,254,0.2)",
+                              color: "#161616",
+                            }}
+                          >
 <code dangerouslySetInnerHTML={{ __html: highlightSql(sql) }} />
-                        </pre>
+                          </pre>
+                          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                            <Button
+                              kind="ghost"
+                              size="sm"
+                              onClick={() =>
+                                openModifyQueryView(sql, `Ground truth SQL ${idx + 1}`)
+                              }
+                            >
+                              Modify Query
+                            </Button>
+                          </div>
+                        </div>
                       ))}
                     </section>
 
@@ -751,6 +980,21 @@ export const PipelineDetailView: React.FC<Props> = ({
                       >
 <code dangerouslySetInnerHTML={{ __html: highlightSql(detail.predicted_sql || "N/A") }} />
                       </pre>
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <Button
+                          kind="ghost"
+                          size="sm"
+                          disabled={!detail.predicted_sql}
+                          onClick={() =>
+                            openModifyQueryView(
+                              detail.predicted_sql || "",
+                              "Predicted SQL"
+                            )
+                          }
+                        >
+                          Modify Query
+                        </Button>
+                      </div>
                     </section>
 
                     <section>

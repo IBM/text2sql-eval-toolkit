@@ -1,7 +1,9 @@
 import argparse
 import asyncio
+import json
 import os
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -13,6 +15,17 @@ from pydantic import BaseModel
 import uvicorn
 
 from text2sql_eval_toolkit.utils import get_benchmarks_info
+from text2sql_eval_toolkit.utils import get_benchmark_info, BENCHMARKS_FILE
+from text2sql_eval_toolkit.execution.execution_tools import (
+    _parse_presto_sqlalchemy_url,
+    _normalize_sql_for_db2,
+    normalize_mysql_connection_string,
+    quote_mixed_case_columns,
+    quote_mysql_identifiers,
+    run_sql_and_get_dataframe_async,
+    run_sql_and_get_dataframe_mysql_async,
+    run_sqlite_query_with_timeout,
+)
 from text2sql_eval_toolkit.evaluation.evaluation_tools import run_evaluation
 from text2sql_eval_toolkit.logging import get_logger
 
@@ -215,6 +228,37 @@ class EvaluateRequest(BaseModel):
     llm_judge_config_path: Optional[str] = None
     force_rerun_llm_judge: bool = False
     force_rerun: bool = False
+
+
+class ExecuteSqlRequest(BaseModel):
+    sql: str
+    record_id: Optional[str] = None
+    db_id: Optional[str] = None
+    timeout_s: Optional[int] = None
+
+
+class ExecuteSqlResponse(BaseModel):
+    benchmark_id: str
+    db_type: str
+    sql: str
+    db_id: Optional[str] = None
+    execution_time_ms: float
+    row_count: int
+    column_count: int
+    result: Dict[str, Any]
+
+
+class AddGroundTruthSqlRequest(BaseModel):
+    record_id: str
+    sql: str
+
+
+class AddGroundTruthSqlResponse(BaseModel):
+    benchmark_id: str
+    record_id: str
+    added: bool
+    message: str
+    ground_truth_count: int
 
 
 class JobStatus(BaseModel):
@@ -718,6 +762,342 @@ def get_error_detail_for_pipeline(
         }
 
     raise HTTPException(status_code=404, detail="Record not found")
+
+
+def _resolve_record_db_id(
+    benchmark_id: str, record_id: Optional[str], explicit_db_id: Optional[str]
+) -> Optional[str]:
+    if explicit_db_id:
+        return explicit_db_id
+    if not record_id:
+        return None
+    records = load_eval_records(benchmark_id)
+    for rec in records:
+        rid = str(rec.get("id") or rec.get("question_id") or "")
+        if rid == record_id:
+            return rec.get("db_id")
+    return None
+
+
+def _resolve_sqlite_db_path(db_folder: str, db_id: str) -> Path:
+    db_filename = f"{db_id}.sqlite"
+    folder_path = Path(db_folder)
+
+    # Support both absolute db_folder and relative layouts.
+    if folder_path.is_absolute():
+        candidate = folder_path / db_id / db_filename
+        if candidate.exists():
+            return candidate
+
+    candidates = [
+        get_data_root() / folder_path / db_id / db_filename,
+        get_data_root() / db_id / db_filename,
+        Path(BENCHMARKS_FILE).parent / folder_path / db_id / db_filename,
+        Path.cwd() / "data" / folder_path / db_id / db_filename,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    tried = ", ".join(str(p) for p in candidates)
+    raise ValueError(f"SQLite DB does not exist. Tried: {tried}")
+
+
+def _resolve_benchmark_data_path(benchmark_id: str) -> Path:
+    benchmark_info = get_benchmark_info(benchmark_id)
+    rel_data = benchmark_info.get("data")
+    explicit_path = benchmark_info.get("benchmark_json_path")
+
+    candidates: List[Path] = []
+    if isinstance(rel_data, str):
+        rel_path = Path(rel_data)
+        candidates.append(get_data_root() / rel_path)
+        candidates.append(Path.cwd() / "data" / rel_path)
+    if explicit_path:
+        candidates.append(Path(str(explicit_path)))
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    tried = ", ".join(str(p) for p in candidates)
+    raise ValueError(f"Benchmark data file not found. Tried: {tried}")
+
+
+def _normalize_sql_for_dedupe(sql: str) -> str:
+    return " ".join((sql or "").strip().rstrip(";").split()).lower()
+
+
+def _get_ground_truth_sql_key(record: Dict[str, Any]) -> str:
+    for key in ("sql", "SQL", "target", "query"):
+        value = record.get(key)
+        if isinstance(value, dict):
+            continue
+        if value is not None:
+            return key
+    return "sql"
+
+
+async def _execute_sql_for_benchmark(
+    benchmark_id: str, sql: str, db_id: Optional[str], timeout_s: int
+) -> tuple[Any, str]:
+    benchmark_info = get_benchmark_info(benchmark_id)
+    db_engine = benchmark_info.get("db_engine", {})
+    db_type = db_engine.get("db_type")
+    if not db_type:
+        raise ValueError("Missing db_type in benchmark config")
+
+    if db_type == "sqlite":
+        db_folder = db_engine.get("db_folder")
+        if not db_folder:
+            raise ValueError("Missing sqlite db_folder in benchmark config")
+        if not db_id:
+            raise ValueError(
+                "db_id is required for sqlite benchmarks. Provide record_id or db_id."
+            )
+        db_path = _resolve_sqlite_db_path(db_folder, db_id)
+        df = await run_sqlite_query_with_timeout(db_path, sql, timeout_s)
+        return df, db_type
+
+    if db_type == "postgres":
+        import asyncpg
+
+        schema_name = db_engine.get("schema_name")
+        if not schema_name:
+            raise ValueError("Missing postgres schema_name in benchmark config")
+        connection_string = os.getenv(db_engine.get("connection_string_env_var", ""))
+        if not connection_string:
+            raise ValueError("Missing postgres connection string environment variable")
+
+        fixed_sql = quote_mixed_case_columns(sql)
+        pool = await asyncpg.create_pool(
+            dsn=connection_string,
+            min_size=1,
+            max_size=1,
+            server_settings={"search_path": schema_name},
+        )
+        try:
+            df = await run_sql_and_get_dataframe_async(pool, schema_name, fixed_sql, timeout_s)
+        finally:
+            await pool.close()
+        return df, db_type
+
+    if db_type == "mysql":
+        connection_string = os.getenv(db_engine.get("connection_string_env_var", ""))
+        if not connection_string:
+            raise ValueError("Missing MySQL connection string environment variable")
+        normalized_conn_str, connect_args = normalize_mysql_connection_string(
+            connection_string
+        )
+        fixed_sql = quote_mysql_identifiers(sql)
+        df = await run_sql_and_get_dataframe_mysql_async(
+            normalized_conn_str, connect_args, db_id, fixed_sql, timeout=timeout_s
+        )
+        return df, db_type
+
+    if db_type == "db2":
+        import pandas as pd
+        from text2sql_eval_toolkit.execution.execution_tools import _require_ibm_db
+
+        schema_name = db_engine.get("schema_name")
+        connection_string = os.getenv(db_engine.get("connection_string_env_var", ""))
+        if not connection_string:
+            raise ValueError("Missing DB2 connection string environment variable")
+
+        fixed_sql = _normalize_sql_for_db2(sql)
+
+        def _run_db2_query() -> Any:
+            ibm_db = _require_ibm_db()
+            conn = ibm_db.connect(connection_string, "", "")
+            try:
+                if schema_name:
+                    ibm_db.exec_immediate(conn, f"SET CURRENT SCHEMA {schema_name}")
+                stmt = ibm_db.prepare(conn, fixed_sql)
+                try:
+                    ibm_db.set_option(
+                        stmt, {ibm_db.SQL_ATTR_QUERY_TIMEOUT: timeout_s}, 0
+                    )
+                except Exception:
+                    pass
+                ok = ibm_db.execute(stmt)
+                rows: List[Any] = []
+                cols: List[str] = []
+                if ok and ibm_db.num_fields(stmt) > 0:
+                    ncols = ibm_db.num_fields(stmt)
+                    cols = [ibm_db.field_name(stmt, i) for i in range(ncols)]
+                    tup = ibm_db.fetch_tuple(stmt)
+                    while tup:
+                        rows.append(tup)
+                        tup = ibm_db.fetch_tuple(stmt)
+                ibm_db.free_stmt(stmt)
+                return pd.DataFrame(rows, columns=cols)
+            finally:
+                ibm_db.close(conn)
+
+        df = await asyncio.wait_for(
+            asyncio.to_thread(_run_db2_query), timeout=timeout_s + 5
+        )
+        return df, db_type
+
+    if db_type == "presto":
+        import pandas as pd
+        import prestodb
+
+        connection_string = os.getenv(db_engine.get("connection_string_env_var", ""))
+        if not connection_string:
+            raise ValueError("Missing Presto connection string environment variable")
+        connect_kwargs = _parse_presto_sqlalchemy_url(connection_string)
+        fixed_sql = quote_mixed_case_columns(sql)
+
+        def _run_presto_query() -> Any:
+            conn = prestodb.dbapi.connect(**connect_kwargs)
+            try:
+                cur = conn.cursor()
+                cur.execute(fixed_sql)
+                rows = cur.fetchall() or []
+                cols = [d[0] for d in (cur.description or [])]
+                cur.close()
+                return pd.DataFrame(rows, columns=cols)
+            finally:
+                conn.close()
+
+        df = await asyncio.wait_for(asyncio.to_thread(_run_presto_query), timeout=timeout_s)
+        return df, db_type
+
+    raise ValueError(f"Unsupported db_type '{db_type}'")
+
+
+@app.post(
+    "/api/benchmarks/{benchmark_id}/execute",
+    response_model=ExecuteSqlResponse,
+)
+async def execute_sql_for_record(
+    benchmark_id: str, req: ExecuteSqlRequest
+) -> ExecuteSqlResponse:
+    sql = (req.sql or "").strip()
+    if not sql:
+        raise HTTPException(status_code=400, detail="sql is required")
+
+    timeout_s = req.timeout_s or 90
+    if timeout_s < 1 or timeout_s > 600:
+        raise HTTPException(status_code=400, detail="timeout_s must be between 1 and 600")
+
+    db_id = _resolve_record_db_id(benchmark_id, req.record_id, req.db_id)
+    started = time.perf_counter()
+    try:
+        df, db_type = await _execute_sql_for_benchmark(
+            benchmark_id=benchmark_id,
+            sql=sql,
+            db_id=db_id,
+            timeout_s=timeout_s,
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except asyncio.TimeoutError as e:
+        raise HTTPException(
+            status_code=408,
+            detail=f"SQL execution timed out after {timeout_s}s",
+        ) from e
+    except Exception as e:
+        logger.exception("SQL execution failed")
+        raise HTTPException(status_code=500, detail=f"SQL execution failed: {e}") from e
+
+    elapsed_ms = (time.perf_counter() - started) * 1000.0
+    result_payload = json.loads(df.to_json(orient="split"))
+    return ExecuteSqlResponse(
+        benchmark_id=benchmark_id,
+        db_type=db_type,
+        sql=sql,
+        db_id=db_id,
+        execution_time_ms=round(elapsed_ms, 2),
+        row_count=int(df.shape[0]),
+        column_count=int(df.shape[1]),
+        result=result_payload,
+    )
+
+
+@app.post(
+    "/api/benchmarks/{benchmark_id}/ground-truth-sql",
+    response_model=AddGroundTruthSqlResponse,
+)
+def add_ground_truth_sql(
+    benchmark_id: str, req: AddGroundTruthSqlRequest
+) -> AddGroundTruthSqlResponse:
+    record_id = (req.record_id or "").strip()
+    sql = (req.sql or "").strip()
+    if not record_id:
+        raise HTTPException(status_code=400, detail="record_id is required")
+    if not sql:
+        raise HTTPException(status_code=400, detail="sql is required")
+
+    try:
+        data_path = _resolve_benchmark_data_path(benchmark_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    try:
+        with data_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to read benchmark data file: {e}"
+        ) from e
+
+    if not isinstance(data, list):
+        raise HTTPException(status_code=500, detail="Invalid benchmark data format")
+
+    target_record: Optional[Dict[str, Any]] = None
+    for rec in data:
+        rid = str(rec.get("id") or rec.get("question_id") or "")
+        if rid == record_id:
+            target_record = rec
+            break
+
+    if target_record is None:
+        raise HTTPException(status_code=404, detail="Record not found in benchmark data")
+
+    sql_key = _get_ground_truth_sql_key(target_record)
+    current_value = target_record.get(sql_key)
+    if current_value is None:
+        sql_list: List[str] = []
+    elif isinstance(current_value, list):
+        sql_list = [str(v) for v in current_value if isinstance(v, str)]
+    elif isinstance(current_value, str):
+        sql_list = [current_value]
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot extend non-string SQL field '{sql_key}'",
+        )
+
+    normalized_existing = {_normalize_sql_for_dedupe(s) for s in sql_list}
+    normalized_new = _normalize_sql_for_dedupe(sql)
+    added = normalized_new not in normalized_existing
+    if added:
+        sql_list.append(sql)
+        target_record[sql_key] = sql_list
+        try:
+            with data_path.open("w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+                f.write("\n")
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Failed to write benchmark data file: {e}"
+            ) from e
+
+    return AddGroundTruthSqlResponse(
+        benchmark_id=benchmark_id,
+        record_id=record_id,
+        added=added,
+        message=(
+            "Query added to ground truth SQLs"
+            if added
+            else "Query already exists in ground truth SQLs"
+        ),
+        ground_truth_count=len(sql_list),
+    )
 
 
 @app.get("/api/compare", response_model=CompareResponse)
