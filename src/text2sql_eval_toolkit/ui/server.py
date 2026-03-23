@@ -1,7 +1,9 @@
 import argparse
 import asyncio
+import base64
 import json
 import os
+import re
 import threading
 import time
 import uuid
@@ -10,12 +12,17 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 import uvicorn
 
 from text2sql_eval_toolkit.utils import get_benchmarks_info
-from text2sql_eval_toolkit.utils import get_benchmark_info, BENCHMARKS_FILE
+from text2sql_eval_toolkit.utils import (
+    get_benchmark_info,
+    get_benchmarks_file_path,
+    BENCHMARKS_FILE,
+)
 from text2sql_eval_toolkit.execution.execution_tools import (
     _parse_presto_sqlalchemy_url,
     _normalize_sql_for_db2,
@@ -99,16 +106,185 @@ def count_records(data_path: Any) -> int:
         return len(data) if isinstance(data, list) else 0
 
 
+ALLOWED_DB_TYPES = {"sqlite", "postgres", "mysql", "db2", "presto"}
+ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+MAX_LOGO_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+
+
+def get_benchmark_registry_path() -> Path:
+    """
+    Resolve the benchmark registry path used for dashboard CRUD.
+    """
+    path = get_benchmarks_file_path(is_test=False)
+    if path.exists():
+        return path
+
+    fallback = (get_data_root() / "benchmarks.json").resolve()
+    if fallback.parent.exists():
+        return fallback
+    return path
+
+
+def load_benchmark_registry(path: Path) -> Dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to read benchmark registry: {e}"
+        ) from e
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=500, detail="Invalid benchmark registry format")
+    return data
+
+
+def write_json_atomic(path: Path, data: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_name(f".{path.name}.tmp")
+    try:
+        with temp_path.open("w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+            f.write("\n")
+        os.replace(temp_path, path)
+    except Exception as e:
+        try:
+            if temp_path.exists():
+                temp_path.unlink()
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=500, detail=f"Failed to write benchmark registry: {e}"
+        ) from e
+
+
+def normalize_benchmark_id(raw: str) -> str:
+    benchmark_id = (raw or "").strip()
+    if not benchmark_id:
+        raise HTTPException(status_code=400, detail="benchmark_id is required")
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", benchmark_id):
+        raise HTTPException(
+            status_code=400,
+            detail="benchmark_id must only contain letters, numbers, underscore, and dash",
+        )
+    return benchmark_id
+
+
+def normalize_benchmark_config(benchmark_id: str, payload: Any) -> Dict[str, Any]:
+    name = (payload.name or "").strip() or benchmark_id
+    description = (payload.description or "").strip()
+    data = (payload.data or "").strip()
+    schema = (payload.schema_path or "").strip()
+    predictions = (payload.predictions or "").strip()
+    db_engine = payload.db_engine or {}
+
+    if not data:
+        raise HTTPException(status_code=400, detail="data is required")
+    if not schema:
+        raise HTTPException(status_code=400, detail="schema is required")
+    if not predictions:
+        raise HTTPException(status_code=400, detail="predictions is required")
+    if not isinstance(db_engine, dict):
+        raise HTTPException(status_code=400, detail="db_engine must be an object")
+
+    db_type = str(db_engine.get("db_type") or "").strip().lower()
+    if db_type not in ALLOWED_DB_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"db_engine.db_type must be one of "
+                f"{', '.join(sorted(ALLOWED_DB_TYPES))}"
+            ),
+        )
+
+    normalized_engine = dict(db_engine)
+    normalized_engine["db_type"] = db_type
+    if db_type == "sqlite":
+        db_folder = str(normalized_engine.get("db_folder") or "").strip()
+        if not db_folder:
+            raise HTTPException(
+                status_code=400, detail="db_engine.db_folder is required for sqlite"
+            )
+        normalized_engine["db_folder"] = db_folder
+    elif db_type in {"postgres", "mysql", "db2", "presto"}:
+        env_var = str(normalized_engine.get("connection_string_env_var") or "").strip()
+        if not env_var:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "db_engine.connection_string_env_var is required "
+                    f"for {db_type}"
+                ),
+            )
+        normalized_engine["connection_string_env_var"] = env_var
+
+    config: Dict[str, Any] = {
+        "name": name,
+        "description": description,
+        "data": data,
+        "schema": schema,
+        "predictions": predictions,
+        "db_engine": normalized_engine,
+    }
+    # Backward compatibility: accept legacy logo_url but store only logo filename.
+    raw_logo = (getattr(payload, "logo", None) or "").strip()
+    raw_logo_url = (getattr(payload, "logo_url", None) or "").strip()
+    logo = ""
+    if raw_logo:
+        logo = Path(raw_logo).name
+    elif raw_logo_url:
+        logo = Path(raw_logo_url.split("?", 1)[0]).name
+    if logo:
+        config["logo"] = logo
+    return config
+
+
 class BenchmarkSummary(BaseModel):
     benchmark_id: str
+    name: str
     description: str
     db_type: str
     num_records: int
     num_pipelines: int
+    logo: Optional[str] = None
 
 
 class BenchmarksResponse(BaseModel):
     items: List[BenchmarkSummary]
+
+
+class BenchmarkConfigInput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str
+    description: str
+    data: str
+    schema_path: str = Field(alias="schema")
+    predictions: str
+    db_engine: Dict[str, Any]
+    logo: Optional[str] = None
+    logo_url: Optional[str] = None
+
+
+class CreateBenchmarkRequest(BenchmarkConfigInput):
+    benchmark_id: str
+
+
+class UpdateBenchmarkRequest(BenchmarkConfigInput):
+    pass
+
+
+class BenchmarkConfigResponse(BaseModel):
+    benchmark_id: str
+    config: Dict[str, Any]
+
+
+class BenchmarkLogoUploadRequest(BaseModel):
+    benchmark_id: str
+    filename: Optional[str] = None
+    mime_type: Optional[str] = None
+    content_base64: str
 
 
 class PipelineMetrics(BaseModel):
@@ -336,8 +512,15 @@ def list_benchmarks() -> BenchmarksResponse:
     results_dir = get_results_dir()
 
     for benchmark_id, info in benchmarks_info.items():
+        name = info.get("name", benchmark_id)
         description = info.get("description", "")
         db_type = info.get("db_engine", {}).get("db_type", "N/A")
+        logo = info.get("logo")
+        if not logo:
+            # Backward compatibility for previously saved absolute/static URL values.
+            legacy_logo_url = info.get("logo_url")
+            if isinstance(legacy_logo_url, str) and legacy_logo_url.strip():
+                logo = Path(legacy_logo_url.split("?", 1)[0]).name
         num_records = 0
         num_pipelines = 0
 
@@ -368,14 +551,135 @@ def list_benchmarks() -> BenchmarksResponse:
         items.append(
             BenchmarkSummary(
                 benchmark_id=benchmark_id,
+                name=name,
                 description=description,
                 db_type=db_type,
                 num_records=num_records,
                 num_pipelines=num_pipelines,
+                logo=logo,
             )
         )
 
     return BenchmarksResponse(items=items)
+
+
+@app.post("/api/benchmarks", response_model=BenchmarkConfigResponse)
+def create_benchmark(req: CreateBenchmarkRequest) -> BenchmarkConfigResponse:
+    benchmark_id = normalize_benchmark_id(req.benchmark_id)
+    registry_path = get_benchmark_registry_path()
+    registry = load_benchmark_registry(registry_path)
+    if benchmark_id in registry:
+        raise HTTPException(status_code=409, detail="Benchmark already exists")
+
+    config = normalize_benchmark_config(benchmark_id, req)
+    registry[benchmark_id] = config
+    write_json_atomic(registry_path, registry)
+    return BenchmarkConfigResponse(benchmark_id=benchmark_id, config=config)
+
+
+@app.get("/api/benchmarks/{benchmark_id}/config", response_model=BenchmarkConfigResponse)
+def get_benchmark_config(benchmark_id: str) -> BenchmarkConfigResponse:
+    normalized_id = normalize_benchmark_id(benchmark_id)
+    registry_path = get_benchmark_registry_path()
+    registry = load_benchmark_registry(registry_path)
+    config = registry.get(normalized_id)
+    if not isinstance(config, dict):
+        raise HTTPException(status_code=404, detail="Benchmark not found")
+    return BenchmarkConfigResponse(benchmark_id=normalized_id, config=config)
+
+
+@app.put("/api/benchmarks/{benchmark_id}", response_model=BenchmarkConfigResponse)
+def update_benchmark(
+    benchmark_id: str, req: UpdateBenchmarkRequest
+) -> BenchmarkConfigResponse:
+    normalized_id = normalize_benchmark_id(benchmark_id)
+    registry_path = get_benchmark_registry_path()
+    registry = load_benchmark_registry(registry_path)
+    if normalized_id not in registry:
+        raise HTTPException(status_code=404, detail="Benchmark not found")
+
+    config = normalize_benchmark_config(normalized_id, req)
+    registry[normalized_id] = config
+    write_json_atomic(registry_path, registry)
+    return BenchmarkConfigResponse(benchmark_id=normalized_id, config=config)
+
+
+@app.post("/api/benchmarks/logo-upload", response_model=Dict[str, str])
+def upload_benchmark_logo(req: BenchmarkLogoUploadRequest):
+    benchmark_id = normalize_benchmark_id(req.benchmark_id)
+    filename = (req.filename or "").strip()
+    mime_type = (req.mime_type or "").strip().lower()
+    ext = Path(filename).suffix.lower() if filename else ""
+    mime_to_ext = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+        "image/svg+xml": ".svg",
+    }
+    if ext not in ALLOWED_LOGO_EXTENSIONS and mime_type in mime_to_ext:
+        ext = mime_to_ext[mime_type]
+    if ext not in ALLOWED_LOGO_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Unsupported image type. Allowed: png, jpg, jpeg, webp, gif, svg "
+                f"(received filename='{filename or '<empty>'}', mime_type='{mime_type or '<empty>'}')"
+            ),
+        )
+    ext = ".jpg" if ext == ".jpeg" else ext
+
+    try:
+        raw = base64.b64decode(req.content_base64, validate=True)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid base64 payload") from e
+
+    if not raw:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    if len(raw) > MAX_LOGO_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File exceeds max size of {MAX_LOGO_UPLOAD_BYTES} bytes",
+        )
+
+    stored_name = f"{benchmark_id}{ext}"
+    relative_path = Path("benchmarks") / "logos" / stored_name
+    abs_path = get_data_root() / relative_path
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Keep only one logo per benchmark regardless of extension.
+    for existing_ext in ALLOWED_LOGO_EXTENSIONS:
+        existing = abs_path.parent / f"{benchmark_id}{existing_ext}"
+        if existing.resolve() == abs_path.resolve():
+            continue
+        if existing.exists():
+            try:
+                existing.unlink()
+            except Exception:
+                logger.warning(f"Could not remove stale benchmark logo: {existing}")
+
+    # If same target path already exists, remove it first so replacement is deterministic.
+    if abs_path.exists():
+        try:
+            abs_path.unlink()
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, detail=f"Failed to replace existing logo: {e}"
+            ) from e
+
+    try:
+        with abs_path.open("wb") as f:
+            f.write(raw)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to store image: {e}") from e
+
+    normalized_relative = relative_path.as_posix()
+    version_token = str(int(time.time() * 1000))
+    return {
+        "logo": stored_name,
+        "logo_url": f"/api/static/{normalized_relative}?v={version_token}",
+        "path": normalized_relative,
+    }
 
 
 @app.get("/api/benchmarks/{benchmark_id}/summary", response_model=BenchmarkDetailResponse)
@@ -1428,6 +1732,24 @@ def get_job_status(job_id: str) -> JobStatus:
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+@app.get("/api/static/{file_path:path}")
+def serve_dashboard_asset(file_path: str):
+    data_root = get_data_root().resolve()
+    candidate = (data_root / file_path).resolve()
+    if data_root != candidate and data_root not in candidate.parents:
+        raise HTTPException(status_code=403, detail="Forbidden path")
+    if not candidate.exists() or not candidate.is_file():
+        raise HTTPException(status_code=404, detail="Asset not found")
+    return FileResponse(
+        str(candidate),
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 def mount_static(app: FastAPI) -> None:

@@ -13,7 +13,7 @@ import {
   TableRow,
   TextInput,
 } from "@carbon/react";
-import type { BenchmarkSummary } from "../pages/App";
+import type { BenchmarkSummary } from "../types/benchmark";
 
 interface Props {
   items: BenchmarkSummary[];
@@ -50,7 +50,7 @@ export const BenchmarkList: React.FC<Props> = ({ items, selectedId, onSelect }) 
   const pageItems = filtered.slice(start, end);
   const rows = pageItems.map((b) => ({
     id: b.benchmark_id,
-    benchmark_id: b.benchmark_id,
+    benchmark_id: b.name ? `${b.name} (${b.benchmark_id})` : b.benchmark_id,
     description: b.description,
     db_type: b.db_type,
     num_records: b.num_records,

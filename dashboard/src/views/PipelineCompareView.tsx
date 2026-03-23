@@ -11,7 +11,7 @@ import {
   TableHead,
   TableRow,
 } from "@carbon/react";
-import type { BenchmarkSummary } from "../pages/App";
+import type { BenchmarkSummary } from "../types/benchmark";
 import { apiUrl } from "../lib/api";
 
 type ErrorAnalysisFilters = {

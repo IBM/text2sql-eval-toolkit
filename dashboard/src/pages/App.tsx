@@ -5,10 +5,13 @@ import {
   Content,
   Header,
   HeaderName,
+  InlineNotification,
   Theme,
 } from "@carbon/react";
-import { DataTableSkeleton, InlineNotification } from "@carbon/react";
+import { DataTableSkeleton } from "@carbon/react";
 import { BenchmarkList } from "../views/BenchmarkList";
+import { BenchmarkTiles } from "../views/BenchmarkTiles";
+import { BenchmarkConfigModal } from "../views/BenchmarkConfigModal";
 import { BenchmarkDetail } from "../views/BenchmarkDetail";
 import { ErrorAnalysis } from "../views/ErrorAnalysis";
 import { PipelineDetailView } from "../views/PipelineDetailView";
@@ -16,52 +19,114 @@ import { LLMJudgeConfigView } from "../views/LLMJudgeConfigView";
 import { RunEvaluationView } from "../views/RunEvaluationView";
 import { ToolkitInsightsView } from "../views/ToolkitInsightsView";
 import { PipelineCompareView } from "../views/PipelineCompareView";
-import { apiUrl } from "../lib/api";
+import {
+  createBenchmark,
+  fetchBenchmarkConfig,
+  fetchBenchmarks,
+  updateBenchmark,
+  uploadBenchmarkLogo,
+} from "../services/benchmarks";
 import toolkitLogo from "../assets/text2sql-eval-toolkit-logo.png";
 import githubLogo from "../assets/github.png";
+import type { BenchmarkConfigInput, BenchmarkSummary } from "../types/benchmark";
 
-export interface BenchmarkSummary {
-  benchmark_id: string;
-  description: string;
-  db_type: string;
-  num_records: number;
-  num_pipelines: number;
-}
-
-interface BenchmarksResponse {
-  items: BenchmarkSummary[];
-}
+type BenchmarkModalMode = "create" | "edit";
 
 export const App: React.FC = () => {
   const [benchmarks, setBenchmarks] = useState<BenchmarkSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
   const [selectedBenchmark, setSelectedBenchmark] = useState<string | null>(null);
   const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
   const [showBenchmarkPanel, setShowBenchmarkPanel] = useState(false);
+  const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
+  const [benchmarkModalMode, setBenchmarkModalMode] = useState<BenchmarkModalMode>("create");
+  const [editingBenchmarkId, setEditingBenchmarkId] = useState<string | null>(null);
+  const [editingBenchmarkConfig, setEditingBenchmarkConfig] = useState<BenchmarkConfigInput | null>(null);
+  const [savingBenchmark, setSavingBenchmark] = useState(false);
   const [activeView, setActiveView] = useState<
     "home" | "benchmark" | "pipeline" | "toolkitInsights" | "pipelineCompare" | "errorAnalysis" | "llmJudge" | "runEvaluation"
   >("home");
   const [errorAnalysisInitialFilters, setErrorAnalysisInitialFilters] = useState<Record<string, any> | null>(null);
 
+  const loadBenchmarks = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const items = await fetchBenchmarks();
+      setBenchmarks(items);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to load benchmarks";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchBenchmarks = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(apiUrl("/api/benchmarks"));
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const data: BenchmarksResponse = await res.json();
-        setBenchmarks(data.items);
-      } catch (e: any) {
-        setError(e.message || "Failed to load benchmarks");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBenchmarks();
+    void loadBenchmarks();
   }, []);
+
+  const resetBenchmarkModal = () => {
+    setShowBenchmarkModal(false);
+    setEditingBenchmarkId(null);
+    setEditingBenchmarkConfig(null);
+    setSavingBenchmark(false);
+  };
+
+  const openCreateBenchmarkModal = () => {
+    setBenchmarkModalMode("create");
+    setEditingBenchmarkId(null);
+    setEditingBenchmarkConfig(null);
+    setShowBenchmarkModal(true);
+  };
+
+  const openEditBenchmarkModal = async (benchmarkId: string) => {
+    try {
+      setBenchmarkModalMode("edit");
+      setShowBenchmarkModal(true);
+      setSavingBenchmark(true);
+      setEditingBenchmarkId(benchmarkId);
+      const response = await fetchBenchmarkConfig(benchmarkId);
+      setEditingBenchmarkConfig(response.config);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to load benchmark config";
+      setFeedback({ kind: "error", message });
+      resetBenchmarkModal();
+    } finally {
+      setSavingBenchmark(false);
+    }
+  };
+
+  const saveBenchmarkConfig = async (payload: {
+    benchmark_id?: string;
+    config: BenchmarkConfigInput;
+  }) => {
+    setSavingBenchmark(true);
+    try {
+      if (benchmarkModalMode === "create") {
+        if (!payload.benchmark_id) {
+          throw new Error("benchmark_id is required");
+        }
+        await createBenchmark({
+          benchmark_id: payload.benchmark_id,
+          ...payload.config,
+        });
+        setFeedback({ kind: "success", message: `Created benchmark '${payload.benchmark_id}'.` });
+      } else {
+        if (!editingBenchmarkId) {
+          throw new Error("No benchmark selected for edit");
+        }
+        await updateBenchmark(editingBenchmarkId, payload.config);
+        setFeedback({ kind: "success", message: `Updated benchmark '${editingBenchmarkId}'.` });
+      }
+      await loadBenchmarks();
+      resetBenchmarkModal();
+    } finally {
+      setSavingBenchmark(false);
+    }
+  };
 
   const body = () => {
     if (loading) {
@@ -134,7 +199,7 @@ export const App: React.FC = () => {
                 lineHeight: 1.4,
               }}
             >
-              Start by selecting a benchmark from the table below, or use the
+              Start by selecting a benchmark tile below, or use the
               <strong> Benchmarks </strong>
               button in the top-right corner at any time.
             </p>
@@ -148,14 +213,17 @@ export const App: React.FC = () => {
               background: "rgba(255,255,255,0.015)",
             }}
           >
-            <BenchmarkList
+            <BenchmarkTiles
               items={benchmarks}
-              selectedId={null}
               onSelect={(benchmarkId) => {
                 setSelectedBenchmark(benchmarkId);
                 setSelectedPipeline(null);
                 setActiveView("benchmark");
               }}
+              onEdit={(benchmarkId) => {
+                void openEditBenchmarkModal(benchmarkId);
+              }}
+              onAddNew={openCreateBenchmarkModal}
             />
           </div>
         </div>
@@ -454,6 +522,16 @@ export const App: React.FC = () => {
           </div>
         </>
       )}
+      <BenchmarkConfigModal
+        open={showBenchmarkModal}
+        mode={benchmarkModalMode}
+        benchmarkId={editingBenchmarkId}
+        initialConfig={editingBenchmarkConfig}
+        submitting={savingBenchmark}
+        onClose={resetBenchmarkModal}
+        onSubmit={saveBenchmarkConfig}
+        onUploadLogo={uploadBenchmarkLogo}
+      />
       <Theme theme="g10">
         <Content
           id="main-content"
@@ -466,7 +544,18 @@ export const App: React.FC = () => {
             flexDirection: "column",
           }}
         >
-          <div style={{ flex: 1 }}>{body()}</div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {feedback ? (
+              <InlineNotification
+                kind={feedback.kind}
+                title={feedback.kind === "success" ? "Success" : "Error"}
+                subtitle={feedback.message}
+                lowContrast
+                onCloseButtonClick={() => setFeedback(null)}
+              />
+            ) : null}
+            {body()}
+          </div>
           <footer
             style={{
               marginTop: "1rem",
