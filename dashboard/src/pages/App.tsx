@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   Button,
-  ComboBox,
   Content,
   Header,
   HeaderName,
@@ -31,6 +30,7 @@ import githubLogo from "../assets/github.png";
 import type { BenchmarkConfigInput, BenchmarkSummary } from "../types/benchmark";
 
 type BenchmarkModalMode = "create" | "edit";
+const DEFAULT_BENCHMARK_ID = "bird_mini_dev_sqlite";
 
 export const App: React.FC = () => {
   const [benchmarks, setBenchmarks] = useState<BenchmarkSummary[]>([]);
@@ -67,6 +67,29 @@ export const App: React.FC = () => {
   useEffect(() => {
     void loadBenchmarks();
   }, []);
+
+  const fallbackBenchmarkId =
+    benchmarks.find((b) => b.benchmark_id === DEFAULT_BENCHMARK_ID)?.benchmark_id ??
+    benchmarks[0]?.benchmark_id ??
+    null;
+
+  useEffect(() => {
+    if (!selectedBenchmark) {
+      if (
+        (activeView === "toolkitInsights" ||
+          activeView === "pipelineCompare" ||
+          activeView === "errorAnalysis") &&
+        fallbackBenchmarkId
+      ) {
+        setSelectedBenchmark(fallbackBenchmarkId);
+      }
+      return;
+    }
+    const exists = benchmarks.some((b) => b.benchmark_id === selectedBenchmark);
+    if (!exists && fallbackBenchmarkId) {
+      setSelectedBenchmark(fallbackBenchmarkId);
+    }
+  }, [activeView, benchmarks, fallbackBenchmarkId, selectedBenchmark]);
 
   const resetBenchmarkModal = () => {
     setShowBenchmarkModal(false);
@@ -283,7 +306,8 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "errorAnalysis") {
-      if (!selectedBenchmark) {
+      const effectiveBenchmarkId = selectedBenchmark ?? fallbackBenchmarkId;
+      if (!effectiveBenchmarkId) {
         return (
           <InlineNotification
             kind="info"
@@ -295,7 +319,7 @@ export const App: React.FC = () => {
       }
       return (
         <ErrorAnalysis
-          benchmarkId={selectedBenchmark}
+          benchmarkId={effectiveBenchmarkId}
           onBack={() => setActiveView(selectedPipeline ? "pipeline" : "benchmark")}
           initialFilters={errorAnalysisInitialFilters ?? undefined}
         />
@@ -311,40 +335,21 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "toolkitInsights") {
-      if (!selectedBenchmark) {
+      const effectiveBenchmarkId = selectedBenchmark ?? fallbackBenchmarkId;
+      if (!effectiveBenchmarkId) {
         return (
-          <div style={{ maxWidth: "720px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            <h3 style={{ margin: 0 }}>Metric Insights</h3>
-            {benchmarks.length === 0 ? (
-              <InlineNotification
-                kind="info"
-                title="Loading benchmarks…"
-                subtitle="Fetching available evaluation artifacts."
-                lowContrast
-              />
-            ) : (
-              <ComboBox
-                id="metric-insights-benchmark-select"
-                titleText="Benchmark"
-                items={benchmarks}
-                itemToString={(item) => (item ? item.benchmark_id : "")}
-                selectedItem={null}
-                onChange={(e) => {
-                  const selected = e.selectedItem as BenchmarkSummary | null;
-                  if (!selected) return;
-                  setSelectedBenchmark(selected.benchmark_id);
-                  setSelectedPipeline(null);
-                }}
-                placeholder="Pick a benchmark to load evidence"
-              />
-            )}
-          </div>
+          <InlineNotification
+            kind="info"
+            title="Loading benchmarks…"
+            subtitle="Fetching available evaluation artifacts."
+            lowContrast
+          />
         );
       }
       return (
         <ToolkitInsightsView
           benchmarks={benchmarks}
-          benchmarkId={selectedBenchmark}
+          benchmarkId={effectiveBenchmarkId}
           onSelectBenchmark={(id) => {
             setSelectedBenchmark(id);
             setSelectedPipeline(null);
@@ -358,7 +363,8 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "pipelineCompare") {
-      if (!selectedBenchmark) {
+      const effectiveBenchmarkId = selectedBenchmark ?? fallbackBenchmarkId;
+      if (!effectiveBenchmarkId) {
         return (
           <InlineNotification
             kind="info"
@@ -370,7 +376,7 @@ export const App: React.FC = () => {
       }
       return (
         <PipelineCompareView
-          benchmarkId={selectedBenchmark}
+          benchmarkId={effectiveBenchmarkId}
           onOpenErrorAnalysis={(filters) => {
             setErrorAnalysisInitialFilters(filters);
             setActiveView("errorAnalysis");

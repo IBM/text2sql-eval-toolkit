@@ -67,6 +67,11 @@ function getMetricAverage(p: any, metricKey: string): number | null {
   return typeof avg === "number" ? avg : null;
 }
 
+function getSubsetScore(p: { metrics: Record<string, any> }): number {
+  const v = p?.metrics?.subset_non_empty_execution_accuracy?.average;
+  return typeof v === "number" ? v : -1;
+}
+
 const metricOptions = [
   "execution_accuracy",
   "non_empty_execution_accuracy",
@@ -105,11 +110,14 @@ export const PipelineCompareView: React.FC<Props> = ({
         const json = (await res.json()) as SummaryResponse;
         setSummary(json);
 
-        // Default pipelines if empty
-        const leftDefault = json.overall?.[0]?.name ?? "";
-        const rightDefault = json.overall?.[1]?.name ?? leftDefault;
-        setLeftPipeline((p) => (p ? p : leftDefault));
-        setRightPipeline((p) => (p ? p : rightDefault));
+        const ranked = [...(json.overall ?? [])].sort(
+          (a, b) => getSubsetScore(b) - getSubsetScore(a)
+        );
+        const leftDefault = ranked[0]?.name ?? "";
+        const rightDefault = ranked[1]?.name ?? leftDefault;
+        const available = new Set(ranked.map((p) => p.name));
+        setLeftPipeline((p) => (p && available.has(p) ? p : leftDefault));
+        setRightPipeline((p) => (p && available.has(p) ? p : rightDefault));
       } catch (e: any) {
         setError(e.message || "Failed to load summary");
       } finally {

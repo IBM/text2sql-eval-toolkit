@@ -241,6 +241,32 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
   const [addGroundTruthError, setAddGroundTruthError] = useState<string | null>(null);
   const [addGroundTruthSuccess, setAddGroundTruthSuccess] = useState<string | null>(null);
 
+  useEffect(() => {
+    const loadDefaultPipeline = async () => {
+      try {
+        const res = await fetch(
+          apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
+        );
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          overall?: { name: string; metrics: Record<string, any> }[];
+        };
+        const ranked = [...(json.overall ?? [])].sort((a, b) => {
+          const av = Number(a.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
+          const bv = Number(b.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
+          return bv - av;
+        });
+        const bestPipeline = ranked[0]?.name ?? "";
+        if (!bestPipeline) return;
+        setPipeline((p) => p || bestPipeline);
+        setPipeline2((p) => p || bestPipeline);
+      } catch {
+        // Keep UX resilient; defaults are best-effort.
+      }
+    };
+    void loadDefaultPipeline();
+  }, [benchmarkId]);
+
   const load = async (overrides?: LoadOverrides) => {
     const effectivePage = overrides?.page ?? page;
     const effectivePageSize = overrides?.pageSize ?? pageSize;
