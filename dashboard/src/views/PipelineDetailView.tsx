@@ -660,7 +660,7 @@ export const PipelineDetailView: React.FC<Props> = ({
             onClick={() =>
               onOpenErrorAnalysis({
                 pipeline: pipelineName,
-                metric: "execution_accuracy",
+                metric: "subset_non_empty_execution_accuracy",
                 value: "0",
                 op: "eq",
                 pipeline2: pipelineName,
@@ -669,7 +669,7 @@ export const PipelineDetailView: React.FC<Props> = ({
               })
             }
           >
-            Exec=0 & llm=1
+            Subset=0 & llm=1
           </Button>
         </div>
       )}

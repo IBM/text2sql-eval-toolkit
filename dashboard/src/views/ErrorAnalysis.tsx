@@ -313,6 +313,12 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
     }
   };
 
+  /** Same fetch as "Apply filters" — quick presets call `load({...})` with explicit params. */
+  const applyFilters = () => {
+    setPage(1);
+    void load({ page: 1 });
+  };
+
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -501,167 +507,210 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
           </Button>
         )}
       </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: "0.5rem",
-        }}
-      >
-        <TextInput
-          id="error-search"
-          labelText="Search"
-          placeholder="Question text or record id"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <TextInput
-          id="pipeline-1"
-          labelText="Pipeline 1 (optional)"
-          placeholder="e.g. wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi"
-          value={pipeline}
-          onChange={(e) => setPipeline(e.target.value)}
-        />
-        <Select
-          id="metric-select"
-          labelText="Metric"
-          value={metric}
-          onChange={(e) => setMetric(e.target.value)}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "0.5rem",
+            alignItems: "end",
+          }}
         >
-          <SelectItem value="execution_accuracy" text="execution_accuracy" />
-          <SelectItem
-            value="non_empty_execution_accuracy"
-            text="non_empty_execution_accuracy"
+          <TextInput
+            id="error-search"
+            labelText="Search"
+            placeholder="Question text or record id"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-          <SelectItem
-            value="subset_non_empty_execution_accuracy"
-            text="subset_non_empty_execution_accuracy"
+          <TextInput
+            id="pipeline-1"
+            labelText="Pipeline 1 (optional)"
+            placeholder="e.g. wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi"
+            value={pipeline}
+            onChange={(e) => setPipeline(e.target.value)}
           />
-          <SelectItem value="llm_score" text="llm_score" />
-        </Select>
-        <Select
-          id="metric2-select"
-          labelText="Metric 2 (for disagreement)"
-          value={metric2}
-          onChange={(e) => setMetric2(e.target.value)}
-          disabled={!disagree}
+          <Select
+            id="metric-select"
+            labelText="Metric"
+            value={metric}
+            onChange={(e) => setMetric(e.target.value)}
+          >
+            <SelectItem value="execution_accuracy" text="execution_accuracy" />
+            <SelectItem
+              value="non_empty_execution_accuracy"
+              text="non_empty_execution_accuracy"
+            />
+            <SelectItem
+              value="subset_non_empty_execution_accuracy"
+              text="subset_non_empty_execution_accuracy"
+            />
+            <SelectItem value="llm_score" text="llm_score" />
+          </Select>
+          <Select
+            id="metric2-select"
+            labelText="Metric 2 (for disagreement)"
+            value={metric2}
+            onChange={(e) => setMetric2(e.target.value)}
+            disabled={!disagree}
+          >
+            <SelectItem value="execution_accuracy" text="execution_accuracy" />
+            <SelectItem
+              value="non_empty_execution_accuracy"
+              text="non_empty_execution_accuracy"
+            />
+            <SelectItem
+              value="subset_non_empty_execution_accuracy"
+              text="subset_non_empty_execution_accuracy"
+            />
+            <SelectItem value="llm_score" text="llm_score" />
+          </Select>
+          <Select
+            id="op-select"
+            labelText="Operator"
+            value={op}
+            onChange={(e) => setOp(e.target.value)}
+          >
+            <SelectItem value="eq" text="=" />
+            <SelectItem value="ne" text="≠" />
+            <SelectItem value="lt" text="<" />
+            <SelectItem value="gt" text=">" />
+            <SelectItem value="le" text="≤" />
+            <SelectItem value="ge" text="≥" />
+          </Select>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "flex-end",
+            gap: "0.5rem",
+            width: "100%",
+          }}
         >
-          <SelectItem value="execution_accuracy" text="execution_accuracy" />
-          <SelectItem
-            value="non_empty_execution_accuracy"
-            text="non_empty_execution_accuracy"
-          />
-          <SelectItem
-            value="subset_non_empty_execution_accuracy"
-            text="subset_non_empty_execution_accuracy"
-          />
-          <SelectItem value="llm_score" text="llm_score" />
-        </Select>
-        <Select
-          id="op-select"
-          labelText="Operator"
-          value={op}
-          onChange={(e) => setOp(e.target.value)}
-        >
-          <SelectItem value="eq" text="=" />
-          <SelectItem value="ne" text="≠" />
-          <SelectItem value="lt" text="<" />
-          <SelectItem value="gt" text=">" />
-          <SelectItem value="le" text="≤" />
-          <SelectItem value="ge" text="≥" />
-        </Select>
-        <TextInput
-          id="metric-value"
-          labelText="Metric value"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-        />
-        <TextInput
-          id="pipeline-2"
-          labelText="Pipeline 2 (for disagreement)"
-          placeholder="Second pipeline id"
-          value={pipeline2}
-          onChange={(e) => setPipeline2(e.target.value)}
-        />
-        <Select
-          id="disagree-select"
-          labelText="P1 vs P2 disagree?"
-          value={disagree ? "true" : "false"}
-          onChange={(e) => setDisagree(e.target.value === "true")}
-        >
-          <SelectItem value="false" text="No" />
-          <SelectItem value="true" text="Yes" />
-        </Select>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            <Button
-              kind="secondary"
-              size="sm"
-              disabled={!pipeline}
-              onClick={() => {
-                const p = pipeline;
-                if (!p) return;
-                setPipeline(p);
-                setPipeline2(p);
-                setMetric("execution_accuracy");
-                setMetric2("subset_non_empty_execution_accuracy");
-                setValue("0");
-                setOp("eq");
-                setDisagree(true);
-                setPage(1);
-                void load({
-                  page: 1,
-                  pipeline: p,
-                  pipeline2: p,
-                  metric: "execution_accuracy",
-                  metric2: "subset_non_empty_execution_accuracy",
-                  value: "0",
-                  op: "eq",
-                  disagree: true,
-                });
-              }}
+          <div
+            style={{
+              flex: "1 1 400px",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "0.5rem",
+              alignItems: "end",
+              minWidth: 0,
+            }}
+          >
+            <TextInput
+              id="metric-value"
+              labelText="Metric value"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+            <TextInput
+              id="pipeline-2"
+              labelText="Pipeline 2 (for disagreement)"
+              placeholder="Second pipeline id"
+              value={pipeline2}
+              onChange={(e) => setPipeline2(e.target.value)}
+            />
+            <Select
+              id="disagree-select"
+              labelText="P1 vs P2 disagree?"
+              value={disagree ? "true" : "false"}
+              onChange={(e) => setDisagree(e.target.value === "true")}
             >
-              Exec=0 & subset=1
-            </Button>
-            <Button
-              kind="secondary"
-              size="sm"
-              disabled={!pipeline}
-              onClick={() => {
-                const p = pipeline;
-                if (!p) return;
-                setPipeline(p);
-                setPipeline2(p);
-                setMetric("execution_accuracy");
-                setMetric2("llm_score");
-                setValue("0");
-                setOp("eq");
-                setDisagree(true);
-                setPage(1);
-                void load({
-                  page: 1,
-                  pipeline: p,
-                  pipeline2: p,
-                  metric: "execution_accuracy",
-                  metric2: "llm_score",
-                  value: "0",
-                  op: "eq",
-                  disagree: true,
-                });
-              }}
-            >
-              Exec=0 & llm=1
-            </Button>
+              <SelectItem value="false" text="No" />
+              <SelectItem value="true" text="Yes" />
+            </Select>
           </div>
           <Button
             kind="primary"
-            onClick={() => {
-              setPage(1);
-              void load({ page: 1 });
-            }}
+            size="sm"
+            onClick={applyFilters}
             disabled={loading}
+            style={{ flex: "0 0 auto", marginLeft: "auto" }}
           >
             Apply filters
+          </Button>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.65rem 0.75rem",
+            borderRadius: "6px",
+            border: "1px solid rgba(15, 98, 254, 0.15)",
+            background: "rgba(15, 98, 254, 0.03)",
+          }}
+        >
+          <span
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              letterSpacing: "0.02em",
+              color: "var(--cds-text-secondary, #525252)",
+              marginRight: "0.25rem",
+            }}
+          >
+            Quick presets
+          </span>
+          <Button
+            kind="secondary"
+            size="sm"
+            disabled={!pipeline}
+            onClick={() => {
+              const p = pipeline;
+              if (!p) return;
+              setPipeline(p);
+              setPipeline2(p);
+              setMetric("execution_accuracy");
+              setMetric2("subset_non_empty_execution_accuracy");
+              setValue("0");
+              setOp("eq");
+              setDisagree(true);
+              setPage(1);
+              void load({
+                page: 1,
+                pipeline: p,
+                pipeline2: p,
+                metric: "execution_accuracy",
+                metric2: "subset_non_empty_execution_accuracy",
+                value: "0",
+                op: "eq",
+                disagree: true,
+              });
+            }}
+          >
+            Exec=0 & subset=1
+          </Button>
+          <Button
+            kind="secondary"
+            size="sm"
+            disabled={!pipeline}
+            onClick={() => {
+              const p = pipeline;
+              if (!p) return;
+              setPipeline(p);
+              setPipeline2(p);
+              setMetric("subset_non_empty_execution_accuracy");
+              setMetric2("llm_score");
+              setValue("0");
+              setOp("eq");
+              setDisagree(true);
+              setPage(1);
+              void load({
+                page: 1,
+                pipeline: p,
+                pipeline2: p,
+                metric: "subset_non_empty_execution_accuracy",
+                metric2: "llm_score",
+                value: "0",
+                op: "eq",
+                disagree: true,
+              });
+            }}
+          >
+            Subset=0 & llm=1
           </Button>
         </div>
       </div>
