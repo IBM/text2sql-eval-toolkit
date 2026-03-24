@@ -5,6 +5,7 @@ import {
   InlineNotification,
   Select,
   SelectItem,
+  SelectItemGroup,
   Table,
   TableBody,
   TableCell,
@@ -13,6 +14,11 @@ import {
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
 import { apiUrl } from "../lib/api";
+import {
+  type MetricDefinitionsResponse,
+  buildMetricInsightsSelectGroups,
+  flattenMetricInsightsSelectNames,
+} from "../lib/metricInsightsSelect";
 
 type ErrorAnalysisFilters = {
   pipeline: string;
@@ -90,6 +96,47 @@ export const ToolkitInsightsView: React.FC<Props> = ({
   const [execVsLLM, setExecVsLLM] = useState<ConfusionByPipelineResponse | null>(null);
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [selectedPipeline, setSelectedPipeline] = useState<string>("");
+
+  const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinitionsResponse | null>(null);
+  const [metricDefinitionsError, setMetricDefinitionsError] = useState<string | null>(null);
+
+  const metricInsightsGroups = useMemo(
+    () => buildMetricInsightsSelectGroups(metricDefinitions?.metrics ?? []),
+    [metricDefinitions]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setMetricDefinitionsError(null);
+        const res = await fetch(apiUrl("/api/evaluation-metric-definitions"));
+        if (!res.ok) throw new Error(`HTTP ${res.status} (metric definitions)`);
+        const json = (await res.json()) as MetricDefinitionsResponse;
+        if (!cancelled) setMetricDefinitions(json);
+      } catch (e: any) {
+        if (!cancelled) {
+          setMetricDefinitions(null);
+          setMetricDefinitionsError(e?.message || "Failed to load metric definitions");
+        }
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!metricDefinitions?.metrics?.length) return;
+    const groups = buildMetricInsightsSelectGroups(metricDefinitions.metrics);
+    const names = flattenMetricInsightsSelectNames(groups);
+    if (names.length === 0) return;
+    const allowed = new Set(names);
+    setMetricAKey((a) => (allowed.has(a) ? a : names[0]));
+    setMetricBKey((b) => (allowed.has(b) ? b : names[1] ?? names[0]));
+    setLlmMetricAKey((x) => (allowed.has(x) ? x : names[0]));
+  }, [metricDefinitions]);
 
   useEffect(() => {
     if (!benchmarkId) return;
@@ -350,6 +397,15 @@ export const ToolkitInsightsView: React.FC<Props> = ({
         </div>
       </div>
 
+      {metricDefinitionsError && (
+        <InlineNotification
+          kind="warning"
+          title="Metric list unavailable"
+          subtitle={metricDefinitionsError}
+          lowContrast
+        />
+      )}
+
       {error && (
         <InlineNotification
           kind="error"
@@ -379,22 +435,30 @@ export const ToolkitInsightsView: React.FC<Props> = ({
             labelText="Metric A"
             value={metricAKey}
             onChange={(e) => setMetricAKey(e.target.value)}
+            disabled={metricInsightsGroups.length === 0}
           >
-            <SelectItem value="execution_accuracy" text="execution_accuracy" />
-            <SelectItem value="non_empty_execution_accuracy" text="non_empty_execution_accuracy" />
-            <SelectItem value="subset_non_empty_execution_accuracy" text="subset_non_empty_execution_accuracy" />
-            <SelectItem value="llm_score" text="llm_score" />
+            {metricInsightsGroups.map((g) => (
+              <SelectItemGroup key={g.label} label={g.label}>
+                {g.metrics.map((m) => (
+                  <SelectItem key={m.name} value={m.name} text={m.name} title={m.description} />
+                ))}
+              </SelectItemGroup>
+            ))}
           </Select>
           <Select
             id="metricB-select"
             labelText="Metric B"
             value={metricBKey}
             onChange={(e) => setMetricBKey(e.target.value)}
+            disabled={metricInsightsGroups.length === 0}
           >
-            <SelectItem value="execution_accuracy" text="execution_accuracy" />
-            <SelectItem value="non_empty_execution_accuracy" text="non_empty_execution_accuracy" />
-            <SelectItem value="subset_non_empty_execution_accuracy" text="subset_non_empty_execution_accuracy" />
-            <SelectItem value="llm_score" text="llm_score" />
+            {metricInsightsGroups.map((g) => (
+              <SelectItemGroup key={`${g.label}-b`} label={g.label}>
+                {g.metrics.map((m) => (
+                  <SelectItem key={`${m.name}-b`} value={m.name} text={m.name} title={m.description} />
+                ))}
+              </SelectItemGroup>
+            ))}
           </Select>
         </div>
         {selectedExecVsSubset ? (
@@ -474,11 +538,20 @@ export const ToolkitInsightsView: React.FC<Props> = ({
             labelText="Metric A"
             value={llmMetricAKey}
             onChange={(e) => setLlmMetricAKey(e.target.value)}
+            disabled={metricInsightsGroups.length === 0}
           >
-            <SelectItem value="execution_accuracy" text="execution_accuracy" />
-            <SelectItem value="non_empty_execution_accuracy" text="non_empty_execution_accuracy" />
-            <SelectItem value="subset_non_empty_execution_accuracy" text="subset_non_empty_execution_accuracy" />
-            <SelectItem value="llm_score" text="llm_score" />
+            {metricInsightsGroups.map((g) => (
+              <SelectItemGroup key={`${g.label}-llm`} label={g.label}>
+                {g.metrics.map((m) => (
+                  <SelectItem
+                    key={`${m.name}-llm`}
+                    value={m.name}
+                    text={m.name}
+                    title={m.description}
+                  />
+                ))}
+              </SelectItemGroup>
+            ))}
           </Select>
           <Select id="llm-metricB-select" labelText="Metric B (fixed)" value={"llm_score"} disabled>
             <SelectItem value="llm_score" text="llm_score" />

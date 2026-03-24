@@ -5,14 +5,22 @@ import {
   InlineNotification,
   Select,
   SelectItem,
+  SelectItemGroup,
   Table,
   TableBody,
   TableCell,
   TableHead,
+  TableHeader,
   TableRow,
+  Tag,
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
 import { apiUrl } from "../lib/api";
+import {
+  type MetricDefinitionsResponse,
+  buildMetricInsightsSelectGroups,
+  flattenMetricInsightsSelectNames,
+} from "../lib/metricInsightsSelect";
 
 type ErrorAnalysisFilters = {
   pipeline: string;
@@ -72,12 +80,39 @@ function getSubsetScore(p: { metrics: Record<string, any> }): number {
   return typeof v === "number" ? v : -1;
 }
 
-const metricOptions = [
-  "execution_accuracy",
-  "non_empty_execution_accuracy",
-  "subset_non_empty_execution_accuracy",
-  "llm_score",
-];
+/** Aligns with Eval Playground metric group intro (toolkit metric_definitions). */
+const TIMING_AND_TOKENS_INTRO =
+  "Token counts and timings copied from the prediction record when available.";
+
+function valueTypeLabel(t: string): string {
+  switch (t) {
+    case "binary":
+      return "0 / 1";
+    case "float":
+      return "Number";
+    case "int":
+      return "Integer";
+    case "text":
+      return "Text";
+    default:
+      return t;
+  }
+}
+
+function formatTimingSummaryAverage(valueType: string, avg: number | null): string {
+  if (avg == null) return "N/A";
+  if (valueType === "int") return Number.isFinite(avg) ? String(Math.round(avg)) : "N/A";
+  if (valueType === "float") return avg.toFixed(2);
+  return avg.toFixed(3);
+}
+
+function formatTimingDelta(valueType: string, left: number | null, right: number | null): string {
+  if (left == null || right == null) return "N/A";
+  const d = right - left;
+  if (valueType === "int") return Number.isFinite(d) ? String(Math.round(d)) : "N/A";
+  if (valueType === "float") return d.toFixed(2);
+  return d.toFixed(3);
+}
 
 export const PipelineCompareView: React.FC<Props> = ({
   benchmarkId,
@@ -93,10 +128,50 @@ export const PipelineCompareView: React.FC<Props> = ({
   const [metricA, setMetricA] = useState<string>("execution_accuracy");
   const [metricB, setMetricB] = useState<string>("subset_non_empty_execution_accuracy");
 
+  const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinitionsResponse | null>(null);
+  const [metricDefinitionsError, setMetricDefinitionsError] = useState<string | null>(null);
+
   const [confusionA, setConfusionA] = useState<CrossPipelineConfusionResponse | null>(null);
   const [confusionB, setConfusionB] = useState<CrossPipelineConfusionResponse | null>(null);
 
   const pipelines = useMemo(() => summary?.overall.map((p) => p.name) ?? [], [summary]);
+
+  const pipelineCompareMetricGroups = useMemo(
+    () => buildMetricInsightsSelectGroups(metricDefinitions?.metrics ?? []),
+    [metricDefinitions]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setMetricDefinitionsError(null);
+        const res = await fetch(apiUrl("/api/evaluation-metric-definitions"));
+        if (!res.ok) throw new Error(`HTTP ${res.status} (metric definitions)`);
+        const json = (await res.json()) as MetricDefinitionsResponse;
+        if (!cancelled) setMetricDefinitions(json);
+      } catch (e: any) {
+        if (!cancelled) {
+          setMetricDefinitions(null);
+          setMetricDefinitionsError(e?.message || "Failed to load metric definitions");
+        }
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!metricDefinitions?.metrics?.length) return;
+    const groups = buildMetricInsightsSelectGroups(metricDefinitions.metrics);
+    const names = flattenMetricInsightsSelectNames(groups);
+    if (names.length === 0) return;
+    const allowed = new Set(names);
+    setMetricA((a) => (allowed.has(a) ? a : names[0]));
+    setMetricB((b) => (allowed.has(b) ? b : names[1] ?? names[0]));
+  }, [metricDefinitions]);
 
   useEffect(() => {
     if (!benchmarkId) return;
@@ -152,6 +227,12 @@ export const PipelineCompareView: React.FC<Props> = ({
       right: getMetricAverage(rightPipelineObj, metricB),
     };
   }, [leftPipelineObj, rightPipelineObj, metricB]);
+
+  /** Same set and order as Eval Playground "Timing and tokens" (from `/api/evaluation-metric-definitions`). */
+  const timingMetricsDef = useMemo(
+    () => (metricDefinitions?.metrics ?? []).filter((m) => m.group === "Timing and tokens"),
+    [metricDefinitions]
+  );
 
   useEffect(() => {
     if (!benchmarkId) return;
@@ -287,6 +368,15 @@ export const PipelineCompareView: React.FC<Props> = ({
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
       <h3 style={{ margin: 0 }}>Pipeline compare – {benchmarkId}</h3>
 
+      {metricDefinitionsError && (
+        <InlineNotification
+          kind="warning"
+          title="Metric list unavailable"
+          subtitle={metricDefinitionsError}
+          lowContrast
+        />
+      )}
+
       {error && (
         <InlineNotification kind="error" title="Comparison error" subtitle={error} lowContrast />
       )}
@@ -303,7 +393,7 @@ export const PipelineCompareView: React.FC<Props> = ({
           id="compare-left-pipeline"
           titleText="Left pipeline"
           items={pipelines}
-          itemToString={(item) => item}
+          itemToString={(item) => item ?? ""}
           selectedItem={leftPipeline || null}
           onChange={(e) => setLeftPipeline(e.selectedItem as string)}
           placeholder="Select left pipeline"
@@ -312,19 +402,39 @@ export const PipelineCompareView: React.FC<Props> = ({
           id="compare-right-pipeline"
           titleText="Right pipeline"
           items={pipelines}
-          itemToString={(item) => item}
+          itemToString={(item) => item ?? ""}
           selectedItem={rightPipeline || null}
           onChange={(e) => setRightPipeline(e.selectedItem as string)}
           placeholder="Select right pipeline"
         />
-        <Select id="metricA-select" labelText="Metric A" value={metricA} onChange={(e) => setMetricA(e.target.value)}>
-          {metricOptions.map((m) => (
-            <SelectItem key={m} value={m} text={m} />
+        <Select
+          id="metricA-select"
+          labelText="Metric A"
+          value={metricA}
+          onChange={(e) => setMetricA(e.target.value)}
+          disabled={pipelineCompareMetricGroups.length === 0}
+        >
+          {pipelineCompareMetricGroups.map((g) => (
+            <SelectItemGroup key={g.label} label={g.label}>
+              {g.metrics.map((m) => (
+                <SelectItem key={m.name} value={m.name} text={m.name} title={m.description} />
+              ))}
+            </SelectItemGroup>
           ))}
         </Select>
-        <Select id="metricB-select" labelText="Metric B" value={metricB} onChange={(e) => setMetricB(e.target.value)}>
-          {metricOptions.map((m) => (
-            <SelectItem key={m} value={m} text={m} />
+        <Select
+          id="metricB-select"
+          labelText="Metric B"
+          value={metricB}
+          onChange={(e) => setMetricB(e.target.value)}
+          disabled={pipelineCompareMetricGroups.length === 0}
+        >
+          {pipelineCompareMetricGroups.map((g) => (
+            <SelectItemGroup key={`${g.label}-b`} label={g.label}>
+              {g.metrics.map((m) => (
+                <SelectItem key={`${m.name}-b`} value={m.name} text={m.name} title={m.description} />
+              ))}
+            </SelectItemGroup>
           ))}
         </Select>
       </div>
@@ -371,6 +481,67 @@ export const PipelineCompareView: React.FC<Props> = ({
           {renderDisagreementBlock(metricB, confusionB)}
         </>
       )}
+
+      <section style={{ border: "1px solid rgba(15,98,254,0.2)", borderRadius: "6px", padding: "0.75rem" }}>
+        <h4 style={{ margin: "0 0 0.25rem 0", color: "#0f62fe" }}>Timing and tokens</h4>
+        <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.8125rem", lineHeight: 1.45, opacity: 0.88, maxWidth: "52rem" }}>
+          {TIMING_AND_TOKENS_INTRO} Averages are benchmark-wide aggregates from the summary artifact (same fields as Eval
+          Playground per-record metrics).
+        </p>
+        {timingMetricsDef.length === 0 ? (
+          <InlineNotification
+            kind="info"
+            title="No timing metrics in definitions"
+            subtitle="Load metric definitions or ensure the toolkit lists Timing and tokens metrics."
+            lowContrast
+          />
+        ) : (
+          <div style={{ overflow: "auto", maxHeight: "320px" }}>
+            <Table size="sm" aria-label="Timing and tokens comparison">
+              <TableHead>
+                <TableRow>
+                  <TableHeader>Metric</TableHeader>
+                  <TableHeader>Type</TableHeader>
+                  <TableHeader>{`Left (${leftPipeline})`}</TableHeader>
+                  <TableHeader>{`Right (${rightPipeline})`}</TableHeader>
+                  <TableHeader>Δ (right − left)</TableHeader>
+                  <TableHeader>What it means</TableHeader>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {timingMetricsDef.map((m) => {
+                  const left = leftPipelineObj ? getMetricAverage(leftPipelineObj, m.name) : null;
+                  const right = rightPipelineObj ? getMetricAverage(rightPipelineObj, m.name) : null;
+                  return (
+                    <TableRow key={m.name}>
+                      <TableCell style={{ fontFamily: "monospace", fontSize: "0.8125rem", verticalAlign: "top" }}>
+                        {m.name}
+                      </TableCell>
+                      <TableCell style={{ verticalAlign: "top" }}>
+                        <Tag type="gray" size="sm">
+                          {valueTypeLabel(m.value_type)}
+                        </Tag>
+                      </TableCell>
+                      <TableCell style={{ verticalAlign: "top", fontVariantNumeric: "tabular-nums" }}>
+                        {formatTimingSummaryAverage(m.value_type, left)}
+                      </TableCell>
+                      <TableCell style={{ verticalAlign: "top", fontVariantNumeric: "tabular-nums" }}>
+                        {formatTimingSummaryAverage(m.value_type, right)}
+                      </TableCell>
+                      <TableCell style={{ verticalAlign: "top", fontVariantNumeric: "tabular-nums" }}>
+                        {formatTimingDelta(m.value_type, left, right)}
+                      </TableCell>
+                      <TableCell style={{ fontSize: "0.8125rem", lineHeight: 1.45, verticalAlign: "top" }}>
+                        {m.description}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
     </div>
   );
 };

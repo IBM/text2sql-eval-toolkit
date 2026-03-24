@@ -3,6 +3,7 @@ import asyncio
 import base64
 import json
 import os
+from copy import deepcopy
 import re
 import shutil
 import subprocess
@@ -10,7 +11,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 import uvicorn
+
+import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
 
 from text2sql_eval_toolkit.utils import get_benchmarks_info
 from text2sql_eval_toolkit.utils import (
@@ -35,8 +38,16 @@ from text2sql_eval_toolkit.execution.execution_tools import (
     run_sql_and_get_dataframe_mysql_async,
     run_sqlite_query_with_timeout,
 )
-from text2sql_eval_toolkit.evaluation.evaluation_tools import run_evaluation
+from text2sql_eval_toolkit.evaluation.evaluation_tools import (
+    evaluate_prediction,
+    run_evaluation,
+)
+from text2sql_eval_toolkit.evaluation.llm_as_judge import load_llm_judge_config
+from text2sql_eval_toolkit.evaluation.metric_definitions import (
+    get_metric_definitions_payload,
+)
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.utils import get_gt_sqls, get_question
 
 
 logger = get_logger(__name__)
@@ -437,6 +448,73 @@ class AddGroundTruthSqlResponse(BaseModel):
     added: bool
     message: str
     ground_truth_count: int
+
+
+class RecordIdItem(BaseModel):
+    record_id: str
+    question: str
+
+
+class RecordIdsResponse(BaseModel):
+    benchmark_id: str
+    items: List[RecordIdItem]
+
+
+class PipelinePlaygroundInfo(BaseModel):
+    name: str
+    predicted_sql: Optional[str] = None
+    has_prompt: bool = False
+    has_agent_trace: bool = False
+    evaluation: Optional[Dict[str, Any]] = None
+    prediction_error: Optional[str] = None
+    prediction_row_count: Optional[int] = None
+    prediction_column_count: Optional[int] = None
+    predicted_df: Optional[str] = None
+
+
+class PlaygroundInitResponse(BaseModel):
+    benchmark_id: str
+    record_id: str
+    question: str
+    db_id: Optional[str] = None
+    ground_truth_sqls: List[str]
+    pipelines: List[PipelinePlaygroundInfo] = Field(default_factory=list)
+    ground_truth_row_counts: List[int] = Field(default_factory=list)
+    ground_truth_dfs: List[str] = Field(default_factory=list)
+
+
+class PlaygroundEvaluateRequest(BaseModel):
+    record_id: str
+    ground_truth_sqls: List[str]
+    predicted_sql: str
+    timeout_s: Optional[int] = 90
+    use_llm: bool = False
+    llm_judge_config_path: Optional[str] = None
+    force_rerun_llm_judge: bool = False
+    merge_pipeline: Optional[str] = None
+
+
+class PlaygroundEvaluateResponse(BaseModel):
+    benchmark_id: str
+    record_id: str
+    evaluation: Dict[str, Any]
+    ground_truth_row_counts: List[int] = Field(default_factory=list)
+    ground_truth_dfs: List[str] = Field(
+        default_factory=list,
+        description="Pandas orient=split JSON per ground-truth SQL (same order as ground_truth_sqls)",
+    )
+    predicted_df: Optional[str] = Field(
+        default=None,
+        description="Pandas orient=split JSON for predicted SQL result (empty schema if execution failed)",
+    )
+    prediction_error: Optional[str] = None
+    prediction_row_count: Optional[int] = None
+    prediction_column_count: Optional[int] = None
+
+
+class EvaluationMetricDefinitionsResponse(BaseModel):
+    groups: List[str]
+    metrics: List[Dict[str, Any]]
 
 
 class JobStatus(BaseModel):
@@ -1119,6 +1197,9 @@ def _resolve_benchmark_data_path(benchmark_id: str) -> Path:
         rel_path = Path(rel_data)
         candidates.append(get_data_root() / rel_path)
         candidates.append(Path.cwd() / "data" / rel_path)
+        # Editable install / repo checkout: .../src/text2sql_eval_toolkit/ui/server.py → repo root is parents[3]
+        _here = Path(__file__).resolve()
+        candidates.append(_here.parents[3] / "data" / rel_path)
     if explicit_path:
         candidates.append(Path(str(explicit_path)))
 
@@ -1142,6 +1223,126 @@ def _get_ground_truth_sql_key(record: Dict[str, Any]) -> str:
         if value is not None:
             return key
     return "sql"
+
+
+def _load_gold_benchmark_data_list(benchmark_id: str) -> List[Dict[str, Any]]:
+    try:
+        path = _resolve_benchmark_data_path(benchmark_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    data = load_json(path)
+    if not isinstance(data, list):
+        raise HTTPException(status_code=500, detail="Invalid benchmark data format")
+    return data
+
+
+def _find_gold_record(
+    benchmark_id: str, record_id: str
+) -> Optional[Dict[str, Any]]:
+    data = _load_gold_benchmark_data_list(benchmark_id)
+    for rec in data:
+        rid = str(rec.get("id") or rec.get("question_id") or "")
+        if rid == record_id:
+            return rec
+    return None
+
+
+def _find_eval_record_optional(
+    benchmark_id: str, record_id: str
+) -> Optional[Dict[str, Any]]:
+    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
+    if not eval_path.exists():
+        return None
+    data = load_json(eval_path)
+    if not isinstance(data, list):
+        return None
+    for rec in data:
+        rid = str(rec.get("id") or rec.get("question_id") or "")
+        if rid == record_id:
+            return rec
+    return None
+
+
+def _split_df_shape_from_json(s: Any) -> Optional[Tuple[int, int]]:
+    """Return (nrows, ncols) from pandas orient='split' JSON string."""
+    if not isinstance(s, str) or not s.strip():
+        return None
+    try:
+        o = json.loads(s)
+        if not isinstance(o, dict):
+            return None
+        data = o.get("data")
+        cols = o.get("columns")
+        nrows = len(data) if isinstance(data, list) else 0
+        ncols = len(cols) if isinstance(cols, list) else 0
+        return (nrows, ncols)
+    except Exception:
+        return None
+
+
+def _gt_row_counts_from_eval_record(eval_rec: Dict[str, Any]) -> List[int]:
+    """Row counts from serialized gt_df(s) on the eval record when present."""
+    out: List[int] = []
+    gt_df = eval_rec.get("gt_df")
+    if isinstance(gt_df, str):
+        shape = _split_df_shape_from_json(gt_df)
+        if shape is not None:
+            out.append(shape[0])
+    elif isinstance(gt_df, list):
+        for item in gt_df:
+            if isinstance(item, str):
+                shape = _split_df_shape_from_json(item)
+                out.append(shape[0] if shape is not None else 0)
+    return out
+
+
+def _gt_dfs_from_eval_record(eval_rec: Dict[str, Any]) -> List[str]:
+    """Serialized gt_df JSON strings (orient=split) from the eval record when present."""
+    out: List[str] = []
+    gt_df = eval_rec.get("gt_df")
+    if isinstance(gt_df, str):
+        out.append(gt_df)
+    elif isinstance(gt_df, list):
+        for item in gt_df:
+            if isinstance(item, str):
+                out.append(item)
+    return out
+
+
+async def _playground_execute_sql_guarded(
+    benchmark_id: str,
+    sql: str,
+    db_id: Optional[str],
+    timeout_s: int,
+    error_label: str,
+) -> Any:
+    """Run SQL on the benchmark DB; map failures to HTTP errors like execute_sql_for_record."""
+    try:
+        df, _db_type = await _execute_sql_for_benchmark(
+            benchmark_id=benchmark_id,
+            sql=sql,
+            db_id=db_id,
+            timeout_s=timeout_s,
+        )
+        return df
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{error_label}: {e}",
+        ) from e
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=408,
+            detail=f"{error_label}: SQL execution timed out after {timeout_s}s",
+        )
+    except Exception as e:
+        logger.exception("Playground SQL execution failed")
+        raise HTTPException(
+            status_code=500,
+            detail=f"{error_label}: SQL execution failed: {e}",
+        ) from e
 
 
 async def _execute_sql_for_benchmark(
@@ -1403,6 +1604,224 @@ def add_ground_truth_sql(
             else "Query already exists in ground truth SQLs"
         ),
         ground_truth_count=len(sql_list),
+    )
+
+
+@app.get(
+    "/api/evaluation-metric-definitions",
+    response_model=EvaluationMetricDefinitionsResponse,
+)
+def evaluation_metric_definitions() -> EvaluationMetricDefinitionsResponse:
+    payload = get_metric_definitions_payload()
+    return EvaluationMetricDefinitionsResponse(
+        groups=payload["groups"],
+        metrics=payload["metrics"],
+    )
+
+
+@app.get(
+    "/api/benchmarks/{benchmark_id}/record-ids",
+    response_model=RecordIdsResponse,
+)
+def list_benchmark_record_ids(benchmark_id: str) -> RecordIdsResponse:
+    data = _load_gold_benchmark_data_list(benchmark_id)
+    items: List[RecordIdItem] = []
+    for rec in data:
+        rid = str(rec.get("id") or rec.get("question_id") or "")
+        if not rid.strip():
+            continue
+        q = (
+            rec.get("page_content")
+            or rec.get("question")
+            or rec.get("utterance", "")
+        )
+        items.append(RecordIdItem(record_id=rid, question=str(q)))
+    return RecordIdsResponse(benchmark_id=benchmark_id, items=items)
+
+
+@app.get(
+    "/api/benchmarks/{benchmark_id}/playground/{record_id}",
+    response_model=PlaygroundInitResponse,
+)
+def get_playground_init(benchmark_id: str, record_id: str) -> PlaygroundInitResponse:
+    gold = _find_gold_record(benchmark_id, record_id)
+    if gold is None:
+        raise HTTPException(status_code=404, detail="Record not found in benchmark data")
+
+    rec_copy = deepcopy(gold)
+    try:
+        gt_sqls = get_gt_sqls(rec_copy)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    question = get_question(rec_copy)
+    rid = str(gold.get("id") or gold.get("question_id") or "")
+
+    pipelines: List[PipelinePlaygroundInfo] = []
+    gt_row_counts: List[int] = []
+    gt_dfs_list: List[str] = []
+    eval_rec = _find_eval_record_optional(benchmark_id, rid)
+    if eval_rec:
+        gt_row_counts = _gt_row_counts_from_eval_record(eval_rec)
+        gt_dfs_list = _gt_dfs_from_eval_record(eval_rec)
+        preds = eval_rec.get("predictions", {})
+        if isinstance(preds, dict):
+            for name, pred in sorted(preds.items()):
+                if not isinstance(pred, dict):
+                    continue
+                ev_raw = pred.get("evaluation")
+                ev_dict = ev_raw if isinstance(ev_raw, dict) else None
+                pred_err: Optional[str] = None
+                for k in ("sql_execution_error", "inference_error"):
+                    v = pred.get(k)
+                    if isinstance(v, str) and v.strip():
+                        pred_err = v
+                        break
+                pr: Optional[int] = None
+                pc: Optional[int] = None
+                pd_raw = pred.get("predicted_df")
+                predicted_df_str = pd_raw if isinstance(pd_raw, str) else None
+                if isinstance(pd_raw, str):
+                    shape = _split_df_shape_from_json(pd_raw)
+                    if shape is not None:
+                        pr, pc = shape[0], shape[1]
+                pipelines.append(
+                    PipelinePlaygroundInfo(
+                        name=name,
+                        predicted_sql=pred.get("predicted_sql"),
+                        has_prompt=bool(pred.get("prompt")),
+                        has_agent_trace=bool(pred.get("agent_trace")),
+                        evaluation=ev_dict,
+                        prediction_error=pred_err,
+                        prediction_row_count=pr,
+                        prediction_column_count=pc,
+                        predicted_df=predicted_df_str,
+                    )
+                )
+
+    return PlaygroundInitResponse(
+        benchmark_id=benchmark_id,
+        record_id=rid,
+        question=str(question),
+        db_id=gold.get("db_id"),
+        ground_truth_sqls=list(gt_sqls),
+        pipelines=pipelines,
+        ground_truth_row_counts=gt_row_counts,
+        ground_truth_dfs=gt_dfs_list,
+    )
+
+
+@app.post(
+    "/api/benchmarks/{benchmark_id}/playground/evaluate",
+    response_model=PlaygroundEvaluateResponse,
+)
+async def playground_evaluate(
+    benchmark_id: str, req: PlaygroundEvaluateRequest
+) -> PlaygroundEvaluateResponse:
+    gold = _find_gold_record(benchmark_id, req.record_id)
+    if gold is None:
+        raise HTTPException(status_code=404, detail="Record not found in benchmark data")
+
+    sqls = [s.strip() for s in req.ground_truth_sqls if s and str(s).strip()]
+    if not sqls:
+        raise HTTPException(
+            status_code=400,
+            detail="ground_truth_sqls must contain at least one non-empty SQL",
+        )
+
+    pred_sql = (req.predicted_sql or "").strip()
+    if not pred_sql:
+        raise HTTPException(status_code=400, detail="predicted_sql is required")
+
+    timeout_s = req.timeout_s or 90
+    if timeout_s < 1 or timeout_s > 600:
+        raise HTTPException(status_code=400, detail="timeout_s must be between 1 and 600")
+
+    db_id = gold.get("db_id")
+    record = deepcopy(gold)
+    record["sql"] = sqls
+
+    gt_dfs_json: List[str] = []
+    gt_row_counts: List[int] = []
+    for i, sql in enumerate(sqls):
+        label = f"Ground truth SQL #{i + 1}"
+        df = await _playground_execute_sql_guarded(
+            benchmark_id, sql, db_id, timeout_s, label
+        )
+        gt_dfs_json.append(df.to_json(orient="split"))
+        gt_row_counts.append(int(df.shape[0]))
+
+    record["gt_df"] = gt_dfs_json
+
+    pred_err: Optional[str] = None
+    pred_rows: Optional[int] = None
+    pred_cols: Optional[int] = None
+    pred_df_json: str
+    try:
+        pdf = await _playground_execute_sql_guarded(
+            benchmark_id, pred_sql, db_id, timeout_s, "Predicted SQL"
+        )
+        pred_df_json = pdf.to_json(orient="split")
+        pred_rows = int(pdf.shape[0])
+        pred_cols = int(pdf.shape[1])
+    except HTTPException as e:
+        detail = e.detail
+        pred_err = detail if isinstance(detail, str) else str(detail)
+        pred_df_json = '{"columns":[],"index":[],"data":[]}'
+
+    prediction: Dict[str, Any] = {
+        "predicted_sql": pred_sql,
+        "predicted_df": pred_df_json,
+    }
+    if pred_err is not None:
+        prediction["sql_execution_error"] = pred_err
+
+    merge_pl = (req.merge_pipeline or "").strip()
+    if merge_pl:
+        eval_rec = _find_eval_record_optional(benchmark_id, req.record_id)
+        if eval_rec:
+            preds = eval_rec.get("predictions", {})
+            src = preds.get(merge_pl) if isinstance(preds, dict) else None
+            if isinstance(src, dict):
+                for k in (
+                    "prompt",
+                    "agent_trace",
+                    "agent_reasoning",
+                    "token_usage",
+                    "inference_time_ms",
+                    "execution_time_ms",
+                    "logic_df",
+                ):
+                    if k in src and src[k] is not None:
+                        prediction[k] = src[k]
+
+    llm_cfg = None
+    if req.use_llm:
+        try:
+            llm_cfg = load_llm_judge_config(req.llm_judge_config_path)
+        except FileNotFoundError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+
+    def _run_eval() -> Dict[str, Any]:
+        return evaluate_prediction(
+            record,
+            prediction,
+            llm_judge_config=llm_cfg,
+            force_rerun_llm_judge=req.force_rerun_llm_judge,
+        )
+
+    evaluation = await asyncio.to_thread(_run_eval)
+
+    return PlaygroundEvaluateResponse(
+        benchmark_id=benchmark_id,
+        record_id=req.record_id,
+        evaluation=evaluation,
+        ground_truth_row_counts=gt_row_counts,
+        ground_truth_dfs=gt_dfs_json,
+        predicted_df=pred_df_json,
+        prediction_error=pred_err,
+        prediction_row_count=pred_rows,
+        prediction_column_count=pred_cols,
     )
 
 

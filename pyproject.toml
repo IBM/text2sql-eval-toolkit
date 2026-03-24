@@ -60,7 +60,12 @@ notebook = [
 ]
 dashboard = [
   "fastapi>=0.115.0",
-  "uvicorn[standard]>=0.30.0"
+  "uvicorn[standard]>=0.30.0",
+  # MySQL async driver (Beaver benchmark); execution_tools uses mysql+aiomysql://
+  "pymysql>=1.1.1",
+  "aiomysql>=0.2.0",
+  "greenlet>=3.0.0",
+  "cryptography>=45.0.6"
 ]
 
 [project.scripts]

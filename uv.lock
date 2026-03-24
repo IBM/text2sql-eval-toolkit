@@ -3140,7 +3140,11 @@ dependencies = [
 
 [package.optional-dependencies]
 dashboard = [
+    { name = "aiomysql" },
+    { name = "cryptography" },
     { name = "fastapi" },
+    { name = "greenlet" },
+    { name = "pymysql" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 db2 = [
@@ -3165,11 +3169,14 @@ presto = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiomysql", marker = "extra == 'dashboard'", specifier = ">=0.2.0" },
     { name = "aiomysql", marker = "extra == 'mysql'", specifier = ">=0.2.0" },
     { name = "asyncpg", specifier = ">=0.30.0" },
+    { name = "cryptography", marker = "extra == 'dashboard'", specifier = ">=45.0.6" },
     { name = "cryptography", marker = "extra == 'mysql'", specifier = ">=45.0.6" },
     { name = "fastapi", marker = "extra == 'dashboard'", specifier = ">=0.115.0" },
     { name = "func-timeout", specifier = ">=4.3.5" },
+    { name = "greenlet", marker = "extra == 'dashboard'", specifier = ">=3.0.0" },
     { name = "greenlet", marker = "extra == 'mysql'", specifier = ">=3.0.0" },
     { name = "ibm-db", marker = "extra == 'db2'", specifier = ">=3.2.6" },
     { name = "ibm-db-sa", marker = "extra == 'db2'", specifier = ">=0.4.0" },
@@ -3185,6 +3192,7 @@ requires-dist = [
     { name = "presto-python-client", marker = "extra == 'presto'", specifier = ">=0.8.4" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pyhive", marker = "extra == 'presto'", specifier = ">=0.7.0" },
+    { name = "pymysql", marker = "extra == 'dashboard'", specifier = ">=1.1.1" },
     { name = "pymysql", marker = "extra == 'mysql'", specifier = ">=1.1.1" },
     { name = "python-dotenv", specifier = ">=1.1.1" },
     { name = "requests", specifier = ">=2.32.4" },

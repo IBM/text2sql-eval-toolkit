@@ -36,7 +36,7 @@ const NAV_PANEL_WIDTH_PX = 200;
 
 /** IBM Cloud–style quad-line menu icon (four horizontal bars). */
 const HamburgerMenuIcon: React.FC = () => (
-  <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden style={{ display: "block" }}>
+  <svg width={18} height={18} viewBox="0 0 16 16" aria-hidden style={{ display: "block", paddingLeft: 0, paddingRight: 0 }}>
     {[0, 1, 2, 3].map((i) => (
       <rect
         key={i}
@@ -462,8 +462,9 @@ export const App: React.FC = () => {
           style={{
             marginRight: 0,
             minWidth: "2rem",
-            paddingInline: "0.25rem",
-            paddingLeft: "0.35rem",
+            /* Align icon with nav ghost buttons: nav pad 0.35rem + ~1rem button inset */
+            paddingLeft: "1.35rem",
+            paddingRight: "1px",
           }}
         >
           <HamburgerMenuIcon />
@@ -483,8 +484,10 @@ export const App: React.FC = () => {
             cursor: "pointer",
             whiteSpace: "nowrap",
             flexShrink: 0,
-            marginLeft: "-0.125rem",
+            marginLeft: "1px",
             marginRight: "0.75rem",
+            paddingLeft: "6px",
+            paddingRight: "6px",
           }}
         >
           Evaluation Dashboard
@@ -590,7 +593,7 @@ export const App: React.FC = () => {
                 onClick={openRunEvaluation}
                 style={{ width: "100%", justifyContent: "flex-start" }}
               >
-                Run evaluation
+                Eval Playground
               </Button>
             </nav>
           </div>

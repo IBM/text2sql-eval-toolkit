@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
   ComboBox,
@@ -16,6 +16,8 @@ interface ConfigListResponse {
   items: ConfigInfo[];
 }
 
+const DEFAULT_LLM_JUDGE_CONFIG_NAME = "llm_judge_default_config";
+
 export const LLMJudgeConfigView: React.FC = () => {
   const [configs, setConfigs] = useState<ConfigInfo[]>([]);
   const [selected, setSelected] = useState<ConfigInfo | null>(null);
@@ -24,24 +26,7 @@ export const LLMJudgeConfigView: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setError(null);
-        const res = await fetch(apiUrl("/api/llm-judge/configs"));
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        const json: ConfigListResponse = await res.json();
-        setConfigs(json.items);
-      } catch (e: any) {
-        setError(e.message || "Failed to load config list");
-      }
-    };
-    void load();
-  }, []);
-
-  const loadConfig = async (cfg: ConfigInfo) => {
+  const loadConfig = useCallback(async (cfg: ConfigInfo) => {
     try {
       setLoading(true);
       setError(null);
@@ -58,7 +43,29 @@ export const LLMJudgeConfigView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setError(null);
+        const res = await fetch(apiUrl("/api/llm-judge/configs"));
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const json: ConfigListResponse = await res.json();
+        setConfigs(json.items);
+        const defaultCfg = json.items.find((c) => c.name === DEFAULT_LLM_JUDGE_CONFIG_NAME);
+        if (defaultCfg) {
+          setSelected(defaultCfg);
+          await loadConfig(defaultCfg);
+        }
+      } catch (e: any) {
+        setError(e.message || "Failed to load config list");
+      }
+    };
+    void load();
+  }, [loadConfig]);
 
   const saveConfig = async () => {
     if (!selected) return;
