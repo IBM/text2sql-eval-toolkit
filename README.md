@@ -3,6 +3,10 @@
 > **A modular framework for evaluating natural language to SQL systems**  
 > Supports execution-based metrics, multiple ground truths, LLM-as-judge, and rich error analysis.
 
+<p align="center">
+  <img src="dashboard-screenshot.png" alt="Text2SQL Evaluation Dashboard: benchmark overview with tiles for each dataset" width="560"/>
+</p>
+
 Text-to-SQL systems aim to translate natural language questions into executable SQL queries, enabling intuitive access to structured data. While recent advances in large language models have significantly improved generation quality, evaluating these systems remains a complex and critical challenge.
 
 *Why an Evaluation Toolkit?*
@@ -39,24 +43,7 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 - **SQL Execution** ([`scripts/execution`](scripts/execution)): Runs the ground truth and predicted SQLs for a given benchmark and saves the dataframes for evaluation and error analysis. Run `python scripts/execution/run_execution.py -h` for more information.
 - **Results and Error Analysis** ([`scripts/analysis`](`scripts/analysis`)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
 - **SQL Profiling** ([`scripts/profiling`](`scripts/profiling`)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
-
-### Evaluation Dashboard (optional UI)
-
-For interactive exploration of evaluation results, error analysis, and LLM‑as‑judge configurations, the toolkit includes an optional **web dashboard** built with FastAPI and React:
-
-- Browse benchmark results in sortable, searchable, paginated tables.
-- Compare two result sets side‑by‑side for a given benchmark.
-- Drill into individual error cases with rich per‑record metrics.
-- View and edit LLM‑as‑judge YAML configs.
-- Trigger new evaluations and monitor their status from the UI.
-
-Once installed with the `dashboard` extra, you can start the UI with:
-
-```bash
-text2sql-eval-dashboard --open-browser
-```
-
-From a source checkout, this **watches `dashboard/src` and rebuilds `dashboard/dist`** via Vite when `dashboard/package.json` is present (requires `npm install` in `dashboard/`). Use `--no-watch-dashboard` to skip. See [`dashboard/README.md`](dashboard/README.md) for full details.
+- **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [dashboard/README.md](dashboard/README.md) for installation, data paths, development workflow, and build options.
 
 ## Setup
 
@@ -282,6 +269,28 @@ python scripts/analysis/make_summary_report.py
 ```
 
 The output will be written to [data/results/README.md](data/results/README.md).
+
+### Evaluation dashboard
+
+Install the optional UI with the `dashboard` extra:
+
+```bash
+uv pip install -e ".[dashboard]"
+# or: pip install -e ".[dashboard]"
+```
+
+Start the server:
+
+```bash
+text2sql-eval-dashboard --open-browser
+# or: uv run text2sql-eval-dashboard --open-browser
+```
+
+By default the server listens on `http://127.0.0.1:8000`. Set `TEXT2SQL_DATA_ROOT` to the directory that contains `results/` (defaults to `./data` if unset).
+
+From a source checkout, the CLI can watch `dashboard/src` and rebuild `dashboard/dist` via Vite when `dashboard/package.json` is present (run `npm install` in `dashboard/` once). Use `--no-watch-dashboard` to serve an existing build only.
+
+See [dashboard/README.md](dashboard/README.md) for full details (development with Vite, manual builds, and troubleshooting).
 
 ## Project Structure
 
