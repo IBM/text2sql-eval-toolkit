@@ -75,3 +75,22 @@ npm run dev
 
 The Vite dev server proxies `/api` calls to `http://127.0.0.1:8000`, so you can iterate on the React UI with hot reload while using the Python backend.
 
+#### Rebuilding for `text2sql-eval-dashboard` (port 8000)
+
+The `text2sql-eval-dashboard` command mounts the **production build** from `dashboard/dist/` (see `mount_static` in the Python server).
+
+**Auto-rebuild (default in a dev checkout):** When `dashboard/package.json` is found (next to your cwd or the repo root), the server starts **`vite build --watch`** in the background so edits under `dashboard/src/` rebuild into `dashboard/dist/` without running `npm run build` manually. Refresh the browser after each rebuild (Vite prints a completion line in the terminal).
+
+- Disable watch (serve existing `dist` only): `text2sql-eval-dashboard --no-watch-dashboard`
+- Force watch even if auto-detection changes in the future: `text2sql-eval-dashboard --watch-dashboard`
+
+Requires **Node.js/npm** and `cd dashboard && npm install` once so `node_modules` exists.
+
+**Manual rebuild** (if you disabled watch or need a one-off build):
+
+```bash
+cd dashboard
+npm install   # if needed
+npm run build
+```
+

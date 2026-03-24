@@ -4,6 +4,8 @@ import base64
 import json
 import os
 import re
+import shutil
+import subprocess
 import threading
 import time
 import uuid
@@ -1752,6 +1754,89 @@ def serve_dashboard_asset(file_path: str):
     )
 
 
+def _resolve_dashboard_source_dir() -> Optional[Path]:
+    """
+    Location of the Vite project (directory containing package.json), if present.
+    Prefer cwd (repo checkout) then package-relative path for editable installs.
+    """
+    candidates = [
+        Path.cwd() / "dashboard",
+        Path(__file__).resolve().parents[3] / "dashboard",
+    ]
+    for p in candidates:
+        pkg = p / "package.json"
+        if pkg.is_file():
+            return p.resolve()
+    return None
+
+
+def _ensure_dashboard_dist(dashboard_dir: Path) -> None:
+    """Ensure dist/index.html exists so StaticFiles can mount before the first watch rebuild."""
+    dist_index = dashboard_dir / "dist" / "index.html"
+    if dist_index.is_file():
+        return
+    npm = shutil.which("npm")
+    if not npm:
+        logger.warning(
+            "npm not found on PATH; cannot build dashboard. Install Node.js/npm or run "
+            "`cd dashboard && npm install && npm run build`."
+        )
+        return
+    if not (dashboard_dir / "node_modules").is_dir():
+        logger.warning(
+            "dashboard/node_modules missing; run `cd dashboard && npm install && npm run build`."
+        )
+        return
+    logger.info("No dashboard dist found; running one-time `npm run build` in %s", dashboard_dir)
+    r = subprocess.run(
+        [npm, "run", "build"],
+        cwd=str(dashboard_dir),
+    )
+    if r.returncode != 0:
+        logger.warning(
+            "Dashboard build failed (exit %s). The UI may not load until you build successfully.",
+            r.returncode,
+        )
+
+
+def _spawn_dashboard_watch(dashboard_dir: Path) -> Optional[subprocess.Popen]:
+    """Run `vite build --watch` so dashboard/dist updates when sources change."""
+    npm = shutil.which("npm")
+    if not npm:
+        logger.warning(
+            "npm not found on PATH; skipping dashboard watch. Run `cd dashboard && npm run build` after edits."
+        )
+        return None
+    if not (dashboard_dir / "node_modules").is_dir():
+        logger.warning(
+            "dashboard/node_modules missing; skipping dashboard watch. Run `cd dashboard && npm install`."
+        )
+        return None
+    try:
+        proc = subprocess.Popen(
+            [npm, "run", "watch-build"],
+            cwd=str(dashboard_dir),
+        )
+        logger.info(
+            "Dashboard watch started (%s): Vite will rebuild dashboard/dist when sources change",
+            dashboard_dir,
+        )
+        return proc
+    except OSError as exc:
+        logger.warning("Could not start dashboard watch: %s", exc)
+        return None
+
+
+def _terminate_dashboard_watch(proc: Optional[subprocess.Popen], *, timeout: float = 12.0) -> None:
+    if proc is None or proc.poll() is not None:
+        return
+    proc.terminate()
+    try:
+        proc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+
+
 def mount_static(app: FastAPI) -> None:
     """
     Mount built frontend assets if available.
@@ -1782,6 +1867,9 @@ def main(argv: Optional[List[str]] = None) -> None:
     Console entrypoint that starts the API (and static UI if built),
     intended to be wired as `text2sql-eval-dashboard`.
     """
+    dashboard_dir = _resolve_dashboard_source_dir()
+    default_watch = dashboard_dir is not None
+
     parser = argparse.ArgumentParser(
         description="Run the Text2SQL Evaluation Dashboard"
     )
@@ -1792,18 +1880,42 @@ def main(argv: Optional[List[str]] = None) -> None:
         action="store_true",
         help="Open the default browser to the dashboard URL after startup",
     )
+    parser.add_argument(
+        "--watch-dashboard",
+        action=argparse.BooleanOptionalAction,
+        default=default_watch,
+        help=(
+            "Watch dashboard sources and rebuild dashboard/dist via `vite build --watch` (requires npm). "
+            "Defaults to on when a dashboard/ tree with package.json is found next to the repo or cwd; "
+            "use --no-watch-dashboard to serve existing dist only."
+        ),
+    )
     args = parser.parse_args(argv)
 
-    mount_static(app)
+    watch_proc: Optional[subprocess.Popen] = None
+    try:
+        if args.watch_dashboard:
+            if dashboard_dir is None:
+                logger.warning(
+                    "--watch-dashboard is enabled but no dashboard/package.json was found; "
+                    "skipping watch. Use --no-watch-dashboard to silence this."
+                )
+            else:
+                _ensure_dashboard_dist(dashboard_dir)
+                watch_proc = _spawn_dashboard_watch(dashboard_dir)
 
-    if args.open_browser:
-        import webbrowser
+        mount_static(app)
 
-        url = f"http://{args.host}:{args.port}"
-        # Open slightly after startup; this is best-effort.
-        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+        if args.open_browser:
+            import webbrowser
 
-    uvicorn.run(app, host=args.host, port=args.port)
+            url = f"http://{args.host}:{args.port}"
+            # Open slightly after startup; this is best-effort.
+            threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+
+        uvicorn.run(app, host=args.host, port=args.port)
+    finally:
+        _terminate_dashboard_watch(watch_proc)
 
 
 if __name__ == "__main__":

@@ -31,6 +31,25 @@ import type { BenchmarkConfigInput, BenchmarkSummary } from "../types/benchmark"
 
 type BenchmarkModalMode = "create" | "edit";
 const DEFAULT_BENCHMARK_ID = "bird_mini_dev_sqlite";
+/** Left nav width when open; main content shifts right by this amount (no overlay). */
+const NAV_PANEL_WIDTH_PX = 200;
+
+/** IBM Cloud–style quad-line menu icon (four horizontal bars). */
+const HamburgerMenuIcon: React.FC = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" aria-hidden style={{ display: "block" }}>
+    {[0, 1, 2, 3].map((i) => (
+      <rect
+        key={i}
+        x="1"
+        y={2 + i * 3.25}
+        width="14"
+        height="1.5"
+        fill="currentColor"
+        rx="0.5"
+      />
+    ))}
+  </svg>
+);
 
 export const App: React.FC = () => {
   const [benchmarks, setBenchmarks] = useState<BenchmarkSummary[]>([]);
@@ -49,6 +68,7 @@ export const App: React.FC = () => {
     "home" | "benchmark" | "pipeline" | "toolkitInsights" | "pipelineCompare" | "errorAnalysis" | "llmJudge" | "runEvaluation"
   >("home");
   const [errorAnalysisInitialFilters, setErrorAnalysisInitialFilters] = useState<Record<string, any> | null>(null);
+  const [showNavMenu, setShowNavMenu] = useState(false);
 
   const loadBenchmarks = async () => {
     try {
@@ -66,6 +86,16 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     void loadBenchmarks();
+  }, []);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowNavMenu(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   const fallbackBenchmarkId =
@@ -149,6 +179,34 @@ export const App: React.FC = () => {
     } finally {
       setSavingBenchmark(false);
     }
+  };
+
+  const openToolkitInsights = () => {
+    setShowBenchmarkPanel(false);
+    setSelectedPipeline(null);
+    setActiveView("toolkitInsights");
+  };
+
+  const openPipelineCompare = () => {
+    setShowBenchmarkPanel(false);
+    setSelectedPipeline(null);
+    setActiveView("pipelineCompare");
+  };
+
+  const openErrorAnalysis = () => {
+    setShowBenchmarkPanel(false);
+    setErrorAnalysisInitialFilters(null);
+    setActiveView("errorAnalysis");
+  };
+
+  const openLLMJudge = () => {
+    setShowBenchmarkPanel(false);
+    setActiveView("llmJudge");
+  };
+
+  const openRunEvaluation = () => {
+    setShowBenchmarkPanel(false);
+    setActiveView("runEvaluation");
   };
 
   const body = () => {
@@ -391,6 +449,25 @@ export const App: React.FC = () => {
   return (
     <Theme theme="g100">
       <Header aria-label="Text2SQL Evaluation Dashboard">
+        <Button
+          kind="ghost"
+          size="sm"
+          onClick={() => {
+            setShowBenchmarkPanel(false);
+            setShowNavMenu((prev) => !prev);
+          }}
+          aria-label="Toggle navigation menu"
+          aria-expanded={showNavMenu}
+          title="Toggle menu"
+          style={{
+            marginRight: 0,
+            minWidth: "2rem",
+            paddingInline: "0.25rem",
+            paddingLeft: "0.35rem",
+          }}
+        >
+          <HamburgerMenuIcon />
+        </Button>
         <HeaderName
           prefix="Text2SQL"
           href="#"
@@ -402,7 +479,13 @@ export const App: React.FC = () => {
             setShowBenchmarkPanel(false);
             setErrorAnalysisInitialFilters(null);
           }}
-          style={{ cursor: "pointer" }}
+          style={{
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+            marginLeft: "-0.125rem",
+            marginRight: "0.75rem",
+          }}
         >
           Evaluation Dashboard
         </HeaderName>
@@ -410,69 +493,116 @@ export const App: React.FC = () => {
           kind="ghost"
           size="sm"
           onClick={() => {
-            setShowBenchmarkPanel(false);
-            setSelectedPipeline(null);
-            setActiveView("toolkitInsights");
+            setShowBenchmarkPanel(true);
           }}
-          style={{ marginRight: "0.5rem" }}
-        >
-          Metric Insights
-        </Button>
-        <Button
-          kind="ghost"
-          size="sm"
-          onClick={() => {
-            setShowBenchmarkPanel(false);
-            setSelectedPipeline(null);
-            setActiveView("pipelineCompare");
-          }}
-          style={{ marginRight: "0.5rem" }}
-        >
-          Pipeline Compare
-        </Button>
-        <Button
-          kind="ghost"
-          size="sm"
-          onClick={() => {
-            setShowBenchmarkPanel(false);
-            setErrorAnalysisInitialFilters(null);
-            setActiveView("errorAnalysis");
-          }}
-          style={{ marginRight: "0.5rem" }}
-        >
-          Error Analysis
-        </Button>
-        <Button
-          kind="ghost"
-          size="sm"
-          onClick={() => {
-            setShowBenchmarkPanel(false);
-            setActiveView("llmJudge");
-          }}
-          style={{ marginRight: "0.5rem" }}
-        >
-          LLM Judge
-        </Button>
-        <Button
-          kind="ghost"
-          size="sm"
-          onClick={() => {
-            setShowBenchmarkPanel(false);
-            setActiveView("runEvaluation");
-          }}
-          style={{ marginRight: "0.5rem" }}
-        >
-          Run evaluation
-        </Button>
-        <Button
-          kind="ghost"
-          size="sm"
-          onClick={() => setShowBenchmarkPanel(true)}
           style={{ marginLeft: "auto", marginRight: "0.5rem" }}
         >
           Benchmarks
         </Button>
       </Header>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          width: "100%",
+          marginTop: "3rem",
+          minHeight: "calc(100vh - 3rem)",
+          alignItems: "stretch",
+        }}
+      >
+        <aside
+          id="app-nav-panel"
+          aria-hidden={!showNavMenu}
+          style={{
+            width: showNavMenu ? NAV_PANEL_WIDTH_PX : 0,
+            minWidth: 0,
+            flexShrink: 0,
+            transition: "width 0.22s cubic-bezier(0.2, 0, 0, 1)",
+            overflow: "hidden",
+            background: "#161616",
+            borderRight: showNavMenu ? "1px solid rgba(255,255,255,0.12)" : "none",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div
+            style={{
+              width: NAV_PANEL_WIDTH_PX,
+              minHeight: "calc(100vh - 3rem)",
+              display: "flex",
+              flexDirection: "column",
+              flexShrink: 0,
+            }}
+          >
+            <nav
+              aria-label="Main navigation"
+              style={{
+                padding: "0.5rem 0.35rem",
+                overflowY: "auto",
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.15rem",
+              }}
+            >
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={openToolkitInsights}
+                style={{ width: "100%", justifyContent: "flex-start" }}
+              >
+                Metric Insights
+              </Button>
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={openPipelineCompare}
+                style={{ width: "100%", justifyContent: "flex-start" }}
+              >
+                Pipeline Compare
+              </Button>
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={openErrorAnalysis}
+                style={{ width: "100%", justifyContent: "flex-start" }}
+              >
+                Error Analysis
+              </Button>
+              <div
+                style={{
+                  height: "1px",
+                  background: "rgba(255,255,255,0.12)",
+                  margin: "0.5rem 0",
+                }}
+              />
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={openLLMJudge}
+                style={{ width: "100%", justifyContent: "flex-start" }}
+              >
+                LLM Judge
+              </Button>
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={openRunEvaluation}
+                style={{ width: "100%", justifyContent: "flex-start" }}
+              >
+                Run evaluation
+              </Button>
+            </nav>
+          </div>
+        </aside>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
       {showBenchmarkPanel && (
         <>
           <div
@@ -543,8 +673,9 @@ export const App: React.FC = () => {
           id="main-content"
           style={{
             padding: "1rem",
-            paddingTop: "4rem",
-            minHeight: "calc(100vh - 3rem)",
+            paddingTop: "1rem",
+            flex: 1,
+            minHeight: 0,
             background: "#ffffff",
             display: "flex",
             flexDirection: "column",
@@ -600,6 +731,8 @@ export const App: React.FC = () => {
           </footer>
         </Content>
       </Theme>
+        </div>
+      </div>
     </Theme>
   );
 };

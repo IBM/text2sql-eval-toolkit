@@ -56,7 +56,7 @@ Once installed with the `dashboard` extra, you can start the UI with:
 text2sql-eval-dashboard --open-browser
 ```
 
-See [`dashboard/README.md`](dashboard/README.md) for full details.
+From a source checkout, this **watches `dashboard/src` and rebuilds `dashboard/dist`** via Vite when `dashboard/package.json` is present (requires `npm install` in `dashboard/`). Use `--no-watch-dashboard` to skip. See [`dashboard/README.md`](dashboard/README.md) for full details.
 
 ## Setup
 
