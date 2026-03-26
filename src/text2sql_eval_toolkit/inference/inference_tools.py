@@ -5,6 +5,8 @@
 
 import os
 import re
+import time
+import random
 import requests
 from typing import Any
 from ibm_watsonx_ai import Credentials
@@ -798,6 +800,10 @@ class GeminiClientChatAPI:
         self.client = genai.Client(api_key=api_key, vertexai=False)
         self.model_name = model_name
         self.model_parameters = self._normalize_parameters(model_parameters)
+        # Retry config for rate-limit errors (429/RESOURCE_EXHAUSTED).
+        self.max_retry_attempts = 5
+        self.initial_backoff_seconds = 1.0
+        self.max_backoff_seconds = 16.0
 
     def _normalize_parameters(self, model_parameters: dict) -> dict:
         """
@@ -928,6 +934,59 @@ class GeminiClientChatAPI:
             logger.warning(f"Could not extract token usage: {e}")
             return None
 
+    def _is_rate_limited(self, error: Exception) -> bool:
+        """
+        Return True when the exception indicates Gemini rate limiting or quota exhaustion.
+        """
+        # Common HTTP-style status attributes
+        status_code = getattr(error, "status_code", None)
+        if status_code == 429:
+            return True
+
+        response = getattr(error, "response", None)
+        if response is not None and getattr(response, "status_code", None) == 429:
+            return True
+
+        # Some SDK exceptions expose code as property, callable, or enum-like values
+        code_attr = getattr(error, "code", None)
+        try:
+            if callable(code_attr):
+                code_attr = code_attr()
+        except Exception:
+            pass
+
+        if str(code_attr).lower() in {"429", "statuscode.resource_exhausted", "resource_exhausted"}:
+            return True
+
+        error_text = str(error).lower()
+        retry_markers = [
+            "429",
+            "resource_exhausted",
+            "rate limit",
+            "quota",
+            "too many requests",
+        ]
+        return any(marker in error_text for marker in retry_markers)
+
+    def _is_vertex_auth_mismatch(self, error_text: str) -> bool:
+        return (
+            "api keys are not supported by this api" in error_text
+            or "aiplatform.googleapis.com" in error_text
+            or "predictionservice.generatecontent" in error_text
+        )
+
+    def _compute_backoff_seconds(self, attempt_index: int) -> float:
+        """
+        attempt_index is 0-based for retries (0 => first retry after first failure).
+        """
+        backoff = min(
+            self.max_backoff_seconds,
+            self.initial_backoff_seconds * (2 ** attempt_index),
+        )
+        # Small jitter helps avoid synchronized retries across workers.
+        jitter = random.uniform(0, 0.25 * backoff)
+        return backoff + jitter
+
     def generate_sql(self, prompt: Any) -> tuple[str, dict | None]:
         config = dict(self.model_parameters)
 
@@ -948,31 +1007,60 @@ class GeminiClientChatAPI:
                 f"{prompt}"
             )
 
-        try:
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=contents,
-                config=config,
-            )
-            logger.debug(f"Raw Gemini response: {response}\n")
-        except Exception as e:
-            error_text = str(e)
-            if (
-                "API keys are not supported by this API" in error_text
-                or "aiplatform.googleapis.com" in error_text
-                or "PredictionService.GenerateContent" in error_text
-            ):
-                logger.error(f"Gemini API request failed: {e}")
-                raise ValueError(
-                    "Gemini authentication mode mismatch: request was sent to Vertex AI "
-                    "(aiplatform), which does not accept GEMINI_API_KEY. "
-                    "Use Gemini Developer API mode with API key (this client now forces it), "
-                    "and ensure Vertex routing env vars are not set for this run "
-                    "(e.g., GOOGLE_GENAI_USE_VERTEXAI/GOOGLE_CLOUD_PROJECT/GOOGLE_CLOUD_LOCATION). "
-                    f"Original error: {e}"
+        response = None
+        for attempt in range(1, self.max_retry_attempts + 1):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=contents,
+                    config=config,
                 )
-            logger.error(f"Gemini API request failed: {e}")
-            raise ValueError(f"Failed to get response from Gemini API: {e}")
+                logger.debug(f"Raw Gemini response: {response}\n")
+                break
+            except Exception as e:
+                error_text = str(e)
+                error_text_lower = error_text.lower()
+
+                if self._is_vertex_auth_mismatch(error_text_lower):
+                    logger.error(f"Gemini API request failed: {e}")
+                    raise ValueError(
+                        "Gemini authentication mode mismatch: request was sent to Vertex AI "
+                        "(aiplatform), which does not accept GEMINI_API_KEY. "
+                        "Use Gemini Developer API mode with API key (this client now forces it), "
+                        "and ensure Vertex routing env vars are not set for this run "
+                        "(e.g., GOOGLE_GENAI_USE_VERTEXAI/GOOGLE_CLOUD_PROJECT/GOOGLE_CLOUD_LOCATION). "
+                        f"Original error: {e}"
+                    )
+
+                is_retryable = self._is_rate_limited(e)
+                has_retries_left = attempt < self.max_retry_attempts
+                if is_retryable and has_retries_left:
+                    sleep_seconds = self._compute_backoff_seconds(attempt - 1)
+                    logger.warning(
+                        "Gemini API returned 429/RESOURCE_EXHAUSTED "
+                        f"(attempt {attempt}/{self.max_retry_attempts}). "
+                        f"Retrying in {sleep_seconds:.2f}s. Error: {e}"
+                    )
+                    time.sleep(sleep_seconds)
+                    continue
+
+                if is_retryable:
+                    logger.error(
+                        "Gemini API rate limit exhausted after "
+                        f"{self.max_retry_attempts} attempts: {e}"
+                    )
+                    raise ValueError(
+                        "Gemini API rate limit/resource exhausted after "
+                        f"{self.max_retry_attempts} attempts: {e}"
+                    )
+
+                logger.error(f"Gemini API request failed: {e}")
+                raise ValueError(f"Failed to get response from Gemini API: {e}")
+
+        if response is None:
+            raise ValueError(
+                "Failed to get response from Gemini API after retry attempts."
+            )
 
         sql = self._extract_text(response)
         if not sql:

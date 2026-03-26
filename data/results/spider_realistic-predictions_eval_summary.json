@@ -976,5 +976,96 @@
     "num_correct_subset_non_empty_execution_accuracy": 338,
     "num_correct_llm": 428,
     "num_llm_judge_errors": 0
+  },
+  "gemini:gemini-3-flash-preview-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.8641732283464567,
+      "stddev": 0.3354978007947271
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.8090551181102362,
+      "stddev": 0.3882961857415071
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.8188976377952756,
+      "stddev": 0.3800045009540927
+    },
+    "logic_execution_accuracy": {
+      "average": 0.8248031496062992,
+      "stddev": 0.37481521634127846
+    },
+    "bird_execution_accuracy": {
+      "average": 0.8523622047244095,
+      "stddev": 0.3482361572535503
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.9921259842519685,
+      "stddev": 0.0
+    },
+    "is_sqlparse_parsable": {
+      "average": 0.9921259842519685,
+      "stddev": 0.0
+    },
+    "sqlglot_equivalence": {
+      "average": 0.3661417322834646,
+      "stddev": 0.4830262925746129
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.38976377952755903,
+      "stddev": 0.48887074345448106
+    },
+    "sqlparse_equivalence": {
+      "average": 0.14173228346456693,
+      "stddev": 0.35027477346650215
+    },
+    "sql_exact_match": {
+      "average": 0.24015748031496062,
+      "stddev": 0.4287580983435031
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.4074803149606299,
+      "stddev": 0.49245226198312053
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "prompt_tokens": {
+      "average": 1042.5196850393702,
+      "stddev": 546.4304017672442
+    },
+    "completion_tokens": {
+      "average": 43.13385826771653,
+      "stddev": 27.596990150723933
+    },
+    "total_tokens": {
+      "average": 1926.7185039370079,
+      "stddev": 1352.5579175689752
+    },
+    "inference_time_ms": {
+      "average": 5789.718405511811,
+      "stddev": 6659.680558526214
+    },
+    "execution_time_ms": {
+      "average": 222.6391929133858,
+      "stddev": 384.03443206223375
+    },
+    "sum_total_tokens": 978773,
+    "sum_prompt_tokens": 529600,
+    "sum_completion_tokens": 21912,
+    "sum_inference_time_ms": 2941176.95,
+    "sum_execution_time_ms": 113100.71,
+    "num_records": 508,
+    "num_predictions": 508,
+    "num_evaluated": 504,
+    "num_eval_errors": 4,
+    "num_df_errors": 2,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 411,
+    "num_correct_subset_non_empty_execution_accuracy": 416
   }
 }
