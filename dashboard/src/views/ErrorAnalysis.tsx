@@ -94,6 +94,24 @@ interface AddGroundTruthSqlResponse {
   ground_truth_count: number;
 }
 
+function formatMetricValue(value: any): string {
+  if (value == null) return "N/A";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "N/A";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatMetricHeader(metricName: string, fallback: string): string {
+  const trimmed = metricName.trim();
+  if (!trimmed) return fallback;
+  return trimmed.replaceAll("_", " ");
+}
+
 function escapeHtml(text: string): string {
   return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
@@ -373,25 +391,28 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
   const headers: DataTableHeader[] = [
     { key: "record_id", header: "Record ID" },
     { key: "question", header: "Question" },
-    { key: "summary", header: "Summary (first pipeline metrics)" },
+    { key: "metric1_pipeline", header: "Pipeline 1" },
+    { key: "metric1_score", header: formatMetricHeader(metric, "Metric 1") },
+    { key: "metric2_pipeline", header: "Pipeline 2" },
+    { key: "metric2_score", header: formatMetricHeader(metric2, "Metric 2") },
   ];
 
   const rows = useMemo(
     () =>
       items.map((item) => {
-        const firstPipeline = Object.entries(item.predictions)[0];
-        const summary =
-          firstPipeline && firstPipeline[1]
-            ? `${firstPipeline[0]}: exec=${firstPipeline[1].execution_accuracy}, subset=${firstPipeline[1].subset_non_empty_execution_accuracy}`
-            : "";
+        const pipeline1Prediction = pipeline ? item.predictions?.[pipeline] : undefined;
+        const pipeline2Prediction = pipeline2 ? item.predictions?.[pipeline2] : undefined;
         return {
           id: item.record_id,
           record_id: item.record_id,
           question: item.question,
-          summary,
+          metric1_pipeline: pipeline || "N/A",
+          metric1_score: formatMetricValue(pipeline1Prediction?.[metric]),
+          metric2_pipeline: pipeline2 || "N/A",
+          metric2_score: formatMetricValue(pipeline2Prediction?.[metric2]),
         };
       }),
-    [items]
+    [items, metric, metric2, pipeline, pipeline2]
   );
 
   useEffect(() => {
