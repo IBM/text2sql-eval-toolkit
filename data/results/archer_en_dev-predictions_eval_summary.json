@@ -976,5 +976,96 @@
     "num_correct_subset_non_empty_execution_accuracy": 21,
     "num_correct_llm": 53,
     "num_llm_judge_errors": 0
+  },
+  "gemini:gemini-3-flash-preview-greedy-zero-shot-chatapi": {
+    "execution_accuracy": {
+      "average": 0.40384615384615385,
+      "stddev": 0.49304346623468603
+    },
+    "non_empty_execution_accuracy": {
+      "average": 0.3942307692307692,
+      "stddev": 0.4910513632749225
+    },
+    "subset_non_empty_execution_accuracy": {
+      "average": 0.3942307692307692,
+      "stddev": 0.4910513632749225
+    },
+    "logic_execution_accuracy": {
+      "average": 0.4519230769230769,
+      "stddev": 0.5000933445354908
+    },
+    "bird_execution_accuracy": {
+      "average": 0.41346153846153844,
+      "stddev": 0.49483893472713114
+    },
+    "is_sqlglot_parsable": {
+      "average": 0.9519230769230769,
+      "stddev": 0.21496478340198422
+    },
+    "is_sqlparse_parsable": {
+      "average": 0.9807692307692307,
+      "stddev": 0.1380002272946792
+    },
+    "sqlglot_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlglot_optimized_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sqlparse_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_exact_match": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "sql_syntactic_equivalence": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "eval_error": {
+      "average": 0.0,
+      "stddev": 0.0
+    },
+    "df_error": {
+      "average": 0.04807692307692308,
+      "stddev": 0.2149647834019842
+    },
+    "prompt_tokens": {
+      "average": 1047.1923076923076,
+      "stddev": 126.81804693194326
+    },
+    "completion_tokens": {
+      "average": 110.1923076923077,
+      "stddev": 84.86403482202186
+    },
+    "total_tokens": {
+      "average": 6193.307692307692,
+      "stddev": 3041.634365459487
+    },
+    "inference_time_ms": {
+      "average": 30577.300288461538,
+      "stddev": 18926.305749307827
+    },
+    "execution_time_ms": {
+      "average": 179.96182692307696,
+      "stddev": 91.9827017197629
+    },
+    "sum_total_tokens": 644104,
+    "sum_prompt_tokens": 108908,
+    "sum_completion_tokens": 11460,
+    "sum_inference_time_ms": 3180039.23,
+    "sum_execution_time_ms": 18716.03,
+    "num_records": 104,
+    "num_predictions": 104,
+    "num_evaluated": 104,
+    "num_eval_errors": 0,
+    "num_df_errors": 5,
+    "num_inference_errors": 0,
+    "num_correct_non_empty_execution_accuracy": 41,
+    "num_correct_subset_non_empty_execution_accuracy": 41
   }
 }

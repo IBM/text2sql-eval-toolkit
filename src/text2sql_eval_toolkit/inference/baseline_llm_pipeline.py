@@ -36,6 +36,7 @@ from text2sql_eval_toolkit.inference.inference_tools import (
     VLLMClientChatAPI,
     ClaudeClientChatAPI,
     OpenAIClientChatAPI,
+    GeminiClientChatAPI,
 )
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
@@ -77,11 +78,13 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
 
         if model_name.startswith("wxai:"):
             client = WXAIClientChatAPI(model_name[5:], model_parameters)
+        elif model_name.startswith("gemini:"):
+            client = GeminiClientChatAPI(model_name[7:], model_parameters)
         elif model_name.startswith("vllm"):
             client = VLLMClientChatAPI(model_name[5:], model_parameters)
         else:
             raise NotImplementedError(
-                f"Model {model_name} is not supported. Only 'wxai:' models are currently implemented."
+                f"Model {model_name} is not supported. Supported prefixes: 'wxai:', 'gemini:', 'vllm:'."
             )
 
         # Extend predictions_data with new predictions
@@ -318,6 +321,8 @@ class LLMSQLGenerationPipeline(BasePipeline):
 
         if model_name.startswith("wxai:"):
             client = WXAIClientChatAPI(model_name[5:], model_parameters)
+        elif model_name.startswith("gemini:"):
+            client = GeminiClientChatAPI(model_name[7:], model_parameters)
         elif model_name.startswith("anthropic:"):
             client = ClaudeClientChatAPI(model_name[10:], model_parameters)
         elif model_name.startswith("vllm:"):
