@@ -351,6 +351,19 @@ For detailed contribution guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.
 
 This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for more details.
 
+## Citation
+
+If you use this toolkit in research, please cite:
+
+```bibtex
+@unpublished{hassanzadeh2026text2sql,
+  title  = {{Text-to-SQL Evaluation Toolkit}},
+  author = {Hassanzadeh, Oktie and Perlitz, Yotam and Pham, Nhan and Kaple, Tanvi and Zrobek, Karolina and Vu, Long and Glass, Michael and Subramanian, Dharmashankar and Pourreza, Mohammadreza and Rafiei, Davood},
+  year   = {2026},
+  note   = {Under submission},
+}
+```
+
 ## Additional Resources
 
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines

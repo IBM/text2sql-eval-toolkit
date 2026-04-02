@@ -23,6 +23,30 @@ TEST_BENCHMARKS_FILE = resources.files("text2sql_eval_toolkit.data").joinpath(
 )
 logger = get_logger(__name__)
 
+# Override with absolute path to the repo's `data/` directory when the package
+# is installed and CWD-based detection is wrong.
+_WRITABLE_DATA_ROOT_ENV = "TEXT2SQL_EVAL_TOOLKIT_DATA_ROOT"
+
+
+def get_writable_data_root() -> Path:
+    """
+    Directory containing user-writable benchmark outputs (predictions, eval JSON).
+
+    Resolution order:
+    1. ``TEXT2SQL_EVAL_TOOLKIT_DATA_ROOT`` if set (must be the ``data`` folder).
+    2. ``<repo>/data`` where ``repo`` is the nearest ancestor of the current
+       working directory that contains ``pyproject.toml`` and a ``data`` directory.
+    3. ``Path.cwd() / "data"``.
+    """
+    env = os.environ.get(_WRITABLE_DATA_ROOT_ENV)
+    if env:
+        return Path(env).expanduser().resolve()
+    cwd = Path.cwd().resolve()
+    for d in [cwd, *cwd.parents]:
+        if (d / "pyproject.toml").is_file() and (d / "data").is_dir():
+            return (d / "data").resolve()
+    return (cwd / "data").resolve()
+
 
 def _registry_filename(is_test: bool) -> str:
     return "test-benchmarks.json" if is_test else "benchmarks.json"
@@ -98,21 +122,18 @@ def get_benchmarks_info(is_test: bool = False) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error loading the benchmarks JSON file: {benchmarks_file}.")
         raise e
-    for benchmark_id, benchmark_info in benchmarks_meta.items():
-        root = benchmarks_file.parent
-        if benchmark_id not in benchmarks_meta:
-            raise ValueError(
-                f"Benchmark ID '{benchmark_id}' not found in benchmarks.json."
-            )
+    package_data_root = BENCHMARKS_FILE.parent
+    predictions_root = get_writable_data_root()
+    for benchmark_id in benchmarks_meta:
         benchmark_info = benchmarks_meta[benchmark_id]
         benchmark_info["benchmark_json_path"] = resolve_path(
-            root, benchmark_info["data"]
+            package_data_root, benchmark_info["data"]
         )
         benchmark_info["schema_json_path"] = resolve_path(
-            root, benchmark_info["schema"]
+            package_data_root, benchmark_info["schema"]
         )
         benchmark_info["predictions_path"] = resolve_path(
-            root, benchmark_info["predictions"]
+            predictions_root, benchmark_info["predictions"]
         )
         benchmark_info["eval_results_path"] = Path(
             benchmark_info["predictions_path"].with_name(
@@ -181,13 +202,28 @@ def get_benchmark_info(benchmark_id: str, is_test: bool = False) -> Dict[str, An
         elif benchmark_id not in benchmarks_meta:
             raise ValueError(f"Benchmark ID '{benchmark_id}' not found in benchmarks.json.")
     
-    root = benchmarks_file.parent
+    package_data_root = benchmarks_file.parent
+    predictions_root = get_writable_data_root()
     benchmark_info = benchmarks_meta[benchmark_id]
-    benchmark_info["benchmark_json_path"] = resolve_path(root, benchmark_info["data"])
-    benchmark_info["schema_json_path"] = resolve_path(root, benchmark_info["schema"])
-    benchmark_info["predictions_path"] = resolve_path(
-        root, benchmark_info["predictions"]
+    benchmark_info["benchmark_json_path"] = resolve_path(
+        package_data_root, benchmark_info["data"]
     )
+    benchmark_info["schema_json_path"] = resolve_path(
+        package_data_root, benchmark_info["schema"]
+    )
+    benchmark_info["predictions_path"] = resolve_path(
+        predictions_root, benchmark_info["predictions"]
+    )
+    benchmark_info["eval_results_path"] = Path(
+        benchmark_info["predictions_path"].with_name(
+            benchmark_info["predictions_path"].stem + "_eval.json"
+        )
+    ).resolve()
+    benchmark_info["eval_summary_path"] = Path(
+        benchmark_info["predictions_path"].with_name(
+            benchmark_info["predictions_path"].stem + "_eval_summary.json"
+        )
+    ).resolve()
     return benchmark_info
 
 
