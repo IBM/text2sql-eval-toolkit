@@ -53,7 +53,6 @@ threadpoolctl==3.6.0
 tqdm==4.67.1
 typing_extensions==4.14.1
 tzdata==2025.2
-unitxt==1.26.1
 urllib3==2.5.0
 wheel==0.45.1
 xxhash==3.5.0

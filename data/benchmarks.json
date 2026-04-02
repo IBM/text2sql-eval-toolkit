@@ -7,8 +7,11 @@
         "predictions": "results/bird_mini_dev_sqlite-predictions.json",
         "db_engine": {
             "db_type": "sqlite",
-            "db_folder": "benchmarks/dbs/bird/dev_databases"
-        }
+            "db_folder": "benchmarks/dbs/bird/dev_databases",
+            "schema_name": "",
+            "connection_string_env_var": ""
+        },
+        "logo": "bird_mini_dev_sqlite.png"
     },
     "bird_mini_dev_postgres": {
         "name": "bird_mini_dev_postgres",
@@ -18,9 +21,11 @@
         "predictions": "results/bird_mini_dev_postgres-predictions.json",
         "db_engine": {
             "db_type": "postgres",
+            "db_folder": "",
             "schema_name": "public",
             "connection_string_env_var": "POSTGRES_CONNECTION_STRING"
-        }
+        },
+        "logo": "bird_mini_dev_postgres.png"
     },
     "beaver": {
         "name": "beaver",
@@ -30,8 +35,11 @@
         "predictions": "results/beaver-predictions.json",
         "db_engine": {
             "db_type": "mysql",
+            "db_folder": "",
+            "schema_name": "",
             "connection_string_env_var": "MYSQL_CONNECTION_STRING"
-        }
+        },
+        "logo": "beaver.png"
     },
     "archer_en_dev": {
         "name": "archer_en_dev",
@@ -41,8 +49,11 @@
         "predictions": "results/archer_en_dev-predictions.json",
         "db_engine": {
             "db_type": "sqlite",
-            "db_folder": "benchmarks/dbs/archer/database"
-        }
+            "db_folder": "benchmarks/dbs/archer/database",
+            "schema_name": "",
+            "connection_string_env_var": ""
+        },
+        "logo": "archer_en_dev.png"
     },
     "spider_dev": {
         "name": "spider_dev",
@@ -52,8 +63,11 @@
         "predictions": "results/spider_dev-predictions.json",
         "db_engine": {
             "db_type": "sqlite",
-            "db_folder": "benchmarks/dbs/spider/database"
-        }
+            "db_folder": "benchmarks/dbs/spider/database",
+            "schema_name": "",
+            "connection_string_env_var": ""
+        },
+        "logo": "spider_dev.png"
     },
     "spider_realistic": {
         "name": "spider_realistic",
@@ -63,7 +77,10 @@
         "predictions": "results/spider_realistic-predictions.json",
         "db_engine": {
             "db_type": "sqlite",
-            "db_folder": "benchmarks/dbs/spider/database"
-        }
+            "db_folder": "benchmarks/dbs/spider/database",
+            "schema_name": "",
+            "connection_string_env_var": ""
+        },
+        "logo": "spider_realistic.png"
     }
 }

@@ -24,7 +24,6 @@ dependencies = [
     "requests>=2.32.4",
     "sqlalchemy>=2.0.41",
     "sqlparse>=0.5.3",
-    "unitxt>=1.26.1",
     "psycopg2-binary>=2.9.10",
     "sqlglot>=27.0.0",
     "asyncpg>=0.30.0",
@@ -60,6 +59,18 @@ notebook = [
   "jupyter>=1.0.0",
   "nbconvert>=7.0.0"
 ]
+dashboard = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.30.0",
+  # MySQL async driver (Beaver benchmark); execution_tools uses mysql+aiomysql://
+  "pymysql>=1.1.1",
+  "aiomysql>=0.2.0",
+  "greenlet>=3.0.0",
+  "cryptography>=45.0.6"
+]
+
+[project.scripts]
+text2sql-eval-dashboard = "text2sql_eval_toolkit.ui.server:main"
 
 [project.urls]
 Homepage = "https://github.com/IBM/text2sql-eval-toolkit"

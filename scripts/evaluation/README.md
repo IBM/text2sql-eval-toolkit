@@ -7,8 +7,7 @@ This directory contains `run_evaluation.py`, a script for evaluating the results
 Before running the script, install the required dependencies:
 
 ```bash
-pip install unitxt
-pip install sqlparse
+pip install -e .
 ```
 
 or follow the instructions on the main README to setup your environment and do:

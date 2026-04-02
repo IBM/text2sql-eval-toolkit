@@ -1,0 +1,25 @@
+{
+  "name": "text2sql-eval-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "watch-build": "vite build --watch",
+    "preview": "vite preview",
+    "lint": "eslint src --ext ts,tsx --max-warnings=0"
+  },
+  "dependencies": {
+    "@carbon/react": "^1.103.0",
+    "@carbon/styles": "^1.102.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react-swc": "^3.7.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0"
+  }
+}

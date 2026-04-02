@@ -24,6 +24,33 @@ TEST_BENCHMARKS_FILE = resources.files("text2sql_eval_toolkit.data").joinpath(
 logger = get_logger(__name__)
 
 
+def _registry_filename(is_test: bool) -> str:
+    return "test-benchmarks.json" if is_test else "benchmarks.json"
+
+
+def get_benchmarks_file_path(is_test: bool = False) -> Path:
+    """
+    Resolve benchmark registry path, preferring writable local data roots.
+
+    Priority:
+    1) TEXT2SQL_DATA_ROOT/{benchmarks|test-benchmarks}.json
+    2) ./data/{benchmarks|test-benchmarks}.json
+    3) Packaged data file under text2sql_eval_toolkit.data
+    """
+    filename = _registry_filename(is_test)
+    env_root = os.getenv("TEXT2SQL_DATA_ROOT")
+    if env_root:
+        env_candidate = Path(env_root).expanduser().resolve() / filename
+        if env_candidate.exists():
+            return env_candidate
+
+    cwd_candidate = (Path.cwd() / "data" / filename).resolve()
+    if cwd_candidate.exists():
+        return cwd_candidate
+
+    return Path(str(TEST_BENCHMARKS_FILE if is_test else BENCHMARKS_FILE)).resolve()
+
+
 def get_available_benchmarks(include_test: bool = True):
     """
     Get list of available benchmark IDs.
@@ -37,14 +64,16 @@ def get_available_benchmarks(include_test: bool = True):
     benchmarks = []
     
     # Load production benchmarks
-    if BENCHMARKS_FILE.exists():
-        with open(BENCHMARKS_FILE, "r") as f:
+    benchmarks_path = get_benchmarks_file_path(is_test=False)
+    if benchmarks_path.exists():
+        with open(benchmarks_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         benchmarks.extend(list(data.keys()))
     
     # Load test benchmarks if requested
-    if include_test and TEST_BENCHMARKS_FILE.exists():
-        with open(TEST_BENCHMARKS_FILE, "r") as f:
+    test_benchmarks_path = get_benchmarks_file_path(is_test=True)
+    if include_test and test_benchmarks_path.exists():
+        with open(test_benchmarks_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         benchmarks.extend(list(data.keys()))
     
@@ -61,16 +90,16 @@ def get_benchmarks_info(is_test: bool = False) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: Dictionary containing info and paths to benchmark files.
     """
-    benchmarks_file = TEST_BENCHMARKS_FILE if is_test else BENCHMARKS_FILE
+    benchmarks_file = get_benchmarks_file_path(is_test=is_test)
     benchmarks_info = {}
     try:
-        with open(benchmarks_file, "r") as meta_file:
+        with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
             benchmarks_meta = json.load(meta_file)
     except Exception as e:
         logger.error(f"Error loading the benchmarks JSON file: {benchmarks_file}.")
         raise e
     for benchmark_id, benchmark_info in benchmarks_meta.items():
-        root = BENCHMARKS_FILE.parent
+        root = benchmarks_file.parent
         if benchmark_id not in benchmarks_meta:
             raise ValueError(
                 f"Benchmark ID '{benchmark_id}' not found in benchmarks.json."
@@ -130,21 +159,22 @@ def get_benchmark_info(benchmark_id: str, is_test: bool = False) -> Dict[str, An
     """
     # If is_test is True, only look in test benchmarks
     if is_test:
-        benchmarks_file = TEST_BENCHMARKS_FILE
-        with open(benchmarks_file, "r") as meta_file:
+        benchmarks_file = get_benchmarks_file_path(is_test=True)
+        with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
             benchmarks_meta = json.load(meta_file)
         if benchmark_id not in benchmarks_meta:
             raise ValueError(f"Benchmark ID '{benchmark_id}' not found in test-benchmarks.json.")
     else:
         # Try production benchmarks first
-        benchmarks_file = BENCHMARKS_FILE
-        with open(benchmarks_file, "r") as meta_file:
+        benchmarks_file = get_benchmarks_file_path(is_test=False)
+        with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
             benchmarks_meta = json.load(meta_file)
         
         # If not found in production, try test benchmarks
-        if benchmark_id not in benchmarks_meta and TEST_BENCHMARKS_FILE.exists():
-            benchmarks_file = TEST_BENCHMARKS_FILE
-            with open(benchmarks_file, "r") as meta_file:
+        test_benchmarks_file = get_benchmarks_file_path(is_test=True)
+        if benchmark_id not in benchmarks_meta and test_benchmarks_file.exists():
+            benchmarks_file = test_benchmarks_file
+            with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
                 benchmarks_meta = json.load(meta_file)
             if benchmark_id not in benchmarks_meta:
                 raise ValueError(f"Benchmark ID '{benchmark_id}' not found in benchmarks.json or test-benchmarks.json.")

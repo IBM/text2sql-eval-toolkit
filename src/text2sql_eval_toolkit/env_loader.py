@@ -17,36 +17,54 @@ from dotenv import load_dotenv
 def load_env():
     """
     Load environment variables from .env file in the project root.
-    
+
     This function looks for .env starting from the current working directory
     and searches upwards through parent directories. This allows it to work
     correctly when the toolkit is used as a dependency in other projects.
-    
+
+    If that fails, tries ``.env`` next to the editable checkout (parent of ``src/``
+    containing this package) so ``text2sql-eval-dashboard`` picks up project-root
+    credentials even when the process cwd is not the repo (e.g. launched from
+    another directory).
+
     Returns:
-        bool: True if .env file was found and loaded, False otherwise
+        bool: True if a .env file was found and loaded, False otherwise
     """
     # Start from current working directory and search upwards
     current_dir = Path.cwd()
-    
+
     # Search upwards for .env file (max 10 levels)
     for _ in range(10):
         env_path = current_dir / ".env"
         if env_path.exists():
             load_dotenv(env_path, override=False)  # Don't override existing env vars
             return True
-        
+
         # Move to parent directory
         parent = current_dir.parent
         if parent == current_dir:  # Reached root
             break
         current_dir = parent
-    
+
+    # Editable install: .../src/text2sql_eval_toolkit/env_loader.py -> repo root is parents[2]
+    try:
+        here = Path(__file__).resolve()
+        for idx in (2, 3):
+            if len(here.parents) <= idx:
+                continue
+            candidate = here.parents[idx] / ".env"
+            if candidate.is_file():
+                load_dotenv(candidate, override=False)
+                return True
+    except (OSError, IndexError):
+        pass
+
     # Try to load from ~/.env as fallback
     home_env = Path.home() / ".env"
     if home_env.exists():
         load_dotenv(home_env, override=False)
         return True
-    
+
     return False
 
 

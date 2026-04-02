@@ -8,7 +8,7 @@ import json
 import pandas as pd
 from pathlib import Path
 from tqdm.asyncio import tqdm_asyncio
-from unitxt.text2sql_utils import (
+from text2sql_eval_toolkit.metrics.text2sql_utils import (
     compare_result_dfs,
     compare_dfs_bird_eval_logic,
     is_sqlglot_parsable,
@@ -304,7 +304,7 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
                             llm_explanation = "N/A (did not use LLM due to subset match)"
                         else:
                             question = get_question(record)
-                            ground_truth_sql = record["sql"]
+                            ground_truth_sql = gold_sql
                             ground_truth_df = truncate_dataframe(gold_df)
                             predicted_sql = prediction["predicted_sql"]
                             predicted_df = truncate_dataframe(pred_df)
