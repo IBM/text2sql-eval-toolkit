@@ -171,7 +171,7 @@ export const BenchmarkDetail: React.FC<Props> = ({
         <InlineNotification
           kind="info"
           title="Summary-only mode"
-          subtitle={`The full evaluation results file (${benchmarkId}-predictions_eval.json) was not found in data/results/. Overall pipeline metrics are shown from the summary file, but category breakdown and error analysis are unavailable.`}
+          subtitle={`The full evaluation results file (${benchmarkId}-predictions_eval.json) was not found. Overall pipeline metrics are shown from the summary file, but category breakdown and error analysis are unavailable. Download pre-computed results with: text2sql-eval-toolkit results fetch --benchmarks ${benchmarkId} or run the evaluation pipeline locally (or fix TEXT2SQL_DATA_ROOT to a directory that already contains this file).`}
           lowContrast
         />
       )}

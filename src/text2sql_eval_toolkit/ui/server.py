@@ -95,11 +95,13 @@ def _eval_not_found_detail(benchmark_id: str) -> str:
     rel = f"data/results/{benchmark_id}-predictions_eval.json"
     return (
         f"Evaluation results file not found: {rel}. "
-        "This file is not included in the repository because it is very large. "
-        "Generate it by running the evaluation pipeline "
+        "Download pre-computed results with: "
+        "`text2sql-eval-toolkit results fetch` "
+        "(or `text2sql-eval-toolkit results fetch "
+        f"--benchmarks {benchmark_id}` for this benchmark only). "
+        "Alternatively, generate the file locally by running the evaluation pipeline "
         "(e.g. `uv run python scripts/evaluation/run_evaluation.py`), "
-        "or set the TEXT2SQL_DATA_ROOT environment variable to a directory "
-        "that already contains this file."
+        "or set TEXT2SQL_DATA_ROOT to a directory that already contains this file."
     )
 
 
@@ -108,7 +110,9 @@ def _summary_not_found_detail(benchmark_id: str) -> str:
     rel = f"data/results/{benchmark_id}-predictions_eval_summary.json"
     return (
         f"Summary file not found: {rel}. "
-        "Generate it by running the evaluation pipeline."
+        "Download pre-computed results with: "
+        "`text2sql-eval-toolkit results fetch`, "
+        "or generate locally by running the evaluation pipeline."
     )
 
 
@@ -1912,7 +1916,9 @@ def compare_summaries(
             status_code=404,
             detail=(
                 f"Summary file(s) not found: {', '.join(missing)}. "
-                "Generate them by running the evaluation pipeline."
+                "Download pre-computed results with: "
+                "`text2sql-eval-toolkit results fetch`, "
+                "or generate locally by running the evaluation pipeline."
             ),
         )
 
