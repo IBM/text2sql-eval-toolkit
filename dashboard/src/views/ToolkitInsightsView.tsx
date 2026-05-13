@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
-import { apiUrl } from "../lib/api";
+import { apiFetch, apiUrl } from "../lib/api";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
@@ -84,6 +84,7 @@ export const ToolkitInsightsView: React.FC<Props> = ({
   onOpenErrorAnalysis,
 }) => {
   const [error, setError] = useState<string | null>(null);
+  const [confusionError, setConfusionError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [metricAKey, setMetricAKey] = useState<string>("execution_accuracy");
@@ -110,8 +111,7 @@ export const ToolkitInsightsView: React.FC<Props> = ({
     const load = async () => {
       try {
         setMetricDefinitionsError(null);
-        const res = await fetch(apiUrl("/api/evaluation-metric-definitions"));
-        if (!res.ok) throw new Error(`HTTP ${res.status} (metric definitions)`);
+        const res = await apiFetch(apiUrl("/api/evaluation-metric-definitions"));
         const json = (await res.json()) as MetricDefinitionsResponse;
         if (!cancelled) setMetricDefinitions(json);
       } catch (e: any) {
@@ -154,31 +154,44 @@ export const ToolkitInsightsView: React.FC<Props> = ({
           metric_b: "llm_score",
         });
 
-        const [subsetRes, llmRes, summaryRes] = await Promise.all([
-          fetch(
+        const [subsetResult, llmResult, summaryResult] = await Promise.allSettled([
+          apiFetch(
             apiUrl(
               `/api/benchmarks/${benchmarkId}/insights/binary-metric-confusion-by-pipeline?${paramsSubset.toString()}`
             )
-          ),
-          fetch(
+          ).then((r) => r.json() as Promise<ConfusionByPipelineResponse>),
+          apiFetch(
             apiUrl(
               `/api/benchmarks/${benchmarkId}/insights/binary-metric-confusion-by-pipeline?${paramsLLM.toString()}`
             )
+          ).then((r) => r.json() as Promise<ConfusionByPipelineResponse>),
+          apiFetch(apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)).then(
+            (r) => r.json() as Promise<SummaryResponse>
           ),
-          fetch(apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)),
         ]);
 
-        if (!subsetRes.ok) throw new Error(`HTTP ${subsetRes.status} (exec vs subset)`);
-        if (!llmRes.ok) throw new Error(`HTTP ${llmRes.status} (exec vs llm)`);
-        if (!summaryRes.ok) throw new Error(`HTTP ${summaryRes.status} (summary)`);
+        if (summaryResult.status === "rejected") {
+          setError(summaryResult.reason?.message || "Failed to load summary");
+          setSummary(null);
+        } else {
+          setSummary(summaryResult.value);
+        }
 
-        const subsetJson = (await subsetRes.json()) as ConfusionByPipelineResponse;
-        const llmJson = (await llmRes.json()) as ConfusionByPipelineResponse;
-        const summaryJson = (await summaryRes.json()) as SummaryResponse;
-
-        setExecVsSubset(subsetJson);
-        setExecVsLLM(llmJson);
-        setSummary(summaryJson);
+        if (subsetResult.status === "rejected" || llmResult.status === "rejected") {
+          const msg =
+            subsetResult.status === "rejected"
+              ? subsetResult.reason?.message
+              : llmResult.status === "rejected"
+              ? llmResult.reason?.message
+              : null;
+          setConfusionError(msg || "Failed to load confusion data");
+          setExecVsSubset(null);
+          setExecVsLLM(null);
+        } else {
+          setConfusionError(null);
+          setExecVsSubset(subsetResult.value);
+          setExecVsLLM(llmResult.value);
+        }
       } catch (e: any) {
         setError(e.message || "Failed to load toolkit insights");
       } finally {
@@ -519,9 +532,12 @@ export const ToolkitInsightsView: React.FC<Props> = ({
           </div>
         ) : (
           <InlineNotification
-            kind="info"
-            title="No evidence available"
-            subtitle="Check that evaluation artifacts exist under your `TEXT2SQL_DATA_ROOT/results/`."
+            kind={confusionError ? "error" : "info"}
+            title={confusionError ? "Confusion data unavailable" : "No evidence available"}
+            subtitle={
+              confusionError ||
+              "Check that evaluation artifacts exist under your TEXT2SQL_DATA_ROOT/results/."
+            }
             lowContrast
           />
         )}
@@ -615,9 +631,12 @@ export const ToolkitInsightsView: React.FC<Props> = ({
           </div>
         ) : (
           <InlineNotification
-            kind="info"
-            title="No evidence available"
-            subtitle="Check that evaluation artifacts exist under your `TEXT2SQL_DATA_ROOT/results/`."
+            kind={confusionError ? "error" : "info"}
+            title={confusionError ? "Confusion data unavailable" : "No evidence available"}
+            subtitle={
+              confusionError ||
+              "Check that evaluation artifacts exist under your TEXT2SQL_DATA_ROOT/results/."
+            }
             lowContrast
           />
         )}

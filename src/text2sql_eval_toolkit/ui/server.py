@@ -85,6 +85,28 @@ def get_results_dir() -> Path:
     return get_data_root() / "results"
 
 
+def _eval_not_found_detail(benchmark_id: str) -> str:
+    """Human-readable 404 detail for a missing predictions_eval.json file."""
+    rel = f"data/results/{benchmark_id}-predictions_eval.json"
+    return (
+        f"Evaluation results file not found: {rel}. "
+        "This file is not included in the repository because it is very large. "
+        "Generate it by running the evaluation pipeline "
+        "(e.g. `uv run python scripts/evaluation/run_evaluation.py`), "
+        "or set the TEXT2SQL_DATA_ROOT environment variable to a directory "
+        "that already contains this file."
+    )
+
+
+def _summary_not_found_detail(benchmark_id: str) -> str:
+    """Human-readable 404 detail for a missing predictions_eval_summary.json file."""
+    rel = f"data/results/{benchmark_id}-predictions_eval_summary.json"
+    return (
+        f"Summary file not found: {rel}. "
+        "Generate it by running the evaluation pipeline."
+    )
+
+
 def load_json(path: Path) -> Any:
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -550,7 +572,7 @@ def load_eval_records(benchmark_id: str) -> List[Dict[str, Any]]:
 
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
-        raise HTTPException(status_code=404, detail="Full evaluation results not found")
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
 
     data = load_json(eval_path)
     if not isinstance(data, list):
@@ -771,7 +793,7 @@ def get_benchmark_summary(benchmark_id: str) -> BenchmarkDetailResponse:
     """
     summary_path = get_results_dir() / f"{benchmark_id}-predictions_eval_summary.json"
     if not summary_path.exists():
-        raise HTTPException(status_code=404, detail="Summary not found")
+        raise HTTPException(status_code=404, detail=_summary_not_found_detail(benchmark_id))
 
     raw = load_json(summary_path)
     llm_cfg = raw.pop("llm_judge_config", None)
@@ -880,7 +902,7 @@ def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySum
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
 
     if not summary_path.exists():
-        raise HTTPException(status_code=404, detail="Summary not found")
+        raise HTTPException(status_code=404, detail=_summary_not_found_detail(benchmark_id))
 
     summary_raw = load_json(summary_path)
     llm_cfg = summary_raw.pop("llm_judge_config", None)
@@ -976,7 +998,7 @@ def list_errors(
     """
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
-        raise HTTPException(status_code=404, detail="Full evaluation results not found")
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
 
     data = load_json(eval_path)
 
@@ -1097,7 +1119,7 @@ def get_error_detail(benchmark_id: str, record_id: str):
     """
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
-        raise HTTPException(status_code=404, detail="Full evaluation results not found")
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
 
     data = load_json(eval_path)
     for rec in data:
@@ -1122,7 +1144,7 @@ def get_error_detail_for_pipeline(
     """
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
-        raise HTTPException(status_code=404, detail="Full evaluation results not found")
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
 
     data = load_json(eval_path)
     for rec in data:
@@ -1861,8 +1883,21 @@ def compare_summaries(
     results_dir = get_results_dir()
     left_path = results_dir / f"{left_id}-predictions_eval_summary.json"
     right_path = results_dir / f"{right_id}-predictions_eval_summary.json"
-    if not left_path.exists() or not right_path.exists():
-        raise HTTPException(status_code=404, detail="One or both summary files not found")
+    missing = [
+        f"data/results/{left_id}-predictions_eval_summary.json"
+        for _ in [None] if not left_path.exists()
+    ] + [
+        f"data/results/{right_id}-predictions_eval_summary.json"
+        for _ in [None] if not right_path.exists()
+    ]
+    if missing:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Summary file(s) not found: {', '.join(missing)}. "
+                "Generate them by running the evaluation pipeline."
+            ),
+        )
 
     left_raw = load_json(left_path)
     right_raw = load_json(right_path)

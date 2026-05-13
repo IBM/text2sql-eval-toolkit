@@ -15,7 +15,7 @@ import {
   Tag,
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
-import { apiUrl } from "../lib/api";
+import { apiFetch, apiUrl } from "../lib/api";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
@@ -120,6 +120,7 @@ export const PipelineCompareView: React.FC<Props> = ({
 }) => {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confusionError, setConfusionError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [leftPipeline, setLeftPipeline] = useState<string>("");
@@ -146,8 +147,7 @@ export const PipelineCompareView: React.FC<Props> = ({
     const load = async () => {
       try {
         setMetricDefinitionsError(null);
-        const res = await fetch(apiUrl("/api/evaluation-metric-definitions"));
-        if (!res.ok) throw new Error(`HTTP ${res.status} (metric definitions)`);
+        const res = await apiFetch(apiUrl("/api/evaluation-metric-definitions"));
         const json = (await res.json()) as MetricDefinitionsResponse;
         if (!cancelled) setMetricDefinitions(json);
       } catch (e: any) {
@@ -180,8 +180,7 @@ export const PipelineCompareView: React.FC<Props> = ({
       try {
         setError(null);
         setLoading(true);
-        const res = await fetch(apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`));
-        if (!res.ok) throw new Error(`HTTP ${res.status} (summary)`);
+        const res = await apiFetch(apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`));
         const json = (await res.json()) as SummaryResponse;
         setSummary(json);
 
@@ -238,31 +237,42 @@ export const PipelineCompareView: React.FC<Props> = ({
     if (!benchmarkId) return;
     if (!leftPipeline || !rightPipeline) return;
 
-    const loadConfusion = async (metricKey: string) => {
+    const loadConfusion = (metricKey: string) => {
       const params = new URLSearchParams({
         pipeline_left: leftPipeline,
         pipeline_right: rightPipeline,
         metric_left: metricKey,
         metric_right: metricKey,
       });
-      const res = await fetch(
+      return apiFetch(
         apiUrl(`/api/benchmarks/${benchmarkId}/insights/cross-pipeline-binary-metric-confusion?${params.toString()}`)
-      );
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status} (confusion for ${metricKey})`);
-      }
-      return (await res.json()) as CrossPipelineConfusionResponse;
+      ).then((r) => r.json() as Promise<CrossPipelineConfusionResponse>);
     };
 
     const load = async () => {
       try {
-        setError(null);
+        setConfusionError(null);
         setLoading(true);
-        const [a, b] = await Promise.all([loadConfusion(metricA), loadConfusion(metricB)]);
-        setConfusionA(a);
-        setConfusionB(b);
+        const [aResult, bResult] = await Promise.allSettled([
+          loadConfusion(metricA),
+          loadConfusion(metricB),
+        ]);
+        if (aResult.status === "rejected" || bResult.status === "rejected") {
+          const msg =
+            aResult.status === "rejected"
+              ? aResult.reason?.message
+              : bResult.status === "rejected"
+              ? bResult.reason?.message
+              : null;
+          setConfusionError(msg || "Failed to load comparison evidence");
+          setConfusionA(null);
+          setConfusionB(null);
+        } else {
+          setConfusionA(aResult.value);
+          setConfusionB(bResult.value);
+        }
       } catch (e: any) {
-        setError(e.message || "Failed to load comparison evidence");
+        setConfusionError(e.message || "Failed to load comparison evidence");
         setConfusionA(null);
         setConfusionB(null);
       } finally {
@@ -378,7 +388,16 @@ export const PipelineCompareView: React.FC<Props> = ({
       )}
 
       {error && (
-        <InlineNotification kind="error" title="Comparison error" subtitle={error} lowContrast />
+        <InlineNotification kind="error" title="Summary error" subtitle={error} lowContrast />
+      )}
+
+      {confusionError && (
+        <InlineNotification
+          kind="error"
+          title="Comparison evidence unavailable"
+          subtitle={confusionError}
+          lowContrast
+        />
       )}
 
       <div

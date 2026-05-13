@@ -278,8 +278,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
     const load = async () => {
       try {
         setMetricDefinitionsError(null);
-        const res = await fetch(apiUrl("/api/evaluation-metric-definitions"));
-        if (!res.ok) throw new Error(`HTTP ${res.status} (metric definitions)`);
+        const res = await apiFetch(apiUrl("/api/evaluation-metric-definitions"));
         const json = (await res.json()) as MetricDefinitionsResponse;
         if (!cancelled) setMetricDefinitions(json);
       } catch (e: any) {
