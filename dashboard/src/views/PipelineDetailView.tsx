@@ -15,7 +15,7 @@ import {
   TextInput,
   TextArea,
 } from "@carbon/react";
-import { apiUrl } from "../lib/api";
+import { apiFetch, apiUrl } from "../lib/api";
 
 interface Props {
   benchmarkId: string;
@@ -298,10 +298,9 @@ export const PipelineDetailView: React.FC<Props> = ({
     const loadSummary = async () => {
       try {
         setError(null);
-        const res = await fetch(
+        const res = await apiFetch(
           apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setSummary(await res.json());
       } catch (e: any) {
         setError(e.message || "Failed to load pipeline summary");
@@ -321,10 +320,9 @@ export const PipelineDetailView: React.FC<Props> = ({
         params.set("page_size", String(pageSize));
         if (search) params.set("q", search);
 
-        const res = await fetch(
+        const res = await apiFetch(
           apiUrl(`/api/benchmarks/${benchmarkId}/errors?${params.toString()}`)
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json: PaginatedErrorResponse = await res.json();
         setErrors(json.items);
         setTotalErrors(json.total);
@@ -426,12 +424,11 @@ export const PipelineDetailView: React.FC<Props> = ({
         setDetailError(null);
         const params = new URLSearchParams();
         params.set("pipeline", pipelineName);
-        const res = await fetch(
+        const res = await apiFetch(
           apiUrl(
             `/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}/detail?${params.toString()}`
           )
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setDetail((await res.json()) as ErrorRecordDetail);
       } catch (e: any) {
         setDetailError(e.message || "Failed to load record details");
@@ -483,10 +480,9 @@ export const PipelineDetailView: React.FC<Props> = ({
     try {
       setRawJsonLoading(true);
       setRawJsonError(null);
-      const res = await fetch(
+      const res = await apiFetch(
         apiUrl(`/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}`)
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setRawJsonRecord((await res.json()) as Record<string, any>);
     } catch (e: any) {
       setRawJsonError(e.message || "Failed to load raw JSON");

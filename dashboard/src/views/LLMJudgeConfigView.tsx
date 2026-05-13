@@ -5,7 +5,7 @@ import {
   InlineNotification,
   TextArea,
 } from "@carbon/react";
-import { apiUrl } from "../lib/api";
+import { apiFetch, apiUrl } from "../lib/api";
 
 interface ConfigInfo {
   name: string;
@@ -31,10 +31,7 @@ export const LLMJudgeConfigView: React.FC = () => {
       setLoading(true);
       setError(null);
       setMessage(null);
-      const res = await fetch(apiUrl(`/api/llm-judge/configs/${cfg.name}`));
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      const res = await apiFetch(apiUrl(`/api/llm-judge/configs/${cfg.name}`));
       const json = await res.json();
       setRaw(JSON.stringify(json, null, 2));
     } catch (e: any) {
@@ -49,10 +46,7 @@ export const LLMJudgeConfigView: React.FC = () => {
     const load = async () => {
       try {
         setError(null);
-        const res = await fetch(apiUrl("/api/llm-judge/configs"));
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
+        const res = await apiFetch(apiUrl("/api/llm-judge/configs"));
         const json: ConfigListResponse = await res.json();
         setConfigs(json.items);
         const defaultCfg = json.items.find((c) => c.name === DEFAULT_LLM_JUDGE_CONFIG_NAME);

@@ -316,6 +316,7 @@ class BenchmarkCategorySummaryResponse(BaseModel):
     default_sort_metric: str
     overall: List[PipelineMetrics]
     categories: Dict[str, List[PipelineMetrics]]
+    has_full_results: bool = True
 
 
 class ErrorRecordSummary(BaseModel):
@@ -880,17 +881,34 @@ def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySum
 
     if not summary_path.exists():
         raise HTTPException(status_code=404, detail="Summary not found")
-    if not eval_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail="Full evaluation results not found for category breakdown",
-        )
 
     summary_raw = load_json(summary_path)
     llm_cfg = summary_raw.pop("llm_judge_config", None)
     default_sort_metric = "subset_non_empty_execution_accuracy"
     if llm_cfg and isinstance(llm_cfg, dict):
         default_sort_metric = llm_cfg.get("default_sort_metric", default_sort_metric)
+
+    if not eval_path.exists():
+        # Full eval file is large and may not be present in a fresh checkout.
+        # Fall back to summary-only data: overall metrics available, no category breakdown.
+        logger.warning(
+            "Full evaluation results not found for %s (%s); "
+            "returning summary-only data without category breakdown.",
+            benchmark_id,
+            eval_path,
+        )
+        overall_from_summary = [
+            PipelineMetrics(name=name, metrics=metrics)
+            for name, metrics in summary_raw.items()
+            if isinstance(metrics, dict)
+        ]
+        return BenchmarkCategorySummaryResponse(
+            benchmark_id=benchmark_id,
+            default_sort_metric=default_sort_metric,
+            overall=overall_from_summary,
+            categories={},
+            has_full_results=False,
+        )
 
     records = load_json(eval_path)
     agg = _collect_category_summary(records)
@@ -911,6 +929,7 @@ def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySum
         default_sort_metric=default_sort_metric,
         overall=overall,
         categories=categories,
+        has_full_results=True,
     )
 
 

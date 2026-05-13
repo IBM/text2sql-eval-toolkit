@@ -13,7 +13,7 @@ import {
   TextInput,
   Button,
 } from "@carbon/react";
-import { apiUrl } from "../lib/api";
+import { apiFetch, apiUrl } from "../lib/api";
 
 interface Props {
   benchmarkId: string;
@@ -57,10 +57,7 @@ export const CompareView: React.FC<Props> = ({ benchmarkId }) => {
       params.set("benchmark_id", benchmarkId);
       params.set("left_id", leftId);
       params.set("right_id", rightId);
-      const res = await fetch(apiUrl(`/api/compare?${params.toString()}`));
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
+      const res = await apiFetch(apiUrl(`/api/compare?${params.toString()}`));
       const json: CompareResponse = await res.json();
       setData(json);
     } catch (e: any) {

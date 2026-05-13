@@ -14,7 +14,7 @@ import {
   InlineNotification,
   Dropdown,
 } from "@carbon/react";
-import { apiUrl } from "../lib/api";
+import { apiFetch, apiUrl } from "../lib/api";
 
 interface Props {
   benchmarkId: string;
@@ -35,6 +35,7 @@ interface SummaryResponse {
   default_sort_metric: string;
   overall: PipelineMetrics[];
   categories: Record<string, PipelineMetrics[]>;
+  has_full_results?: boolean;
 }
 
 export const BenchmarkDetail: React.FC<Props> = ({
@@ -56,12 +57,9 @@ export const BenchmarkDetail: React.FC<Props> = ({
     const fetchSummary = async () => {
       try {
         setError(null);
-        const res = await fetch(
+        const res = await apiFetch(
           apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
         );
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
         const json: SummaryResponse = await res.json();
         setData(json);
         setSortMetric(json.default_sort_metric);
@@ -169,6 +167,14 @@ export const BenchmarkDetail: React.FC<Props> = ({
 
   return (
     <div style={{ ...style, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      {data.has_full_results === false && (
+        <InlineNotification
+          kind="info"
+          title="Summary-only mode"
+          subtitle={`The full evaluation results file (${benchmarkId}-predictions_eval.json) was not found in data/results/. Overall pipeline metrics are shown from the summary file, but category breakdown and error analysis are unavailable.`}
+          lowContrast
+        />
+      )}
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
         <h3 style={{ margin: 0 }}>{benchmarkId} – Summary</h3>
         <div style={{ marginLeft: "auto", display: "flex", gap: "0.75rem", alignItems: "center" }}>

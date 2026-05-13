@@ -18,7 +18,7 @@ import {
   SelectItemGroup,
   TextArea,
 } from "@carbon/react";
-import { apiUrl } from "../lib/api";
+import { apiFetch, apiUrl } from "../lib/api";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
@@ -361,12 +361,9 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
         if (effectiveMetric2) params.set("metric2", effectiveMetric2);
         params.set("disagree", "true");
       }
-      const res = await fetch(
+      const res = await apiFetch(
         apiUrl(`/api/benchmarks/${benchmarkId}/errors?${params.toString()}`)
       );
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
       const json: PaginatedErrorResponse = await res.json();
       setItems(json.items);
       setTotal(json.total);
@@ -423,12 +420,11 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
         setDetailError(null);
         const params = new URLSearchParams();
         params.set("pipeline", selectedRecordPipeline);
-        const res = await fetch(
+        const res = await apiFetch(
           apiUrl(
             `/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}/detail?${params.toString()}`
           )
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         setDetail((await res.json()) as ErrorRecordDetail);
       } catch (e: any) {
         setDetailError(e.message || "Failed to load record details");
@@ -481,10 +477,9 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
     try {
       setRawJsonLoading(true);
       setRawJsonError(null);
-      const res = await fetch(
+      const res = await apiFetch(
         apiUrl(`/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}`)
       );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setRawJsonRecord((await res.json()) as Record<string, any>);
     } catch (e: any) {
       setRawJsonError(e.message || "Failed to load raw JSON");
