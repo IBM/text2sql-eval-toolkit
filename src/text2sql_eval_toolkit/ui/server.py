@@ -54,6 +54,11 @@ logger = get_logger(__name__)
 
 app = FastAPI(title="Text2SQL Evaluation Dashboard API")
 
+# When True the /api/results/fetch endpoints are active.  Set by main() via
+# the --enable-fetch CLI flag.  Off by default so production deployments are
+# safe without any configuration.
+_ENABLE_FETCH_ENDPOINT: bool = False
+
 # Allow local dev frontends by default
 app.add_middleware(
     CORSMiddleware,
@@ -549,6 +554,18 @@ class JobStatus(BaseModel):
 
 JOBS: Dict[str, JobStatus] = {}
 JOBS_LOCK = threading.Lock()
+
+
+class FetchJobStatus(BaseModel):
+    job_id: str
+    state: str  # queued | running | completed | failed
+    bytes_downloaded: int = 0
+    total_bytes: int = 0
+    error: Optional[str] = None
+
+
+FETCH_JOBS: Dict[str, FetchJobStatus] = {}
+FETCH_JOBS_LOCK = threading.Lock()
 
 # Cache loaded evaluation records to avoid repeatedly parsing large JSON artifacts.
 EVAL_RECORDS_CACHE: Dict[str, List[Dict[str, Any]]] = {}
@@ -2209,6 +2226,89 @@ def get_job_status(job_id: str) -> JobStatus:
     return job
 
 
+# ---------------------------------------------------------------------------
+# Results Hub endpoints (enabled only when --enable-fetch is passed)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/results/status")
+def get_results_status() -> Dict[str, Any]:
+    """
+    Report whether the fetch endpoint is enabled and whether local results exist.
+
+    The React UI calls this on mount to decide whether to show the
+    "Fetch results" banner.
+    """
+    data_root = get_data_root()
+    results_dir = data_root / "results"
+    has_results = results_dir.is_dir() and any(results_dir.iterdir())
+    return {
+        "fetch_enabled": _ENABLE_FETCH_ENDPOINT,
+        "has_results": has_results,
+        "results_path": str(results_dir),
+    }
+
+
+class ResultsFetchRequest(BaseModel):
+    benchmarks: Optional[List[str]] = None
+    pipelines: Optional[List[str]] = None
+    models: Optional[List[str]] = None
+    revision: Optional[str] = None
+    force: bool = False
+
+
+@app.post("/api/results/fetch", response_model=FetchJobStatus)
+def start_results_fetch(req: ResultsFetchRequest = ResultsFetchRequest()) -> FetchJobStatus:
+    """
+    Kick off a background download of results from the Hugging Face Hub.
+
+    Only available when the dashboard is started with ``--enable-fetch``.
+    Returns 404 otherwise (so that the default prod setup is unaffected).
+    """
+    if not _ENABLE_FETCH_ENDPOINT:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    job_id = str(uuid.uuid4())
+    job = FetchJobStatus(job_id=job_id, state="queued")
+    with FETCH_JOBS_LOCK:
+        FETCH_JOBS[job_id] = job
+
+    def worker() -> None:
+        job.state = "running"
+        try:
+            from text2sql_eval_toolkit.results import fetch_results
+
+            fetch_results(
+                benchmarks=req.benchmarks,
+                pipelines=req.pipelines,
+                models=req.models,
+                revision=req.revision,
+                data_root=get_data_root(),
+                force=req.force,
+                show_progress=False,
+            )
+            job.state = "completed"
+        except Exception as exc:
+            logger.exception("Results fetch job failed")
+            job.state = "failed"
+            job.error = str(exc)
+
+    threading.Thread(target=worker, daemon=True).start()
+    return job
+
+
+@app.get("/api/results/fetch/{job_id}", response_model=FetchJobStatus)
+def get_results_fetch_status(job_id: str) -> FetchJobStatus:
+    """Poll the status of a fetch job started by POST /api/results/fetch."""
+    if not _ENABLE_FETCH_ENDPOINT:
+        raise HTTPException(status_code=404, detail="Not Found")
+    with FETCH_JOBS_LOCK:
+        job = FETCH_JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Fetch job not found")
+    return job
+
+
 @app.get("/api/static/{file_path:path}")
 def serve_dashboard_asset(file_path: str):
     data_root = get_data_root().resolve()
@@ -2370,7 +2470,35 @@ def main(argv: Optional[List[str]] = None) -> None:
             "use --no-watch-dashboard to serve existing dist only."
         ),
     )
+    parser.add_argument(
+        "--enable-fetch",
+        action="store_true",
+        default=False,
+        help=(
+            "Enable the /api/results/fetch endpoint and the in-dashboard "
+            "'Fetch results' button.  Off by default; intended for developer "
+            "or controlled environments only.  Production deployments should "
+            "use `text2sql-eval-toolkit results fetch` from the CLI instead."
+        ),
+    )
     args = parser.parse_args(argv)
+
+    global _ENABLE_FETCH_ENDPOINT
+    if args.enable_fetch:
+        _ENABLE_FETCH_ENDPOINT = True
+        logger.info(
+            "Results fetch endpoint enabled.  "
+            "POST /api/results/fetch is active."
+        )
+
+    # Check whether results are present; hint if not.
+    data_root = get_data_root()
+    results_dir = data_root / "results"
+    if not results_dir.is_dir() or not any(results_dir.iterdir()):
+        logger.info(
+            "No results found at %s.  Run: text2sql-eval-toolkit results fetch",
+            results_dir,
+        )
 
     watch_proc: Optional[subprocess.Popen] = None
     try:

@@ -67,6 +67,32 @@ pip install uv
 brew install uv
 ```
 
+## Pre-computed results
+
+Zero-shot and agentic baseline results for all packaged benchmarks are
+hosted on the [Hugging Face Hub](https://huggingface.co/datasets/text2sql-eval-toolkit/text2sql-eval-results).
+To download them (~7 GB) into `${TEXT2SQL_DATA_ROOT:-./data}/results/`:
+
+```bash
+text2sql-eval-toolkit results fetch
+```
+
+After this completes, the dashboard and analysis scripts will work
+against the downloaded artefacts. See [dashboard/README.md](dashboard/README.md) to launch
+the UI.
+
+To fetch only a specific benchmark:
+
+```bash
+text2sql-eval-toolkit results fetch --benchmarks bird_mini_dev_sqlite
+```
+
+To list what is available without downloading:
+
+```bash
+text2sql-eval-toolkit results list
+```
+
 ## Installation
 
 ### From PyPI

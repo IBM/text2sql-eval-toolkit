@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-13
+
+### Added
+- `text2sql-eval-toolkit results fetch` command to download pre-computed
+  evaluation results from the Hugging Face Hub
+  (`text2sql-eval-toolkit/text2sql-eval-results`).
+- `text2sql_eval_toolkit.results` public API: `fetch_results`,
+  `list_available_results`, `clear_cache`, `DEFAULT_REPO_ID`,
+  `DEFAULT_REVISION`.
+- `text2sql-eval-toolkit results list` — print the available results
+  manifest as a table.
+- `text2sql-eval-toolkit results clear` — remove downloaded results.
+- Dashboard detects missing results on startup and logs an actionable hint.
+- Dashboard `--enable-fetch` flag exposes `/api/results/fetch` endpoints
+  and an in-UI "Fetch results" button (off by default).
+- `scripts/curation/upload_results_to_hub.py` — maintainer script for
+  pushing new result snapshots to the HF Hub.
+
 ## [1.1.0] - 2026-03-23
 
 ### Added

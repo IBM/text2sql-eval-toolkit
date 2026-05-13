@@ -18,6 +18,7 @@ import { LLMJudgeConfigView } from "../views/LLMJudgeConfigView";
 import { RunEvaluationView } from "../views/RunEvaluationView";
 import { ToolkitInsightsView } from "../views/ToolkitInsightsView";
 import { PipelineCompareView } from "../views/PipelineCompareView";
+import { FetchResultsBanner } from "../views/FetchResultsBanner";
 import {
   createBenchmark,
   fetchBenchmarkConfig,
@@ -685,6 +686,7 @@ export const App: React.FC = () => {
           }}
         >
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <FetchResultsBanner onResultsFetched={() => void loadBenchmarks()} />
             {feedback ? (
               <InlineNotification
                 kind={feedback.kind}

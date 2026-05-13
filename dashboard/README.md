@@ -17,6 +17,24 @@ It is built with a **FastAPI** backend and a **React** frontend with a professio
 - **LLM judge configuration**: View and edit LLM‑as‑judge YAML configs through a simple editor UI.
 - **Run evaluations**: Trigger new evaluations for a benchmark and monitor job status from the UI.
 
+### First run — fetch pre-computed results
+
+Before starting the dashboard for the first time, download the pre-computed
+evaluation results from the Hugging Face Hub (~7 GB):
+
+```bash
+text2sql-eval-toolkit results fetch
+```
+
+This populates `${TEXT2SQL_DATA_ROOT:-./data}/results/` with all benchmark
+artefacts. You only need to do this once. To fetch only a single benchmark:
+
+```bash
+text2sql-eval-toolkit results fetch --benchmarks bird_mini_dev_sqlite
+```
+
+See `text2sql-eval-toolkit results --help` for all options.
+
 ### Running the dashboard
 
 After installing the toolkit from source with the dashboard extras:

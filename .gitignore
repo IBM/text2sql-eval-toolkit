@@ -205,3 +205,7 @@ data/results/spider_dev-predictions_eval.json
 data/results/bird_mini_dev_postgres-predictions_eval.json
 data/results/bird_mini_dev_postgres-predictions.json
 data/results/logs
+# Nested per-benchmark/pipeline/model tree downloaded from the HF Hub
+data/results/*/
+# manifest.json downloaded alongside results
+data/manifest.json

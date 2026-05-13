@@ -2,6 +2,8 @@
 # Copyright IBM Corp. 2025 - 2026
 # SPDX-License-Identifier: Apache-2.0
 #
+__version__ = "1.1.0"
+
 """
 Public API for the text2sql-eval-toolkit library.
 
@@ -38,6 +40,13 @@ from .evaluation import (
     sql_exact_match,
 )
 from .execution.execution_tools import run_execution
+from .results import (
+    fetch_results,
+    list_available_results,
+    clear_cache,
+    DEFAULT_REPO_ID,
+    DEFAULT_REVISION,
+)
 from .inference.baseline_llm_pipeline import (
     LLMSQLGenerationPipelineSimple,
     LLMSQLGenerationPipeline,
@@ -61,6 +70,13 @@ from .utils import (
 )
 
 __all__ = [
+    "__version__",
+    # Results Hub
+    "fetch_results",
+    "list_available_results",
+    "clear_cache",
+    "DEFAULT_REPO_ID",
+    "DEFAULT_REVISION",
     # Evaluation APIs
     "evaluate_prediction",
     "async_evaluate_predictions",
