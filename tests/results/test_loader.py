@@ -249,10 +249,12 @@ def test_fetch_results_filter_benchmarks(mock_hf, tmp_path: Path) -> None:
 
 
 def test_fetch_results_no_symlinks(mock_hf, tmp_path: Path) -> None:
+    # local_dir_use_symlinks was removed because the parameter is deprecated
+    # in huggingface_hub >= 0.24.  Verify it is NOT passed to avoid warnings.
     _, mock_snap, _ = mock_hf
     fetch_results(data_root=tmp_path)
     call_kwargs = mock_snap.call_args.kwargs
-    assert call_kwargs.get("local_dir_use_symlinks") is False
+    assert "local_dir_use_symlinks" not in call_kwargs
 
 
 # ---------------------------------------------------------------------------

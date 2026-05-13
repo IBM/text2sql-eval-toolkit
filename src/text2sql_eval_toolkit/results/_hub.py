@@ -84,7 +84,7 @@ def _validate_manifest(manifest: Dict[str, Any]) -> None:
         raise
     except Exception as exc:  # pragma: no cover — packaging parse error
         logger.warning(
-            "Could not parse manifest toolkit_version_compat '%s': %s", compat, exc
+            "Could not parse manifest toolkit_version_compat '{}': {}", compat, exc
         )
 
 
@@ -106,8 +106,8 @@ def _effective_revision(repo_id: str, requested: str) -> str:
         if not _revision_warn_once.is_set():
             _revision_warn_once.set()
             logger.warning(
-                "Revision '%s' was not found on %s; falling back to 'main'. "
-                "Results may not exactly match toolkit v%s. "
+                "Revision '{}' was not found on {}; falling back to 'main'. "
+                "Results may not exactly match toolkit v{}. "
                 "Pin a specific tag with --revision to suppress this warning.",
                 requested,
                 repo_id,
@@ -181,10 +181,19 @@ def _build_allow_patterns(
             for m_name in model_list:
                 if model_filter and m_name not in model_filter:
                     continue
-                # Sanitise the model identifier to the path-safe form used in
-                # the HF repo (colons and slashes → double underscores).
+
                 m_safe = m_name.replace(":", "__").replace("/", "__")
-                patterns.append(f"results/{b_name}/{p_name}/{m_safe}/**")
+
+                if p_name == "default" or m_safe == "default":
+                    # Flat layout: files sit directly under results/ using the
+                    # benchmark name as a filename prefix (e.g.
+                    # results/bird_mini_dev_sqlite-predictions_eval.json).
+                    # Match both the flat prefix form and any nested sub-dir.
+                    patterns.append(f"results/{b_name}*")
+                    patterns.append(f"results/{b_name}/**")
+                else:
+                    # Nested layout: results/<bench>/<pipeline>/<model>/
+                    patterns.append(f"results/{b_name}/{p_name}/{m_safe}/**")
 
     return patterns
 
@@ -258,14 +267,14 @@ def fetch_results(
     allow_patterns = _build_allow_patterns(manifest, benchmarks, pipelines, models)
 
     logger.info(
-        "Fetching results from %s @ %s → %s",
+        "Fetching results from {} @ {} → {}",
         repo_id,
         rev,
         data_root_path,
     )
     if benchmarks or pipelines or models:
         logger.info(
-            "Filters — benchmarks: %s  pipelines: %s  models: %s",
+            "Filters — benchmarks: {}  pipelines: {}  models: {}",
             benchmarks,
             pipelines,
             models,
@@ -283,12 +292,11 @@ def fetch_results(
         revision=rev,
         local_dir=str(data_root_path),
         allow_patterns=allow_patterns,
-        local_dir_use_symlinks=False,  # cross-platform safety (Windows, Docker)
         force_download=force,
     )
 
     results_dir = data_root_path / "results"
-    logger.info("Results available at %s", results_dir)
+    logger.info("Results available at {}", results_dir)
     return results_dir
 
 
@@ -312,7 +320,7 @@ def clear_cache(
     results_dir = data_root_path / "results"
 
     if not results_dir.exists():
-        logger.info("Nothing to clear: %s does not exist.", results_dir)
+        logger.info("Nothing to clear: {} does not exist.", results_dir)
         return
 
     if confirm and sys.stdin.isatty():
@@ -324,4 +332,4 @@ def clear_cache(
             return
 
     shutil.rmtree(results_dir)
-    logger.info("Removed %s", results_dir)
+    logger.info("Removed {}", results_dir)
