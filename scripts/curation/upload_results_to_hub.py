@@ -78,14 +78,25 @@ def _format_bytes(n: int) -> str:
 
 def _generate_manifest(results_dir: Path) -> dict:
     """
-    Walk results_dir and build a manifest.json describing every leaf.
+    Walk results_dir and build a manifest.json describing every result file.
 
-    Expected layout:
+    Supported layouts
+    -----------------
+    Top-level flat (current default):
+        results/
+            bird_mini_dev_sqlite-predictions_eval.json
+            bird_mini_dev_sqlite-predictions.json
+            ...
+
+        The benchmark name is the prefix before the first ``-predictions``
+        occurrence in the filename.
+
+    Nested (future / multi-pipeline):
         results/<benchmark>/<pipeline>/<model>/
-            predictions.json
-            evaluation.json
-            summary.csv
+            predictions.json  evaluation.json  summary.csv
     """
+    import re
+
     ver = _TOOLKIT_VERSION
     major, minor = ver.split(".")[:2]
     compat = f">={major}.{minor}.0,<{int(major) + 1}.0.0"
@@ -93,32 +104,51 @@ def _generate_manifest(results_dir: Path) -> dict:
     benchmarks: dict = {}
     total_bytes = 0
 
-    # Walk the tree.  We accept two layouts:
-    #
-    #   Nested (preferred):
-    #     results/<benchmark>/<pipeline>/<model_sanitised>/  ← leaf dirs
-    #
-    #   Flat (legacy / partially-generated):
-    #     results/<benchmark>/  ← contains files directly, no pipeline/model dirs
-    #
-    # We always emit the nested structure in the manifest.  If the source is
-    # flat we record a synthetic pipeline "default" and model "default".
+    # ── Pass 1: top-level flat files ──────────────────────────────────────────
+    # Group files by benchmark name extracted from their filename prefix.
+    # e.g. "bird_mini_dev_sqlite-predictions_eval.json" → bench "bird_mini_dev_sqlite"
+    flat_groups: dict = {}
+    for f in sorted(results_dir.iterdir()):
+        if not f.is_file():
+            continue
+        m = re.match(r"^(.+?)-predictions", f.name)
+        if not m:
+            continue  # skip non-result files (README.md, etc.)
+        bench = m.group(1)
+        flat_groups.setdefault(bench, []).append(f)
 
+    for bench_name, files in sorted(flat_groups.items()):
+        bench_bytes = sum(f.stat().st_size for f in files)
+        file_names = sorted(f.name for f in files)
+        benchmarks[bench_name] = {
+            "pipelines": {
+                "default": {
+                    "models": ["default"],
+                    "files": file_names,
+                    "size_bytes": bench_bytes,
+                }
+            }
+        }
+        total_bytes += bench_bytes
+
+    # ── Pass 2: nested benchmark directories ──────────────────────────────────
+    # Only processes actual directories; skips non-benchmark dirs (charts, bak, logs).
+    known_non_bench = {"bak", "logs", "charts"}
     for bench_dir in sorted(results_dir.iterdir()):
         if not bench_dir.is_dir():
             continue
+        if bench_dir.name in known_non_bench:
+            continue
         bench_name = bench_dir.name
-        pipelines: dict = {}
+        if bench_name in benchmarks:
+            continue  # already recorded as flat files above
 
-        # Detect whether this benchmark dir has pipeline sub-dirs or just files.
+        pipelines: dict = {}
         pipe_dirs = [p for p in bench_dir.iterdir() if p.is_dir()]
 
         if not pipe_dirs:
-            # Flat layout: files sit directly under the benchmark dir.
             bench_bytes = sum(
-                f.stat().st_size
-                for f in bench_dir.iterdir()
-                if f.is_file()
+                f.stat().st_size for f in bench_dir.iterdir() if f.is_file()
             )
             file_names = sorted(f.name for f in bench_dir.iterdir() if f.is_file())
             if file_names:
@@ -133,46 +163,22 @@ def _generate_manifest(results_dir: Path) -> dict:
                 pipe_name = pipe_dir.name
                 models: List[str] = []
                 pipe_bytes = 0
-
-                model_dirs = [m for m in pipe_dir.iterdir() if m.is_dir()]
-                if not model_dirs:
-                    # Files directly under the pipeline dir — single "default" model.
-                    pipe_bytes = sum(
-                        f.stat().st_size for f in pipe_dir.iterdir() if f.is_file()
-                    )
-                    file_names = sorted(
-                        f.name for f in pipe_dir.iterdir() if f.is_file()
-                    )
-                    if file_names:
-                        pipelines[pipe_name] = {
-                            "models": ["default"],
-                            "files": file_names,
-                            "size_bytes": pipe_bytes,
-                        }
-                        total_bytes += pipe_bytes
-                else:
-                    for model_dir in sorted(model_dirs):
-                        # Unsanitise: double underscores back to original separators.
-                        # We store the original model ID in the manifest so the
-                        # loader can reconstruct allow_patterns accurately.
-                        raw = model_dir.name
-                        model_id = raw.replace("__", "/", 1).replace("__", ":", 1)
-                        models.append(model_id)
-                        for f in model_dir.rglob("*"):
-                            if f.is_file():
-                                pipe_bytes += f.stat().st_size
-
-                    if models:
-                        pipelines[pipe_name] = {
-                            "models": models,
-                            "files": [
-                                "predictions.json",
-                                "evaluation.json",
-                                "summary.csv",
-                            ],
-                            "size_bytes": pipe_bytes,
-                        }
-                        total_bytes += pipe_bytes
+                for model_dir in sorted(
+                    m for m in pipe_dir.iterdir() if m.is_dir()
+                ):
+                    raw = model_dir.name
+                    model_id = raw.replace("__", "/", 1).replace("__", ":", 1)
+                    models.append(model_id)
+                    for ff in model_dir.rglob("*"):
+                        if ff.is_file():
+                            pipe_bytes += ff.stat().st_size
+                if models:
+                    pipelines[pipe_name] = {
+                        "models": models,
+                        "files": ["predictions.json", "evaluation.json", "summary.csv"],
+                        "size_bytes": pipe_bytes,
+                    }
+                    total_bytes += pipe_bytes
 
         if pipelines:
             benchmarks[bench_name] = {"pipelines": pipelines}

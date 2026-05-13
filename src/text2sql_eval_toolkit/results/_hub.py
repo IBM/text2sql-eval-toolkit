@@ -308,12 +308,25 @@ def fetch_results(
     # layout expected by the rest of the toolkit.
     # Passing data_root_path / "results" would produce the double-nested path
     # data_root_path/results/results/... which would break all downstream code.
+    # Exclude log files and directories regardless of what the Hub contains.
+    # This mirrors the ignore_patterns used by the upload script so that files
+    # deleted from the Hub are also never restored from the HF local cache.
+    _ignore_patterns = [
+        "results/logs",
+        "results/logs/**",
+        "results/**/logs",
+        "results/**/logs/**",
+        "**/*.log",
+        "**/*.txt",
+    ]
+
     snapshot_download(
         repo_id=repo_id,
         repo_type="dataset",
         revision=rev,
         local_dir=str(data_root_path),
         allow_patterns=allow_patterns,
+        ignore_patterns=_ignore_patterns,
         force_download=force,
     )
 
