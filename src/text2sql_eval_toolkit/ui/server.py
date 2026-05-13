@@ -2202,10 +2202,17 @@ def _ensure_dashboard_dist(dashboard_dir: Path) -> None:
         )
         return
     if not (dashboard_dir / "node_modules").is_dir():
-        logger.warning(
-            "dashboard/node_modules missing; run `cd dashboard && npm install && npm run build`."
+        logger.info("dashboard/node_modules missing; running `npm install` in %s", dashboard_dir)
+        install = subprocess.run(
+            [npm, "install"],
+            cwd=str(dashboard_dir),
         )
-        return
+        if install.returncode != 0:
+            logger.warning(
+                "npm install failed (exit %s). Run `cd dashboard && npm install && npm run build` manually.",
+                install.returncode,
+            )
+            return
     logger.info("No dashboard dist found; running one-time `npm run build` in %s", dashboard_dir)
     r = subprocess.run(
         [npm, "run", "build"],

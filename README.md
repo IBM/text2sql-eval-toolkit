@@ -282,13 +282,13 @@ uv pip install -e ".[dashboard]"
 Start the server:
 
 ```bash
-text2sql-eval-dashboard --open-browser
-# or: uv run text2sql-eval-dashboard --open-browser
+uv run text2sql-eval-dashboard --open-browser
+# or: text2sql-eval-dashboard --open-browser
 ```
 
 By default the server listens on `http://127.0.0.1:8000`. Set `TEXT2SQL_DATA_ROOT` to the directory that contains `results/` (defaults to `./data` if unset).
 
-From a source checkout, the CLI can watch `dashboard/src` and rebuild `dashboard/dist` via Vite when `dashboard/package.json` is present (run `npm install` in `dashboard/` once). Use `--no-watch-dashboard` to serve an existing build only.
+The pre-built frontend assets (`dashboard/dist/`) are committed to the repository, so no Node.js is required to run the dashboard. From a source checkout, the CLI will automatically rebuild `dashboard/dist` via Vite when sources change if Node.js/npm are available (run `npm install` in `dashboard/` once to enable this). Use `--no-watch-dashboard` to serve the committed build only.
 
 See [dashboard/README.md](dashboard/README.md) for full details (development with Vite, manual builds, and troubleshooting).
 
