@@ -195,6 +195,28 @@ def _build_allow_patterns(
                     # Nested layout: results/<bench>/<pipeline>/<model>/
                     patterns.append(f"results/{b_name}/{p_name}/{m_safe}/**")
 
+    # Safety fallback: if the manifest produced no patterns (e.g. it was
+    # uploaded before results existed and has 0 benchmarks), derive patterns
+    # directly from the filter values so the fetch doesn't silently do nothing.
+    if len(patterns) == len(always):
+        if bench_filter:
+            logger.warning(
+                "None of the requested benchmarks {} were found in the manifest. "
+                "Falling back to direct path patterns — the manifest on the Hub "
+                "may be outdated. Re-run the upload script to regenerate it.",
+                sorted(bench_filter),
+            )
+            for b in sorted(bench_filter):
+                patterns.append(f"results/{b}*")
+                patterns.append(f"results/{b}/**")
+        else:
+            # Pipeline/model filter only — can't guess paths; download everything.
+            logger.warning(
+                "No manifest entries matched the requested filters. "
+                "Falling back to results/** — the manifest on the Hub may be outdated.",
+            )
+            patterns.append("results/**")
+
     return patterns
 
 
