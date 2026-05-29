@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
+  ComboBox,
   DataTable,
   DataTableHeader,
   InlineNotification,
@@ -17,6 +18,8 @@ import {
   SelectItem,
   SelectItemGroup,
   TextArea,
+  DataTableSkeleton,
+  InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
 import {
@@ -245,7 +248,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
     () => initialFilters?.metric2 ?? "subset_non_empty_execution_accuracy"
   );
   const [disagree, setDisagree] = useState(() => initialFilters?.disagree ?? false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [selectedRecordPipeline, setSelectedRecordPipeline] = useState<string | null>(null);
@@ -264,6 +267,8 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
   const [addGroundTruthLoading, setAddGroundTruthLoading] = useState(false);
   const [addGroundTruthError, setAddGroundTruthError] = useState<string | null>(null);
   const [addGroundTruthSuccess, setAddGroundTruthSuccess] = useState<string | null>(null);
+
+  const [availablePipelines, setAvailablePipelines] = useState<string[]>([]);
 
   const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinitionsResponse | null>(null);
   const [metricDefinitionsError, setMetricDefinitionsError] = useState<string | null>(null);
@@ -319,6 +324,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
           const bv = Number(b.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
           return bv - av;
         });
+        setAvailablePipelines(ranked.map((p) => p.name));
         const bestPipeline = ranked[0]?.name ?? "";
         if (!bestPipeline) return;
         setPipeline((p) => p || bestPipeline);
@@ -345,6 +351,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
     try {
       setLoading(true);
       setError(null);
+      setItems([]);
       const params = new URLSearchParams();
       params.set("page", String(effectivePage));
       params.set("page_size", String(effectivePageSize));
@@ -592,12 +599,16 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <TextInput
+          <ComboBox
             id="pipeline-1"
-            labelText="Pipeline 1 (optional)"
+            titleText="Pipeline 1 (optional)"
             placeholder="e.g. wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi"
-            value={pipeline}
-            onChange={(e) => setPipeline(e.target.value)}
+            items={availablePipelines}
+            itemToString={(item) => item ?? ""}
+            selectedItem={pipeline || null}
+            onChange={({ selectedItem }) => setPipeline(selectedItem ?? "")}
+            onInputChange={(text) => setPipeline(text)}
+            allowCustomValue
           />
           <Select
             id="metric-select"
@@ -673,12 +684,16 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
               value={value}
               onChange={(e) => setValue(e.target.value)}
             />
-            <TextInput
+            <ComboBox
               id="pipeline-2"
-              labelText="Pipeline 2 (for disagreement)"
+              titleText="Pipeline 2 (for disagreement)"
               placeholder="Second pipeline id"
-              value={pipeline2}
-              onChange={(e) => setPipeline2(e.target.value)}
+              items={availablePipelines}
+              itemToString={(item) => item ?? ""}
+              selectedItem={pipeline2 || null}
+              onChange={({ selectedItem }) => setPipeline2(selectedItem ?? "")}
+              onInputChange={(text) => setPipeline2(text)}
+              allowCustomValue
             />
             <Select
               id="disagree-select"
@@ -791,6 +806,16 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
           lowContrast
         />
       )}
+      {loading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <InlineLoading
+            description={`Loading error records for ${benchmarkId}…`}
+            status="active"
+          />
+          <DataTableSkeleton role="progressbar" columnCount={6} rowCount={10} />
+        </div>
+      ) : (
+        <>
       <div style={{ maxHeight: "420px", overflow: "auto" }}>
         <DataTable rows={rows} headers={headers} size="sm">
           {({ rows, headers, getHeaderProps }) => (
@@ -844,6 +869,8 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
           setPageSize(pageSize);
         }}
       />
+        </>
+      )}
       {selectedRecordId && (
         <>
           <div
