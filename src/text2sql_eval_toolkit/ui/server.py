@@ -292,6 +292,7 @@ class BenchmarkSummary(BaseModel):
     num_records: int
     num_pipelines: int
     logo: Optional[str] = None
+    eval_results_bytes: Optional[int] = None
 
 
 class BenchmarksResponse(BaseModel):
@@ -672,6 +673,16 @@ def list_benchmarks() -> BenchmarksResponse:
             except Exception as e:  # pragma: no cover - defensive
                 logger.warning(f"Could not read summary for {benchmark_id}: {e}")
 
+        eval_results_bytes: Optional[int] = None
+        eval_path = results_dir / f"{benchmark_id}-predictions_eval.json"
+        if eval_path.is_file():
+            try:
+                eval_results_bytes = eval_path.stat().st_size
+            except OSError as e:  # pragma: no cover - defensive
+                logger.warning(
+                    "Could not stat eval results for %s: %s", benchmark_id, e
+                )
+
         items.append(
             BenchmarkSummary(
                 benchmark_id=benchmark_id,
@@ -681,6 +692,7 @@ def list_benchmarks() -> BenchmarksResponse:
                 num_records=num_records,
                 num_pipelines=num_pipelines,
                 logo=logo,
+                eval_results_bytes=eval_results_bytes,
             )
         )
 
