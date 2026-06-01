@@ -24,6 +24,7 @@ interface Props {
   onSelectPipeline?: (pipelineName: string) => void;
   onOpenToolkitInsights?: () => void;
   onOpenPipelineCompare?: () => void;
+  onOpenProfileCompare?: () => void;
   onOpenErrorAnalysis?: () => void;
 }
 
@@ -46,6 +47,7 @@ export const BenchmarkDetail: React.FC<Props> = ({
   onSelectPipeline,
   onOpenToolkitInsights,
   onOpenPipelineCompare,
+  onOpenProfileCompare,
   onOpenErrorAnalysis,
 }) => {
   const [data, setData] = useState<SummaryResponse | null>(null);
@@ -206,6 +208,11 @@ export const BenchmarkDetail: React.FC<Props> = ({
           {onOpenPipelineCompare && (
             <Button kind="ghost" size="sm" onClick={() => onOpenPipelineCompare()}>
               Pipeline Compare
+            </Button>
+          )}
+          {onOpenProfileCompare && (
+            <Button kind="ghost" size="sm" onClick={() => onOpenProfileCompare()}>
+              Profile Compare
             </Button>
           )}
           {onOpenErrorAnalysis && (
