@@ -122,7 +122,7 @@ def get_benchmarks_info(is_test: bool = False) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error loading the benchmarks JSON file: {benchmarks_file}.")
         raise e
-    package_data_root = BENCHMARKS_FILE.parent
+    package_data_root = benchmarks_file.parent
     predictions_root = get_writable_data_root()
     for benchmark_id in benchmarks_meta:
         benchmark_info = benchmarks_meta[benchmark_id]
