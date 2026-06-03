@@ -1,6 +1,9 @@
 # SQL Prediction Evaluation
 
-This directory contains `run_evaluation.py`, a script for evaluating the results of SQL query predictions against ground truth queries and their result sets. It computes a variety of metrics, including execution accuracy, subset accuracy, and SQL equivalence, and outputs detailed and summary reports.
+This directory contains scripts for evaluating SQL query predictions against ground truth queries and their result sets:
+
+* **`run_evaluation.py`** — full evaluation (same metrics; may enable LLM-as-judge).
+* **`rerun_metrics.py`** — **metrics only**: re-score existing `predicted_sql` / `predicted_df` without inference or SQL execution.
 
 ## Requirements
 
@@ -74,7 +77,36 @@ For sample outputs, see:
 
   * Depending on configuration, the per-prediction rationale (`llm_explanation`) may also be recorded.
 
-## Example
+## Re-run metrics only (`rerun_metrics.py`)
+
+Use this after changing metric code (e.g. `sqlglot_equivalence` in `text2sql_utils.py`) or to refresh scores without re-running models or databases.
+
+```bash
+# By benchmark id
+python scripts/evaluation/rerun_metrics.py bird_mini_dev_sqlite
+
+# By predictions file
+python scripts/evaluation/rerun_metrics.py --input-file data/results/my_benchmark-predictions.json
+
+# Update an existing eval file in place
+python scripts/evaluation/rerun_metrics.py \
+  --input-file data/results/my_benchmark-predictions_eval.json --in-place
+
+# Refresh sqlglot/execution metrics but keep cached LLM judge scores
+python scripts/evaluation/rerun_metrics.py bird_mini_dev_sqlite --preserve-llm-judge
+```
+
+| Flag | Meaning |
+|------|---------|
+| `--in-place` | Write back to the input `*_eval.json` |
+| `--preserve-llm-judge` | Re-run non-LLM metrics; reuse `llm_score` from existing eval output |
+| `--use-llm-judge` | Enable LLM-as-judge (may call the LLM) |
+| `--force-rerun-llm-judge` | Re-call LLM judge even if cached |
+| `--max-concurrency N` | Parallel workers (default 16) |
+
+LLM-as-judge is **off by default** (unlike `run_evaluation.py` when you pass `--use_llm_judge`).
+
+## Example (`run_evaluation.py`)
 
 Run without LLM:
 
