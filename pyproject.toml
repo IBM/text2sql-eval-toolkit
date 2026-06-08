@@ -7,7 +7,7 @@ name = "text2sql-eval-toolkit"
 version = "1.1.0"
 description = "A toolkit for evaluating text-to-SQL pipelines"
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 authors = [
     { name = "Oktie Hassanzadeh", email = "lastname@us.ibm.com" }
 ]
