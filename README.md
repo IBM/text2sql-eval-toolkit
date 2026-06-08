@@ -42,7 +42,7 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 - **Text-to-SQL Inference** ([`scripts/inference`](scripts/inference)): Provides a simple LLM inference pipeline for generating SQL queries from natural language inputs. Run `python scripts/inference/run_inference.py -h` for more information.
 - **SQL Execution** ([`scripts/execution`](scripts/execution)): Runs the ground truth and predicted SQLs for a given benchmark and saves the dataframes for evaluation and error analysis. Run `python scripts/execution/run_execution.py -h` for more information.
 - **Results and Error Analysis** ([`scripts/analysis`](`scripts/analysis`)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
-- **SQL Profiling** ([`scripts/profiling`](`scripts/profiling`)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
+- **SQL Profiling** ([`scripts/profiling`](scripts/profiling)): Tools to profile SQL queries and natural-language questions, assigning profile categories (stored in `meta.categories`) for breakdowns by query type. See [`scripts/profiling/README.md`](scripts/profiling/README.md) for scripts, category definitions, and usage.
 - **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [dashboard/README.md](dashboard/README.md) for installation, data paths, development workflow, and build options.
 
 ## Setup
@@ -338,7 +338,8 @@ text2sql-eval-toolkit
 │   ├── evaluation/             # Evaluation pipeline script
 │   ├── execution/              # Scripts for SQL execution
 │   ├── inference/              # Inference pipeline (baseline) script
-│   ├── profiling/              # SQL query profiling script
+│   ├── profiling/              # SQL query profiling scripts and category reference
+│   │   └── README.md           # Profile category definitions and usage
 ├── src/                        # Source code for the toolkit
 │   └── text2sql_eval_toolkit/  # Core modules
 │       ├── analysis/           # Results and error analysis module

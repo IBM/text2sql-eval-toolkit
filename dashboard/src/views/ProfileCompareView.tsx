@@ -2,15 +2,19 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
   ComboBox,
+  DataTable,
+  DataTableHeader,
   DataTableSkeleton,
   InlineLoading,
   InlineNotification,
+  Pagination,
   Select,
   SelectItem,
   SelectItemGroup,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
   TableHeader,
   TableRow,
@@ -35,11 +39,51 @@ import {
   formatEvalResultsSize,
   isLargeBenchmark,
 } from "../lib/largeBenchmark";
+import { RecordDetailDrawer } from "../components/RecordDetailDrawer";
+
+type MetricAgreementFilter = "all" | "agree" | "disagree";
+
+type ErrorAnalysisFilters = {
+  pipeline: string;
+  metric: string;
+  pipeline2: string;
+  metric2: string;
+  disagree: boolean;
+  agree?: boolean;
+  category?: string;
+  metricCompare?: boolean;
+};
+
+interface ErrorRecordSummary {
+  record_id: string;
+  question: string;
+  predictions: Record<string, Record<string, unknown>>;
+}
+
+interface PaginatedErrorResponse {
+  items: ErrorRecordSummary[];
+  total: number;
+  page: number;
+  page_size: number;
+}
 
 interface Props {
   benchmarks: BenchmarkSummary[];
   benchmarkId: string | null;
   onSelectBenchmark?: (id: string) => void;
+  onOpenErrorAnalysis?: (filters: Partial<ErrorAnalysisFilters>) => void;
+}
+
+function formatMetricValue(value: unknown): string {
+  if (value == null) return "N/A";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "N/A";
+  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
 }
 
 type PipelineMetrics = CategorySummaryResponse["overall"][number];
@@ -64,6 +108,8 @@ const PROFILE_ORDER = [
   "has_like",
   "has_between",
   "has_in_predicate",
+  "has_null",
+  "has_negation",
   "question_brief",
   "question_moderate",
   "question_verbose",
@@ -98,6 +144,8 @@ const PROFILE_DESCRIPTIONS: Record<string, string> = {
   has_like: "Uses LIKE pattern matching.",
   has_between: "Uses BETWEEN.",
   has_in_predicate: "Uses an IN predicate.",
+  has_null: "References NULL via IS NULL or IS NOT NULL.",
+  has_negation: "Uses SQL negation (NOT IN, NOT EXISTS, or EXCEPT).",
   question_brief: "Short question (8 words or fewer).",
   question_moderate: "Medium-length question (9–15 words).",
   question_verbose: "Long question (more than 15 words).",
@@ -142,6 +190,7 @@ export const ProfileCompareView: React.FC<Props> = ({
   benchmarks,
   benchmarkId,
   onSelectBenchmark,
+  onOpenErrorAnalysis,
 }) => {
   const [selectedBenchmarkIds, setSelectedBenchmarkIds] = useState<string[]>([]);
   const [summariesById, setSummariesById] = useState<Record<string, CategorySummaryResponse>>({});
@@ -155,6 +204,19 @@ export const ProfileCompareView: React.FC<Props> = ({
 
   const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinitionsResponse | null>(null);
   const [metricDefinitionsError, setMetricDefinitionsError] = useState<string | null>(null);
+
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [metricAgreement, setMetricAgreement] = useState<MetricAgreementFilter>("all");
+  const [profileRecords, setProfileRecords] = useState<ErrorRecordSummary[]>([]);
+  const [profileRecordsTotal, setProfileRecordsTotal] = useState(0);
+  const [profileRecordsPage, setProfileRecordsPage] = useState(1);
+  const [profileRecordsPageSize, setProfileRecordsPageSize] = useState(25);
+  const [profileRecordsLoading, setProfileRecordsLoading] = useState(false);
+  const [profileRecordsError, setProfileRecordsError] = useState<string | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+
+  const drilldownBenchmarkId =
+    selectedBenchmarkIds.length === 1 ? selectedBenchmarkIds[0] : null;
 
   const metricSelectGroups = useMemo(
     () => buildMetricInsightsSelectGroups(metricDefinitions?.metrics ?? []),
@@ -366,6 +428,105 @@ export const ProfileCompareView: React.FC<Props> = ({
     }, 0.01);
   }, [profileRows]);
 
+  useEffect(() => {
+    setSelectedProfile(null);
+    setSelectedRecordId(null);
+  }, [selectedPipeline, metricA, metricB, selectedBenchmarkIds.join(",")]);
+
+  const loadProfileRecords = async (
+    profile: string,
+    page: number,
+    pageSize: number,
+    agreement: MetricAgreementFilter
+  ) => {
+    if (!drilldownBenchmarkId || !selectedPipeline) return;
+    try {
+      setProfileRecordsLoading(true);
+      setProfileRecordsError(null);
+      const params = new URLSearchParams();
+      params.set("page", String(page));
+      params.set("page_size", String(pageSize));
+      params.set("pipeline", selectedPipeline);
+      params.set("pipeline2", selectedPipeline);
+      params.set("metric", metricA);
+      params.set("metric2", metricB);
+      if (profile !== "overall") params.set("category", profile);
+      if (agreement === "disagree") params.set("disagree", "true");
+      if (agreement === "agree") params.set("agree", "true");
+      const res = await apiFetch(
+        apiUrl(`/api/benchmarks/${drilldownBenchmarkId}/errors?${params.toString()}`)
+      );
+      const json = (await res.json()) as PaginatedErrorResponse;
+      setProfileRecords(json.items);
+      setProfileRecordsTotal(json.total);
+    } catch (e: unknown) {
+      setProfileRecords([]);
+      setProfileRecordsTotal(0);
+      setProfileRecordsError(e instanceof Error ? e.message : "Failed to load records");
+    } finally {
+      setProfileRecordsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedProfile || !drilldownBenchmarkId || !selectedPipeline) {
+      setProfileRecords([]);
+      setProfileRecordsTotal(0);
+      return;
+    }
+    void loadProfileRecords(
+      selectedProfile,
+      profileRecordsPage,
+      profileRecordsPageSize,
+      metricAgreement
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    selectedProfile,
+    drilldownBenchmarkId,
+    selectedPipeline,
+    metricA,
+    metricB,
+    metricAgreement,
+    profileRecordsPage,
+    profileRecordsPageSize,
+  ]);
+
+  const profileRecordHeaders: DataTableHeader[] = useMemo(
+    () => [
+      { key: "record_id", header: "Record ID" },
+      { key: "question", header: "Question" },
+      { key: "metric_a", header: metricA },
+      { key: "metric_b", header: metricB },
+    ],
+    [metricA, metricB]
+  );
+
+  const profileRecordRows = useMemo(
+    () =>
+      profileRecords.map((item) => {
+        const preds = item.predictions?.[selectedPipeline] ?? {};
+        return {
+          id: item.record_id,
+          record_id: item.record_id,
+          question: item.question,
+          metric_a: formatMetricValue(preds[metricA]),
+          metric_b: formatMetricValue(preds[metricB]),
+        };
+      }),
+    [profileRecords, selectedPipeline, metricA, metricB]
+  );
+
+  const closeRecordDetail = () => {
+    setSelectedRecordId(null);
+  };
+
+  const selectProfileRow = (profile: string) => {
+    setSelectedProfile((prev) => (prev === profile ? null : profile));
+    setProfileRecordsPage(1);
+    setSelectedRecordId(null);
+  };
+
   const combinedLabel =
     selectedBenchmarkIds.length > 1
       ? `${selectedBenchmarkIds.length} benchmarks combined`
@@ -392,7 +553,8 @@ export const ProfileCompareView: React.FC<Props> = ({
       <h3 style={{ margin: 0 }}>Profile compare</h3>
       <p style={{ margin: 0, opacity: 0.88, fontSize: "0.9rem", lineHeight: 1.45, maxWidth: "52rem" }}>
         Select one or more benchmarks to pool profile metrics (weighted by sample size), pick a pipeline,
-        then compare two metrics on each SQL query profile.
+        then compare two metrics on each SQL query profile. Click a profile row to browse underlying records
+        (single benchmark only).
       </p>
 
       <section
@@ -687,8 +849,19 @@ export const ProfileCompareView: React.FC<Props> = ({
                       const barPct =
                         diff != null ? Math.min(100, (Math.abs(diff) / maxAbsDiff) * 100) : 0;
                       const barColor = diff == null ? "#8d8d8d" : diff >= 0 ? "#24a148" : "#da1e28";
+                      const isSelected = selectedProfile === row.profile;
                       return (
-                        <TableRow key={row.profile}>
+                        <TableRow
+                          key={row.profile}
+                          style={{
+                            cursor: drilldownBenchmarkId ? "pointer" : "default",
+                            background: isSelected ? "rgba(15,98,254,0.12)" : undefined,
+                          }}
+                          onClick={() => {
+                            if (!drilldownBenchmarkId) return;
+                            selectProfileRow(row.profile);
+                          }}
+                        >
                           <TableCell style={{ verticalAlign: "top", maxWidth: "220px" }}>
                             <div style={{ fontWeight: row.profile === "overall" ? 600 : 400 }}>
                               {row.profile}
@@ -756,7 +929,167 @@ export const ProfileCompareView: React.FC<Props> = ({
                   </TableBody>
                 </Table>
               </div>
+              {!drilldownBenchmarkId && selectedBenchmarkIds.length > 1 ? (
+                <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem", opacity: 0.8 }}>
+                  Select a single benchmark to click profiles and inspect records.
+                </p>
+              ) : drilldownBenchmarkId ? (
+                <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem", opacity: 0.8 }}>
+                  Click a profile row to show records for that profile.
+                </p>
+              ) : null}
+              {selectedProfile && drilldownBenchmarkId ? (
+                <section
+                  style={{
+                    marginTop: "0.75rem",
+                    borderTop: "1px solid rgba(15,98,254,0.2)",
+                    paddingTop: "0.75rem",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "0.5rem",
+                      alignItems: "end",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div>
+                      <h4 style={{ margin: 0, color: "#0f62fe" }}>
+                        Records · {selectedProfile}
+                      </h4>
+                      <p style={{ margin: "0.25rem 0 0", fontSize: "0.8rem", opacity: 0.85 }}>
+                        {metricA} vs {metricB} on {selectedPipeline}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "end" }}>
+                      <Select
+                        id="profile-compare-metric-agreement"
+                        labelText="Metric A vs B"
+                        value={metricAgreement}
+                        onChange={(e) => {
+                          setMetricAgreement(e.target.value as MetricAgreementFilter);
+                          setProfileRecordsPage(1);
+                        }}
+                      >
+                        <SelectItem value="all" text="All (both scored)" />
+                        <SelectItem value="agree" text="Agree (same value)" />
+                        <SelectItem value="disagree" text="Differ (different value)" />
+                      </Select>
+                      {onOpenErrorAnalysis ? (
+                        <Button
+                          kind="ghost"
+                          size="sm"
+                          onClick={() =>
+                            onOpenErrorAnalysis({
+                              pipeline: selectedPipeline,
+                              pipeline2: selectedPipeline,
+                              metric: metricA,
+                              metric2: metricB,
+                              disagree: metricAgreement === "disagree",
+                              agree: metricAgreement === "agree",
+                              metricCompare: true,
+                              ...(selectedProfile !== "overall"
+                                ? { category: selectedProfile }
+                                : {}),
+                            })
+                          }
+                        >
+                          Open in Error Analysis
+                        </Button>
+                      ) : null}
+                      <Button kind="ghost" size="sm" onClick={() => setSelectedProfile(null)}>
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                  {profileRecordsError ? (
+                    <InlineNotification
+                      kind="error"
+                      title="Failed to load records"
+                      subtitle={profileRecordsError}
+                      lowContrast
+                    />
+                  ) : null}
+                  {profileRecordsLoading ? (
+                    <DataTableSkeleton columnCount={4} rowCount={5} />
+                  ) : (
+                    <>
+                      <p style={{ margin: 0, fontSize: "0.8rem", opacity: 0.85 }}>
+                        {profileRecordsTotal} record{profileRecordsTotal === 1 ? "" : "s"}
+                        {metricAgreement === "agree"
+                          ? " where metrics agree"
+                          : metricAgreement === "disagree"
+                            ? " where metrics differ"
+                            : ""}
+                        . Click a row for details.
+                      </p>
+                      <div style={{ maxHeight: "280px", overflow: "auto" }}>
+                        <DataTable
+                          rows={profileRecordRows}
+                          headers={profileRecordHeaders}
+                          size="sm"
+                        >
+                          {({ rows, headers, getHeaderProps }) => (
+                            <TableContainer>
+                              <Table aria-label="Profile records">
+                                <TableHead>
+                                  <TableRow>
+                                    {headers.map((header) => (
+                                      <TableHeader
+                                        key={header.key}
+                                        {...getHeaderProps({ header })}
+                                      >
+                                        {header.header}
+                                      </TableHeader>
+                                    ))}
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {rows.map((row) => (
+                                    <TableRow
+                                      key={row.id}
+                                      style={{ cursor: "pointer" }}
+                                      onClick={() => setSelectedRecordId(String(row.id))}
+                                    >
+                                      {row.cells.map((cell) => (
+                                        <TableCell key={cell.id}>{cell.value}</TableCell>
+                                      ))}
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </TableContainer>
+                          )}
+                        </DataTable>
+                      </div>
+                      <Pagination
+                        page={profileRecordsPage}
+                        pageSize={profileRecordsPageSize}
+                        pageSizes={[10, 25, 50]}
+                        totalItems={profileRecordsTotal}
+                        onChange={({ page, pageSize }) => {
+                          setProfileRecordsPage(page);
+                          setProfileRecordsPageSize(pageSize);
+                        }}
+                      />
+                    </>
+                  )}
+                </section>
+              ) : null}
             </section>
+          ) : null}
+          {selectedRecordId && drilldownBenchmarkId ? (
+            <RecordDetailDrawer
+              benchmarkId={drilldownBenchmarkId}
+              recordId={selectedRecordId}
+              pipeline={selectedPipeline}
+              onClose={closeRecordDetail}
+            />
           ) : null}
         </>
       )}

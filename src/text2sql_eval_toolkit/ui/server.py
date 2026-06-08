@@ -47,6 +47,14 @@ from text2sql_eval_toolkit.evaluation.metric_definitions import (
     get_metric_definitions_payload,
 )
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.profiling.profiling_tools import (
+    merge_benchmark_categories_into_records,
+)
+from text2sql_eval_toolkit.profiling.sql_ast import (
+    PARSE_MODES,
+    benchmark_db_type_to_dialect,
+    parse_sql_to_tree,
+)
 from text2sql_eval_toolkit.utils import get_gt_sqls, get_question
 
 
@@ -545,6 +553,30 @@ class PlaygroundEvaluateResponse(BaseModel):
     prediction_column_count: Optional[int] = None
 
 
+class SqlParseRequest(BaseModel):
+    sql: str
+    dialect: Optional[str] = Field(
+        default=None,
+        description="sqlglot dialect (e.g. sqlite, postgres). Defaults to postgres.",
+    )
+    parse_mode: Optional[str] = Field(
+        default="sqlglot",
+        description="sqlglot (raw parse) or sqlglot_optimized (sqlglot.optimizer.optimize).",
+    )
+
+
+class SqlParseResponse(BaseModel):
+    ok: bool
+    error: Optional[str] = None
+    dialect: Optional[str] = None
+    parse_mode: Optional[str] = None
+    tree: Optional[Dict[str, Any]] = None
+    visual_tree: Optional[Dict[str, Any]] = None
+    formatted_sql: Optional[str] = None
+    analysis: Optional[Dict[str, Any]] = None
+    analysis_error: Optional[str] = None
+
+
 class EvaluationMetricDefinitionsResponse(BaseModel):
     groups: List[str]
     metrics: List[Dict[str, Any]]
@@ -573,7 +605,8 @@ FETCH_JOBS: Dict[str, FetchJobStatus] = {}
 FETCH_JOBS_LOCK = threading.Lock()
 
 # Cache loaded evaluation records to avoid repeatedly parsing large JSON artifacts.
-EVAL_RECORDS_CACHE: Dict[str, List[Dict[str, Any]]] = {}
+# Value: (eval_mtime, benchmark_mtime, records)
+EVAL_RECORDS_CACHE: Dict[str, Tuple[float, float, List[Dict[str, Any]]]] = {}
 EVAL_RECORDS_LOCK = threading.Lock()
 
 
@@ -586,22 +619,49 @@ def load_eval_records(benchmark_id: str) -> List[Dict[str, Any]]:
     """
     Load {benchmark_id}-predictions_eval.json as a list of records.
     Uses an in-memory cache for performance.
-    """
-    with EVAL_RECORDS_LOCK:
-        cached = EVAL_RECORDS_CACHE.get(benchmark_id)
-        if cached is not None:
-            return cached
 
+    Profile categories are merged from the benchmark JSON (source of truth for
+    ``profile_all_benchmarks.py``) so the UI reflects the latest tags even when
+    eval artifacts were not re-profiled.
+    """
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
         raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
+
+    eval_mtime = eval_path.stat().st_mtime
+    benchmark_json_path: Optional[Path] = None
+    benchmark_mtime = 0.0
+    try:
+        benchmark_json_path = Path(
+            get_benchmark_info(benchmark_id)["benchmark_json_path"]
+        )
+        if benchmark_json_path.is_file():
+            benchmark_mtime = benchmark_json_path.stat().st_mtime
+    except (ValueError, KeyError, OSError) as exc:
+        logger.debug(
+            "Could not resolve benchmark JSON for %s: %s",
+            benchmark_id,
+            exc,
+        )
+
+    with EVAL_RECORDS_LOCK:
+        cached = EVAL_RECORDS_CACHE.get(benchmark_id)
+        if (
+            cached is not None
+            and cached[0] == eval_mtime
+            and cached[1] == benchmark_mtime
+        ):
+            return cached[2]
 
     data = load_json(eval_path)
     if not isinstance(data, list):
         raise HTTPException(status_code=500, detail="Invalid evaluation JSON format")
 
+    if benchmark_json_path is not None:
+        merge_benchmark_categories_into_records(data, benchmark_json_path)
+
     with EVAL_RECORDS_LOCK:
-        EVAL_RECORDS_CACHE[benchmark_id] = data
+        EVAL_RECORDS_CACHE[benchmark_id] = (eval_mtime, benchmark_mtime, data)
         return data
 
 
@@ -965,7 +1025,7 @@ def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySum
             has_full_results=False,
         )
 
-    records = load_json(eval_path)
+    records = load_eval_records(benchmark_id)
     agg = _collect_category_summary(records)
 
     overall = [
@@ -1021,6 +1081,14 @@ def list_errors(
         False,
         description="If true and pipeline & pipeline2 set, filter where metric values differ",
     ),
+    agree: bool = Query(
+        False,
+        description="If true and pipeline & pipeline2 set, filter where metric values match",
+    ),
+    category: Optional[str] = Query(
+        None,
+        description="Filter to records tagged with this SQL profile category (meta.categories)",
+    ),
     failed_only: bool = Query(
         False,
         description="If true, include only records where selected pipeline has execution_accuracy == 0",
@@ -1029,11 +1097,7 @@ def list_errors(
     """
     Paginated list of records for error analysis with simple single- and cross-pipeline filters.
     """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
-        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
-
-    data = load_json(eval_path)
+    data = load_eval_records(benchmark_id)
 
     def match_search(rec: Dict[str, Any]) -> bool:
         if not q:
@@ -1096,12 +1160,22 @@ def list_errors(
             if exec_acc != 0:
                 continue
 
-        # Cross-pipeline disagreement filter
-        if pipeline and pipeline2 and disagree:
-            m2 = metric2 or metric
+        if category:
+            cats = rec.get("meta", {}).get("categories", [])
+            if category not in cats:
+                continue
+
+        # Cross-pipeline or same-pipeline metric comparison (agree / disagree / both present)
+        if pipeline and metric2:
+            pl2 = pipeline2 or pipeline
+            m2 = metric2
             v1 = get_metric(rec, pipeline, metric)
-            v2 = get_metric(rec, pipeline2, m2)
-            if v1 is None or v2 is None or v1 == v2:
+            v2 = get_metric(rec, pl2, m2)
+            if v1 is None or v2 is None:
+                continue
+            if disagree and v1 == v2:
+                continue
+            if agree and v1 != v2:
                 continue
 
         filtered.append(rec)
@@ -1150,11 +1224,7 @@ def get_error_detail(benchmark_id: str, record_id: str):
     """
     Return full record for a given benchmark and record id for detailed error analysis.
     """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
-        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
-
-    data = load_json(eval_path)
+    data = load_eval_records(benchmark_id)
     for rec in data:
         rid = str(rec.get("id") or rec.get("question_id") or "")
         if rid == record_id:
@@ -1175,11 +1245,7 @@ def get_error_detail_for_pipeline(
     """
     Return a normalized, UI-friendly detail payload for one record and one pipeline.
     """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
-        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
-
-    data = load_json(eval_path)
+    data = load_eval_records(benchmark_id)
     for rec in data:
         rid = str(rec.get("id") or rec.get("question_id") or "")
         if rid != record_id:
@@ -1324,11 +1390,9 @@ def _find_gold_record(
 def _find_eval_record_optional(
     benchmark_id: str, record_id: str
 ) -> Optional[Dict[str, Any]]:
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
-        return None
-    data = load_json(eval_path)
-    if not isinstance(data, list):
+    try:
+        data = load_eval_records(benchmark_id)
+    except HTTPException:
         return None
     for rec in data:
         rid = str(rec.get("id") or rec.get("question_id") or "")
@@ -1896,6 +1960,36 @@ async def playground_evaluate(
         prediction_error=pred_err,
         prediction_row_count=pred_rows,
         prediction_column_count=pred_cols,
+    )
+
+
+@app.post("/api/sql/parse", response_model=SqlParseResponse)
+def parse_sql_ast(req: SqlParseRequest) -> SqlParseResponse:
+    """Parse SQL into a sqlglot AST tree for the eval playground."""
+    dialect = benchmark_db_type_to_dialect(req.dialect or "postgres")
+    mode = (req.parse_mode or "sqlglot").strip().lower()
+    if mode not in PARSE_MODES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"parse_mode must be one of: {', '.join(PARSE_MODES)}",
+        )
+    payload = parse_sql_to_tree(req.sql, dialect=dialect, mode=mode)
+    if not payload.get("ok"):
+        return SqlParseResponse(
+            ok=False,
+            error=payload.get("error"),
+            dialect=dialect,
+            parse_mode=mode,
+        )
+    return SqlParseResponse(
+        ok=True,
+        dialect=payload.get("dialect"),
+        parse_mode=payload.get("parse_mode"),
+        tree=payload.get("tree"),
+        visual_tree=payload.get("visual_tree"),
+        formatted_sql=payload.get("formatted_sql"),
+        analysis=payload.get("analysis"),
+        analysis_error=payload.get("analysis_error"),
     )
 
 
