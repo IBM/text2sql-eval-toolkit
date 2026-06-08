@@ -204,12 +204,12 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
             is_glot_parsable = is_sqlglot_parsable(predicted_sql)
             sqlparse_parsable = is_sqlparse_parsable(predicted_sql)
             sqlglot_equivalence_score = (
-                sqlglot_parsed_queries_equivalent(predicted_sql, gold_sql)
+                sqlglot_parsed_queries_equivalent(predicted_sql, gold_sql, dialect=record.get("dialect", ""))
                 if is_glot_parsable
                 else 0
             )
             sqlglot_optimized_equivalence_score = (
-                sqlglot_optimized_equivalence(predicted_sql, gold_sql)
+                sqlglot_optimized_equivalence(predicted_sql, gold_sql, dialect=record.get("dialect", ""))
                 if is_glot_parsable
                 else 0
             )

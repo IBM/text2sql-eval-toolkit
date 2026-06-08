@@ -17,6 +17,7 @@ import {
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
 import { apiUrl } from "../lib/api";
+import { SqlAstTreePanel } from "../components/SqlAstTreePanel";
 
 interface Props {
   benchmarks: BenchmarkSummary[];
@@ -874,6 +875,12 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
             />
           </div>
         </div>
+
+        <SqlAstTreePanel
+          dialect={selectedBenchmark?.db_type ?? "postgres"}
+          groundTruthSqls={groundTruthSqls}
+          predictedSql={predictedSql}
+        />
 
         <div
           style={{

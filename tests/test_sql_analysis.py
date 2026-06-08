@@ -17,7 +17,7 @@ queries_with_expected_features = [
     ),
     (
         "SELECT COUNT(CustomerID), Country FROM Customers GROUP BY Country ORDER BY COUNT(CustomerID) DESC;",
-        {"has_aggregation", "has_sorting", "single_source_basic"},
+        {"has_aggregation", "has_group_by", "has_sorting", "single_source_basic"},
     ),
     (
         "SELECT sales_person_id, name FROM sales_performance ORDER BY 2;",
@@ -33,27 +33,27 @@ queries_with_expected_features = [
     ),
     (
         "SELECT CAST(date AS DATE), SUM(amount) AS total_amount FROM table WHERE date BETWEEN '2019-01-01 00:00:00' AND '2019-12-31 00:00:00' GROUP BY CAST(date AS DATE)",
-        {"has_aggregation", "single_source_basic"},
+        {"has_aggregation", "has_between", "has_cast", "has_group_by", "single_source_basic"},
     ),
     (
         "SELECT department_name, ROUND(AVG(salary), 0) avg_salary FROM employees INNER JOIN departments USING (department_id) GROUP BY department_name ORDER BY department_name;",
-        {"has_aggregation", "has_sorting", "has_join", "multi_table_simple"},
+        {"has_aggregation", "has_group_by", "has_join", "has_sorting", "multi_table_simple"},
     ),
     (
         "SELECT department_name, MIN(salary) min_salary FROM employees INNER JOIN departments USING (department_id) GROUP BY department_name ORDER BY department_name;",
-        {"has_aggregation", "has_sorting", "has_join", "multi_table_simple"},
+        {"has_aggregation", "has_group_by", "has_join", "has_sorting", "multi_table_simple"},
     ),
     (
         "SELECT department_name, MAX(salary) highest_salary FROM employees INNER JOIN departments USING (department_id) GROUP BY department_name ORDER BY department_name;",
-        {"has_aggregation", "has_sorting", "has_join", "multi_table_simple"},
+        {"has_aggregation", "has_group_by", "has_join", "has_sorting", "multi_table_simple"},
     ),
     (
         "SELECT department_name, COUNT(*) headcount FROM employees INNER JOIN departments USING (department_id) GROUP BY department_name ORDER BY department_name;",
-        {"has_aggregation", "has_sorting", "has_join", "multi_table_simple"},
+        {"has_aggregation", "has_group_by", "has_join", "has_sorting", "multi_table_simple"},
     ),
     (
         "SELECT department_id, SUM(salary) FROM employees GROUP BY department_id;",
-        {"has_aggregation", "single_source_basic"},
+        {"has_aggregation", "has_group_by", "single_source_basic"},
     ),
     (
         "select min(dec) as min_dec, max(dec) as max_dec, avg(dec) as avg_dec from photoObj where run = 1458",
@@ -61,7 +61,7 @@ queries_with_expected_features = [
     ),
     (
         "select count(z) as num_redshift from specObj where z BETWEEN 0.5 AND 1",
-        {"has_aggregation", "single_source_basic"},
+        {"has_aggregation", "has_between", "single_source_basic"},
     ),
     (
         "SELECT COUNT(*) AS TotalEmployees FROM Employee;",
@@ -69,7 +69,7 @@ queries_with_expected_features = [
     ),
     (
         "SELECT S_ID FROM STUDENT_COURSE WHERE C_ID IN (SELECT C_ID FROM COURSE WHERE C_NAME IN ('DSA', 'DBMS'));",
-        {"has_nested_query"},
+        {"has_in_predicate", "has_nested_query"},
     ),
     (
         "SELECT S_NAME FROM STUDENT WHERE S_AGE > ALL (SELECT S_AGE FROM STUDENT WHERE S_ADDRESS = 'DELHI');",
@@ -77,11 +77,11 @@ queries_with_expected_features = [
     ),
     (
         "SELECT S_NAME FROM STUDENT WHERE S_ID IN (SELECT S_ID FROM STUDENT_COURSE WHERE C_ID IN (SELECT C_ID FROM COURSE WHERE C_NAME IN ('DSA', 'DBMS')));",
-        {"has_nested_query"},
+        {"has_in_predicate", "has_nested_query"},
     ),
     (
         "SELECT C_ID FROM COURSE WHERE C_NAME IN ('DSA', 'DBMS');",
-        {"single_source_basic"},
+        {"has_in_predicate", "single_source_basic"},
     ),
     (
         "SELECT S_NAME FROM STUDENT S WHERE EXISTS ( SELECT 1 FROM STUDENT_COURSE SC WHERE S.S_ID = SC.S_ID AND SC.C_ID = 'C1' );",
@@ -89,11 +89,11 @@ queries_with_expected_features = [
     ),
     (
         "SELECT S_NAME FROM STUDENT WHERE S_ID IN ( SELECT S_ID FROM STUDENT_COURSE WHERE C_ID IN ( SELECT C_ID FROM COURSE WHERE C_NAME IN ('DSA', 'DBMS') ) );",
-        {"has_nested_query"},
+        {"has_in_predicate", "has_nested_query"},
     ),
     (
         "SELECT S_NAME FROM STUDENT WHERE S_ID NOT IN ( SELECT S_ID FROM STUDENT_COURSE WHERE C_ID NOT IN ( SELECT C_ID FROM COURSE WHERE C_NAME IN ('DSA', 'DBMS') ) );",
-        {"has_nested_query"},
+        {"has_in_predicate", "has_negation", "has_nested_query"},
     ),
     (
         "SELECT * FROM students WHERE class_id = ( SELECT id FROM classes WHERE number_of_students = ( SELECT MAX(number_of_students) FROM classes));",
@@ -101,19 +101,19 @@ queries_with_expected_features = [
     ),
     (
         "SELECT subject, MAX(salary_by_subject.avg_salary) AS max_salary FROM ( SELECT subject, AVG(monthly_salary) AS avg_salary FROM teachers GROUP BY subject) salary_by_subject;",
-        {"has_nested_query", "has_aggregation", "single_source_advanced"},
+        {"has_aggregation", "has_group_by", "has_nested_query", "single_source_advanced"},
     ),
     (
         "SELECT Name, Department, Salary, RANK() OVER(PARTITION BY Department ORDER BY Salary DESC) AS emp_rank FROM employee;",
-        {"has_window_function", "has_sorting", "single_source_advanced"},
+        {"has_aggregation", "has_sorting", "has_window_function", "single_source_advanced"},
     ),
     (
         "SELECT Name, Department, Salary, DENSE_RANK() OVER(PARTITION BY Department ORDER BY Salary DESC) AS emp_dense_rank FROM employee;",
-        {"has_window_function", "has_sorting", "single_source_advanced"},
+        {"has_aggregation", "has_sorting", "has_window_function", "single_source_advanced"},
     ),
     (
         "SELECT Name, Department, Salary, ROW_NUMBER() OVER(PARTITION BY Department ORDER BY Salary DESC) AS emp_row_no FROM employee;",
-        {"has_window_function", "has_sorting", "single_source_advanced"},
+        {"has_sorting", "has_window_function", "single_source_advanced"},
     ),
     (
         "SELECT Name, Age, Department, Salary, AVG(Salary) OVER( PARTITION BY Department) AS Avg_Salary FROM employee",
@@ -121,7 +121,63 @@ queries_with_expected_features = [
     ),
     (
         "SELECT Shippers.ShipperName, COUNT(Orders.OrderID) AS NumberOfOrders FROM Orders LEFT JOIN Shippers ON Orders.ShipperID = Shippers.ShipperID GROUP BY ShipperName;",
-        {"has_aggregation", "has_join", "multi_table_simple"},
+        {"has_aggregation", "has_group_by", "has_join", "multi_table_simple"},
+    ),
+    (
+        "SELECT DISTINCT x FROM t UNION SELECT y FROM u",
+        {"has_distinct", "has_nested_query", "has_set_operation"},
+    ),
+    (
+        "WITH cte AS (SELECT 1) SELECT * FROM cte",
+        {"has_cte", "has_nested_query", "single_source_advanced"},
+    ),
+    (
+        "SELECT * FROM t WHERE name LIKE '%foo%'",
+        {"has_like", "single_source_basic"},
+    ),
+    (
+        "SELECT * FROM t LIMIT 10",
+        {"has_limit", "single_source_basic"},
+    ),
+    (
+        "SELECT CASE WHEN x > 0 THEN 1 ELSE 0 END FROM t",
+        {"has_case_expression", "single_source_basic"},
+    ),
+    (
+        "SELECT * FROM t WHERE col IS NULL",
+        {"has_null", "single_source_basic"},
+    ),
+    (
+        "SELECT * FROM t WHERE col IS NOT NULL",
+        {"has_null", "single_source_basic"},
+    ),
+    (
+        "SELECT NULL FROM t",
+        {"single_source_basic"},
+    ),
+    (
+        "SELECT * FROM t WHERE col IS TRUE",
+        {"single_source_basic"},
+    ),
+    (
+        "SELECT * FROM t WHERE col NOT IN (1, 2)",
+        {"has_in_predicate", "has_negation", "single_source_basic"},
+    ),
+    (
+        "SELECT * FROM t WHERE NOT EXISTS (SELECT 1 FROM u)",
+        {"has_negation", "has_nested_query"},
+    ),
+    (
+        "SELECT a FROM t1 EXCEPT SELECT a FROM t2",
+        {"has_negation", "has_nested_query", "has_set_operation"},
+    ),
+    (
+        "SELECT * FROM t WHERE col IN (1, 2)",
+        {"has_in_predicate", "single_source_basic"},
+    ),
+    (
+        "SELECT * FROM t WHERE EXISTS (SELECT 1 FROM u)",
+        {"has_nested_query", "single_source_basic"},
     ),
     (
         "SELECT b.id, b.title, a.first_name, a.last_name FROM books b INNER JOIN authors a ON b.author_id = a.id ORDER BY b.id;",

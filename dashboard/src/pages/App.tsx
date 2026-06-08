@@ -462,6 +462,10 @@ export const App: React.FC = () => {
           benchmarks={benchmarks}
           benchmarkId={selectedBenchmark ?? fallbackBenchmarkId}
           onSelectBenchmark={(id) => setSelectedBenchmark(id)}
+          onOpenErrorAnalysis={(filters) => {
+            setErrorAnalysisInitialFilters(filters);
+            setActiveView("errorAnalysis");
+          }}
         />
       );
     }
