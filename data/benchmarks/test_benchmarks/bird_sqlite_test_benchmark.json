@@ -21,7 +21,9 @@
       },
       "categories": [
         "has_join",
-        "multi_table_simple"
+        "multi_table_simple",
+        "question_listing",
+        "question_moderate"
       ]
     }
   },
@@ -48,7 +50,11 @@
       "categories": [
         "has_aggregation",
         "has_join",
-        "multi_table_simple"
+        "multi_table_simple",
+        "has_cast",
+        "question_aggregation_intent",
+        "question_superlative",
+        "question_verbose"
       ]
     }
   },
@@ -75,7 +81,11 @@
       "categories": [
         "has_join",
         "has_sorting",
-        "multi_table_simple"
+        "multi_table_simple",
+        "has_limit",
+        "question_counting",
+        "question_superlative",
+        "question_verbose"
       ]
     }
   }

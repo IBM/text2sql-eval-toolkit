@@ -22,7 +22,15 @@
       "categories": [
         "has_aggregation",
         "has_nested_query",
-        "has_sorting"
+        "has_sorting",
+        "has_in_predicate",
+        "has_limit",
+        "has_negation",
+        "has_set_operation",
+        "question_counting",
+        "question_grouping_intent",
+        "question_superlative",
+        "question_verbose"
       ]
     }
   },
@@ -48,7 +56,14 @@
       },
       "categories": [
         "has_aggregation",
-        "has_nested_query"
+        "has_nested_query",
+        "has_group_by",
+        "has_in_predicate",
+        "has_negation",
+        "has_set_operation",
+        "question_aggregation_intent",
+        "question_listing",
+        "question_verbose"
       ]
     }
   },
@@ -75,7 +90,10 @@
       "categories": [
         "has_aggregation",
         "has_join",
-        "has_nested_query"
+        "has_nested_query",
+        "question_comparison",
+        "question_superlative",
+        "question_verbose"
       ]
     }
   },
@@ -101,7 +119,10 @@
       },
       "categories": [
         "has_aggregation",
-        "has_nested_query"
+        "has_nested_query",
+        "has_set_operation",
+        "question_counting",
+        "question_verbose"
       ]
     }
   },
@@ -127,7 +148,18 @@
       },
       "categories": [
         "has_aggregation",
-        "has_nested_query"
+        "has_nested_query",
+        "has_group_by",
+        "has_having",
+        "has_in_predicate",
+        "has_negation",
+        "has_set_operation",
+        "question_aggregation_intent",
+        "question_comparison",
+        "question_grouping_intent",
+        "question_listing",
+        "question_superlative",
+        "question_verbose"
       ]
     }
   },
@@ -154,7 +186,13 @@
       "categories": [
         "has_join",
         "has_nested_query",
-        "has_sorting"
+        "has_sorting",
+        "has_limit",
+        "has_set_operation",
+        "question_grouping_intent",
+        "question_listing",
+        "question_superlative",
+        "question_verbose"
       ]
     }
   },
@@ -180,7 +218,9 @@
       },
       "categories": [
         "has_join",
-        "multi_table_simple"
+        "multi_table_simple",
+        "question_listing",
+        "question_verbose"
       ]
     }
   },
@@ -205,7 +245,10 @@
         "query_join_count": 0
       },
       "categories": [
-        "single_source_basic"
+        "single_source_basic",
+        "question_superlative",
+        "question_temporal",
+        "question_verbose"
       ]
     }
   },
@@ -233,7 +276,15 @@
         "has_aggregation",
         "has_join",
         "has_nested_query",
-        "has_sorting"
+        "has_sorting",
+        "has_group_by",
+        "has_limit",
+        "has_set_operation",
+        "question_aggregation_intent",
+        "question_counting",
+        "question_listing",
+        "question_superlative",
+        "question_verbose"
       ]
     }
   },
@@ -260,7 +311,14 @@
       "categories": [
         "has_aggregation",
         "has_join",
-        "has_nested_query"
+        "has_nested_query",
+        "has_group_by",
+        "has_in_predicate",
+        "has_negation",
+        "has_set_operation",
+        "question_aggregation_intent",
+        "question_listing",
+        "question_verbose"
       ]
     }
   }
