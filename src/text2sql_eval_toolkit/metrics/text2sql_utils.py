@@ -543,20 +543,14 @@ def is_sqlparse_parsable(sql: str) -> bool:
         return False
 
 
-def sqlglot_optimized_equivalence(expected: str, generated: str) -> int:
-    from sqlglot import diff, parse_one
+def sqlglot_optimized_equivalence(expected: str, generated: str, dialect: str = "") -> int:
+    from sqlglot import parse_one
     from sqlglot.optimizer import optimize
-
     try:
-        t_diff = diff(
-            optimize(parse_one(expected.lower()).sql(pretty=True)),
-            optimize(parse_one(generated.lower()).sql(pretty=True)),
-        )
-        sql_diff = sum(0 if (e.__class__.__name__ == "Keep") else 1 for e in t_diff)
-        return 1 if sql_diff == 0 else 0
+        return int(optimize(parse_one(expected, read=dialect)) == optimize(parse_one(generated, read=dialect)))
     except Exception as e:
         logger.debug(f"Error parsing SQL for comparison: {e}")
-        return False
+        return 0
 
 
 def extract_select_columns(statement):
@@ -666,7 +660,7 @@ def sqlparse_queries_equivalent(sql1: str, sql2: str) -> bool:
         if info1["columns"] != info2["columns"]:
             return False
         for k in ["from", "where", "group", "having", "order"]:
-            if info1[k].replace(" ", "").upper() != info2[k].replace(" ", "").upper():
+            if info1[k].replace(" ", "").replace("\n", "").upper() != info2[k].replace(" ", "").replace("\n", "").upper():
                 return False
         return True
     except Exception as e:
@@ -685,26 +679,7 @@ def sqlglot_parsed_queries_equivalent(sql1: str, sql2: str, dialect: str = "") -
     if not (isinstance(ast1, exp.Select) and isinstance(ast2, exp.Select)):
         return False
 
-    def normalized_select_columns(select_expr: exp.Select):
-        cols = []
-        for item in select_expr.expressions:
-            copy_item = item.copy()
-            copy_item.set("alias", None)
-            cols.append(copy_item.sql(dialect=dialect, normalize=True))
-        return frozenset(cols)
-
-    if normalized_select_columns(ast1) != normalized_select_columns(ast2):
-        return False
-
-    def normalized_clause(expr: exp.Expression, key: str):
-        clause = expr.args.get(key)
-        return clause.sql(dialect=dialect, normalize=True) if clause else ""
-
-    for clause_key in ("from", "where", "group", "having", "order"):
-        if normalized_clause(ast1, clause_key) != normalized_clause(ast2, clause_key):
-            return False
-
-    return True
+    return ast1 == ast2
 
 
 def sql_exact_match(sql1: str, sql2: str) -> bool:

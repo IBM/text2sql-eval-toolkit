@@ -18,6 +18,7 @@ import { LLMJudgeConfigView } from "../views/LLMJudgeConfigView";
 import { RunEvaluationView } from "../views/RunEvaluationView";
 import { ToolkitInsightsView } from "../views/ToolkitInsightsView";
 import { PipelineCompareView } from "../views/PipelineCompareView";
+import { ProfileCompareView } from "../views/ProfileCompareView";
 import { FetchResultsBanner } from "../views/FetchResultsBanner";
 import {
   createBenchmark,
@@ -66,7 +67,7 @@ export const App: React.FC = () => {
   const [editingBenchmarkConfig, setEditingBenchmarkConfig] = useState<BenchmarkConfigInput | null>(null);
   const [savingBenchmark, setSavingBenchmark] = useState(false);
   const [activeView, setActiveView] = useState<
-    "home" | "benchmark" | "pipeline" | "toolkitInsights" | "pipelineCompare" | "errorAnalysis" | "llmJudge" | "runEvaluation"
+    "home" | "benchmark" | "pipeline" | "toolkitInsights" | "pipelineCompare" | "profileCompare" | "errorAnalysis" | "llmJudge" | "runEvaluation"
   >("home");
   const [errorAnalysisInitialFilters, setErrorAnalysisInitialFilters] = useState<Record<string, any> | null>(null);
   const [showNavMenu, setShowNavMenu] = useState(false);
@@ -109,6 +110,7 @@ export const App: React.FC = () => {
       if (
         (activeView === "toolkitInsights" ||
           activeView === "pipelineCompare" ||
+          activeView === "profileCompare" ||
           activeView === "errorAnalysis") &&
         fallbackBenchmarkId
       ) {
@@ -192,6 +194,12 @@ export const App: React.FC = () => {
     setShowBenchmarkPanel(false);
     setSelectedPipeline(null);
     setActiveView("pipelineCompare");
+  };
+
+  const openProfileCompare = () => {
+    setShowBenchmarkPanel(false);
+    setSelectedPipeline(null);
+    setActiveView("profileCompare");
   };
 
   const openErrorAnalysis = () => {
@@ -339,6 +347,10 @@ export const App: React.FC = () => {
             setSelectedPipeline(null);
             setActiveView("pipelineCompare");
           }}
+          onOpenProfileCompare={() => {
+            setSelectedPipeline(null);
+            setActiveView("profileCompare");
+          }}
           onOpenErrorAnalysis={() => {
             setErrorAnalysisInitialFilters(null);
             setActiveView("errorAnalysis");
@@ -440,6 +452,16 @@ export const App: React.FC = () => {
             setErrorAnalysisInitialFilters(filters);
             setActiveView("errorAnalysis");
           }}
+        />
+      );
+    }
+
+    if (activeView === "profileCompare") {
+      return (
+        <ProfileCompareView
+          benchmarks={benchmarks}
+          benchmarkId={selectedBenchmark ?? fallbackBenchmarkId}
+          onSelectBenchmark={(id) => setSelectedBenchmark(id)}
         />
       );
     }
@@ -564,6 +586,14 @@ export const App: React.FC = () => {
                 style={{ width: "100%", justifyContent: "flex-start" }}
               >
                 Pipeline Compare
+              </Button>
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={openProfileCompare}
+                style={{ width: "100%", justifyContent: "flex-start" }}
+              >
+                Profile Compare
               </Button>
               <Button
                 kind="ghost"
