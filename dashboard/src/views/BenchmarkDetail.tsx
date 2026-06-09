@@ -13,6 +13,8 @@ import {
   TableRow,
   InlineNotification,
   Dropdown,
+  DataTableSkeleton,
+  InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
 
@@ -22,6 +24,7 @@ interface Props {
   onSelectPipeline?: (pipelineName: string) => void;
   onOpenToolkitInsights?: () => void;
   onOpenPipelineCompare?: () => void;
+  onOpenProfileCompare?: () => void;
   onOpenErrorAnalysis?: () => void;
 }
 
@@ -44,9 +47,11 @@ export const BenchmarkDetail: React.FC<Props> = ({
   onSelectPipeline,
   onOpenToolkitInsights,
   onOpenPipelineCompare,
+  onOpenProfileCompare,
   onOpenErrorAnalysis,
 }) => {
   const [data, setData] = useState<SummaryResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -56,7 +61,9 @@ export const BenchmarkDetail: React.FC<Props> = ({
   useEffect(() => {
     const fetchSummary = async () => {
       try {
+        setLoading(true);
         setError(null);
+        setData(null);
         const res = await apiFetch(
           apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
         );
@@ -67,6 +74,8 @@ export const BenchmarkDetail: React.FC<Props> = ({
         setPage(1);
       } catch (e: any) {
         setError(e.message || "Failed to load benchmark summary");
+      } finally {
+        setLoading(false);
       }
     };
     fetchSummary();
@@ -80,6 +89,19 @@ export const BenchmarkDetail: React.FC<Props> = ({
         subtitle={error}
         lowContrast
       />
+    );
+  }
+
+  if (loading) {
+    return (
+      <div style={{ ...style, display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <h3 style={{ margin: 0 }}>{benchmarkId} – Summary</h3>
+        <InlineLoading
+          description={`Loading benchmark summary for ${benchmarkId}…`}
+          status="active"
+        />
+        <DataTableSkeleton role="progressbar" columnCount={5} rowCount={8} />
+      </div>
     );
   }
 
@@ -186,6 +208,11 @@ export const BenchmarkDetail: React.FC<Props> = ({
           {onOpenPipelineCompare && (
             <Button kind="ghost" size="sm" onClick={() => onOpenPipelineCompare()}>
               Pipeline Compare
+            </Button>
+          )}
+          {onOpenProfileCompare && (
+            <Button kind="ghost" size="sm" onClick={() => onOpenProfileCompare()}>
+              Profile Compare
             </Button>
           )}
           {onOpenErrorAnalysis && (

@@ -6,6 +6,8 @@ export interface BenchmarkSummary {
   num_records: number;
   num_pipelines: number;
   logo?: string | null;
+  /** Size of data/results/{id}-predictions_eval.json on disk, if present. */
+  eval_results_bytes?: number | null;
 }
 
 export interface BenchmarksResponse {
