@@ -299,9 +299,6 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
                             llm_explanation = (
                                 "N/A (did not use LLM due to missing prediction dataframe)"
                             )
-                        elif subset_match:
-                            llm_score = 1.0
-                            llm_explanation = "N/A (did not use LLM due to subset match)"
                         else:
                             question = get_question(record)
                             ground_truth_sql = gold_sql
