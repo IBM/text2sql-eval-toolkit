@@ -18,16 +18,26 @@ Relational database schema for text2sql-eval-toolkit results and benchmarks.
 Mermaid files can be previewed in GitHub, VS Code (Mermaid extension), or rendered to SVG/PNG:
 
 ```bash
-npx @mermaid-js/mermaid-cli -i docs/database-schema/diagrams/architecture.md -o docs/database-schema/diagrams/architecture.svg
+npx @mermaid-js/mermaid-cli -i data/database-schema/diagrams/architecture.md -o data/database-schema/diagrams/architecture.svg
 ```
 
 ## Apply schema (SQLite)
 
 ```bash
-sqlite3 data/text2sql_eval.db < docs/database-schema/schema.sql
+sqlite3 data/text2sql_eval.db < data/database-schema/schema.sql
 ```
 
 Default path from env: `TEXT2SQL_DATABASE_URL=sqlite:///./data/text2sql_eval.db`
+
+## Migrate from JSON
+
+Legacy benchmark data on disk can be imported into SQLite with the migration script:
+
+```bash
+python3 scripts/migration/import_json_to_db.py --init
+```
+
+See [scripts/migration/README.md](../../scripts/migration/README.md) for full usage, options, and file-to-table mapping.
 
 ## SQLite vs PostgreSQL
 
@@ -42,4 +52,4 @@ Default path from env: `TEXT2SQL_DATABASE_URL=sqlite:///./data/text2sql_eval.db`
 
 ## Status
 
-Design only — not yet implemented. Current toolkit uses JSON files on disk.
+Schema and JSON import tooling are available. The dashboard and evaluation pipeline still read/write JSON files by default; database-backed storage is the target for future dashboard and pipeline integration.

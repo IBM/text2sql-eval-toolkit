@@ -2,7 +2,7 @@
 
 This design replaces the current file-only model (`benchmarks.json`, `*-predictions.json`, `*-predictions_eval.json`, `*-predictions_eval_summary.json`) with a relational store that supports the full pipeline (inference → execution → evaluation) and every dashboard query pattern today.
 
-**Status:** Design only — not yet implemented.
+**Status:** Schema and JSON import tooling implemented. Dashboard and pipeline still use JSON files by default.
 
 ## Diagrams
 
@@ -187,6 +187,8 @@ SQLite uses a flat `v_eval_records_flat` view for dashboard queries; nested `*-p
 | 9 | Dual-write period: pipeline writes both JSON and DB |
 | 10 | Dashboard reads from DB; JSON export for Hub |
 
+Steps 1–8 are implemented by [`scripts/migration/import_json_to_db.py`](../../scripts/migration/import_json_to_db.py). See [`scripts/migration/README.md`](../../scripts/migration/README.md).
+
 ---
 
 ## Design Decisions & Trade-offs
@@ -246,6 +248,6 @@ Row counts are manageable; **DataFrame storage** is the main size driver (plan f
 ## Next Steps (Implementation)
 
 1. Add Alembic migrations and `TEXT2SQL_DATABASE_URL` config
-2. Build `json_to_db` import script from existing `data/results/`
+2. ~~Build `json_to_db` import script from existing `data/results/`~~ — see [`scripts/migration/import_json_to_db.py`](../../scripts/migration/import_json_to_db.py) and [`scripts/migration/README.md`](../../scripts/migration/README.md)
 3. Add a repository layer shared by dashboard and evaluation pipeline
 4. Dual-write period, then switch dashboard reads to DB
