@@ -121,7 +121,6 @@ CREATE TABLE result_sets (
     label            TEXT NOT NULL DEFAULT 'default',
     status           TEXT NOT NULL DEFAULT 'inference'
         CHECK (status IN ('inference', 'executed', 'evaluated', 'archived')),
-    llm_judge_config TEXT CHECK (llm_judge_config IS NULL OR json_valid(llm_judge_config)),
     source           TEXT,
     file_stem        TEXT,
     created_at       TEXT NOT NULL DEFAULT (datetime('now')),
@@ -219,6 +218,21 @@ CREATE TABLE record_ground_truth_execution (
 -- Aligned with evaluation/metric_definitions.py
 -- ============================================================
 
+-- Registry of LLM-as-judge configurations (model + prompt template).
+-- Deduplicated by config_hash so the same judge can score many predictions.
+CREATE TABLE llm_judge_configs (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_name  TEXT NOT NULL,
+    config_hash  TEXT NOT NULL,
+    model_id     TEXT,
+    config_json  TEXT NOT NULL CHECK (json_valid(config_json)),
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (config_hash)
+);
+
+CREATE INDEX idx_llm_judge_configs_name ON llm_judge_configs(config_name);
+
+-- Deterministic metrics: one row per prediction (judge-independent).
 CREATE TABLE evaluations (
     prediction_id INTEGER PRIMARY KEY REFERENCES predictions(id) ON DELETE CASCADE,
 
@@ -240,12 +254,7 @@ CREATE TABLE evaluations (
     is_sqlglot_parsable INTEGER CHECK (is_sqlglot_parsable IN (0, 1)),
     is_sqlparse_parsable INTEGER CHECK (is_sqlparse_parsable IN (0, 1)),
 
-    -- LLM judge
-    llm_score         REAL,
-    llm_explanation   TEXT,
-    llm_judge_error   TEXT,
-
-    -- Timing & tokens
+    -- Timing & tokens (copied from prediction at eval time for export convenience)
     prompt_tokens     INTEGER,
     completion_tokens INTEGER,
     total_tokens      INTEGER,
@@ -267,7 +276,26 @@ CREATE TABLE evaluations (
 
 CREATE INDEX idx_eval_exec_acc ON evaluations(execution_accuracy);
 CREATE INDEX idx_eval_subset_acc ON evaluations(subset_non_empty_execution_accuracy);
-CREATE INDEX idx_eval_llm_score ON evaluations(llm_score);
+
+-- LLM judge metrics: one row per (prediction, judge config).
+CREATE TABLE llm_judge_evaluations (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    prediction_id        INTEGER NOT NULL REFERENCES predictions(id) ON DELETE CASCADE,
+    llm_judge_config_ref INTEGER NOT NULL REFERENCES llm_judge_configs(id) ON DELETE RESTRICT,
+    llm_score            REAL,
+    llm_explanation      TEXT,
+    llm_judge_error      TEXT,
+    prompt_tokens        INTEGER,
+    completion_tokens    INTEGER,
+    total_tokens         INTEGER,
+    judge_time_ms        REAL,
+    evaluated_at         TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (prediction_id, llm_judge_config_ref)
+);
+
+CREATE INDEX idx_llm_judge_eval_prediction ON llm_judge_evaluations(prediction_id);
+CREATE INDEX idx_llm_judge_eval_config ON llm_judge_evaluations(llm_judge_config_ref);
+CREATE INDEX idx_llm_judge_eval_score ON llm_judge_evaluations(llm_score);
 
 -- ============================================================
 -- LAYER 6: PRE-COMPUTED AGGREGATES
@@ -310,8 +338,6 @@ CREATE TABLE eval_summaries (
     is_sqlglot_parsable_stddev                 REAL,
     is_sqlparse_parsable_avg                   REAL,
     is_sqlparse_parsable_stddev                REAL,
-    llm_score_avg                              REAL,
-    llm_score_stddev                           REAL,
     eval_error_avg                             REAL,
     eval_error_stddev                          REAL,
     df_error_avg                               REAL,
@@ -327,6 +353,25 @@ CREATE TABLE eval_summaries (
 
 CREATE INDEX idx_eval_summaries_rs ON eval_summaries(result_set_id);
 CREATE INDEX idx_eval_summaries_cat ON eval_summaries(result_set_id, category);
+
+-- Per-judge aggregates (replaces llm_score_* columns formerly on eval_summaries).
+CREATE TABLE llm_judge_eval_summaries (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    result_set_id        INTEGER NOT NULL REFERENCES result_sets(id) ON DELETE CASCADE,
+    pipeline_ref         INTEGER NOT NULL REFERENCES pipelines(id) ON DELETE CASCADE,
+    llm_judge_config_ref INTEGER NOT NULL REFERENCES llm_judge_configs(id) ON DELETE RESTRICT,
+    category             TEXT,
+    num_evaluated        INTEGER NOT NULL,
+    num_judge_errors     INTEGER NOT NULL DEFAULT 0,
+    llm_score_avg        REAL,
+    llm_score_stddev     REAL,
+    sum_judge_tokens     INTEGER,
+    computed_at          TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (result_set_id, pipeline_ref, llm_judge_config_ref, category)
+);
+
+CREATE INDEX idx_llm_judge_summaries_rs ON llm_judge_eval_summaries(result_set_id);
+CREATE INDEX idx_llm_judge_summaries_cat ON llm_judge_eval_summaries(result_set_id, category);
 
 CREATE TABLE metric_definitions (
     name          TEXT PRIMARY KEY,
@@ -388,6 +433,7 @@ CREATE TABLE result_artifacts (
 -- Flat helpers below support common dashboard queries.
 -- ============================================================
 
+-- One row per prediction; deterministic metrics only (no LLM judge columns).
 CREATE VIEW v_eval_records_flat AS
 SELECT
     rs.benchmark_id,
@@ -422,8 +468,6 @@ SELECT
     e.bird_execution_accuracy,
     e.sql_exact_match,
     e.sqlglot_equivalence,
-    e.llm_score,
-    e.llm_explanation,
     e.df_error,
     e.df_error_message,
     e.eval_error,
@@ -437,6 +481,31 @@ LEFT JOIN prediction_execution pe ON pe.prediction_id = pr.id
 LEFT JOIN result_dataframes pdf ON pdf.id = pe.predicted_df_id
 LEFT JOIN result_dataframes ldf ON ldf.id = pe.logic_df_id
 LEFT JOIN evaluations e ON e.prediction_id = pr.id;
+
+-- One row per (prediction, LLM judge config).
+CREATE VIEW v_llm_judge_evaluations_flat AS
+SELECT
+    rs.benchmark_id,
+    rs.id AS result_set_id,
+    br.record_id,
+    pip.pipeline_id AS pipeline_name,
+    ljc.id AS llm_judge_config_id,
+    ljc.config_name AS llm_judge_config_name,
+    ljc.model_id AS llm_judge_model_id,
+    lje.llm_score,
+    lje.llm_explanation,
+    lje.llm_judge_error,
+    lje.prompt_tokens AS judge_prompt_tokens,
+    lje.completion_tokens AS judge_completion_tokens,
+    lje.total_tokens AS judge_total_tokens,
+    lje.judge_time_ms,
+    lje.evaluated_at AS judge_evaluated_at
+FROM result_sets rs
+JOIN benchmark_records br ON br.benchmark_id = rs.benchmark_id
+JOIN predictions pr ON pr.benchmark_record_id = br.id AND pr.result_set_id = rs.id
+JOIN pipelines pip ON pip.id = pr.pipeline_ref
+JOIN llm_judge_evaluations lje ON lje.prediction_id = pr.id
+JOIN llm_judge_configs ljc ON ljc.id = lje.llm_judge_config_ref;
 
 -- ============================================================
 -- SEED: metric_definitions (from metric_definitions.py)
@@ -471,3 +540,4 @@ INSERT OR IGNORE INTO metric_definitions (name, display_group, description, valu
     ('gt_df', 'Ground truth (when matched)', 'Serialized GT dataframe for the matched GT SQL.', 'text', 61);
 
 INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (1, 'Initial schema design (SQLite)');
+INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (2, 'Multi LLM judge per prediction (llm_judge_configs, llm_judge_evaluations)');
