@@ -11,7 +11,12 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 from statistics import mean
 from tabulate import tabulate
-from text2sql_eval_toolkit.utils import get_benchmarks_info
+from text2sql_eval_toolkit.utils import (
+    get_benchmarks_info,
+    load_benchmark_records,
+    load_eval_summary,
+    load_predictions_data,
+)
 from text2sql_eval_toolkit.analysis.error_analysis import (
     export_failed_examples_to_markdown,
 )
@@ -222,15 +227,12 @@ def get_benchmark_statistics(benchmark_id: str, benchmarks_info: dict, pipeline_
         db_engine = benchmark_info.get("db_engine", {})
         stats["db_type"] = db_engine.get("db_type", "N/A")
         
-        # Count records from benchmark data file
-        try:
-            benchmark_data_path = benchmark_info.get("benchmark_json_path")
-            if benchmark_data_path and Path(benchmark_data_path).exists():
-                with open(benchmark_data_path, "r") as f:
-                    data = json.load(f)
-                    stats["num_records"] = len(data) if isinstance(data, list) else 0
-        except Exception as e:
-            logger.warning(f"Could not count records for {benchmark_id}: {e}")
+        stats["num_records"] = benchmark_info.get("num_records") or 0
+        if stats["num_records"] == 0:
+            try:
+                stats["num_records"] = len(load_benchmark_records(benchmark_id))
+            except Exception as e:
+                logger.warning(f"Could not count records for {benchmark_id}: {e}")
     
     # Count pipelines (exclude llm_judge_config if present)
     if pipeline_metrics:
@@ -285,17 +287,16 @@ def collect_results(output_folder: Path, is_test: bool = False):
     benchmarks_info = get_benchmarks_info(is_test=is_test)
     results = {}
     for benchmark_id, benchmark_info in benchmarks_info.items():
-        # Skip test benchmarks in production mode, but include all in test mode
         if not is_test and "test" in benchmark_id:
             continue
-        eval_summary_path = Path(benchmark_info["eval_summary_path"]).resolve()
-        eval_results_path = Path(benchmark_info["eval_results_path"]).resolve()
-        eval_results_relpath = eval_results_path.relative_to(output_folder.resolve())
-        if eval_results_path.exists():
-            with open(eval_summary_path, "r") as f:
-                data = json.load(f)
-                data.pop("llm_judge_config", None)
+        try:
+            data = load_eval_summary(benchmark_id)
+            data.pop("llm_judge_config", None)
+            eval_results_path = Path(benchmark_info["eval_results_path"]).resolve()
+            eval_results_relpath = eval_results_path.relative_to(output_folder.resolve())
             results[benchmark_id] = (eval_results_path, eval_results_relpath, data)
+        except FileNotFoundError:
+            continue
     return results, benchmarks_info
 
 
@@ -429,8 +430,11 @@ def generate_markdown_table(
 
     table_md = f"### Benchmark: {benchmark}\n\n"
     table_md += f"_Results sorted by default on `{sort_by}` (higher is better)_\n\n"
-    with eval_results_path.open("r") as eval_results_file:
-        records = json.load(eval_results_file)
+    try:
+        records = load_predictions_data(benchmark, include_eval=True)
+    except ValueError:
+        records = []
+    if records:
         summary_md_path = eval_results_path.with_name(
             eval_results_path.stem + "_summary.md"
         )

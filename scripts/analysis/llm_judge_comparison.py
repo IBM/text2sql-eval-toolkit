@@ -13,10 +13,10 @@ from dotenv import load_dotenv
 from tqdm.asyncio import tqdm_asyncio
 
 from text2sql_eval_toolkit.utils import (
-    get_benchmark_info,
-    get_default_eval_filename,
     get_question,
     get_available_benchmarks,
+    load_predictions_data,
+    save_predictions_data,
 )
 from text2sql_eval_toolkit.evaluation.llm_as_judge import (
     load_llm_judge_config,
@@ -89,12 +89,9 @@ async def evaluate_all_predictions_with_llm_judge(benchmark_id):
     """
     start_time = time.time()
 
-    benchmark_info = get_benchmark_info(benchmark_id)
-    predictions_path = benchmark_info["predictions_path"]
-    eval_path = Path(get_default_eval_filename(predictions_path))
-    print(f"\n📄 Evaluation file path: {eval_path}")
+    print(f"\n📄 Benchmark: {benchmark_id} (SQLite storage)")
 
-    pred_eval_data = json.load(eval_path.open("r"))
+    pred_eval_data = load_predictions_data(benchmark_id, include_eval=True)
 
     llm_judge_configs = {}
     for config_path in llm_judge_config_paths:
@@ -116,8 +113,12 @@ async def evaluate_all_predictions_with_llm_judge(benchmark_id):
     print(f"\n🚀 Starting LLM judge evaluations with {len(tasks)} tasks...\n")
     await tqdm_asyncio.gather(*tasks, desc="Evaluating")
 
-    with eval_path.open("w") as f:
-        json.dump(pred_eval_data, f, indent=2)
+    save_predictions_data(
+        benchmark_id,
+        pred_eval_data,
+        include_eval=True,
+        status="evaluated",
+    )
 
     elapsed = time.time() - start_time
     print(f"\n✅ LLM judge evaluations completed in {elapsed:.2f} seconds.")

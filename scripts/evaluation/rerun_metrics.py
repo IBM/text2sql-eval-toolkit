@@ -189,20 +189,20 @@ Examples:
             )
             label = input_str
         else:
-            predictions, output_path, summary_path, csv_path = _paths_from_benchmark(
+            label = args.benchmark_id
+            output_path, summary_path, csv_path = _paths_from_benchmark(
                 args.benchmark_id,
                 is_test=args.test_benchmark,
-            )
-            input_str = str(predictions)
-            label = args.benchmark_id
+            )[1:]
             if args.output_file is not None:
                 output_path = args.output_file.resolve()
-            if args.in_place:
-                output_path = predictions
 
         print(f"Re-running metrics only (no inference, no SQL execution)")
         print(f"  Target:     {label}")
-        print(f"  Input:      {input_str}")
+        if args.benchmark_id and args.input_file is None:
+            print(f"  Storage:    SQLite (text2sql_eval.db)")
+        else:
+            print(f"  Input:      {input_str}")
         print(f"  Output:     {output_path}")
         print(f"  Summary:    {summary_path}")
         print(f"  CSV:        {csv_path}")
@@ -220,7 +220,8 @@ Examples:
         start = time.time()
         asyncio.run(
             async_evaluate_predictions(
-                input_file=input_str,
+                input_file=input_str if args.input_file is not None else None,
+                benchmark_id=args.benchmark_id if args.input_file is None else None,
                 output_file=str(output_path),
                 summary_file=str(summary_path),
                 csv_summary_file=str(csv_path),
