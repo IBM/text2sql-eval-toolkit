@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from typing import Any, Dict
 from pathlib import Path
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.database.store import get_store
 
 
 BENCHMARKS_FILE = resources.files("text2sql_eval_toolkit.data").joinpath(
@@ -33,14 +34,15 @@ def get_writable_data_root() -> Path:
     Directory containing user-writable benchmark outputs (predictions, eval JSON).
 
     Resolution order:
-    1. ``TEXT2SQL_EVAL_TOOLKIT_DATA_ROOT`` if set (must be the ``data`` folder).
+    1. ``TEXT2SQL_DATA_ROOT`` or ``TEXT2SQL_EVAL_TOOLKIT_DATA_ROOT`` if set.
     2. ``<repo>/data`` where ``repo`` is the nearest ancestor of the current
        working directory that contains ``pyproject.toml`` and a ``data`` directory.
     3. ``Path.cwd() / "data"``.
     """
-    env = os.environ.get(_WRITABLE_DATA_ROOT_ENV)
-    if env:
-        return Path(env).expanduser().resolve()
+    for env_name in ("TEXT2SQL_DATA_ROOT", _WRITABLE_DATA_ROOT_ENV):
+        env = os.environ.get(env_name)
+        if env:
+            return Path(env).expanduser().resolve()
     cwd = Path.cwd().resolve()
     for d in [cwd, *cwd.parents]:
         if (d / "pyproject.toml").is_file() and (d / "data").is_dir():
@@ -77,76 +79,20 @@ def get_benchmarks_file_path(is_test: bool = False) -> Path:
 
 def get_available_benchmarks(include_test: bool = True):
     """
-    Get list of available benchmark IDs.
-    
-    Args:
-        include_test: If True, include test benchmarks from test-benchmarks.json
-    
-    Returns:
-        List of benchmark IDs
+    Get list of available benchmark IDs from the SQLite registry.
     """
-    benchmarks = []
-    
-    # Load production benchmarks
-    benchmarks_path = get_benchmarks_file_path(is_test=False)
-    if benchmarks_path.exists():
-        with open(benchmarks_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        benchmarks.extend(list(data.keys()))
-    
-    # Load test benchmarks if requested
-    test_benchmarks_path = get_benchmarks_file_path(is_test=True)
-    if include_test and test_benchmarks_path.exists():
-        with open(test_benchmarks_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        benchmarks.extend(list(data.keys()))
-    
-    return benchmarks
+    return get_store(data_root=get_writable_data_root()).list_benchmark_ids(
+        include_test=include_test
+    )
 
 
 def get_benchmarks_info(is_test: bool = False) -> Dict[str, Any]:
     """
-    Retrieves all the benchmarks' information.
-
-    Args:
-        is_test: If True, load test benchmarks from test-benchmarks.json
-
-    Returns:
-        Dict[str, Any]: Dictionary containing info and paths to benchmark files.
+    Retrieves all the benchmarks' information from the SQLite database.
     """
-    benchmarks_file = get_benchmarks_file_path(is_test=is_test)
-    benchmarks_info = {}
-    try:
-        with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
-            benchmarks_meta = json.load(meta_file)
-    except Exception as e:
-        logger.error(f"Error loading the benchmarks JSON file: {benchmarks_file}.")
-        raise e
-    package_data_root = benchmarks_file.parent
-    predictions_root = get_writable_data_root()
-    for benchmark_id in benchmarks_meta:
-        benchmark_info = benchmarks_meta[benchmark_id]
-        benchmark_info["benchmark_json_path"] = resolve_path(
-            package_data_root, benchmark_info["data"]
-        )
-        benchmark_info["schema_json_path"] = resolve_path(
-            package_data_root, benchmark_info["schema"]
-        )
-        benchmark_info["predictions_path"] = resolve_path(
-            predictions_root, benchmark_info["predictions"]
-        )
-        benchmark_info["eval_results_path"] = Path(
-            benchmark_info["predictions_path"].with_name(
-                benchmark_info["predictions_path"].stem + "_eval.json"
-            )
-        ).resolve()
-        benchmark_info["eval_summary_path"] = Path(
-            benchmark_info["predictions_path"].with_name(
-                benchmark_info["predictions_path"].stem + "_eval_summary.json"
-            )
-        ).resolve()
-        benchmarks_info[benchmark_id] = benchmark_info
-    return benchmarks_info
+    return get_store(data_root=get_writable_data_root()).get_benchmarks_info(
+        is_test=is_test
+    )
 
 
 def resolve_path(root, path_str):
@@ -168,63 +114,67 @@ def resolve_path(root, path_str):
 
 def get_benchmark_info(benchmark_id: str, is_test: bool = False) -> Dict[str, Any]:
     """
-    Retrieves the benchmark files for a given benchmark ID.
-    Automatically detects if benchmark is in test-benchmarks.json if not found in benchmarks.json.
-
-    Args:
-        benchmark_id (str): Identifier for the benchmark dataset.
-        is_test (bool): If True, load from test-benchmarks.json. If False, tries production first, then test.
-
-    Returns:
-        Dict[str, Any]: Dictionary containing info and paths to benchmark files.
+    Retrieves the benchmark metadata for a given benchmark ID from SQLite.
     """
-    # If is_test is True, only look in test benchmarks
+    store = get_store(data_root=get_writable_data_root())
     if is_test:
-        benchmarks_file = get_benchmarks_file_path(is_test=True)
-        with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
-            benchmarks_meta = json.load(meta_file)
-        if benchmark_id not in benchmarks_meta:
-            raise ValueError(f"Benchmark ID '{benchmark_id}' not found in test-benchmarks.json.")
-    else:
-        # Try production benchmarks first
-        benchmarks_file = get_benchmarks_file_path(is_test=False)
-        with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
-            benchmarks_meta = json.load(meta_file)
-        
-        # If not found in production, try test benchmarks
-        test_benchmarks_file = get_benchmarks_file_path(is_test=True)
-        if benchmark_id not in benchmarks_meta and test_benchmarks_file.exists():
-            benchmarks_file = test_benchmarks_file
-            with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
-                benchmarks_meta = json.load(meta_file)
-            if benchmark_id not in benchmarks_meta:
-                raise ValueError(f"Benchmark ID '{benchmark_id}' not found in benchmarks.json or test-benchmarks.json.")
-        elif benchmark_id not in benchmarks_meta:
-            raise ValueError(f"Benchmark ID '{benchmark_id}' not found in benchmarks.json.")
-    
-    package_data_root = benchmarks_file.parent
-    predictions_root = get_writable_data_root()
-    benchmark_info = benchmarks_meta[benchmark_id]
-    benchmark_info["benchmark_json_path"] = resolve_path(
-        package_data_root, benchmark_info["data"]
+        info = store.get_benchmarks_info(is_test=True)
+        if benchmark_id not in info:
+            raise ValueError(
+                f"Benchmark ID '{benchmark_id}' not found in test benchmarks."
+            )
+        return info[benchmark_id]
+    return store.get_benchmark_info(benchmark_id)
+
+
+def load_benchmark_records(benchmark_id: str):
+    """Load gold benchmark records from SQLite."""
+    return get_store(data_root=get_writable_data_root()).load_gold_records(benchmark_id)
+
+
+def save_benchmark_records(benchmark_id: str, records):
+    """Persist gold benchmark records (including profile metadata) to SQLite."""
+    get_store(data_root=get_writable_data_root()).save_gold_records(
+        benchmark_id, records
     )
-    benchmark_info["schema_json_path"] = resolve_path(
-        package_data_root, benchmark_info["schema"]
+
+
+def load_benchmark_schema(benchmark_id: str):
+    """Load schema JSON for a benchmark from SQLite."""
+    return get_store(data_root=get_writable_data_root()).load_schema(benchmark_id)
+
+
+def load_predictions_data(benchmark_id: str, *, include_eval: bool = False):
+    """Load prediction records (optionally with evaluation blocks) from SQLite."""
+    return get_store(data_root=get_writable_data_root()).load_result_records(
+        benchmark_id, include_eval=include_eval
     )
-    benchmark_info["predictions_path"] = resolve_path(
-        predictions_root, benchmark_info["predictions"]
+
+
+def save_predictions_data(
+    benchmark_id: str,
+    records,
+    *,
+    include_eval: bool = False,
+    status: str = "executed",
+):
+    """Persist prediction records to SQLite."""
+    get_store(data_root=get_writable_data_root()).save_result_records(
+        benchmark_id,
+        records,
+        include_eval=include_eval,
+        status=status,
     )
-    benchmark_info["eval_results_path"] = Path(
-        benchmark_info["predictions_path"].with_name(
-            benchmark_info["predictions_path"].stem + "_eval.json"
-        )
-    ).resolve()
-    benchmark_info["eval_summary_path"] = Path(
-        benchmark_info["predictions_path"].with_name(
-            benchmark_info["predictions_path"].stem + "_eval_summary.json"
-        )
-    ).resolve()
-    return benchmark_info
+
+
+def load_eval_summary(benchmark_id: str):
+    """Load pipeline summary metrics from SQLite."""
+    return get_store(data_root=get_writable_data_root()).load_summary(benchmark_id)
+
+
+def save_eval_summary(benchmark_id: str, summary: dict):
+    """Persist pipeline summary metrics to SQLite."""
+    get_store(data_root=get_writable_data_root()).save_summary(benchmark_id, summary)
 
 
 def run_with_timeout(func, timeout=90, retries=2, wait=3, *args, **kwargs):

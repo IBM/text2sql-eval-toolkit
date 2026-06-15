@@ -226,20 +226,27 @@ def build_benchmark_category_index(
 
 def merge_benchmark_categories_into_records(
     eval_records: List[Dict],
-    benchmark_json_path: Union[str, Path],
+    benchmark_json_path: Union[str, Path, None] = None,
+    *,
+    benchmark_id: str | None = None,
 ) -> List[Dict]:
     """
-    Union eval record ``meta.categories`` with categories from the benchmark JSON.
+    Union eval record ``meta.categories`` with categories from gold benchmark records.
 
-    The dashboard aggregates profiles from evaluation JSON; benchmark files are
+    The dashboard aggregates profiles from evaluation records; gold records are
     updated by ``profile_all_benchmarks.py`` while eval artifacts are often stale.
     """
-    path = Path(benchmark_json_path)
-    if not path.is_file():
-        return eval_records
+    if benchmark_id:
+        from text2sql_eval_toolkit.utils import load_benchmark_records
 
-    with open(path, "r", encoding="utf-8") as f:
-        benchmark_records = json.load(f)
+        benchmark_records = load_benchmark_records(benchmark_id)
+    else:
+        path = Path(benchmark_json_path or "")
+        if not path.is_file():
+            return eval_records
+
+        with open(path, "r", encoding="utf-8") as f:
+            benchmark_records = json.load(f)
     if not isinstance(benchmark_records, list):
         return eval_records
 
@@ -332,24 +339,15 @@ def merge_dictionaries(original_dict, new_dict):
     return overwrite_occurred
 
 
-def profile_pred_or_eval_json_file(
-    json_file_path: str, dialect: str = "postgres"
-) -> None:
-    # Load the JSON data
-    with open(json_file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+def profile_records(
+    records: List[Dict], dialect: str = "postgres"
+) -> tuple[List[Dict], bool]:
+    """Profile in-memory records and return them with an overwrite flag."""
+    if not isinstance(records, list):
+        raise ValueError("Records must be a list of objects.")
 
-    backup_file_path = json_file_path + ".bak"
-    shutil.copy2(json_file_path, backup_file_path)
-
-    # Ensure the data is a list
-    if not isinstance(data, list):
-        raise ValueError("JSON file must contain an array of objects.")
-
-    # Track if any overwrites occur
     overwrite_occurred = False
-    # Process each record in the input
-    for record in tqdm(data):
+    for record in tqdm(records):
         try:
             analysis_result = analyze_record(record, dialect)
         except Exception as e:
@@ -359,15 +357,72 @@ def profile_pred_or_eval_json_file(
                 sql_query = get_question_text(record) or "<unknown>"
             logger.error(f"Failed to profile record: {sql_query}. Error: {repr(e)}")
             continue
-        # Initialize or update the 'meta' field
         if "meta" not in record:
             record["meta"] = analysis_result
         else:
             overwrite_occurred = merge_dictionaries(record["meta"], analysis_result)
 
-        # Write the updated data back to the original file
-        with open(json_file_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+    return records, overwrite_occurred
+
+
+def profile_benchmark_id(
+    benchmark_id: str,
+    *,
+    profile_gold: bool = True,
+    profile_predictions: bool = True,
+    profile_eval: bool = True,
+) -> None:
+    """Profile gold and/or result records for a benchmark in SQLite."""
+    from text2sql_eval_toolkit.utils import (
+        get_benchmark_info,
+        load_benchmark_records,
+        load_predictions_data,
+        save_benchmark_records,
+        save_predictions_data,
+    )
+
+    benchmark_info = get_benchmark_info(benchmark_id)
+    dialect = benchmark_info["db_engine"]["db_type"]
+    if dialect == "db2":
+        dialect = "postgres"
+
+    if profile_gold:
+        gold_records = load_benchmark_records(benchmark_id)
+        profile_records(gold_records, dialect)
+        save_benchmark_records(benchmark_id, gold_records)
+        logger.info(f"Profiling complete for gold records: {benchmark_id}")
+
+    if profile_predictions or profile_eval:
+        try:
+            pred_records = load_predictions_data(
+                benchmark_id, include_eval=profile_eval
+            )
+        except ValueError:
+            pred_records = []
+        if pred_records:
+            profile_records(pred_records, dialect)
+            save_predictions_data(
+                benchmark_id,
+                pred_records,
+                include_eval=profile_eval,
+                status="evaluated" if profile_eval else "executed",
+            )
+            logger.info(f"Profiling complete for result records: {benchmark_id}")
+
+
+def profile_pred_or_eval_json_file(
+    json_file_path: str, dialect: str = "postgres"
+) -> None:
+    with open(json_file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    backup_file_path = json_file_path + ".bak"
+    shutil.copy2(json_file_path, backup_file_path)
+
+    data, overwrite_occurred = profile_records(data, dialect)
+
+    with open(json_file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
     if not overwrite_occurred:
         os.remove(backup_file_path)

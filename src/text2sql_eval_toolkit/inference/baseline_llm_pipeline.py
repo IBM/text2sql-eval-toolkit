@@ -42,6 +42,10 @@ from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
     get_question_id,
     get_utterance,
+    load_benchmark_records,
+    load_benchmark_schema,
+    load_predictions_data,
+    save_predictions_data,
 )
 
 
@@ -61,19 +65,10 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
     ):
         benchmark_info = get_benchmark_info(benchmark_id)
         db_type = benchmark_info["db_engine"]["db_type"]
-        # Load schema
-        with open(benchmark_info["schema_json_path"], "r") as f:
-            schema = json.load(f)
-
-        # Load benchmark data
-        with open(benchmark_info["benchmark_json_path"], "r") as fin:
-            data = json.load(fin)
-
-        # Load or initialize predictions file
-        if os.path.exists(benchmark_info["predictions_path"]):
-            with open(benchmark_info["predictions_path"], "r") as pf:
-                predictions_data = json.load(pf)
-        else:
+        schema = load_benchmark_schema(benchmark_id)
+        data = load_benchmark_records(benchmark_id)
+        predictions_data = load_predictions_data(benchmark_id)
+        if not predictions_data:
             predictions_data = []
 
         if model_name.startswith("wxai:"):
@@ -145,11 +140,9 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
                 }
                 predictions_data.append(record)
 
-        # Save updated predictions
-        with open(benchmark_info["predictions_path"], "w") as fout:
-            json.dump(predictions_data, fout, ensure_ascii=False, indent=2)
+        save_predictions_data(benchmark_id, predictions_data, status="inference")
 
-        logger.info(f"Predictions written to {benchmark_info['predictions_path']}")
+        logger.info(f"Predictions saved to database for benchmark {benchmark_id}")
 
 
 class LLMSQLGenerationPipeline(BasePipeline):
@@ -309,14 +302,10 @@ class LLMSQLGenerationPipeline(BasePipeline):
         benchmark_info = get_benchmark_info(benchmark_id)
         db_type = benchmark_info["db_engine"]["db_type"]
 
-        with open(benchmark_info["schema_json_path"], "r") as f:
-            schema = json.load(f)
-        with open(benchmark_info["benchmark_json_path"], "r") as fin:
-            data = json.load(fin)
-        if os.path.exists(benchmark_info["predictions_path"]):
-            with open(benchmark_info["predictions_path"], "r") as pf:
-                predictions_data = json.load(pf)
-        else:
+        schema = load_benchmark_schema(benchmark_id)
+        data = load_benchmark_records(benchmark_id)
+        predictions_data = load_predictions_data(benchmark_id)
+        if not predictions_data:
             predictions_data = []
 
         if model_name.startswith("wxai:"):
@@ -368,10 +357,9 @@ class LLMSQLGenerationPipeline(BasePipeline):
 
         asyncio.run(run_all())
 
-        with open(benchmark_info["predictions_path"], "w") as fout:
-            json.dump(predictions_data, fout, ensure_ascii=False, indent=2)
+        save_predictions_data(benchmark_id, predictions_data, status="inference")
 
         logger.debug(
             f"✅ Inference completed for benchmark '{benchmark_id}',  pipeline: {pipeline_id}."
         )
-        logger.info(f"Predictions written to {benchmark_info['predictions_path']}")
+        logger.info(f"Predictions saved to database for benchmark {benchmark_id}")

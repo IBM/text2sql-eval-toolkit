@@ -40,6 +40,11 @@ from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
     get_question_id,
     get_utterance,
+    get_writable_data_root,
+    load_benchmark_records,
+    load_benchmark_schema,
+    load_predictions_data,
+    save_predictions_data,
 )
 from text2sql_eval_toolkit.execution.execution_tools import (
     run_sql_and_get_dataframe_async,
@@ -130,10 +135,8 @@ class DatabaseExecutor:
                 db_folder = self.db_connection_info.get("db_folder")
                 if db_folder and self.db_id:
                     db_filename = self.db_id + ".sqlite"
-                    from text2sql_eval_toolkit.utils import BENCHMARKS_FILE
-
                     self._db_path = (
-                        Path(BENCHMARKS_FILE).parent
+                        get_writable_data_root()
                         / Path(db_folder)
                         / self.db_id
                         / db_filename
@@ -2290,14 +2293,10 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
         benchmark_info = get_benchmark_info(benchmark_id)
         db_type = benchmark_info["db_engine"]["db_type"]
 
-        with open(benchmark_info["schema_json_path"], "r") as f:
-            schema = json.load(f)
-        with open(benchmark_info["benchmark_json_path"], "r") as fin:
-            data = json.load(fin)
-        if os.path.exists(benchmark_info["predictions_path"]):
-            with open(benchmark_info["predictions_path"], "r") as pf:
-                predictions_data = json.load(pf)
-        else:
+        schema = load_benchmark_schema(benchmark_id)
+        data = load_benchmark_records(benchmark_id)
+        predictions_data = load_predictions_data(benchmark_id)
+        if not predictions_data:
             predictions_data = []
 
         client = self._create_llm_client(model_name, model_parameters)
@@ -2329,10 +2328,9 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
 
         asyncio.run(run_all())
 
-        with open(benchmark_info["predictions_path"], "w") as fout:
-            json.dump(predictions_data, fout, ensure_ascii=False, indent=2)
+        save_predictions_data(benchmark_id, predictions_data, status="inference")
 
         logger.debug(
             f"✅ Agentic inference completed for benchmark '{benchmark_id}', pipeline: {pipeline_id}."
         )
-        logger.info(f"Predictions written to {benchmark_info['predictions_path']}")
+        logger.info(f"Predictions saved to database for benchmark {benchmark_id}")

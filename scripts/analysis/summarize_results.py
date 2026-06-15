@@ -18,8 +18,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Print summary of Text-to-SQL evaluation results to terminal."
     )
-    parser.add_argument(
-        "input_file", help="Path to the JSON file containing evaluation records"
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument(
+        "input_file",
+        nargs="?",
+        help="Path to the JSON file containing evaluation records",
+    )
+    target.add_argument(
+        "--benchmark-id",
+        help="Benchmark id (loads evaluation records from SQLite)",
     )
     parser.add_argument(
         "--metrics",
@@ -35,13 +42,18 @@ def main():
 
     args = parser.parse_args()
 
-    input_path = Path(args.input_file)
-    if not input_path.exists():
-        print(f"❌ File not found: {input_path}")
-        return
+    if args.benchmark_id:
+        from text2sql_eval_toolkit.utils import load_predictions_data
 
-    with open(input_path, "r", encoding="utf-8") as f:
-        records = json.load(f)
+        records = load_predictions_data(args.benchmark_id, include_eval=True)
+    else:
+        input_path = Path(args.input_file)
+        if not input_path.exists():
+            print(f"❌ File not found: {input_path}")
+            return
+
+        with open(input_path, "r", encoding="utf-8") as f:
+            records = json.load(f)
 
     print_summary_results_by_category(
         records,

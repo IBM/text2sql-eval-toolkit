@@ -27,6 +27,10 @@ from text2sql_eval_toolkit.utils import (
     get_default_eval_filename,
     add_summary_json_suffix,
     add_summary_csv_suffix,
+    load_predictions_data,
+    save_predictions_data,
+    save_eval_summary,
+    get_writable_data_root,
 )
 from text2sql_eval_toolkit.evaluation.llm_as_judge import (
     evaluate_sql_prediction_with_llm,
@@ -627,7 +631,7 @@ def print_summary(summary, use_llm):
 
 
 async def async_evaluate_predictions(
-    input_file: str,
+    input_file: str = None,
     output_file: str = None,
     summary_file: str = None,
     csv_summary_file: str = None,
@@ -635,10 +639,22 @@ async def async_evaluate_predictions(
     max_concurrency: int = 16,
     force_rerun_llm_judge: bool = False,
     force_rerun: bool = False,
+    benchmark_id: str = None,
 ):
-    output_file = output_file or get_default_eval_filename(input_file)
-    summary_file = summary_file or add_summary_json_suffix(output_file)
-    csv_summary_file = csv_summary_file or add_summary_csv_suffix(output_file)
+    if benchmark_id:
+        data = load_predictions_data(benchmark_id)
+        benchmark_info = get_benchmark_info(benchmark_id)
+        output_file = output_file or str(benchmark_info["eval_results_path"])
+        summary_file = summary_file or str(benchmark_info["eval_summary_path"])
+        csv_summary_file = csv_summary_file or add_summary_csv_suffix(output_file)
+    else:
+        if not input_file:
+            raise ValueError("Either input_file or benchmark_id is required")
+        with open(input_file, "r") as f:
+            data = json.load(f)
+        output_file = output_file or get_default_eval_filename(input_file)
+        summary_file = summary_file or add_summary_json_suffix(output_file)
+        csv_summary_file = csv_summary_file or add_summary_csv_suffix(output_file)
 
     semaphore = asyncio.Semaphore(max_concurrency)
 
@@ -648,12 +664,17 @@ async def async_evaluate_predictions(
                 evaluate_prediction, record, prediction, llm_judge_config, force_rerun_llm_judge
             )
 
-    with open(input_file, "r") as f:
-        data = json.load(f)
-    
-    # Load existing evaluations from output file if it exists (for caching)
     existing_evaluations = {}
-    if not force_rerun and Path(output_file).exists():
+    if not force_rerun and benchmark_id:
+        try:
+            existing_data = load_predictions_data(benchmark_id, include_eval=True)
+            for record in existing_data:
+                record_id = record.get("id") or record.get("question_id")
+                if record_id:
+                    existing_evaluations[record_id] = record.get("predictions", {})
+        except Exception as e:
+            logger.warning(f"Could not load existing evaluations from database: {e}")
+    elif not force_rerun and output_file and Path(output_file).exists():
         try:
             with open(output_file, "r") as f:
                 existing_data = json.load(f)
@@ -707,11 +728,16 @@ async def async_evaluate_predictions(
 
     summary = compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model)
 
-    with open(output_file, "w") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-    with open(summary_file, "w") as f:
-        json.dump(summary, f, indent=2, ensure_ascii=False)
+    if benchmark_id:
+        save_predictions_data(
+            benchmark_id, data, include_eval=True, status="evaluated"
+        )
+        save_eval_summary(benchmark_id, summary)
+    else:
+        with open(output_file, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        with open(summary_file, "w") as f:
+            json.dump(summary, f, indent=2, ensure_ascii=False)
 
     use_llm = True if llm_judge_config is not None else False
     summary_df = summary_to_df_csv(summary, csv_summary_file, use_llm)
@@ -747,10 +773,14 @@ def run_evaluation(
     benchmark_id: str, use_llm: bool = False, llm_judge_config_path: str = None,
     force_rerun_llm_judge: bool = False, force_rerun: bool = False
 ):
-    benchmark_info = get_benchmark_info(benchmark_id)
-    predictions_path = str(Path(benchmark_info["predictions_path"]))
-    return evaluate_predictions(
-        predictions_path, use_llm=use_llm, llm_judge_config_path=llm_judge_config_path,
-        force_rerun_llm_judge=force_rerun_llm_judge or force_rerun,
-        force_rerun=force_rerun
+    llm_judge_config = None
+    if use_llm or llm_judge_config_path is not None:
+        llm_judge_config = load_llm_judge_config(llm_judge_config_path)
+    return asyncio.run(
+        async_evaluate_predictions(
+            benchmark_id=benchmark_id,
+            llm_judge_config=llm_judge_config,
+            force_rerun_llm_judge=force_rerun_llm_judge or force_rerun,
+            force_rerun=force_rerun,
+        )
     )

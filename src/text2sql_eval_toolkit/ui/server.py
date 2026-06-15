@@ -25,9 +25,14 @@ import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, 
 from text2sql_eval_toolkit.utils import get_benchmarks_info
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
-    get_benchmarks_file_path,
-    BENCHMARKS_FILE,
+    load_benchmark_records,
+    load_eval_summary,
+    load_predictions_data,
+    save_benchmark_records as save_gold_records,
+    get_writable_data_root,
 )
+from text2sql_eval_toolkit.database.store import get_store
+from text2sql_eval_toolkit.database.session import ensure_schema
 from text2sql_eval_toolkit.execution.execution_tools import (
     _parse_presto_sqlalchemy_url,
     _normalize_sql_for_db2,
@@ -47,9 +52,6 @@ from text2sql_eval_toolkit.evaluation.metric_definitions import (
     get_metric_definitions_payload,
 )
 from text2sql_eval_toolkit.logging import get_logger
-from text2sql_eval_toolkit.profiling.profiling_tools import (
-    merge_benchmark_categories_into_records,
-)
 from text2sql_eval_toolkit.profiling.sql_ast import (
     PARSE_MODES,
     benchmark_db_type_to_dialect,
@@ -78,17 +80,8 @@ app.add_middleware(
 
 
 def get_data_root() -> Path:
-    """
-    Resolve the data root directory.
-
-    Priority:
-    1. TEXT2SQL_DATA_ROOT env var
-    2. ./data relative to current working directory
-    """
-    env_root = os.getenv("TEXT2SQL_DATA_ROOT")
-    if env_root:
-        return Path(env_root).expanduser().resolve()
-    return Path.cwd() / "data"
+    """Resolve the writable data directory (same logic as pipelines and the DB store)."""
+    return get_writable_data_root()
 
 
 def get_results_dir() -> Path:
@@ -99,63 +92,20 @@ def get_results_dir() -> Path:
 
 
 def _eval_not_found_detail(benchmark_id: str) -> str:
-    """Human-readable 404 detail for a missing predictions_eval.json file."""
-    rel = f"data/results/{benchmark_id}-predictions_eval.json"
     return (
-        f"Evaluation results file not found: {rel}. "
-        "Download pre-computed results with: "
-        "`text2sql-eval-toolkit results fetch` "
-        "(or `text2sql-eval-toolkit results fetch "
-        f"--benchmarks {benchmark_id}` for this benchmark only). "
-        "Alternatively, generate the file locally by running the evaluation pipeline "
-        "(e.g. `uv run python scripts/evaluation/run_evaluation.py`), "
-        "or set TEXT2SQL_DATA_ROOT to a directory that already contains this file."
+        f"No evaluation results found in the database for benchmark '{benchmark_id}'. "
+        "Run the evaluation pipeline (e.g. `python scripts/evaluation/run_evaluation.py "
+        f"{benchmark_id}`) or import existing JSON with "
+        "`python scripts/migration/import_json_to_db.py --benchmark-id "
+        f"{benchmark_id}`."
     )
 
 
 def _summary_not_found_detail(benchmark_id: str) -> str:
-    """Human-readable 404 detail for a missing predictions_eval_summary.json file."""
-    rel = f"data/results/{benchmark_id}-predictions_eval_summary.json"
     return (
-        f"Summary file not found: {rel}. "
-        "Download pre-computed results with: "
-        "`text2sql-eval-toolkit results fetch`, "
-        "or generate locally by running the evaluation pipeline."
+        f"No evaluation summary found in the database for benchmark '{benchmark_id}'. "
+        "Run evaluation or import existing JSON summaries via the migration script."
     )
-
-
-def load_json(path: Path) -> Any:
-    if not path.exists():
-        raise FileNotFoundError(f"File not found: {path}")
-    import json
-
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def count_records(data_path: Any) -> int:
-    """
-    Count benchmark records from either a pathlib path or an
-    importlib.resources traversable path-like object.
-    """
-    import json
-
-    if data_path is None:
-        return 0
-
-    # importlib.resources Traversable paths expose open()
-    if hasattr(data_path, "open"):
-        with data_path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-            return len(data) if isinstance(data, list) else 0
-
-    # Fallback to regular filesystem path
-    p = Path(str(data_path))
-    if not p.exists():
-        return 0
-    with p.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-        return len(data) if isinstance(data, list) else 0
 
 
 ALLOWED_DB_TYPES = {"sqlite", "postgres", "mysql", "db2", "presto"}
@@ -163,52 +113,9 @@ ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
 MAX_LOGO_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
-def get_benchmark_registry_path() -> Path:
-    """
-    Resolve the benchmark registry path used for dashboard CRUD.
-    """
-    path = get_benchmarks_file_path(is_test=False)
-    if path.exists():
-        return path
-
-    fallback = (get_data_root() / "benchmarks.json").resolve()
-    if fallback.parent.exists():
-        return fallback
-    return path
-
-
-def load_benchmark_registry(path: Path) -> Dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to read benchmark registry: {e}"
-        ) from e
-    if not isinstance(data, dict):
-        raise HTTPException(status_code=500, detail="Invalid benchmark registry format")
-    return data
-
-
-def write_json_atomic(path: Path, data: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_name(f".{path.name}.tmp")
-    try:
-        with temp_path.open("w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
-            f.write("\n")
-        os.replace(temp_path, path)
-    except Exception as e:
-        try:
-            if temp_path.exists():
-                temp_path.unlink()
-        except Exception:
-            pass
-        raise HTTPException(
-            status_code=500, detail=f"Failed to write benchmark registry: {e}"
-        ) from e
+def load_benchmark_registry(path: Path | None = None) -> Dict[str, Any]:
+    ensure_schema()
+    return get_store(data_root=get_data_root()).load_registry(production_only=False)
 
 
 def normalize_benchmark_id(raw: str) -> str:
@@ -615,53 +522,47 @@ def _update_job(job: JobStatus) -> None:
         JOBS[job.job_id] = job
 
 
+def _records_have_eval_predictions(records: List[Dict[str, Any]]) -> bool:
+    for record in records:
+        predictions = record.get("predictions")
+        if not isinstance(predictions, dict):
+            continue
+        for block in predictions.values():
+            if isinstance(block, dict) and block.get("evaluation"):
+                return True
+    return False
+
+
 def load_eval_records(benchmark_id: str) -> List[Dict[str, Any]]:
     """
-    Load {benchmark_id}-predictions_eval.json as a list of records.
-    Uses an in-memory cache for performance.
-
-    Profile categories are merged from the benchmark JSON (source of truth for
-    ``profile_all_benchmarks.py``) so the UI reflects the latest tags even when
-    eval artifacts were not re-profiled.
+    Load evaluation records for a benchmark from SQLite.
+    Uses an in-memory cache keyed by database update timestamps.
     """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
-        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
-
-    eval_mtime = eval_path.stat().st_mtime
-    benchmark_json_path: Optional[Path] = None
-    benchmark_mtime = 0.0
+    ensure_schema()
+    store = get_store(data_root=get_data_root())
     try:
-        benchmark_json_path = Path(
-            get_benchmark_info(benchmark_id)["benchmark_json_path"]
-        )
-        if benchmark_json_path.is_file():
-            benchmark_mtime = benchmark_json_path.stat().st_mtime
-    except (ValueError, KeyError, OSError) as exc:
-        logger.debug(
-            "Could not resolve benchmark JSON for %s: %s",
-            benchmark_id,
-            exc,
-        )
+        cache_version = store.get_cache_version(benchmark_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
 
     with EVAL_RECORDS_LOCK:
         cached = EVAL_RECORDS_CACHE.get(benchmark_id)
-        if (
-            cached is not None
-            and cached[0] == eval_mtime
-            and cached[1] == benchmark_mtime
-        ):
+        if cached is not None and cached[0] == cache_version:
             return cached[2]
 
-    data = load_json(eval_path)
+    try:
+        data = load_predictions_data(benchmark_id, include_eval=True)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id)) from exc
+    if not data:
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
+    if not _records_have_eval_predictions(data):
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
     if not isinstance(data, list):
-        raise HTTPException(status_code=500, detail="Invalid evaluation JSON format")
-
-    if benchmark_json_path is not None:
-        merge_benchmark_categories_into_records(data, benchmark_json_path)
+        raise HTTPException(status_code=500, detail="Invalid evaluation record format")
 
     with EVAL_RECORDS_LOCK:
-        EVAL_RECORDS_CACHE[benchmark_id] = (eval_mtime, benchmark_mtime, data)
+        EVAL_RECORDS_CACHE[benchmark_id] = (cache_version, cache_version, data)
         return data
 
 
@@ -694,7 +595,7 @@ def list_benchmarks() -> BenchmarksResponse:
     """
     benchmarks_info = get_benchmarks_info(is_test=False)
     items: List[BenchmarkSummary] = []
-    results_dir = get_results_dir()
+    store = get_store(data_root=get_data_root())
 
     for benchmark_id, info in benchmarks_info.items():
         name = info.get("name", benchmark_id)
@@ -702,46 +603,28 @@ def list_benchmarks() -> BenchmarksResponse:
         db_type = info.get("db_engine", {}).get("db_type", "N/A")
         logo = info.get("logo")
         if not logo:
-            # Backward compatibility for previously saved absolute/static URL values.
             legacy_logo_url = info.get("logo_url")
             if isinstance(legacy_logo_url, str) and legacy_logo_url.strip():
                 logo = Path(legacy_logo_url.split("?", 1)[0]).name
-        num_records = 0
-        num_pipelines = 0
-
-        # Count records from benchmark data file
-        data_path = info.get("benchmark_json_path")
-        try:
-            # Prefer repository data root if configured (data/benchmarks/*.json),
-            # then fall back to benchmark_json_path from package metadata.
-            rel_data_path = info.get("data")
-            if isinstance(rel_data_path, str):
-                num_records = count_records(get_data_root() / rel_data_path)
-            if num_records == 0:
-                num_records = count_records(data_path)
-        except Exception as e:  # pragma: no cover - defensive
-            logger.warning(f"Could not count records for {benchmark_id}: {e}")
-
-        # Count pipelines from summary JSON if present
-        summary_path = results_dir / f"{benchmark_id}-predictions_eval_summary.json"
-        if summary_path.exists():
+        num_records = info.get("num_records") or 0
+        if num_records == 0:
             try:
-                summary = load_json(summary_path)
-                num_pipelines = len(
-                    [k for k in summary.keys() if k != "llm_judge_config"]
-                )
+                num_records = len(load_benchmark_records(benchmark_id))
             except Exception as e:  # pragma: no cover - defensive
-                logger.warning(f"Could not read summary for {benchmark_id}: {e}")
+                logger.warning(f"Could not count records for {benchmark_id}: {e}")
+
+        num_pipelines = 0
+        try:
+            summary = store.load_summary(benchmark_id)
+            num_pipelines = len(
+                [k for k in summary.keys() if k != "llm_judge_config"]
+            )
+        except FileNotFoundError:
+            pass
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not read summary for {benchmark_id}: {e}")
 
         eval_results_bytes: Optional[int] = None
-        eval_path = results_dir / f"{benchmark_id}-predictions_eval.json"
-        if eval_path.is_file():
-            try:
-                eval_results_bytes = eval_path.stat().st_size
-            except OSError as e:  # pragma: no cover - defensive
-                logger.warning(
-                    "Could not stat eval results for %s: %s", benchmark_id, e
-                )
 
         items.append(
             BenchmarkSummary(
@@ -762,22 +645,22 @@ def list_benchmarks() -> BenchmarksResponse:
 @app.post("/api/benchmarks", response_model=BenchmarkConfigResponse)
 def create_benchmark(req: CreateBenchmarkRequest) -> BenchmarkConfigResponse:
     benchmark_id = normalize_benchmark_id(req.benchmark_id)
-    registry_path = get_benchmark_registry_path()
-    registry = load_benchmark_registry(registry_path)
+    registry = load_benchmark_registry()
     if benchmark_id in registry:
         raise HTTPException(status_code=409, detail="Benchmark already exists")
 
     config = normalize_benchmark_config(benchmark_id, req)
     registry[benchmark_id] = config
-    write_json_atomic(registry_path, registry)
+    get_store(data_root=get_data_root()).save_registry_entry(
+        benchmark_id, config, is_test=False
+    )
     return BenchmarkConfigResponse(benchmark_id=benchmark_id, config=config)
 
 
 @app.get("/api/benchmarks/{benchmark_id}/config", response_model=BenchmarkConfigResponse)
 def get_benchmark_config(benchmark_id: str) -> BenchmarkConfigResponse:
     normalized_id = normalize_benchmark_id(benchmark_id)
-    registry_path = get_benchmark_registry_path()
-    registry = load_benchmark_registry(registry_path)
+    registry = load_benchmark_registry()
     config = registry.get(normalized_id)
     if not isinstance(config, dict):
         raise HTTPException(status_code=404, detail="Benchmark not found")
@@ -789,14 +672,14 @@ def update_benchmark(
     benchmark_id: str, req: UpdateBenchmarkRequest
 ) -> BenchmarkConfigResponse:
     normalized_id = normalize_benchmark_id(benchmark_id)
-    registry_path = get_benchmark_registry_path()
-    registry = load_benchmark_registry(registry_path)
+    registry = load_benchmark_registry()
     if normalized_id not in registry:
         raise HTTPException(status_code=404, detail="Benchmark not found")
 
     config = normalize_benchmark_config(normalized_id, req)
-    registry[normalized_id] = config
-    write_json_atomic(registry_path, registry)
+    get_store(data_root=get_data_root()).save_registry_entry(
+        normalized_id, config, is_test=bool(config.get("is_test_subset"))
+    )
     return BenchmarkConfigResponse(benchmark_id=normalized_id, config=config)
 
 
@@ -880,15 +763,14 @@ def upload_benchmark_logo(req: BenchmarkLogoUploadRequest):
 
 @app.get("/api/benchmarks/{benchmark_id}/summary", response_model=BenchmarkDetailResponse)
 def get_benchmark_summary(benchmark_id: str) -> BenchmarkDetailResponse:
-    """
-    Return pipeline-level summary metrics for a benchmark
-    similar to data/results/*-predictions_eval_summary.json.
-    """
-    summary_path = get_results_dir() / f"{benchmark_id}-predictions_eval_summary.json"
-    if not summary_path.exists():
-        raise HTTPException(status_code=404, detail=_summary_not_found_detail(benchmark_id))
+    """Return pipeline-level summary metrics for a benchmark from SQLite."""
+    try:
+        raw = load_eval_summary(benchmark_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404, detail=_summary_not_found_detail(benchmark_id)
+        ) from exc
 
-    raw = load_json(summary_path)
     llm_cfg = raw.pop("llm_judge_config", None)
     default_sort_metric = "subset_non_empty_execution_accuracy"
     if llm_cfg and isinstance(llm_cfg, dict):
@@ -988,30 +870,24 @@ def _collect_category_summary(records: List[Dict[str, Any]]) -> Dict[str, Dict[s
     response_model=BenchmarkCategorySummaryResponse,
 )
 def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySummaryResponse:
-    """
-    Return summary metrics overall and broken down by categories.
-    """
-    summary_path = get_results_dir() / f"{benchmark_id}-predictions_eval_summary.json"
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
+    """Return summary metrics overall and broken down by categories."""
+    try:
+        summary_raw = load_eval_summary(benchmark_id)
+    except FileNotFoundError:
+        summary_raw = {}
 
-    if not summary_path.exists():
-        raise HTTPException(status_code=404, detail=_summary_not_found_detail(benchmark_id))
-
-    summary_raw = load_json(summary_path)
     llm_cfg = summary_raw.pop("llm_judge_config", None)
     default_sort_metric = "subset_non_empty_execution_accuracy"
     if llm_cfg and isinstance(llm_cfg, dict):
         default_sort_metric = llm_cfg.get("default_sort_metric", default_sort_metric)
 
-    if not eval_path.exists():
-        # Full eval file is large and may not be present in a fresh checkout.
-        # Fall back to summary-only data: overall metrics available, no category breakdown.
-        logger.warning(
-            "Full evaluation results not found for %s (%s); "
-            "returning summary-only data without category breakdown.",
-            benchmark_id,
-            eval_path,
-        )
+    try:
+        records = load_eval_records(benchmark_id)
+    except HTTPException:
+        if not summary_raw:
+            raise HTTPException(
+                status_code=404, detail=_summary_not_found_detail(benchmark_id)
+            )
         overall_from_summary = [
             PipelineMetrics(name=name, metrics=metrics)
             for name, metrics in summary_raw.items()
@@ -1024,8 +900,6 @@ def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySum
             categories={},
             has_full_results=False,
         )
-
-    records = load_eval_records(benchmark_id)
     agg = _collect_category_summary(records)
 
     overall = [
@@ -1316,7 +1190,7 @@ def _resolve_sqlite_db_path(db_folder: str, db_id: str) -> Path:
     candidates = [
         get_data_root() / folder_path / db_id / db_filename,
         get_data_root() / db_id / db_filename,
-        Path(BENCHMARKS_FILE).parent / folder_path / db_id / db_filename,
+        get_writable_data_root() / folder_path / db_id / db_filename,
         Path.cwd() / "data" / folder_path / db_id / db_filename,
     ]
     for candidate in candidates:
@@ -1325,30 +1199,6 @@ def _resolve_sqlite_db_path(db_folder: str, db_id: str) -> Path:
 
     tried = ", ".join(str(p) for p in candidates)
     raise ValueError(f"SQLite DB does not exist. Tried: {tried}")
-
-
-def _resolve_benchmark_data_path(benchmark_id: str) -> Path:
-    benchmark_info = get_benchmark_info(benchmark_id)
-    rel_data = benchmark_info.get("data")
-    explicit_path = benchmark_info.get("benchmark_json_path")
-
-    candidates: List[Path] = []
-    if isinstance(rel_data, str):
-        rel_path = Path(rel_data)
-        candidates.append(get_data_root() / rel_path)
-        candidates.append(Path.cwd() / "data" / rel_path)
-        # Editable install / repo checkout: .../src/text2sql_eval_toolkit/ui/server.py → repo root is parents[3]
-        _here = Path(__file__).resolve()
-        candidates.append(_here.parents[3] / "data" / rel_path)
-    if explicit_path:
-        candidates.append(Path(str(explicit_path)))
-
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-
-    tried = ", ".join(str(p) for p in candidates)
-    raise ValueError(f"Benchmark data file not found. Tried: {tried}")
 
 
 def _normalize_sql_for_dedupe(sql: str) -> str:
@@ -1367,13 +1217,9 @@ def _get_ground_truth_sql_key(record: Dict[str, Any]) -> str:
 
 def _load_gold_benchmark_data_list(benchmark_id: str) -> List[Dict[str, Any]]:
     try:
-        path = _resolve_benchmark_data_path(benchmark_id)
+        return load_benchmark_records(benchmark_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    data = load_json(path)
-    if not isinstance(data, list):
-        raise HTTPException(status_code=500, detail="Invalid benchmark data format")
-    return data
 
 
 def _find_gold_record(
@@ -1678,20 +1524,9 @@ def add_ground_truth_sql(
         raise HTTPException(status_code=400, detail="sql is required")
 
     try:
-        data_path = _resolve_benchmark_data_path(benchmark_id)
+        data = load_benchmark_records(benchmark_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-
-    try:
-        with data_path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to read benchmark data file: {e}"
-        ) from e
-
-    if not isinstance(data, list):
-        raise HTTPException(status_code=500, detail="Invalid benchmark data format")
 
     target_record: Optional[Dict[str, Any]] = None
     for rec in data:
@@ -1724,12 +1559,10 @@ def add_ground_truth_sql(
         sql_list.append(sql)
         target_record[sql_key] = sql_list
         try:
-            with data_path.open("w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-                f.write("\n")
+            save_gold_records(benchmark_id, data)
         except Exception as e:
             raise HTTPException(
-                status_code=500, detail=f"Failed to write benchmark data file: {e}"
+                status_code=500, detail=f"Failed to save benchmark data: {e}"
             ) from e
 
     return AddGroundTruthSqlResponse(
@@ -2007,29 +1840,15 @@ def compare_summaries(
     For now, we assume filenames follow the pattern
     {id}-predictions_eval_summary.json under the results dir.
     """
-    results_dir = get_results_dir()
-    left_path = results_dir / f"{left_id}-predictions_eval_summary.json"
-    right_path = results_dir / f"{right_id}-predictions_eval_summary.json"
-    missing = [
-        f"data/results/{left_id}-predictions_eval_summary.json"
-        for _ in [None] if not left_path.exists()
-    ] + [
-        f"data/results/{right_id}-predictions_eval_summary.json"
-        for _ in [None] if not right_path.exists()
-    ]
-    if missing:
+    try:
+        left_raw = load_eval_summary(left_id)
+        right_raw = load_eval_summary(right_id)
+    except FileNotFoundError as exc:
         raise HTTPException(
             status_code=404,
-            detail=(
-                f"Summary file(s) not found: {', '.join(missing)}. "
-                "Download pre-computed results with: "
-                "`text2sql-eval-toolkit results fetch`, "
-                "or generate locally by running the evaluation pipeline."
-            ),
-        )
+            detail="Summary not found in database for one or both benchmarks.",
+        ) from exc
 
-    left_raw = load_json(left_path)
-    right_raw = load_json(right_path)
     left_raw.pop("llm_judge_config", None)
     right_raw.pop("llm_judge_config", None)
 

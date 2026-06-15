@@ -56,11 +56,13 @@ from tqdm.asyncio import tqdm_asyncio
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
     get_gt_sqls,
+    get_writable_data_root,
+    load_predictions_data,
     parse_dataframe,
-    BENCHMARKS_FILE,
+    save_predictions_data,
 )
 from text2sql_eval_toolkit.execution.replace_select_tool import (
-    replace_select_for_logic_ex,
+    replace_select_for_logic_ex_data,
 )
 from text2sql_eval_toolkit.logging import get_logger
 from urllib.parse import urlparse, parse_qs, unquote
@@ -284,26 +286,16 @@ async def run_sql_and_get_dataframe_mysql_async(
 
 async def mysql_run_execution_async(
     connection_string: str,
-    predictions_path: Path | str,
+    predictions_data: list,
     max_concurrent_tasks: int = 16,
     per_query_timeout_s: int = 90,
-    force_rerun: bool = False
+    force_rerun: bool = False,
 ):
     """
     Execute SQL queries against MySQL database asynchronously.
     Each prediction record can specify its own db_id for database selection.
-
-    Args:
-        connection_string: MySQL connection string (e.g., "mysql://user:pass@host:port/default_db")
-        predictions_path: Path to predictions JSON file
-        max_concurrent_tasks: Maximum number of concurrent database connections
-        per_query_timeout_s: Timeout for each SQL query in seconds (default: 90)
-        force_rerun: Force re-execution even if results exist
     """
     sqlalchemy_async, text = _require_mysql_deps()
-
-    with open(predictions_path, "r") as pf:
-        predictions_data = json.load(pf)
 
     logger.debug(f"Original MySQL connection string: {connection_string}")
 
@@ -472,10 +464,7 @@ async def mysql_run_execution_async(
         *tasks, desc="Executing MySQL SQL queries"
     )
 
-    with open(predictions_path, "w") as pf:
-        json.dump(updated_predictions_data, pf, indent=4)
-
-    return query_count
+    return updated_predictions_data, query_count
 
 
 def _require_ibm_db():
@@ -560,24 +549,14 @@ async def run_sql_and_get_dataframe_async(
 
 
 async def postgres_run_execution_async(
-    connection_string, schema_name, predictions_path, max_concurrent_tasks: int = 16, per_query_timeout_s: int = 90, force_rerun: bool = False
+    connection_string,
+    schema_name,
+    predictions_data,
+    max_concurrent_tasks: int = 16,
+    per_query_timeout_s: int = 90,
+    force_rerun: bool = False,
 ):
-    """
-    Execute SQL queries on PostgreSQL using asyncpg with timeout.
-    
-    Args:
-        connection_string: PostgreSQL connection string
-        schema_name: PostgreSQL schema name
-        predictions_path: Path to predictions JSON file
-        max_concurrent_tasks: Maximum number of concurrent database connections
-        per_query_timeout_s: Timeout for each SQL query in seconds (default: 90)
-        force_rerun: Force re-execution even if results exist
-    
-    Returns:
-        int: Total number of queries executed
-    """
-    with open(predictions_path, "r") as pf:
-        predictions_data = json.load(pf)
+    """Execute SQL queries on PostgreSQL using asyncpg with timeout."""
     
     # Set search_path using server_settings parameter
     pool = await asyncpg.create_pool(
@@ -718,10 +697,7 @@ async def postgres_run_execution_async(
     )
     await pool.close()
 
-    with open(predictions_path, "w") as pf:
-        json.dump(updated_predictions_data, pf, indent=4)
-
-    return query_count
+    return updated_predictions_data, query_count
 
 
 def run_sqlite_query(db_path: str, sql: str) -> str:
@@ -754,16 +730,14 @@ async def run_sqlite_query_with_timeout(
 
 async def sqlite_run_execution_async(
     db_folder,
-    predictions_path,
+    predictions_data,
     max_concurrent_tasks: int = 32,
     sql_execution_timeout: int = 5,
     force_rerun: bool = False,
 ):
-    with open(predictions_path, "r") as pf:
-        predictions_data = json.load(pf)
-
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
     query_count = 0
+    data_root = get_writable_data_root()
 
     async def process_prediction(record):
         nonlocal query_count
@@ -773,9 +747,7 @@ async def sqlite_run_execution_async(
                 record["sql"] = record["metadata"]["sql"]
             db_id = record["db_id"]
             db_filename = db_id + ".sqlite"
-            db_path = (
-                Path(BENCHMARKS_FILE).parent / Path(db_folder) / db_id / db_filename
-            )
+            db_path = data_root / Path(db_folder) / db_id / db_filename
             if not db_path.exists():
                 raise ValueError(f"DB does not exist: {db_path}")
 
@@ -901,12 +873,7 @@ async def sqlite_run_execution_async(
         *tasks, desc="Executing SQLite SQL queries"
     )
 
-    logger.debug("Writing updated predictions with execution dataframes to file...")
-    with open(predictions_path, "w") as pf:
-        json.dump(updated_predictions_data, pf, indent=4)
-    logger.debug("Finished writing.")
-
-    return query_count
+    return updated_predictions_data, query_count
 
 
 
@@ -935,13 +902,11 @@ def _normalize_sql_for_db2(sql: str) -> str:
 async def db2_run_execution_async(
     connection_string: str,
     schema_name: str | None,
-    predictions_path: Path | str,
+    predictions_data: list,
     max_concurrent_tasks: int = 16,
     per_query_timeout_s: int = 90,
+    force_rerun: bool = False,
 ):
-    with open(predictions_path, "r") as pf:
-        predictions_data = json.load(pf)
-
     dsn_kv = _parse_db2_dsn(connection_string)
     dsn_schema = dsn_kv.get("CURRENTSCHEMA")
     effective_schema = schema_name or dsn_schema
@@ -1113,9 +1078,7 @@ async def db2_run_execution_async(
     updated_predictions_data = await tqdm_asyncio.gather(
         *tasks, desc="Executing DB2 SQL queries"
     )
-    with open(predictions_path, "w") as pf:
-        json.dump(updated_predictions_data, pf, indent=4)
-    return query_count
+    return updated_predictions_data, query_count
 
 
 def _parse_presto_sqlalchemy_url(conn_str: str) -> dict:
@@ -1161,23 +1124,18 @@ def _parse_presto_sqlalchemy_url(conn_str: str) -> dict:
 
 async def presto_run_execution_async(
     connection_string: str,
-    predictions_path: Path | str,
+    predictions_data: list,
     max_concurrent_tasks: int = 16,
     per_query_timeout_s: int = 300,
 ):
     """
     Execute SQL queries on Presto (IBM Lakehouse) using prestodb.dbapi with BasicAuthentication.
-    - connection_string: SQLAlchemy-style Presto URL
-    - predictions_path: JSON file with records and model predictions
-    - max_concurrent_tasks: concurrency bound
-    - per_query_timeout_s: per-query timeout (client-side)
     """
     import prestodb
     import pandas as pd
     import asyncio
     import json
 
-    # Parse once and reuse for all queries
     base_connect_kwargs = _parse_presto_sqlalchemy_url(connection_string)
     logger.debug(
         f"Presto connect kwargs (redacted): "
@@ -1222,9 +1180,6 @@ async def presto_run_execution_async(
         )
 
     # Orchestrate over predictions
-    with open(predictions_path, "r") as pf:
-        predictions_data = json.load(pf)
-
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
 
     # Shared counter + lock
@@ -1362,19 +1317,16 @@ async def presto_run_execution_async(
         *tasks, desc="Executing Presto SQL queries"
     )
 
-    with open(predictions_path, "w") as pf:
-        json.dump(updated_predictions_data, pf, indent=4)
-
-    return query_count
+    return updated_predictions_data, query_count
 
 
 # For running from script
 def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = False):
     benchmark_info = get_benchmark_info(benchmark_id)
-    predictions_path = Path(benchmark_info["predictions_path"])
     db_engine = benchmark_info["db_engine"]
 
-    replace_select_for_logic_ex(predictions_path, db_engine)
+    predictions_data = load_predictions_data(benchmark_id)
+    predictions_data = replace_select_for_logic_ex_data(predictions_data, db_engine)
 
     if db_engine["db_type"] not in [
         "postgres",
@@ -1392,20 +1344,24 @@ def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = 
         connection_string = os.getenv(db_engine["connection_string_env_var"])
         if not connection_string:
             raise ValueError("Missing connection string.")
-        
-        # Optional: get query timeout from config
         query_timeout = db_engine.get("query_timeout", 90)
-        
-        query_count = asyncio.run(
+        predictions_data, query_count = asyncio.run(
             postgres_run_execution_async(
-                connection_string, schema_name, predictions_path, num_threads, query_timeout, force_rerun
+                connection_string,
+                schema_name,
+                predictions_data,
+                num_threads,
+                query_timeout,
+                force_rerun,
             )
         )
 
     elif db_engine["db_type"] == "sqlite":
         db_folder = benchmark_info["db_engine"]["db_folder"]
-        query_count = asyncio.run(
-            sqlite_run_execution_async(db_folder, predictions_path, force_rerun=force_rerun)
+        predictions_data, query_count = asyncio.run(
+            sqlite_run_execution_async(
+                db_folder, predictions_data, force_rerun=force_rerun
+            )
         )
 
     elif db_engine["db_type"] == "db2":
@@ -1413,36 +1369,42 @@ def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = 
         connection_string = os.getenv(db_engine["connection_string_env_var"])
         if not connection_string:
             raise ValueError("Missing DB2 connection string.")
-        query_count = asyncio.run(
+        predictions_data, query_count = asyncio.run(
             db2_run_execution_async(
-                connection_string, schema_name, predictions_path, num_threads, force_rerun
+                connection_string,
+                schema_name,
+                predictions_data,
+                num_threads,
+                force_rerun,
             )
         )
     elif db_engine["db_type"] == "mysql":
         connection_string = os.getenv(db_engine["connection_string_env_var"])
         if not connection_string:
             raise ValueError("Missing MySQL connection string.")
-        
-        # Optional: get query timeout from config
         query_timeout = db_engine.get("query_timeout", 90)
-        
-        query_count = asyncio.run(
+        predictions_data, query_count = asyncio.run(
             mysql_run_execution_async(
-                connection_string, predictions_path, num_threads, query_timeout, force_rerun
+                connection_string,
+                predictions_data,
+                num_threads,
+                query_timeout,
+                force_rerun,
             )
         )
     elif db_engine["db_type"] == "presto":
         connection_string = os.getenv(db_engine["connection_string_env_var"])
         if not connection_string:
             raise ValueError("Missing Presto connection string.")
-
-        # Optional: get query timeout from config
         query_timeout = db_engine.get("query_timeout", 300)
-
-        query_count = asyncio.run(
+        predictions_data, query_count = asyncio.run(
             presto_run_execution_async(
-                connection_string, predictions_path, num_threads, query_timeout
+                connection_string,
+                predictions_data,
+                num_threads,
+                query_timeout,
             )
         )
 
+    save_predictions_data(benchmark_id, predictions_data, status="executed")
     logger.info(f"Total SQL queries executed: {query_count}")

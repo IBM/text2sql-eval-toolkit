@@ -214,12 +214,18 @@ class JsonToDbImporter:
         )
 
         db_engine = info.get("db_engine") or {}
+        registry_paths = {
+            k: info.get(k)
+            for k in ("data", "schema", "predictions")
+            if info.get(k)
+        }
         extra_config = {
             k: v
             for k, v in db_engine.items()
             if k
             not in {"db_type", "db_folder", "schema_name", "connection_string_env_var"}
         }
+        extra_config.update(registry_paths)
         self.conn.execute(
             """
             INSERT INTO benchmark_db_config (
@@ -504,6 +510,81 @@ class JsonToDbImporter:
                 WHERE id = ?
                 """,
                 (evaluated_at, result_set_id),
+            )
+        return stats
+
+    def import_result_records(
+        self,
+        benchmark_id: str,
+        records: list[dict[str, Any]],
+        *,
+        import_eval: bool = False,
+        status: str = "inference",
+        source: str = "pipeline",
+    ) -> dict[str, int]:
+        """Import an in-memory result record list (predictions and optional eval)."""
+        if not records:
+            return {"predictions": 0, "evaluations": 0, "dataframes": 0}
+
+        result_set_id = self._ensure_result_set(
+            benchmark_id=benchmark_id,
+            source_path=Path(f"{benchmark_id}-predictions"),
+            has_eval=import_eval,
+        )
+        self.conn.execute(
+            """
+            UPDATE result_sets
+            SET status = ?, source = ?, updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (status, source, result_set_id),
+        )
+        record_map = self._record_id_map(benchmark_id)
+        pipeline_map = self._ensure_pipelines(result_set_id, records)
+
+        stats = {"predictions": 0, "evaluations": 0, "dataframes": 0}
+        for record in records:
+            record_id = _record_id(record)
+            internal_id = record_map.get(record_id)
+            if internal_id is None:
+                logger.warning(
+                    "Skipping predictions for unknown record %s in %s",
+                    record_id,
+                    benchmark_id,
+                )
+                continue
+
+            self._import_gt_execution(internal_id, record, stats)
+            predictions = record.get("predictions") or {}
+            if not isinstance(predictions, dict):
+                continue
+
+            for pipeline_id, block in predictions.items():
+                if not isinstance(block, dict):
+                    continue
+                pipeline_ref = pipeline_map[pipeline_id]
+                prediction_id = self._upsert_prediction(
+                    benchmark_record_id=internal_id,
+                    pipeline_ref=pipeline_ref,
+                    result_set_id=result_set_id,
+                )
+                self._upsert_prediction_inference(prediction_id, block)
+                self._upsert_prediction_execution(prediction_id, block, stats)
+
+                evaluation = block.get("evaluation")
+                if import_eval and isinstance(evaluation, dict):
+                    self._upsert_evaluation(prediction_id, block, evaluation, stats)
+                    stats["evaluations"] += 1
+                stats["predictions"] += 1
+
+        if import_eval:
+            self.conn.execute(
+                """
+                UPDATE result_sets
+                SET status = 'evaluated', evaluated_at = datetime('now'), updated_at = datetime('now')
+                WHERE id = ?
+                """,
+                (result_set_id,),
             )
         return stats
 
