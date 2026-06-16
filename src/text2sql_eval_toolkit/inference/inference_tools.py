@@ -9,9 +9,14 @@ import time
 import random
 import requests
 from typing import Any
-from ibm_watsonx_ai import Credentials
-from ibm_watsonx_ai.foundation_models import ModelInference
 from text2sql_eval_toolkit.logging import get_logger
+
+try:
+    from ibm_watsonx_ai import Credentials
+    from ibm_watsonx_ai.foundation_models import ModelInference
+except ImportError:
+    Credentials = None
+    ModelInference = None
 
 try:
     from openai import OpenAI
@@ -25,6 +30,14 @@ except ImportError:
 
 
 logger = get_logger(__name__)
+
+
+def _require_watsonx() -> None:
+    if Credentials is None or ModelInference is None:
+        raise ImportError(
+            "ibm_watsonx_ai is not installed. "
+            'Install with: pip install "text2sql-eval-toolkit[watsonx]"'
+        )
 
 
 class Text2SQLPrompt:
@@ -212,6 +225,7 @@ class WXAIClient:
     """
 
     def __init__(self, model_name: str, model_parameters: dict):
+        _require_watsonx()
         env_vars = {
             "api_key": "WATSONX_APIKEY",
             "url": "WATSONX_API_BASE",
@@ -254,6 +268,7 @@ class WXAIClientChatAPI:
     """
 
     def __init__(self, model_name: str, model_parameters: dict):
+        _require_watsonx()
         env_vars = {
             "api_key": "WATSONX_APIKEY",
             "url": "WATSONX_API_BASE",
