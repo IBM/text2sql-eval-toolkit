@@ -353,10 +353,10 @@ class BenchmarkStore:
             importer = JsonToDbImporter(conn=self.conn, data_root=self.data_root)
             payload = dict(summary)
             llm_cfg = payload.pop("llm_judge_config", None)
-            judge_config_id = None
-            if isinstance(llm_cfg, dict):
-                judge_config_id = importer._upsert_llm_judge_config(llm_cfg)
             with transaction(immediate=True):
+                judge_config_id = None
+                if isinstance(llm_cfg, dict):
+                    judge_config_id = importer._upsert_llm_judge_config(llm_cfg)
                 result_set_id = importer._ensure_result_set(
                     benchmark_id=benchmark_id,
                     source_path=Path(f"{benchmark_id}-predictions"),
