@@ -10,8 +10,7 @@ Public API for the text2sql-eval-toolkit library.
 This package exposes multiple levels of functionality:
 
 - Low-level, record-based evaluation (`evaluate_prediction`)
-- File-based evaluation over prediction JSON files (`evaluate_predictions`)
-- Benchmark-based orchestration that discovers files from benchmark metadata (`run_evaluation`, `run_execution`)
+- Benchmark-based orchestration backed by SQLite (`run_evaluation`, `run_execution`)
 - Inference pipelines for generating SQL (`LLMSQLGenerationPipeline`, `AgenticSQLGenerationPipeline`)
 - Utilities for discovering and inspecting available benchmarks (`get_available_benchmarks`, etc.)
 """

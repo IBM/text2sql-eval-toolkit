@@ -21,14 +21,17 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { appendLlmJudgeConfigId, withLlmJudgeConfigId } from "../lib/llmJudgeQuery";
 import { RecordDetailDrawer } from "../components/RecordDetailDrawer";
+import { LlmJudgeSelector } from "../components/LlmJudgeSelector";
+import type { LlmJudgeFilterProps } from "../hooks/useLlmJudgeConfigs";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
   flattenMetricInsightsSelectNames,
 } from "../lib/metricInsightsSelect";
 
-interface Props {
+interface Props extends LlmJudgeFilterProps {
   benchmarkId: string;
   onBack?: () => void;
   initialFilters?: Partial<ErrorAnalysisFilters>;
@@ -82,7 +85,14 @@ function formatMetricHeader(metricName: string, fallback: string): string {
   return trimmed.replaceAll("_", " ");
 }
 
-export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFilters }) => {
+export const ErrorAnalysis: React.FC<Props> = ({
+  benchmarkId,
+  onBack,
+  initialFilters,
+  llmJudgeConfigs,
+  llmJudgeConfigId,
+  onLlmJudgeConfigIdChange,
+}) => {
   const [items, setItems] = useState<ErrorRecordSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -152,7 +162,12 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
     const loadDefaultPipeline = async () => {
       try {
         const res = await fetch(
-          apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
+          apiUrl(
+            withLlmJudgeConfigId(
+              `/api/benchmarks/${benchmarkId}/summary/by-category`,
+              llmJudgeConfigId
+            )
+          )
         );
         if (!res.ok) return;
         const json = (await res.json()) as {
@@ -173,7 +188,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
       }
     };
     void loadDefaultPipeline();
-  }, [benchmarkId]);
+  }, [benchmarkId, llmJudgeConfigId]);
 
   const load = async (overrides?: LoadOverrides) => {
     const effectivePage = overrides?.page ?? page;
@@ -229,6 +244,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
         if (effectiveMetric2) params.set("metric2", effectiveMetric2);
         params.set("disagree", "true");
       }
+      appendLlmJudgeConfigId(params, llmJudgeConfigId);
       const res = await apiFetch(
         apiUrl(`/api/benchmarks/${benchmarkId}/errors?${params.toString()}`)
       );
@@ -251,7 +267,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [benchmarkId, page, pageSize]);
+  }, [benchmarkId, page, pageSize, llmJudgeConfigId]);
 
   const headers: DataTableHeader[] = [
     { key: "record_id", header: "Record ID" },
@@ -312,6 +328,12 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
             alignItems: "end",
           }}
         >
+          <LlmJudgeSelector
+            id="error-analysis-llm-judge-select"
+            configs={llmJudgeConfigs}
+            selectedId={llmJudgeConfigId}
+            onChange={onLlmJudgeConfigIdChange}
+          />
           <TextInput
             id="error-search"
             labelText="Search"
@@ -596,6 +618,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
           benchmarkId={benchmarkId}
           recordId={selectedRecordId}
           pipeline={selectedRecordPipeline}
+          llmJudgeConfigId={llmJudgeConfigId}
           onClose={closeDetail}
         />
       )}

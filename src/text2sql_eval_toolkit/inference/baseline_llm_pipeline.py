@@ -47,6 +47,8 @@ from text2sql_eval_toolkit.utils import (
     load_predictions_data,
     save_predictions_data,
 )
+from text2sql_eval_toolkit.database import jobs as db_jobs
+from text2sql_eval_toolkit.database.session import get_connection
 
 
 logger = get_logger(__name__)
@@ -299,67 +301,74 @@ class LLMSQLGenerationPipeline(BasePipeline):
         logger.debug(
             f"🚀 Running inference for benchmark {benchmark_id},  pipeline: {pipeline_id}"
         )
-        benchmark_info = get_benchmark_info(benchmark_id)
-        db_type = benchmark_info["db_engine"]["db_type"]
+        conn = get_connection()
+        with db_jobs.track_job(
+            conn,
+            "inference",
+            benchmark_id,
+            params={"model_name": model_name, "pipeline_id": pipeline_id},
+        ):
+            benchmark_info = get_benchmark_info(benchmark_id)
+            db_type = benchmark_info["db_engine"]["db_type"]
 
-        schema = load_benchmark_schema(benchmark_id)
-        data = load_benchmark_records(benchmark_id)
-        predictions_data = load_predictions_data(benchmark_id)
-        if not predictions_data:
-            predictions_data = []
+            schema = load_benchmark_schema(benchmark_id)
+            data = load_benchmark_records(benchmark_id)
+            predictions_data = load_predictions_data(benchmark_id)
+            if not predictions_data:
+                predictions_data = []
 
-        if model_name.startswith("wxai:"):
-            client = WXAIClientChatAPI(model_name[5:], model_parameters)
-        elif model_name.startswith("gemini:"):
-            client = GeminiClientChatAPI(model_name[7:], model_parameters)
-        elif model_name.startswith("anthropic:"):
-            client = ClaudeClientChatAPI(model_name[10:], model_parameters)
-        elif model_name.startswith("vllm:"):
-            client = VLLMClientChatAPI(model_name[5:], model_parameters)
-        elif model_name.startswith("ollama:"):
-            # Ollama uses OpenAI-compatible API with custom base URL
-            client = OpenAIClientChatAPI(model_name[7:], model_parameters)
-        elif model_name.startswith("openai:"):
-            client = OpenAIClientChatAPI(model_name[7:], model_parameters)
-        elif model_name.startswith("rits"):
-            logger.info(f"Getting RITS model endpoint for {model_name}")
-            model_id = model_name.split("/")[-1].replace(".", "-").lower()
-            rits_api_key = os.environ.get("RITS_API_KEY")
-            if rits_api_key is None:
-                raise ValueError("Missing RITS_API_KEY environment variable")
-            os.environ["VLLM_API_BASE"] = (
-                f"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/{model_id}/v1"
-            )
-            client = VLLMClientChatAPI(model_name[5:], model_parameters)
-        else:
-            raise NotImplementedError(f"Model {model_name} is not supported.")
-
-        async def run_all():
-            semaphore = asyncio.Semaphore(max_num_threads)
-            tasks = [
-                self.generate_sql(
-                    idx,
-                    obj,
-                    schema,
-                    db_type,
-                    pipeline_id,
-                    model_name,
-                    model_parameters,
-                    client,
-                    predictions_data,
-                    semaphore,
-                    force_rerun=force_rerun,
-                    skip_inference_error_retries=skip_inference_error_retries,
+            if model_name.startswith("wxai:"):
+                client = WXAIClientChatAPI(model_name[5:], model_parameters)
+            elif model_name.startswith("gemini:"):
+                client = GeminiClientChatAPI(model_name[7:], model_parameters)
+            elif model_name.startswith("anthropic:"):
+                client = ClaudeClientChatAPI(model_name[10:], model_parameters)
+            elif model_name.startswith("vllm:"):
+                client = VLLMClientChatAPI(model_name[5:], model_parameters)
+            elif model_name.startswith("ollama:"):
+                # Ollama uses OpenAI-compatible API with custom base URL
+                client = OpenAIClientChatAPI(model_name[7:], model_parameters)
+            elif model_name.startswith("openai:"):
+                client = OpenAIClientChatAPI(model_name[7:], model_parameters)
+            elif model_name.startswith("rits"):
+                logger.info(f"Getting RITS model endpoint for {model_name}")
+                model_id = model_name.split("/")[-1].replace(".", "-").lower()
+                rits_api_key = os.environ.get("RITS_API_KEY")
+                if rits_api_key is None:
+                    raise ValueError("Missing RITS_API_KEY environment variable")
+                os.environ["VLLM_API_BASE"] = (
+                    f"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/{model_id}/v1"
                 )
-                for idx, obj in enumerate(data)
-            ]
-            await asyncio.gather(*tasks)
+                client = VLLMClientChatAPI(model_name[5:], model_parameters)
+            else:
+                raise NotImplementedError(f"Model {model_name} is not supported.")
 
-        asyncio.run(run_all())
+            async def run_all():
+                semaphore = asyncio.Semaphore(max_num_threads)
+                tasks = [
+                    self.generate_sql(
+                        idx,
+                        obj,
+                        schema,
+                        db_type,
+                        pipeline_id,
+                        model_name,
+                        model_parameters,
+                        client,
+                        predictions_data,
+                        semaphore,
+                        force_rerun=force_rerun,
+                        skip_inference_error_retries=skip_inference_error_retries,
+                    )
+                    for idx, obj in enumerate(data)
+                ]
+                await asyncio.gather(*tasks)
 
-        save_predictions_data(benchmark_id, predictions_data, status="inference")
+            asyncio.run(run_all())
 
-        logger.debug(
-            f"✅ Inference completed for benchmark '{benchmark_id}',  pipeline: {pipeline_id}."
-        )
-        logger.info(f"Predictions saved to database for benchmark {benchmark_id}")
+            save_predictions_data(benchmark_id, predictions_data, status="inference")
+
+            logger.debug(
+                f"✅ Inference completed for benchmark '{benchmark_id}',  pipeline: {pipeline_id}."
+            )
+            logger.info(f"Predictions saved to database for benchmark {benchmark_id}")

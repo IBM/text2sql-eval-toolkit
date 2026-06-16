@@ -2,7 +2,7 @@
 
 This directory contains scripts for evaluating SQL query predictions against ground truth queries and their result sets:
 
-* **`run_evaluation.py`** — full evaluation (same metrics; may enable LLM-as-judge).
+* **`run_evaluation.py`** — full evaluation for a **benchmark id** (reads/writes SQLite).
 * **`rerun_metrics.py`** — **metrics only**: re-score existing `predicted_sql` / `predicted_df` without inference or SQL execution.
 
 ## Requirements
@@ -13,52 +13,64 @@ Before running the script, install the required dependencies:
 pip install -e .
 ```
 
-or follow the instructions on the main README to setup your environment and do:
-
-```bash
-pip install -e .
-```
-
 > **Note on LLM Judge mode (`--use_llm_judge`)**
 > If you enable `--use_llm_judge`, you must have your LLM provider configured (e.g., API key and endpoint) as described in the project's main README. LLM evaluation may incur API costs and can be non-deterministic unless you fix parameters (e.g., temperature).
+
+## Storage model
+
+Evaluation reads predictions from and writes results to **SQLite** (`TEXT2SQL_DATABASE_URL`, default `data/text2sql_eval.db`). Each run creates a durable `jobs` row with type `eval` (deterministic metrics only) or `llm_judge` (when `--use_llm_judge` is set).
+
+Legacy JSON result files are **not** used at runtime. To import existing `*-predictions*.json` artifacts, use [`scripts/migration/import_json_to_db.py`](../migration/README.md).
 
 ## Usage
 
 ```bash
-python scripts/evaluation/run_evaluation.py <input_file.json> [--output_file OUTPUT] [--summary_file SUMMARY] [--csv_summary_file CSV_SUMMARY] [--use_llm_judge] [--llm_judge_config_path]
+python scripts/evaluation/run_evaluation.py <benchmark_id> \
+  [--use_llm_judge] \
+  [--llm_judge_config_path PATH] \
+  [--force-rerun] \
+  [--force-rerun-llm-judge] \
+  [--csv_summary_path PATH]
 ```
 
-* `<input_file.json>`: Path to the input JSON file containing records with ground truth and predicted SQL queries and their result DataFrames.
-* `--output_file`: (Optional) Path to write the evaluated JSON output. Defaults to `<input_file>_eval.json`.
-* `--summary_file`: (Optional) Path to write the evaluation summary in JSON format. Defaults to `<input_file>_eval_summary.json`.
-* `--csv_summary_file`: (Optional) Path to write the evaluation summary in CSV format. Defaults to `<input_file>_eval_summary.csv`.
-* `--use_llm_judge`: (Optional) Enables LLM-as-judge metrics in addition to the standard metrics.
-* `--llm_judge_config_path`: (Optional) Enables LLM-as-judge metrics in addition to the standard metrics, and sets path to config yaml file for LLM-as-judge inference. See an example config file that is used as default: [here](../../src/text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_default_config.yaml).
+* `<benchmark_id>`: Benchmark id from `data/benchmarks.json` (e.g. `bird_mini_dev_sqlite`).
+* `--use_llm_judge`: Enable LLM-as-judge metrics in addition to standard metrics.
+* `--llm_judge_config_path`: Path to judge YAML config. Default: [`llm_judge_default_config.yaml`](../../src/text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_default_config.yaml).
+* `--force-rerun`: Recompute all evaluation metrics (ignore cached evaluations in DB).
+* `--force-rerun-llm-judge`: Re-call LLM judge even when cached scores exist.
+* `--csv_summary_path`: Optional path to write a summary CSV export.
 
-## Input Format
+### Library API
 
-The input JSON should be a list of records. Each record must contain:
+```python
+from text2sql_eval_toolkit import run_evaluation, evaluate_predictions
 
-* `"sql"`: The ground truth SQL query.
-* `"gt_df"`: The ground truth result DataFrame, encoded as a JSON string.
-* `"predictions"`: A dictionary mapping model names to their predictions, each containing:
+# Equivalent to the script above
+run_evaluation("bird_mini_dev_sqlite", use_llm=True)
 
-  * `"predicted_sql"`: The predicted SQL query.
-  * `"predicted_df"`: The predicted result DataFrame, encoded as a JSON string.
+# evaluate_predictions is an alias for run_evaluation(benchmark_id=...)
+evaluate_predictions("bird_mini_dev_sqlite")
+```
 
-For a sample input, see [`data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions.json`](../../data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions.json).
+## Input data
+
+The evaluator loads gold records and predictions from SQLite for the given benchmark. Each prediction block must contain:
+
+* `predicted_sql` and `predicted_df` (from execution stage)
+* Ground-truth `sql` and `gt_df` on the parent record
+
+Run inference and execution first if predictions are missing:
+
+```bash
+python scripts/inference/run_inference.py bird_mini_dev_sqlite
+python scripts/execution/run_execution.py bird_mini_dev_sqlite
+```
 
 ## Output
 
-* The script adds evaluation metrics to each prediction in the output JSON.
-* It also produces summary statistics (mean and standard deviation) for each metric, per model, in both JSON and CSV formats.
-* A summary is printed to the console.
-
-For sample outputs, see:
-
-* [`data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval.json`](../../data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval.json)
-* [`data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval_summary.json`](../../data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval_summary.json)
-* [`data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval_summary.csv`](../../data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval_summary.csv)
+* Per-prediction evaluation metrics are upserted into `evaluations` and (optionally) `llm_judge_evaluations`.
+* Pipeline summaries are written to `eval_summaries` and `llm_judge_eval_summaries`.
+* A summary table is printed to the console; optional CSV via `--csv_summary_path`.
 
 ## Metrics
 
@@ -74,7 +86,6 @@ For sample outputs, see:
 * **sql\_exact\_match**: Exact string match of SQLs.
 * **sql\_syntactic\_equivalence**: Any of the above SQL equivalence metrics is true.
 * **llm\_score** *(only with `--use_llm_judge`)*: LLM-as-judge score indicating whether the prediction is correct per a rubric.
-
   * Depending on configuration, the per-prediction rationale (`llm_explanation`) may also be recorded.
 
 ## Re-run metrics only (`rerun_metrics.py`)
@@ -82,15 +93,8 @@ For sample outputs, see:
 Use this after changing metric code (e.g. `sqlglot_equivalence` in `text2sql_utils.py`) or to refresh scores without re-running models or databases.
 
 ```bash
-# By benchmark id
+# By benchmark id (reads/writes SQLite)
 python scripts/evaluation/rerun_metrics.py bird_mini_dev_sqlite
-
-# By predictions file
-python scripts/evaluation/rerun_metrics.py --input-file data/results/my_benchmark-predictions.json
-
-# Update an existing eval file in place
-python scripts/evaluation/rerun_metrics.py \
-  --input-file data/results/my_benchmark-predictions_eval.json --in-place
 
 # Refresh sqlglot/execution metrics but keep cached LLM judge scores
 python scripts/evaluation/rerun_metrics.py bird_mini_dev_sqlite --preserve-llm-judge
@@ -98,31 +102,26 @@ python scripts/evaluation/rerun_metrics.py bird_mini_dev_sqlite --preserve-llm-j
 
 | Flag | Meaning |
 |------|---------|
-| `--in-place` | Write back to the input `*_eval.json` |
-| `--preserve-llm-judge` | Re-run non-LLM metrics; reuse `llm_score` from existing eval output |
+| `--preserve-llm-judge` | Re-run non-LLM metrics; reuse `llm_score` from DB |
 | `--use-llm-judge` | Enable LLM-as-judge (may call the LLM) |
 | `--force-rerun-llm-judge` | Re-call LLM judge even if cached |
 | `--max-concurrency N` | Parallel workers (default 16) |
+| `--csv-summary-path PATH` | Optional summary CSV export |
 
-LLM-as-judge is **off by default** (unlike `run_evaluation.py` when you pass `--use_llm_judge`).
+LLM-as-judge is **off by default**.
 
-## Example (`run_evaluation.py`)
+## Example
 
 Run without LLM:
 
 ```bash
-python scripts/evaluation/run_evaluation.py data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions.json
+python scripts/evaluation/run_evaluation.py bird_sqlite_test_benchmark
 ```
 
 Run with LLM-as-judge:
 
 ```bash
-python scripts/evaluation/run_evaluation.py data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions.json --use_llm_judge
+python scripts/evaluation/run_evaluation.py bird_sqlite_test_benchmark --use_llm_judge
 ```
 
-This will produce:
-
-* `data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval.json`
-* `data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval_summary.json`
-* `data/benchmarks/test_benchmarks/results/bird_sqlite_test_benchmark-predictions_eval_summary.csv`
-
+Results are stored in `data/text2sql_eval.db` for the benchmark's default `result_set`.

@@ -2,7 +2,7 @@
 
 This directory contains tooling to migrate legacy on-disk JSON artifacts into the relational database defined in [`data/database-schema/schema.sql`](../../data/database-schema/schema.sql).
 
-The migration script reads the same files the dashboard and evaluation pipeline use today (`benchmarks.json`, per-benchmark question JSON, predictions, eval results, and summaries) and loads them into normalized SQLite tables.
+**Runtime:** The dashboard and pipeline read/write **SQLite** (`data/text2sql_eval.db`). This script is the supported path to load legacy `data/results/*.json` (e.g. after `text2sql-eval-toolkit results fetch`) or to backfill an existing checkout. New experiments write directly to the database without producing result JSON files.
 
 ## Requirements
 
@@ -178,7 +178,7 @@ conn.close()
 
 - [Database schema design](../../data/database-schema/design.md) — entity model, layers, and migration roadmap
 - [Database schema README](../../data/database-schema/README.md) — DDL files and SQLite setup
-- [Evaluation scripts](../evaluation/README.md) — how eval JSON artifacts are produced
+- [Evaluation scripts](../evaluation/README.md) — benchmark-based evaluation against SQLite
 
 ## Source layout
 

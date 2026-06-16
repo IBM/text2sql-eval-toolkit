@@ -16,6 +16,9 @@ import {
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
 import { apiFetch, apiUrl } from "../lib/api";
+import { appendLlmJudgeConfigId, withLlmJudgeConfigId } from "../lib/llmJudgeQuery";
+import { LlmJudgeSelector } from "../components/LlmJudgeSelector";
+import type { LlmJudgeFilterProps } from "../hooks/useLlmJudgeConfigs";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
@@ -32,7 +35,7 @@ type ErrorAnalysisFilters = {
   disagree: boolean;
 };
 
-interface Props {
+interface Props extends LlmJudgeFilterProps {
   benchmarkId: string | null;
   onSelectBenchmark?: (id: string) => void;
   benchmarks?: BenchmarkSummary[];
@@ -117,6 +120,9 @@ function formatTimingDelta(valueType: string, left: number | null, right: number
 export const PipelineCompareView: React.FC<Props> = ({
   benchmarkId,
   onOpenErrorAnalysis,
+  llmJudgeConfigs,
+  llmJudgeConfigId,
+  onLlmJudgeConfigIdChange,
 }) => {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -180,7 +186,14 @@ export const PipelineCompareView: React.FC<Props> = ({
       try {
         setError(null);
         setLoading(true);
-        const res = await apiFetch(apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`));
+        const res = await apiFetch(
+          apiUrl(
+            withLlmJudgeConfigId(
+              `/api/benchmarks/${benchmarkId}/summary/by-category`,
+              llmJudgeConfigId
+            )
+          )
+        );
         const json = (await res.json()) as SummaryResponse;
         setSummary(json);
 
@@ -200,7 +213,7 @@ export const PipelineCompareView: React.FC<Props> = ({
     };
 
     void loadSummary();
-  }, [benchmarkId]);
+  }, [benchmarkId, llmJudgeConfigId]);
 
   const leftPipelineObj = useMemo(
     () => (summary ? summary.overall.find((p) => p.name === leftPipeline) ?? null : null),
@@ -244,6 +257,7 @@ export const PipelineCompareView: React.FC<Props> = ({
         metric_left: metricKey,
         metric_right: metricKey,
       });
+      appendLlmJudgeConfigId(params, llmJudgeConfigId);
       return apiFetch(
         apiUrl(`/api/benchmarks/${benchmarkId}/insights/cross-pipeline-binary-metric-confusion?${params.toString()}`)
       ).then((r) => r.json() as Promise<CrossPipelineConfusionResponse>);
@@ -281,7 +295,7 @@ export const PipelineCompareView: React.FC<Props> = ({
     };
 
     void load();
-  }, [benchmarkId, leftPipeline, rightPipeline, metricA, metricB]);
+  }, [benchmarkId, leftPipeline, rightPipeline, metricA, metricB, llmJudgeConfigId]);
 
   const renderDisagreementBlock = (metricKey: string, c: CrossPipelineConfusionResponse | null) => {
     if (!c) {
@@ -425,6 +439,12 @@ export const PipelineCompareView: React.FC<Props> = ({
           selectedItem={rightPipeline || null}
           onChange={(e) => setRightPipeline(e.selectedItem as string)}
           placeholder="Select right pipeline"
+        />
+        <LlmJudgeSelector
+          id="pipeline-compare-llm-judge-select"
+          configs={llmJudgeConfigs}
+          selectedId={llmJudgeConfigId}
+          onChange={onLlmJudgeConfigIdChange}
         />
         <Select
           id="metricA-select"

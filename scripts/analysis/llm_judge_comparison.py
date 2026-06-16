@@ -18,6 +18,8 @@ from text2sql_eval_toolkit.utils import (
     load_predictions_data,
     save_predictions_data,
 )
+from text2sql_eval_toolkit.database import jobs as db_jobs
+from text2sql_eval_toolkit.database.session import get_connection
 from text2sql_eval_toolkit.evaluation.llm_as_judge import (
     load_llm_judge_config,
     evaluate_sql_prediction_with_llm,
@@ -91,38 +93,40 @@ async def evaluate_all_predictions_with_llm_judge(benchmark_id):
 
     print(f"\n📄 Benchmark: {benchmark_id} (SQLite storage)")
 
-    pred_eval_data = load_predictions_data(benchmark_id, include_eval=True)
+    conn = get_connection()
+    with db_jobs.track_job(conn, "llm_judge", benchmark_id):
+        pred_eval_data = load_predictions_data(benchmark_id, include_eval=True)
 
-    llm_judge_configs = {}
-    for config_path in llm_judge_config_paths:
-        config_path_obj = Path(config_path)
-        config_name = config_path_obj.stem
-        llm_judge_configs[config_name] = load_llm_judge_config(config_path_obj)
+        llm_judge_configs = {}
+        for config_path in llm_judge_config_paths:
+            config_path_obj = Path(config_path)
+            config_name = config_path_obj.stem
+            llm_judge_configs[config_name] = load_llm_judge_config(config_path_obj)
 
-    semaphore = asyncio.Semaphore(16)
-    tasks = []
+        semaphore = asyncio.Semaphore(16)
+        tasks = []
 
-    for record in pred_eval_data:
-        for llm_judge_config_path in llm_judge_config_paths:
-            tasks.append(
-                evaluate_with_llm_judge(
-                    record, llm_judge_config_path, llm_judge_configs, semaphore
+        for record in pred_eval_data:
+            for llm_judge_config_path in llm_judge_config_paths:
+                tasks.append(
+                    evaluate_with_llm_judge(
+                        record, llm_judge_config_path, llm_judge_configs, semaphore
+                    )
                 )
-            )
 
-    print(f"\n🚀 Starting LLM judge evaluations with {len(tasks)} tasks...\n")
-    await tqdm_asyncio.gather(*tasks, desc="Evaluating")
+        print(f"\n🚀 Starting LLM judge evaluations with {len(tasks)} tasks...\n")
+        await tqdm_asyncio.gather(*tasks, desc="Evaluating")
 
-    save_predictions_data(
-        benchmark_id,
-        pred_eval_data,
-        include_eval=True,
-        status="evaluated",
-    )
+        save_predictions_data(
+            benchmark_id,
+            pred_eval_data,
+            include_eval=True,
+            status="evaluated",
+        )
 
     elapsed = time.time() - start_time
     print(f"\n✅ LLM judge evaluations completed in {elapsed:.2f} seconds.")
-    print(f"📁 Results written to: {eval_path.resolve()}")
+    print(f"📁 Results saved to SQLite for benchmark: {benchmark_id}")
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ from text2sql_eval_toolkit.database.connection import (
     resolve_database_path,
     resolve_schema_path,
 )
+from text2sql_eval_toolkit.database.migrations import apply_pending_migrations
 
 T = TypeVar("T")
 
@@ -55,7 +56,8 @@ def ensure_schema() -> None:
             ).fetchone()
             if row is None:
                 apply_schema(conn, resolve_schema_path())
-                conn.commit()
+            apply_pending_migrations(conn)
+            conn.commit()
         finally:
             conn.close()
         _schema_initialized = True

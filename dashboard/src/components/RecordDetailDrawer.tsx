@@ -14,6 +14,7 @@ import {
   TextArea,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { appendLlmJudgeConfigId } from "../lib/llmJudgeQuery";
 
 export interface ErrorRecordDetail {
   record_id: string;
@@ -55,6 +56,7 @@ interface Props {
   benchmarkId: string;
   recordId: string | null;
   pipeline: string | null;
+  llmJudgeConfigId?: number | null;
   onClose: () => void;
 }
 
@@ -180,6 +182,7 @@ export const RecordDetailDrawer: React.FC<Props> = ({
   benchmarkId,
   recordId,
   pipeline,
+  llmJudgeConfigId,
   onClose,
 }) => {
   const [detail, setDetail] = useState<ErrorRecordDetail | null>(null);
@@ -206,6 +209,7 @@ export const RecordDetailDrawer: React.FC<Props> = ({
         setDetailError(null);
         const params = new URLSearchParams();
         params.set("pipeline", pipeline);
+        appendLlmJudgeConfigId(params, llmJudgeConfigId);
         const res = await apiFetch(
           apiUrl(`/api/benchmarks/${benchmarkId}/errors/${recordId}/detail?${params.toString()}`)
         );
@@ -217,7 +221,7 @@ export const RecordDetailDrawer: React.FC<Props> = ({
       }
     };
     void loadDetail();
-  }, [benchmarkId, recordId, pipeline]);
+  }, [benchmarkId, recordId, pipeline, llmJudgeConfigId]);
 
   useEffect(() => {
     setDetailViewMode("detail");
@@ -244,8 +248,10 @@ export const RecordDetailDrawer: React.FC<Props> = ({
     try {
       setRawJsonLoading(true);
       setRawJsonError(null);
+      const params = new URLSearchParams();
+      appendLlmJudgeConfigId(params, llmJudgeConfigId);
       const res = await apiFetch(
-        apiUrl(`/api/benchmarks/${benchmarkId}/errors/${recordId}`)
+        apiUrl(`/api/benchmarks/${benchmarkId}/errors/${recordId}?${params.toString()}`)
       );
       setRawJsonRecord((await res.json()) as Record<string, any>);
     } catch (e: any) {

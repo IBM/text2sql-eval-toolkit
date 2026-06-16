@@ -61,6 +61,8 @@ from text2sql_eval_toolkit.utils import (
     parse_dataframe,
     save_predictions_data,
 )
+from text2sql_eval_toolkit.database import jobs as db_jobs
+from text2sql_eval_toolkit.database.session import get_connection
 from text2sql_eval_toolkit.execution.replace_select_tool import (
     replace_select_for_logic_ex_data,
 )
@@ -1322,89 +1324,96 @@ async def presto_run_execution_async(
 
 # For running from script
 def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = False):
-    benchmark_info = get_benchmark_info(benchmark_id)
-    db_engine = benchmark_info["db_engine"]
+    conn = get_connection()
+    with db_jobs.track_job(
+        conn,
+        "execution",
+        benchmark_id,
+        params={"num_threads": num_threads, "force_rerun": force_rerun},
+    ):
+        benchmark_info = get_benchmark_info(benchmark_id)
+        db_engine = benchmark_info["db_engine"]
 
-    predictions_data = load_predictions_data(benchmark_id)
-    predictions_data = replace_select_for_logic_ex_data(predictions_data, db_engine)
+        predictions_data = load_predictions_data(benchmark_id)
+        predictions_data = replace_select_for_logic_ex_data(predictions_data, db_engine)
 
-    if db_engine["db_type"] not in [
-        "postgres",
-        "sqlite",
-        "db2",
-        "mysql",
-        "presto",
-    ]:
-        raise NotImplementedError(f"Unsupported DB type '{db_engine['db_type']}'.")
+        if db_engine["db_type"] not in [
+            "postgres",
+            "sqlite",
+            "db2",
+            "mysql",
+            "presto",
+        ]:
+            raise NotImplementedError(f"Unsupported DB type '{db_engine['db_type']}'.")
 
-    query_count = 0
+        query_count = 0
 
-    if db_engine["db_type"] == "postgres":
-        schema_name = db_engine.get("schema_name")
-        connection_string = os.getenv(db_engine["connection_string_env_var"])
-        if not connection_string:
-            raise ValueError("Missing connection string.")
-        query_timeout = db_engine.get("query_timeout", 90)
-        predictions_data, query_count = asyncio.run(
-            postgres_run_execution_async(
-                connection_string,
-                schema_name,
-                predictions_data,
-                num_threads,
-                query_timeout,
-                force_rerun,
+        if db_engine["db_type"] == "postgres":
+            schema_name = db_engine.get("schema_name")
+            connection_string = os.getenv(db_engine["connection_string_env_var"])
+            if not connection_string:
+                raise ValueError("Missing connection string.")
+            query_timeout = db_engine.get("query_timeout", 90)
+            predictions_data, query_count = asyncio.run(
+                postgres_run_execution_async(
+                    connection_string,
+                    schema_name,
+                    predictions_data,
+                    num_threads,
+                    query_timeout,
+                    force_rerun,
+                )
             )
-        )
 
-    elif db_engine["db_type"] == "sqlite":
-        db_folder = benchmark_info["db_engine"]["db_folder"]
-        predictions_data, query_count = asyncio.run(
-            sqlite_run_execution_async(
-                db_folder, predictions_data, force_rerun=force_rerun
+        elif db_engine["db_type"] == "sqlite":
+            db_folder = benchmark_info["db_engine"]["db_folder"]
+            predictions_data, query_count = asyncio.run(
+                sqlite_run_execution_async(
+                    db_folder, predictions_data, force_rerun=force_rerun
+                )
             )
-        )
 
-    elif db_engine["db_type"] == "db2":
-        schema_name = db_engine.get("schema_name")
-        connection_string = os.getenv(db_engine["connection_string_env_var"])
-        if not connection_string:
-            raise ValueError("Missing DB2 connection string.")
-        predictions_data, query_count = asyncio.run(
-            db2_run_execution_async(
-                connection_string,
-                schema_name,
-                predictions_data,
-                num_threads,
-                force_rerun,
+        elif db_engine["db_type"] == "db2":
+            schema_name = db_engine.get("schema_name")
+            connection_string = os.getenv(db_engine["connection_string_env_var"])
+            if not connection_string:
+                raise ValueError("Missing DB2 connection string.")
+            predictions_data, query_count = asyncio.run(
+                db2_run_execution_async(
+                    connection_string,
+                    schema_name,
+                    predictions_data,
+                    num_threads,
+                    force_rerun,
+                )
             )
-        )
-    elif db_engine["db_type"] == "mysql":
-        connection_string = os.getenv(db_engine["connection_string_env_var"])
-        if not connection_string:
-            raise ValueError("Missing MySQL connection string.")
-        query_timeout = db_engine.get("query_timeout", 90)
-        predictions_data, query_count = asyncio.run(
-            mysql_run_execution_async(
-                connection_string,
-                predictions_data,
-                num_threads,
-                query_timeout,
-                force_rerun,
+        elif db_engine["db_type"] == "mysql":
+            connection_string = os.getenv(db_engine["connection_string_env_var"])
+            if not connection_string:
+                raise ValueError("Missing MySQL connection string.")
+            query_timeout = db_engine.get("query_timeout", 90)
+            predictions_data, query_count = asyncio.run(
+                mysql_run_execution_async(
+                    connection_string,
+                    predictions_data,
+                    num_threads,
+                    query_timeout,
+                    force_rerun,
+                )
             )
-        )
-    elif db_engine["db_type"] == "presto":
-        connection_string = os.getenv(db_engine["connection_string_env_var"])
-        if not connection_string:
-            raise ValueError("Missing Presto connection string.")
-        query_timeout = db_engine.get("query_timeout", 300)
-        predictions_data, query_count = asyncio.run(
-            presto_run_execution_async(
-                connection_string,
-                predictions_data,
-                num_threads,
-                query_timeout,
+        elif db_engine["db_type"] == "presto":
+            connection_string = os.getenv(db_engine["connection_string_env_var"])
+            if not connection_string:
+                raise ValueError("Missing Presto connection string.")
+            query_timeout = db_engine.get("query_timeout", 300)
+            predictions_data, query_count = asyncio.run(
+                presto_run_execution_async(
+                    connection_string,
+                    predictions_data,
+                    num_threads,
+                    query_timeout,
+                )
             )
-        )
 
-    save_predictions_data(benchmark_id, predictions_data, status="executed")
-    logger.info(f"Total SQL queries executed: {query_count}")
+        save_predictions_data(benchmark_id, predictions_data, status="executed")
+        logger.info(f"Total SQL queries executed: {query_count}")
