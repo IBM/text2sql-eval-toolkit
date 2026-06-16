@@ -32,7 +32,8 @@ from text2sql_eval_toolkit.utils import (
     get_writable_data_root,
 )
 from text2sql_eval_toolkit.database.store import get_store
-from text2sql_eval_toolkit.database.session import ensure_schema
+from text2sql_eval_toolkit.database.session import ensure_schema, get_connection
+from text2sql_eval_toolkit.database import jobs as db_jobs
 from text2sql_eval_toolkit.execution.execution_tools import (
     _parse_presto_sqlalchemy_url,
     _normalize_sql_for_db2,
@@ -360,6 +361,17 @@ class LLMJudgeConfigListResponse(BaseModel):
     items: List[LLMJudgeConfigInfo]
 
 
+class BenchmarkLlmJudgeConfig(BaseModel):
+    id: int
+    name: str
+    model_id: Optional[str] = None
+
+
+class BenchmarkLlmJudgeConfigListResponse(BaseModel):
+    items: List[BenchmarkLlmJudgeConfig]
+    default_id: Optional[int] = None
+
+
 class EvaluateRequest(BaseModel):
     use_llm: bool = False
     llm_judge_config_path: Optional[str] = None
@@ -491,13 +503,32 @@ class EvaluationMetricDefinitionsResponse(BaseModel):
 
 class JobStatus(BaseModel):
     job_id: str
+    job_type: str
     benchmark_id: str
     status: str
+    progress: float = 0.0
+    message: Optional[str] = None
     error: Optional[str] = None
+    params: Dict[str, Any] = Field(default_factory=dict)
+    started_at: Optional[str] = None
+    completed_at: Optional[str] = None
+    created_at: Optional[str] = None
 
 
-JOBS: Dict[str, JobStatus] = {}
-JOBS_LOCK = threading.Lock()
+def _job_status_from_row(row: Dict[str, Any]) -> JobStatus:
+    return JobStatus(
+        job_id=row["job_id"],
+        job_type=row["job_type"],
+        benchmark_id=row["benchmark_id"],
+        status=row["status"],
+        progress=row.get("progress") or 0.0,
+        message=row.get("message"),
+        error=row.get("error"),
+        params=row.get("params") or {},
+        started_at=row.get("started_at"),
+        completed_at=row.get("completed_at"),
+        created_at=row.get("created_at"),
+    )
 
 
 class FetchJobStatus(BaseModel):
@@ -517,11 +548,6 @@ EVAL_RECORDS_CACHE: Dict[str, Tuple[float, float, List[Dict[str, Any]]]] = {}
 EVAL_RECORDS_LOCK = threading.Lock()
 
 
-def _update_job(job: JobStatus) -> None:
-    with JOBS_LOCK:
-        JOBS[job.job_id] = job
-
-
 def _records_have_eval_predictions(records: List[Dict[str, Any]]) -> bool:
     for record in records:
         predictions = record.get("predictions")
@@ -533,25 +559,33 @@ def _records_have_eval_predictions(records: List[Dict[str, Any]]) -> bool:
     return False
 
 
-def load_eval_records(benchmark_id: str) -> List[Dict[str, Any]]:
+def load_eval_records(
+    benchmark_id: str,
+    llm_judge_config_id: Optional[int] = None,
+) -> List[Dict[str, Any]]:
     """
     Load evaluation records for a benchmark from SQLite.
-    Uses an in-memory cache keyed by database update timestamps.
+    Uses an in-memory cache keyed by database update timestamps and judge config.
     """
     ensure_schema()
     store = get_store(data_root=get_data_root())
+    cache_key = f"{benchmark_id}:{llm_judge_config_id or 'default'}"
     try:
         cache_version = store.get_cache_version(benchmark_id)
     except ValueError:
         raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
 
     with EVAL_RECORDS_LOCK:
-        cached = EVAL_RECORDS_CACHE.get(benchmark_id)
+        cached = EVAL_RECORDS_CACHE.get(cache_key)
         if cached is not None and cached[0] == cache_version:
             return cached[2]
 
     try:
-        data = load_predictions_data(benchmark_id, include_eval=True)
+        data = load_predictions_data(
+            benchmark_id,
+            include_eval=True,
+            llm_judge_config_id=llm_judge_config_id,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id)) from exc
     if not data:
@@ -562,7 +596,7 @@ def load_eval_records(benchmark_id: str) -> List[Dict[str, Any]]:
         raise HTTPException(status_code=500, detail="Invalid evaluation record format")
 
     with EVAL_RECORDS_LOCK:
-        EVAL_RECORDS_CACHE[benchmark_id] = (cache_version, cache_version, data)
+        EVAL_RECORDS_CACHE[cache_key] = (cache_version, cache_version, data)
         return data
 
 
@@ -762,16 +796,24 @@ def upload_benchmark_logo(req: BenchmarkLogoUploadRequest):
 
 
 @app.get("/api/benchmarks/{benchmark_id}/summary", response_model=BenchmarkDetailResponse)
-def get_benchmark_summary(benchmark_id: str) -> BenchmarkDetailResponse:
+def get_benchmark_summary(
+    benchmark_id: str,
+    llm_judge_config_id: Optional[int] = Query(
+        None, description="LLM judge config id for llm_score metrics"
+    ),
+) -> BenchmarkDetailResponse:
     """Return pipeline-level summary metrics for a benchmark from SQLite."""
     try:
-        raw = load_eval_summary(benchmark_id)
+        raw = load_eval_summary(
+            benchmark_id, llm_judge_config_id=llm_judge_config_id
+        )
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=404, detail=_summary_not_found_detail(benchmark_id)
         ) from exc
 
     llm_cfg = raw.pop("llm_judge_config", None)
+    raw.pop("llm_judge_config_id", None)
     default_sort_metric = "subset_non_empty_execution_accuracy"
     if llm_cfg and isinstance(llm_cfg, dict):
         default_sort_metric = (
@@ -869,20 +911,28 @@ def _collect_category_summary(records: List[Dict[str, Any]]) -> Dict[str, Dict[s
     "/api/benchmarks/{benchmark_id}/summary/by-category",
     response_model=BenchmarkCategorySummaryResponse,
 )
-def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySummaryResponse:
+def get_benchmark_summary_by_category(
+    benchmark_id: str,
+    llm_judge_config_id: Optional[int] = Query(
+        None, description="LLM judge config id for llm_score metrics"
+    ),
+) -> BenchmarkCategorySummaryResponse:
     """Return summary metrics overall and broken down by categories."""
     try:
-        summary_raw = load_eval_summary(benchmark_id)
+        summary_raw = load_eval_summary(
+            benchmark_id, llm_judge_config_id=llm_judge_config_id
+        )
     except FileNotFoundError:
         summary_raw = {}
 
     llm_cfg = summary_raw.pop("llm_judge_config", None)
+    summary_raw.pop("llm_judge_config_id", None)
     default_sort_metric = "subset_non_empty_execution_accuracy"
     if llm_cfg and isinstance(llm_cfg, dict):
         default_sort_metric = llm_cfg.get("default_sort_metric", default_sort_metric)
 
     try:
-        records = load_eval_records(benchmark_id)
+        records = load_eval_records(benchmark_id, llm_judge_config_id)
     except HTTPException:
         if not summary_raw:
             raise HTTPException(
@@ -967,11 +1017,14 @@ def list_errors(
         False,
         description="If true, include only records where selected pipeline has execution_accuracy == 0",
     ),
+    llm_judge_config_id: Optional[int] = Query(
+        None, description="LLM judge config id for llm_score metrics"
+    ),
 ):
     """
     Paginated list of records for error analysis with simple single- and cross-pipeline filters.
     """
-    data = load_eval_records(benchmark_id)
+    data = load_eval_records(benchmark_id, llm_judge_config_id)
 
     def match_search(rec: Dict[str, Any]) -> bool:
         if not q:
@@ -1094,11 +1147,17 @@ def list_errors(
     "/api/benchmarks/{benchmark_id}/errors/{record_id}",
     response_model=Dict[str, Any],
 )
-def get_error_detail(benchmark_id: str, record_id: str):
+def get_error_detail(
+    benchmark_id: str,
+    record_id: str,
+    llm_judge_config_id: Optional[int] = Query(
+        None, description="LLM judge config id for llm_score metrics"
+    ),
+):
     """
     Return full record for a given benchmark and record id for detailed error analysis.
     """
-    data = load_eval_records(benchmark_id)
+    data = load_eval_records(benchmark_id, llm_judge_config_id)
     for rec in data:
         rid = str(rec.get("id") or rec.get("question_id") or "")
         if rid == record_id:
@@ -1115,11 +1174,14 @@ def get_error_detail_for_pipeline(
     benchmark_id: str,
     record_id: str,
     pipeline: str = Query(..., description="Pipeline id to inspect"),
+    llm_judge_config_id: Optional[int] = Query(
+        None, description="LLM judge config id for llm_score metrics"
+    ),
 ):
     """
     Return a normalized, UI-friendly detail payload for one record and one pipeline.
     """
-    data = load_eval_records(benchmark_id)
+    data = load_eval_records(benchmark_id, llm_judge_config_id)
     for rec in data:
         rid = str(rec.get("id") or rec.get("question_id") or "")
         if rid != record_id:
@@ -1893,13 +1955,16 @@ def binary_metric_confusion_by_pipeline(
     benchmark_id: str,
     metric_a: str = Query(..., description="Metric key for dimension A"),
     metric_b: str = Query(..., description="Metric key for dimension B"),
+    llm_judge_config_id: Optional[int] = Query(
+        None, description="LLM judge config id for llm_score metrics"
+    ),
 ):
     """
     For each pipeline, compute binary confusion counts for (A, B).
     Metrics are treated as binary (1 means success, anything else is 0).
     Only records where both metric values exist are counted.
     """
-    data = load_eval_records(benchmark_id)
+    data = load_eval_records(benchmark_id, llm_judge_config_id)
 
     per_pipeline_counts: Dict[str, Dict[str, int]] = {}
     per_pipeline_n: Dict[str, int] = {}
@@ -1979,6 +2044,9 @@ def cross_pipeline_binary_metric_confusion(
         None,
         description="Metric key for right (defaults to metric_left)",
     ),
+    llm_judge_config_id: Optional[int] = Query(
+        None, description="LLM judge config id for llm_score metrics"
+    ),
 ):
     """
     Compute binary confusion counts across two pipelines for a (possibly)
@@ -1986,7 +2054,7 @@ def cross_pipeline_binary_metric_confusion(
     Only records where both metric values exist are counted.
     """
     metric_right_key = metric_right or metric_left
-    data = load_eval_records(benchmark_id)
+    data = load_eval_records(benchmark_id, llm_judge_config_id)
 
     counts = {
         "left0right0": 0,
@@ -2046,6 +2114,31 @@ def cross_pipeline_binary_metric_confusion(
         agreement_rate=agreement_rate,
         disagreement_rate=1.0 - agreement_rate if n_valid > 0 else 0.0,
     )
+
+
+@app.get(
+    "/api/benchmarks/{benchmark_id}/llm-judge-configs",
+    response_model=BenchmarkLlmJudgeConfigListResponse,
+)
+def list_benchmark_llm_judge_configs(
+    benchmark_id: str,
+) -> BenchmarkLlmJudgeConfigListResponse:
+    """List LLM judge configurations that have stored results for this benchmark."""
+    store = get_store(data_root=get_data_root())
+    try:
+        items_raw = store.list_llm_judge_configs_for_benchmark(benchmark_id)
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    items = [
+        BenchmarkLlmJudgeConfig(
+            id=item["id"],
+            name=item["name"],
+            model_id=item.get("model_id"),
+        )
+        for item in items_raw
+    ]
+    default_id = items[-1].id if items else None
+    return BenchmarkLlmJudgeConfigListResponse(items=items, default_id=default_id)
 
 
 @app.get("/api/llm-judge/configs", response_model=LLMJudgeConfigListResponse)
@@ -2115,18 +2208,22 @@ def evaluate_benchmark(benchmark_id: str, req: EvaluateRequest):
     Trigger an evaluation run for a benchmark.
     The evaluation runs in a background thread; this endpoint returns a job id.
     """
-    job_id = str(uuid.uuid4())
-    job = JobStatus(
-        job_id=job_id,
-        benchmark_id=benchmark_id,
-        status="queued",
-        error=None,
+    ensure_schema()
+    job_type = db_jobs.resolve_eval_job_type(use_llm_judge=req.use_llm)
+    job_params = {
+        "use_llm_judge": req.use_llm,
+        "llm_judge_config_path": req.llm_judge_config_path,
+        "force_rerun": req.force_rerun,
+        "force_rerun_llm_judge": req.force_rerun_llm_judge,
+    }
+    conn = get_connection()
+    job_id = db_jobs.create_pending_job(
+        conn, job_type, benchmark_id, params=job_params
     )
-    _update_job(job)
+    job_row = get_store(data_root=get_data_root()).get_job(job_id)
+    assert job_row is not None
 
     def worker():
-        job.status = "running"
-        _update_job(job)
         try:
             run_evaluation(
                 benchmark_id,
@@ -2134,27 +2231,37 @@ def evaluate_benchmark(benchmark_id: str, req: EvaluateRequest):
                 llm_judge_config_path=req.llm_judge_config_path,
                 force_rerun_llm_judge=req.force_rerun_llm_judge or req.force_rerun,
                 force_rerun=req.force_rerun,
+                job_id=job_id,
             )
-            job.status = "completed"
-            job.error = None
-        except Exception as e:  # pragma: no cover - defensive
+        except Exception:
             logger.exception("Evaluation job failed")
-            job.status = "failed"
-            job.error = repr(e)
-        finally:
-            _update_job(job)
 
     threading.Thread(target=worker, daemon=True).start()
-    return job
+    return _job_status_from_row(job_row)
 
 
 @app.get("/api/jobs/{job_id}", response_model=JobStatus)
 def get_job_status(job_id: str) -> JobStatus:
-    with JOBS_LOCK:
-        job = JOBS.get(job_id)
-    if not job:
+    ensure_schema()
+    job_row = get_store(data_root=get_data_root()).get_job(job_id)
+    if not job_row:
         raise HTTPException(status_code=404, detail="Job not found")
-    return job
+    return _job_status_from_row(job_row)
+
+
+@app.get("/api/benchmarks/{benchmark_id}/jobs", response_model=List[JobStatus])
+def list_benchmark_jobs(
+    benchmark_id: str,
+    job_type: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+) -> List[JobStatus]:
+    ensure_schema()
+    rows = get_store(data_root=get_data_root()).list_jobs(
+        benchmark_id=benchmark_id,
+        job_type=job_type,
+        limit=limit,
+    )
+    return [_job_status_from_row(row) for row in rows]
 
 
 # ---------------------------------------------------------------------------

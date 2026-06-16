@@ -16,8 +16,11 @@ import {
   TextArea,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { appendLlmJudgeConfigId, withLlmJudgeConfigId } from "../lib/llmJudgeQuery";
+import { LlmJudgeSelector } from "../components/LlmJudgeSelector";
+import type { LlmJudgeFilterProps } from "../hooks/useLlmJudgeConfigs";
 
-interface Props {
+interface Props extends LlmJudgeFilterProps {
   benchmarkId: string;
   pipelineName: string;
   onBack: () => void;
@@ -269,6 +272,9 @@ export const PipelineDetailView: React.FC<Props> = ({
   pipelineName,
   onBack,
   onOpenErrorAnalysis,
+  llmJudgeConfigs,
+  llmJudgeConfigId,
+  onLlmJudgeConfigIdChange,
 }) => {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [errors, setErrors] = useState<ErrorRecordSummary[]>([]);
@@ -299,7 +305,12 @@ export const PipelineDetailView: React.FC<Props> = ({
       try {
         setError(null);
         const res = await apiFetch(
-          apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
+          apiUrl(
+            withLlmJudgeConfigId(
+              `/api/benchmarks/${benchmarkId}/summary/by-category`,
+              llmJudgeConfigId
+            )
+          )
         );
         setSummary(await res.json());
       } catch (e: any) {
@@ -307,7 +318,7 @@ export const PipelineDetailView: React.FC<Props> = ({
       }
     };
     void loadSummary();
-  }, [benchmarkId]);
+  }, [benchmarkId, llmJudgeConfigId]);
 
   useEffect(() => {
     const loadErrors = async () => {
@@ -319,6 +330,7 @@ export const PipelineDetailView: React.FC<Props> = ({
         params.set("page", String(page));
         params.set("page_size", String(pageSize));
         if (search) params.set("q", search);
+        appendLlmJudgeConfigId(params, llmJudgeConfigId);
 
         const res = await apiFetch(
           apiUrl(`/api/benchmarks/${benchmarkId}/errors?${params.toString()}`)
@@ -331,7 +343,7 @@ export const PipelineDetailView: React.FC<Props> = ({
       }
     };
     void loadErrors();
-  }, [benchmarkId, pipelineName, page, pageSize, search]);
+  }, [benchmarkId, pipelineName, page, pageSize, search, llmJudgeConfigId]);
 
   const pipelineSummary = useMemo(() => {
     if (!summary) return null;
@@ -424,6 +436,7 @@ export const PipelineDetailView: React.FC<Props> = ({
         setDetailError(null);
         const params = new URLSearchParams();
         params.set("pipeline", pipelineName);
+        appendLlmJudgeConfigId(params, llmJudgeConfigId);
         const res = await apiFetch(
           apiUrl(
             `/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}/detail?${params.toString()}`
@@ -437,7 +450,7 @@ export const PipelineDetailView: React.FC<Props> = ({
       }
     };
     void loadDetail();
-  }, [benchmarkId, pipelineName, selectedRecordId]);
+  }, [benchmarkId, pipelineName, selectedRecordId, llmJudgeConfigId]);
 
   const closeDetail = () => {
     setSelectedRecordId(null);
@@ -480,8 +493,10 @@ export const PipelineDetailView: React.FC<Props> = ({
     try {
       setRawJsonLoading(true);
       setRawJsonError(null);
+      const params = new URLSearchParams();
+      appendLlmJudgeConfigId(params, llmJudgeConfigId);
       const res = await apiFetch(
-        apiUrl(`/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}`)
+        apiUrl(`/api/benchmarks/${benchmarkId}/errors/${selectedRecordId}?${params.toString()}`)
       );
       setRawJsonRecord((await res.json()) as Record<string, any>);
     } catch (e: any) {
@@ -582,13 +597,21 @@ export const PipelineDetailView: React.FC<Props> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
         <Button kind="ghost" size="sm" onClick={onBack}>
           Back to summary
         </Button>
         <h3 style={{ margin: 0 }}>
           {benchmarkId} – {pipelineName}
         </h3>
+        <div style={{ marginLeft: "auto", minWidth: "240px" }}>
+          <LlmJudgeSelector
+            id="pipeline-detail-llm-judge-select"
+            configs={llmJudgeConfigs}
+            selectedId={llmJudgeConfigId}
+            onChange={onLlmJudgeConfigIdChange}
+          />
+        </div>
       </div>
 
       {error && (

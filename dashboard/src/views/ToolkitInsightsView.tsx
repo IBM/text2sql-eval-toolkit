@@ -14,6 +14,9 @@ import {
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
 import { apiFetch, apiUrl } from "../lib/api";
+import { appendLlmJudgeConfigId, withLlmJudgeConfigId } from "../lib/llmJudgeQuery";
+import { LlmJudgeSelector } from "../components/LlmJudgeSelector";
+import type { LlmJudgeFilterProps } from "../hooks/useLlmJudgeConfigs";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
@@ -30,7 +33,7 @@ type ErrorAnalysisFilters = {
   disagree: boolean;
 };
 
-interface Props {
+interface Props extends LlmJudgeFilterProps {
   benchmarks: BenchmarkSummary[];
   benchmarkId: string | null;
   onSelectBenchmark: (id: string) => void;
@@ -82,6 +85,9 @@ export const ToolkitInsightsView: React.FC<Props> = ({
   benchmarkId,
   onSelectBenchmark,
   onOpenErrorAnalysis,
+  llmJudgeConfigs,
+  llmJudgeConfigId,
+  onLlmJudgeConfigIdChange,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [confusionError, setConfusionError] = useState<string | null>(null);
@@ -153,6 +159,8 @@ export const ToolkitInsightsView: React.FC<Props> = ({
           metric_a: llmMetricAKey,
           metric_b: "llm_score",
         });
+        appendLlmJudgeConfigId(paramsSubset, llmJudgeConfigId);
+        appendLlmJudgeConfigId(paramsLLM, llmJudgeConfigId);
 
         const [subsetResult, llmResult, summaryResult] = await Promise.allSettled([
           apiFetch(
@@ -165,9 +173,14 @@ export const ToolkitInsightsView: React.FC<Props> = ({
               `/api/benchmarks/${benchmarkId}/insights/binary-metric-confusion-by-pipeline?${paramsLLM.toString()}`
             )
           ).then((r) => r.json() as Promise<ConfusionByPipelineResponse>),
-          apiFetch(apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)).then(
-            (r) => r.json() as Promise<SummaryResponse>
-          ),
+          apiFetch(
+            apiUrl(
+              withLlmJudgeConfigId(
+                `/api/benchmarks/${benchmarkId}/summary/by-category`,
+                llmJudgeConfigId
+              )
+            )
+          ).then((r) => r.json() as Promise<SummaryResponse>),
         ]);
 
         if (summaryResult.status === "rejected") {
@@ -200,7 +213,7 @@ export const ToolkitInsightsView: React.FC<Props> = ({
     };
 
     void load();
-  }, [benchmarkId, metricAKey, metricBKey, llmMetricAKey]);
+  }, [benchmarkId, metricAKey, metricBKey, llmMetricAKey, llmJudgeConfigId]);
 
   useEffect(() => {
     if (!summary?.overall?.length) {
@@ -406,6 +419,14 @@ export const ToolkitInsightsView: React.FC<Props> = ({
             }}
             placeholder="Select pipeline"
             disabled={!availablePipelines.length}
+          />
+        </div>
+        <div>
+          <LlmJudgeSelector
+            id="insights-llm-judge-select"
+            configs={llmJudgeConfigs}
+            selectedId={llmJudgeConfigId}
+            onChange={onLlmJudgeConfigIdChange}
           />
         </div>
       </div>

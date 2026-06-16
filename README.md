@@ -43,7 +43,7 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 - **SQL Execution** ([`scripts/execution`](scripts/execution)): Runs the ground truth and predicted SQLs for a given benchmark and saves the dataframes for evaluation and error analysis. Run `python scripts/execution/run_execution.py -h` for more information.
 - **Results and Error Analysis** ([`scripts/analysis`](`scripts/analysis`)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
 - **SQL Profiling** ([`scripts/profiling`](scripts/profiling)): Tools to profile SQL queries and natural-language questions, assigning profile categories (stored in `meta.categories`) for breakdowns by query type. See [`scripts/profiling/README.md`](scripts/profiling/README.md) for scripts, category definitions, and usage.
-- **JSON → SQLite migration** ([`scripts/migration`](scripts/migration)): Import legacy benchmark JSON artifacts into the relational database schema. See [`scripts/migration/README.md`](scripts/migration/README.md) and [`data/database-schema/README.md`](data/database-schema/README.md).
+- **JSON → SQLite migration** ([`scripts/migration`](scripts/migration)): Import legacy result JSON into SQLite (one-time / Hub fetch workflow). Normal pipeline and dashboard operation use the database only. See [`scripts/migration/README.md`](scripts/migration/README.md) and [`data/database-schema/README.md`](data/database-schema/README.md).
 - **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [dashboard/README.md](dashboard/README.md) for installation, data paths, development workflow, and build options.
 
 ## Setup
@@ -78,9 +78,13 @@ To download them (~7 GB) into `${TEXT2SQL_DATA_ROOT:-./data}/results/`:
 text2sql-eval-toolkit results fetch
 ```
 
-After this completes, the dashboard and analysis scripts will work
-against the downloaded artefacts. See [dashboard/README.md](dashboard/README.md) to launch
-the UI.
+After this completes, import the downloaded JSON into SQLite (runtime store):
+
+```bash
+python3 scripts/migration/import_json_to_db.py --init
+```
+
+Alternatively, run the pipeline directly — inference, execution, and evaluation write to `data/text2sql_eval.db` without creating JSON result files. See [dashboard/README.md](dashboard/README.md) to launch the UI.
 
 To fetch only a specific benchmark:
 
@@ -174,14 +178,13 @@ result = evaluate_prediction(record, prediction)
 print(result["subset_non_empty_execution_accuracy"])
 ```
 
-**Evaluate a predictions JSON file**
+**Evaluate predictions for a benchmark (SQLite)**
 
 ```python
 from text2sql_eval_toolkit import evaluate_predictions
 
-data, summary_df = evaluate_predictions(
-    input_file="data/results/my-benchmark-predictions.json",
-)
+# Reads predictions from and writes evaluations to data/text2sql_eval.db
+data, summary_df = evaluate_predictions("bird_mini_dev_sqlite")
 print(summary_df.head())
 ```
 
@@ -254,8 +257,8 @@ The `run_all_benchmarks.py` script supports separate model configurations for st
 
 To run evaluation only:
 
-```
-python scripts/evaluation/run_evaluation.py [-h] [--output_file OUTPUT_FILE] [--summary_file SUMMARY_FILE] [--csv_summary_file CSV_SUMMARY_FILE] [--use_llm_judge] input_file
+```bash
+python scripts/evaluation/run_evaluation.py <benchmark_id> [--use_llm_judge] [--force-rerun]
 ```
 
 See [`scripts/evaluation/README.md`](scripts/evaluation/README.md) for details.
@@ -313,7 +316,7 @@ uv run text2sql-eval-dashboard --open-browser
 # or: text2sql-eval-dashboard --open-browser
 ```
 
-By default the server listens on `http://127.0.0.1:8000`. Set `TEXT2SQL_DATA_ROOT` to the directory that contains `results/` (defaults to `./data` if unset).
+By default the server listens on `http://127.0.0.1:8000`. Set `TEXT2SQL_DATA_ROOT` to the directory that contains `benchmarks.json` and `text2sql_eval.db` (defaults to `./data` if unset). The dashboard reads evaluation data from SQLite (`TEXT2SQL_DATABASE_URL`); legacy `*-predictions*.json` files are import-only — see [scripts/migration/README.md](scripts/migration/README.md).
 
 The pre-built frontend assets (`dashboard/dist/`) are committed to the repository, so no Node.js is required to run the dashboard. From a source checkout, the CLI will automatically rebuild `dashboard/dist` via Vite when sources change if Node.js/npm are available (run `npm install` in `dashboard/` once to enable this). Use `--no-watch-dashboard` to serve the committed build only.
 
@@ -331,8 +334,8 @@ text2sql-eval-toolkit
 │   │   └── dbs/                # Database files and setup instructions
 │   ├── benchmarks.json         # Full benchmarks configuration
 │   ├── test-benchmarks.json    # Test benchmarks configuration (smaller datasets)
-│   └── results/                # Evaluation outputs
-│           └── README.md       # Summary of results
+│   ├── text2sql_eval.db        # SQLite runtime store (predictions, eval, jobs)
+│   └── results/                # Legacy JSON results (import via scripts/migration)
 ├── scripts/                    # Scripts for running experiments
 │   ├── analysis/               # Results and error analysis scripts and utilities
 │   ├── curation/               # Benchmark data curation and preprocessing scripts

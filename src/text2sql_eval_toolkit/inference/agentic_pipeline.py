@@ -46,6 +46,8 @@ from text2sql_eval_toolkit.utils import (
     load_predictions_data,
     save_predictions_data,
 )
+from text2sql_eval_toolkit.database import jobs as db_jobs
+from text2sql_eval_toolkit.database.session import get_connection
 from text2sql_eval_toolkit.execution.execution_tools import (
     run_sql_and_get_dataframe_async,
     run_sqlite_query_with_timeout,
@@ -2290,47 +2292,58 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
             f"🚀 Running agentic inference for benchmark {benchmark_id}, pipeline: {pipeline_id}"
         )
 
-        benchmark_info = get_benchmark_info(benchmark_id)
-        db_type = benchmark_info["db_engine"]["db_type"]
+        conn = get_connection()
+        with db_jobs.track_job(
+            conn,
+            "inference",
+            benchmark_id,
+            params={
+                "model_name": model_name,
+                "pipeline_id": pipeline_id,
+                "pipeline_type": "agentic",
+            },
+        ):
+            benchmark_info = get_benchmark_info(benchmark_id)
+            db_type = benchmark_info["db_engine"]["db_type"]
 
-        schema = load_benchmark_schema(benchmark_id)
-        data = load_benchmark_records(benchmark_id)
-        predictions_data = load_predictions_data(benchmark_id)
-        if not predictions_data:
-            predictions_data = []
+            schema = load_benchmark_schema(benchmark_id)
+            data = load_benchmark_records(benchmark_id)
+            predictions_data = load_predictions_data(benchmark_id)
+            if not predictions_data:
+                predictions_data = []
 
-        client = self._create_llm_client(model_name, model_parameters)
-        db_connection_info = benchmark_info["db_engine"]
+            client = self._create_llm_client(model_name, model_parameters)
+            db_connection_info = benchmark_info["db_engine"]
 
-        async def run_all():
-            semaphore = asyncio.Semaphore(max_num_threads)
-            tasks = [
-                self.generate_sql(
-                    idx,
-                    obj,
-                    schema,
-                    db_type,
-                    pipeline_id,
-                    model_name,
-                    model_parameters,
-                    client,
-                    predictions_data,
-                    semaphore,
-                    benchmark_id,
-                    db_connection_info,
-                    max_attempts,
-                    force_rerun=force_rerun,
-                    skip_inference_error_retries=skip_inference_error_retries,
-                )
-                for idx, obj in enumerate(data)
-            ]
-            await asyncio.gather(*tasks)
+            async def run_all():
+                semaphore = asyncio.Semaphore(max_num_threads)
+                tasks = [
+                    self.generate_sql(
+                        idx,
+                        obj,
+                        schema,
+                        db_type,
+                        pipeline_id,
+                        model_name,
+                        model_parameters,
+                        client,
+                        predictions_data,
+                        semaphore,
+                        benchmark_id,
+                        db_connection_info,
+                        max_attempts,
+                        force_rerun=force_rerun,
+                        skip_inference_error_retries=skip_inference_error_retries,
+                    )
+                    for idx, obj in enumerate(data)
+                ]
+                await asyncio.gather(*tasks)
 
-        asyncio.run(run_all())
+            asyncio.run(run_all())
 
-        save_predictions_data(benchmark_id, predictions_data, status="inference")
+            save_predictions_data(benchmark_id, predictions_data, status="inference")
 
-        logger.debug(
-            f"✅ Agentic inference completed for benchmark '{benchmark_id}', pipeline: {pipeline_id}."
-        )
-        logger.info(f"Predictions saved to database for benchmark {benchmark_id}")
+            logger.debug(
+                f"✅ Agentic inference completed for benchmark '{benchmark_id}', pipeline: {pipeline_id}."
+            )
+            logger.info(f"Predictions saved to database for benchmark {benchmark_id}")

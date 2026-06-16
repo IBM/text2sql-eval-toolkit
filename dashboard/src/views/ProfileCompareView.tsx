@@ -22,6 +22,9 @@ import {
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
 import { apiFetch, apiUrl } from "../lib/api";
+import { appendLlmJudgeConfigId, withLlmJudgeConfigId } from "../lib/llmJudgeQuery";
+import { LlmJudgeSelector } from "../components/LlmJudgeSelector";
+import type { LlmJudgeFilterProps } from "../hooks/useLlmJudgeConfigs";
 import {
   type CategorySummaryResponse,
   combineCategorySummaries,
@@ -67,7 +70,7 @@ interface PaginatedErrorResponse {
   page_size: number;
 }
 
-interface Props {
+interface Props extends LlmJudgeFilterProps {
   benchmarks: BenchmarkSummary[];
   benchmarkId: string | null;
   onSelectBenchmark?: (id: string) => void;
@@ -191,6 +194,9 @@ export const ProfileCompareView: React.FC<Props> = ({
   benchmarkId,
   onSelectBenchmark,
   onOpenErrorAnalysis,
+  llmJudgeConfigs,
+  llmJudgeConfigId,
+  onLlmJudgeConfigIdChange,
 }) => {
   const [selectedBenchmarkIds, setSelectedBenchmarkIds] = useState<string[]>([]);
   const [summariesById, setSummariesById] = useState<Record<string, CategorySummaryResponse>>({});
@@ -297,7 +303,14 @@ export const ProfileCompareView: React.FC<Props> = ({
       await Promise.all(
         selectedBenchmarkIds.map(async (id) => {
           try {
-            const res = await apiFetch(apiUrl(`/api/benchmarks/${id}/summary/by-category`));
+            const res = await apiFetch(
+              apiUrl(
+                withLlmJudgeConfigId(
+                  `/api/benchmarks/${id}/summary/by-category`,
+                  llmJudgeConfigId
+                )
+              )
+            );
             const json = (await res.json()) as CategorySummaryResponse;
             loaded[id] = json;
           } catch (e: unknown) {
@@ -316,7 +329,7 @@ export const ProfileCompareView: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedBenchmarkIds]);
+  }, [selectedBenchmarkIds, llmJudgeConfigId]);
 
   const loadedSummaries = useMemo(
     () =>
@@ -453,6 +466,7 @@ export const ProfileCompareView: React.FC<Props> = ({
       if (profile !== "overall") params.set("category", profile);
       if (agreement === "disagree") params.set("disagree", "true");
       if (agreement === "agree") params.set("agree", "true");
+      appendLlmJudgeConfigId(params, llmJudgeConfigId);
       const res = await apiFetch(
         apiUrl(`/api/benchmarks/${drilldownBenchmarkId}/errors?${params.toString()}`)
       );
@@ -490,6 +504,7 @@ export const ProfileCompareView: React.FC<Props> = ({
     metricAgreement,
     profileRecordsPage,
     profileRecordsPageSize,
+    llmJudgeConfigId,
   ]);
 
   const profileRecordHeaders: DataTableHeader[] = useMemo(
@@ -753,6 +768,12 @@ export const ProfileCompareView: React.FC<Props> = ({
                   onChange={(e) => setSelectedPipeline((e.selectedItem as string) ?? "")}
                   placeholder="Select pipeline"
                   disabled={pipelines.length === 0}
+                />
+                <LlmJudgeSelector
+                  id="profile-compare-llm-judge-select"
+                  configs={llmJudgeConfigs}
+                  selectedId={llmJudgeConfigId}
+                  onChange={onLlmJudgeConfigIdChange}
                 />
                 <Select
                   id="profile-compare-metric-a"
@@ -1088,6 +1109,7 @@ export const ProfileCompareView: React.FC<Props> = ({
               benchmarkId={drilldownBenchmarkId}
               recordId={selectedRecordId}
               pipeline={selectedPipeline}
+              llmJudgeConfigId={llmJudgeConfigId}
               onClose={closeRecordDetail}
             />
           ) : null}

@@ -13,6 +13,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from text2sql_eval_toolkit.database.jobs import get_job as _get_job
+from text2sql_eval_toolkit.database.jobs import list_jobs as _list_jobs
 from text2sql_eval_toolkit.database.json_importer import (
     EVAL_BINARY_COLUMNS,
     FEATURE_FIELDS,
@@ -170,9 +172,13 @@ class BenchmarkStore:
 
     @retry_on_locked
     def load_result_records(
-        self, benchmark_id: str, *, include_eval: bool = False
+        self,
+        benchmark_id: str,
+        *,
+        include_eval: bool = False,
+        llm_judge_config_id: int | None = None,
     ) -> list[dict[str, Any]]:
-        self.ensure_result_data_seeded(benchmark_id)
+        self.ensure_benchmark_seeded(benchmark_id)
         records = self._export_gold_records(benchmark_id)
         result_set_id = self._default_result_set_id(benchmark_id)
         if result_set_id is None:
@@ -261,7 +267,12 @@ class BenchmarkStore:
             predictions[row["pipeline_id"]] = block
 
         if include_eval:
-            self._attach_evaluations(benchmark_id, records, result_set_id)
+            self._attach_evaluations(
+                benchmark_id,
+                records,
+                result_set_id,
+                llm_judge_config_id=llm_judge_config_id,
+            )
 
         self._attach_gt_execution(records, benchmark_id)
         return records
@@ -289,24 +300,35 @@ class BenchmarkStore:
                 )
 
     @retry_on_locked
-    def load_summary(self, benchmark_id: str) -> dict[str, Any]:
-        self.ensure_result_data_seeded(benchmark_id)
+    def load_summary(
+        self,
+        benchmark_id: str,
+        *,
+        llm_judge_config_id: int | None = None,
+    ) -> dict[str, Any]:
+        self.ensure_benchmark_seeded(benchmark_id)
         result_set_id = self._default_result_set_id(benchmark_id)
         if result_set_id is None:
             raise FileNotFoundError(f"No result set for benchmark {benchmark_id}")
 
         summary: dict[str, Any] = {}
-        judge_row = self.conn.execute(
-            """
-            SELECT config_json FROM llm_judge_configs
-            ORDER BY id DESC LIMIT 1
-            """
-        ).fetchone()
-        if judge_row is not None:
-            try:
-                summary["llm_judge_config"] = json.loads(judge_row["config_json"])
-            except json.JSONDecodeError:
-                pass
+        resolved_judge_id = llm_judge_config_id or self._default_llm_judge_config_id(
+            result_set_id
+        )
+        if resolved_judge_id is not None:
+            judge_row = self.conn.execute(
+                """
+                SELECT config_json FROM llm_judge_configs
+                WHERE id = ?
+                """,
+                (resolved_judge_id,),
+            ).fetchone()
+            if judge_row is not None:
+                try:
+                    summary["llm_judge_config"] = json.loads(judge_row["config_json"])
+                    summary["llm_judge_config_id"] = resolved_judge_id
+                except json.JSONDecodeError:
+                    pass
 
         pipeline_rows = self.conn.execute(
             "SELECT id, pipeline_id FROM pipelines WHERE result_set_id = ?",
@@ -327,14 +349,19 @@ class BenchmarkStore:
                 continue
             summary[pipeline_name] = self._summary_row_to_metrics(row)
 
-        llm_summary_rows = self.conn.execute(
-            """
+        llm_summary_sql = """
             SELECT pipeline_ref, llm_score_avg, llm_score_stddev,
                    num_evaluated, num_judge_errors, sum_judge_tokens
             FROM llm_judge_eval_summaries
             WHERE result_set_id = ? AND category IS NULL
-            """,
-            (result_set_id,),
+        """
+        llm_summary_params: list[Any] = [result_set_id]
+        if resolved_judge_id is not None:
+            llm_summary_sql += " AND llm_judge_config_ref = ?"
+            llm_summary_params.append(resolved_judge_id)
+        llm_summary_rows = self.conn.execute(
+            llm_summary_sql,
+            llm_summary_params,
         ).fetchall()
         for row in llm_summary_rows:
             pipeline_name = pipeline_name_by_id.get(row["pipeline_ref"])
@@ -622,46 +649,86 @@ class BenchmarkStore:
         }
 
     @retry_on_locked
-    def ensure_result_data_seeded(self, benchmark_id: str) -> None:
-        """
-        Import predictions/eval/summary JSON into SQLite when on-disk artifacts
-        exist but the database is missing or incomplete for this benchmark.
-        """
+    def get_job(self, job_id: str) -> dict[str, Any] | None:
+        return _get_job(self.conn, job_id)
+
+    @retry_on_locked
+    def list_jobs(
+        self,
+        *,
+        benchmark_id: str | None = None,
+        job_type: str | None = None,
+        limit: int = 50,
+    ) -> list[dict[str, Any]]:
+        return _list_jobs(
+            self.conn,
+            benchmark_id=benchmark_id,
+            job_type=job_type,
+            limit=limit,
+        )
+
+    @retry_on_locked
+    def list_llm_judge_configs_for_benchmark(
+        self, benchmark_id: str
+    ) -> list[dict[str, Any]]:
         self.ensure_benchmark_seeded(benchmark_id)
-        info = self.get_benchmark_info(benchmark_id)
-        eval_path = Path(info["eval_results_path"])
-        pred_path = Path(info["predictions_path"])
-        summary_path = Path(info["eval_summary_path"])
+        result_set_id = self._default_result_set_id(benchmark_id)
+        if result_set_id is None:
+            return []
+        rows = self.conn.execute(
+            """
+            SELECT DISTINCT ljc.id, ljc.config_name, ljc.model_id
+            FROM llm_judge_configs ljc
+            WHERE ljc.id IN (
+                SELECT llm_judge_config_ref
+                FROM llm_judge_eval_summaries
+                WHERE result_set_id = ?
+                UNION
+                SELECT lje.llm_judge_config_ref
+                FROM llm_judge_evaluations lje
+                JOIN predictions pr ON pr.id = lje.prediction_id
+                WHERE pr.result_set_id = ?
+            )
+            ORDER BY ljc.id
+            """,
+            (result_set_id, result_set_id),
+        ).fetchall()
+        return [
+            {
+                "id": int(row["id"]),
+                "name": row["config_name"],
+                "model_id": row["model_id"],
+            }
+            for row in rows
+        ]
 
-        status = self._result_data_status(benchmark_id)
-        needs_predictions = status["predictions"] == 0 and (
-            eval_path.is_file() or pred_path.is_file()
-        )
-        needs_summary = (
-            eval_path.is_file()
-            and summary_path.is_file()
-            and status["summaries"] == 0
-            and status["predictions"] > 0
-        )
-        if not needs_predictions and not needs_summary:
-            return
-
-        importer = JsonToDbImporter(conn=self.conn, data_root=self.data_root)
-        with _benchmark_write_locks[benchmark_id]:
-            with transaction(immediate=True):
-                if needs_predictions:
-                    logger.info(
-                        "Syncing result artifacts from JSON for %s", benchmark_id
-                    )
-                    importer._import_result_artifacts(
-                        benchmark_id,
-                        info,
-                        import_eval=eval_path.is_file(),
-                    )
-                if needs_summary or (
-                    needs_predictions and eval_path.is_file() and summary_path.is_file()
-                ):
-                    importer._import_eval_summary(benchmark_id, info)
+    def _default_llm_judge_config_id(self, result_set_id: int) -> int | None:
+        row = self.conn.execute(
+            """
+            SELECT llm_judge_config_ref
+            FROM llm_judge_eval_summaries
+            WHERE result_set_id = ?
+            ORDER BY llm_judge_config_ref DESC
+            LIMIT 1
+            """,
+            (result_set_id,),
+        ).fetchone()
+        if row is not None:
+            return int(row["llm_judge_config_ref"])
+        row = self.conn.execute(
+            """
+            SELECT lje.llm_judge_config_ref
+            FROM llm_judge_evaluations lje
+            JOIN predictions pr ON pr.id = lje.prediction_id
+            WHERE pr.result_set_id = ?
+            ORDER BY lje.llm_judge_config_ref DESC
+            LIMIT 1
+            """,
+            (result_set_id,),
+        ).fetchone()
+        if row is not None:
+            return int(row["llm_judge_config_ref"])
+        return None
 
     def _export_gold_records(self, benchmark_id: str) -> list[dict[str, Any]]:
         rows = self.conn.execute(
@@ -758,9 +825,22 @@ class BenchmarkStore:
         benchmark_id: str,
         records: list[dict[str, Any]],
         result_set_id: int,
+        *,
+        llm_judge_config_id: int | None = None,
     ) -> None:
+        resolved_judge_id = llm_judge_config_id or self._default_llm_judge_config_id(
+            result_set_id
+        )
+        llm_join = "LEFT JOIN llm_judge_evaluations lje ON lje.prediction_id = pr.id"
+        params: list[Any] = [result_set_id]
+        if resolved_judge_id is not None:
+            llm_join = (
+                "LEFT JOIN llm_judge_evaluations lje ON lje.prediction_id = pr.id "
+                "AND lje.llm_judge_config_ref = ?"
+            )
+            params = [resolved_judge_id, result_set_id]
         eval_rows = self.conn.execute(
-            """
+            f"""
             SELECT br.record_id, pip.pipeline_id, e.*, mdf.payload_text AS matched_gt_df,
                    lje.llm_score, lje.llm_explanation, lje.llm_judge_error
             FROM evaluations e
@@ -768,10 +848,10 @@ class BenchmarkStore:
             JOIN benchmark_records br ON br.id = pr.benchmark_record_id
             JOIN pipelines pip ON pip.id = pr.pipeline_ref
             LEFT JOIN result_dataframes mdf ON mdf.id = e.matched_gt_df_id
-            LEFT JOIN llm_judge_evaluations lje ON lje.prediction_id = pr.id
+            {llm_join}
             WHERE pr.result_set_id = ?
             """,
-            (result_set_id,),
+            params,
         ).fetchall()
         record_index = {str(r["id"]): r for r in records}
         for row in eval_rows:

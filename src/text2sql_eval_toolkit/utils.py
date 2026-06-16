@@ -144,10 +144,17 @@ def load_benchmark_schema(benchmark_id: str):
     return get_store(data_root=get_writable_data_root()).load_schema(benchmark_id)
 
 
-def load_predictions_data(benchmark_id: str, *, include_eval: bool = False):
+def load_predictions_data(
+    benchmark_id: str,
+    *,
+    include_eval: bool = False,
+    llm_judge_config_id: int | None = None,
+):
     """Load prediction records (optionally with evaluation blocks) from SQLite."""
     return get_store(data_root=get_writable_data_root()).load_result_records(
-        benchmark_id, include_eval=include_eval
+        benchmark_id,
+        include_eval=include_eval,
+        llm_judge_config_id=llm_judge_config_id,
     )
 
 
@@ -167,9 +174,12 @@ def save_predictions_data(
     )
 
 
-def load_eval_summary(benchmark_id: str):
+def load_eval_summary(benchmark_id: str, *, llm_judge_config_id: int | None = None):
     """Load pipeline summary metrics from SQLite."""
-    return get_store(data_root=get_writable_data_root()).load_summary(benchmark_id)
+    return get_store(data_root=get_writable_data_root()).load_summary(
+        benchmark_id,
+        llm_judge_config_id=llm_judge_config_id,
+    )
 
 
 def save_eval_summary(benchmark_id: str, summary: dict):

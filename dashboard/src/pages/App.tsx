@@ -20,6 +20,7 @@ import { ToolkitInsightsView } from "../views/ToolkitInsightsView";
 import { PipelineCompareView } from "../views/PipelineCompareView";
 import { ProfileCompareView } from "../views/ProfileCompareView";
 import { FetchResultsBanner } from "../views/FetchResultsBanner";
+import { useLlmJudgeConfigs } from "../hooks/useLlmJudgeConfigs";
 import {
   createBenchmark,
   fetchBenchmarkConfig,
@@ -71,6 +72,23 @@ export const App: React.FC = () => {
   >("home");
   const [errorAnalysisInitialFilters, setErrorAnalysisInitialFilters] = useState<Record<string, any> | null>(null);
   const [showNavMenu, setShowNavMenu] = useState(false);
+
+  const benchmarkForFilters =
+    selectedBenchmark ??
+    benchmarks.find((b) => b.benchmark_id === DEFAULT_BENCHMARK_ID)?.benchmark_id ??
+    benchmarks[0]?.benchmark_id ??
+    null;
+  const {
+    configs: llmJudgeConfigs,
+    selectedId: llmJudgeConfigId,
+    setSelectedId: setLlmJudgeConfigId,
+  } = useLlmJudgeConfigs(benchmarkForFilters);
+
+  const llmJudgeFilterProps = {
+    llmJudgeConfigs,
+    llmJudgeConfigId,
+    onLlmJudgeConfigIdChange: setLlmJudgeConfigId,
+  };
 
   const loadBenchmarks = async () => {
     try {
@@ -335,6 +353,7 @@ export const App: React.FC = () => {
       return (
         <BenchmarkDetail
           benchmarkId={selectedBenchmark}
+          {...llmJudgeFilterProps}
           onSelectPipeline={(pipeline) => {
             setSelectedPipeline(pipeline);
             setActiveView("pipeline");
@@ -364,6 +383,7 @@ export const App: React.FC = () => {
         <PipelineDetailView
           benchmarkId={selectedBenchmark}
           pipelineName={selectedPipeline}
+          {...llmJudgeFilterProps}
           onBack={() => {
             setSelectedPipeline(null);
             setActiveView("benchmark");
@@ -391,6 +411,7 @@ export const App: React.FC = () => {
       return (
         <ErrorAnalysis
           benchmarkId={effectiveBenchmarkId}
+          {...llmJudgeFilterProps}
           onBack={() => setActiveView(selectedPipeline ? "pipeline" : "benchmark")}
           initialFilters={errorAnalysisInitialFilters ?? undefined}
         />
@@ -421,6 +442,7 @@ export const App: React.FC = () => {
         <ToolkitInsightsView
           benchmarks={benchmarks}
           benchmarkId={effectiveBenchmarkId}
+          {...llmJudgeFilterProps}
           onSelectBenchmark={(id) => {
             setSelectedBenchmark(id);
             setSelectedPipeline(null);
@@ -448,6 +470,7 @@ export const App: React.FC = () => {
       return (
         <PipelineCompareView
           benchmarkId={effectiveBenchmarkId}
+          {...llmJudgeFilterProps}
           onOpenErrorAnalysis={(filters) => {
             setErrorAnalysisInitialFilters(filters);
             setActiveView("errorAnalysis");
@@ -461,6 +484,7 @@ export const App: React.FC = () => {
         <ProfileCompareView
           benchmarks={benchmarks}
           benchmarkId={selectedBenchmark ?? fallbackBenchmarkId}
+          {...llmJudgeFilterProps}
           onSelectBenchmark={(id) => setSelectedBenchmark(id)}
           onOpenErrorAnalysis={(filters) => {
             setErrorAnalysisInitialFilters(filters);

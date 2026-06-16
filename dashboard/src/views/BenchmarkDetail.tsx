@@ -17,8 +17,11 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { withLlmJudgeConfigId } from "../lib/llmJudgeQuery";
+import { LlmJudgeSelector } from "../components/LlmJudgeSelector";
+import type { LlmJudgeFilterProps } from "../hooks/useLlmJudgeConfigs";
 
-interface Props {
+interface Props extends LlmJudgeFilterProps {
   benchmarkId: string;
   style?: CSSProperties;
   onSelectPipeline?: (pipelineName: string) => void;
@@ -43,6 +46,9 @@ interface SummaryResponse {
 
 export const BenchmarkDetail: React.FC<Props> = ({
   benchmarkId,
+  llmJudgeConfigs,
+  llmJudgeConfigId,
+  onLlmJudgeConfigIdChange,
   style,
   onSelectPipeline,
   onOpenToolkitInsights,
@@ -65,7 +71,12 @@ export const BenchmarkDetail: React.FC<Props> = ({
         setError(null);
         setData(null);
         const res = await apiFetch(
-          apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
+          apiUrl(
+            withLlmJudgeConfigId(
+              `/api/benchmarks/${benchmarkId}/summary/by-category`,
+              llmJudgeConfigId
+            )
+          )
         );
         const json: SummaryResponse = await res.json();
         setData(json);
@@ -79,7 +90,7 @@ export const BenchmarkDetail: React.FC<Props> = ({
       }
     };
     fetchSummary();
-  }, [benchmarkId]);
+  }, [benchmarkId, llmJudgeConfigId]);
 
   if (error) {
     return (
@@ -220,6 +231,14 @@ export const BenchmarkDetail: React.FC<Props> = ({
               Error Analysis
             </Button>
           )}
+          <div style={{ minWidth: "240px" }}>
+            <LlmJudgeSelector
+              id="benchmark-llm-judge-select"
+              configs={llmJudgeConfigs}
+              selectedId={llmJudgeConfigId}
+              onChange={onLlmJudgeConfigIdChange}
+            />
+          </div>
           <div style={{ minWidth: "220px" }}>
             <Dropdown
               id="category-dropdown"
