@@ -98,7 +98,7 @@ const TEXT_DETAIL_KEYS = new Set([
 const LLM_EXPLANATION_KEY = "llm_explanation";
 
 /** Eval Playground defaults: record and pipeline to load and auto-run on first open. */
-const DEFAULT_PLAYGROUND_RECORD_ID = "1490";
+const DEFAULT_PLAYGROUND_RECORD_ID = "";
 const DEFAULT_PLAYGROUND_PIPELINE = "wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi";
 
 /** One-line context for each metric group (aligned with toolkit metric_definitions). */
