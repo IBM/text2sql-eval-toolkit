@@ -388,7 +388,7 @@ CREATE TABLE metric_definitions (
 CREATE TABLE jobs (
     id            TEXT PRIMARY KEY,
     job_type      TEXT NOT NULL
-        CHECK (job_type IN ('evaluate', 'fetch_hub', 'import_json', 'export_json')),
+        CHECK (job_type IN ('inference', 'execution', 'eval', 'llm_judge')),
     status        TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'running', 'completed', 'failed', 'cancelled')),
     benchmark_id  TEXT REFERENCES benchmarks(benchmark_id),
@@ -541,3 +541,4 @@ INSERT OR IGNORE INTO metric_definitions (name, display_group, description, valu
 
 INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (1, 'Initial schema design (SQLite)');
 INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (2, 'Multi LLM judge per prediction (llm_judge_configs, llm_judge_evaluations)');
+INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (3, 'Pipeline job types: inference, execution, eval, llm_judge');

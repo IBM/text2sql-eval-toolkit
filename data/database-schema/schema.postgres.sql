@@ -27,7 +27,7 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-    CREATE TYPE job_type AS ENUM ('evaluate', 'fetch_hub', 'import_json', 'export_json');
+    CREATE TYPE job_type AS ENUM ('inference', 'execution', 'eval', 'llm_judge');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
