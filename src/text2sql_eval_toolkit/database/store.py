@@ -51,16 +51,8 @@ class BenchmarkStore:
             "SELECT 1 FROM benchmarks WHERE benchmark_id = ?",
             (benchmark_id,),
         ).fetchone()
-        if row is not None:
-            return
-        importer = JsonToDbImporter(conn=self.conn, data_root=self.data_root)
-        info = self._registry_entry_from_json(benchmark_id)
-        if info is None:
-            raise ValueError(f"Benchmark '{benchmark_id}' not found in registry JSON")
-        with transaction(immediate=True):
-            importer._import_benchmark_catalog(benchmark_id, info)
-            importer._import_benchmark_records(benchmark_id, info)
-            importer._import_schema_snapshot(benchmark_id, info)
+        if row is None:
+            raise ValueError(f"Benchmark '{benchmark_id}' not found in database.")
 
     @retry_on_locked
     def get_benchmarks_info(self, *, is_test: bool = False) -> dict[str, dict[str, Any]]:
@@ -75,12 +67,10 @@ class BenchmarkStore:
             """,
             (1 if is_test else 0,),
         ).fetchall()
-        if rows:
-            return {
-                row["benchmark_id"]: self._info_dict_from_row(row)
-                for row in rows
-            }
-        return self._benchmarks_info_from_json(is_test=is_test)
+        return {
+            row["benchmark_id"]: self._info_dict_from_row(row)
+            for row in rows
+        }
 
     @retry_on_locked
     def get_benchmark_info(self, benchmark_id: str) -> dict[str, Any]:
@@ -96,16 +86,7 @@ class BenchmarkStore:
         ).fetchone()
         if row is not None:
             return self._info_dict_from_row(row)
-
-        for is_test in (False, True):
-            registry = self._benchmarks_info_from_json(is_test=is_test)
-            if benchmark_id in registry:
-                info = registry[benchmark_id]
-                self.ensure_benchmark_seeded(benchmark_id)
-                return self.get_benchmark_info(benchmark_id)
-        raise ValueError(
-            f"Benchmark ID '{benchmark_id}' not found in database or registry JSON."
-        )
+        raise ValueError(f"Benchmark ID '{benchmark_id}' not found in database.")
 
     @retry_on_locked
     def list_benchmark_ids(self, *, include_test: bool = True) -> list[str]:
@@ -127,10 +108,9 @@ class BenchmarkStore:
             (benchmark_id,),
         ).fetchone()
         if row is None:
-            info = self.get_benchmark_info(benchmark_id)
-            schema_path = Path(info["schema_json_path"])
-            with open(schema_path, encoding="utf-8") as handle:
-                return json.load(handle)
+            raise ValueError(
+                f"No schema snapshot found in database for benchmark '{benchmark_id}'."
+            )
         return json.loads(row["schema_json"])
 
     @retry_on_locked
@@ -286,6 +266,7 @@ class BenchmarkStore:
         include_eval: bool = False,
         status: str = "executed",
         source: str = "pipeline",
+        llm_judge_config: dict[str, Any] | None = None,
     ) -> None:
         self.ensure_benchmark_seeded(benchmark_id)
         with _benchmark_write_locks[benchmark_id]:
@@ -297,6 +278,7 @@ class BenchmarkStore:
                     import_eval=include_eval,
                     status=status,
                     source=source,
+                    llm_judge_config=llm_judge_config,
                 )
 
     @retry_on_locked
@@ -906,39 +888,6 @@ class BenchmarkStore:
             if avg is not None:
                 metrics[name] = {"average": avg, "stddev": sd or 0.0}
         return metrics
-
-    def _benchmarks_info_from_json(self, *, is_test: bool) -> dict[str, dict[str, Any]]:
-        filename = "test-benchmarks.json" if is_test else "benchmarks.json"
-        path = self.data_root / filename
-        if not path.is_file():
-            return {}
-        with open(path, encoding="utf-8") as handle:
-            meta = json.load(handle)
-        info: dict[str, dict[str, Any]] = {}
-        for benchmark_id, entry in meta.items():
-            item = dict(entry)
-            item["is_test_subset"] = is_test
-            predictions_path = self._resolve_path(item["predictions"])
-            data_path = self._resolve_path(item["data"])
-            item["benchmark_json_path"] = str(data_path)
-            item["schema_json_path"] = str(self._resolve_path(item["schema"]))
-            item["predictions_path"] = str(predictions_path)
-            item["eval_results_path"] = str(
-                predictions_path.with_name(predictions_path.stem + "_eval.json")
-            )
-            item["eval_summary_path"] = str(
-                predictions_path.with_name(predictions_path.stem + "_eval_summary.json")
-            )
-            info[benchmark_id] = item
-        return info
-
-    def _registry_entry_from_json(self, benchmark_id: str) -> dict[str, Any] | None:
-        for is_test in (False, True):
-            registry = self._benchmarks_info_from_json(is_test=is_test)
-            if benchmark_id in registry:
-                return registry[benchmark_id]
-        return None
-
 
 def get_store(*, data_root: Path | None = None) -> BenchmarkStore:
     global _store_instance

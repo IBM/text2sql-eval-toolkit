@@ -52,4 +52,6 @@ See [scripts/migration/README.md](../../scripts/migration/README.md) for full us
 
 ## Status
 
-Schema and JSON import tooling are available. The dashboard and evaluation pipeline still read/write JSON files by default; database-backed storage is the target for future dashboard and pipeline integration.
+The toolkit uses **SQLite as the runtime store** for predictions, execution, evaluations, and summaries (`data/text2sql_eval.db` by default). The dashboard and pipeline read/write through `BenchmarkStore`.
+
+Legacy `*-predictions*.json` files under `data/results/` are imported **only** via [`scripts/migration/import_json_to_db.py`](../../scripts/migration/import_json_to_db.py). See [design.md](./design.md) for jobs, LLM judge config filtering, and API mapping.

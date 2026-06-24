@@ -4,7 +4,6 @@
 #
 
 import asyncio
-import importlib.resources as resources
 import json
 import os
 import time
@@ -15,13 +14,6 @@ from pathlib import Path
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.database.store import get_store
 
-
-BENCHMARKS_FILE = resources.files("text2sql_eval_toolkit.data").joinpath(
-    "benchmarks.json"
-)
-TEST_BENCHMARKS_FILE = resources.files("text2sql_eval_toolkit.data").joinpath(
-    "test-benchmarks.json"
-)
 logger = get_logger(__name__)
 
 # Override with absolute path to the repo's `data/` directory when the package
@@ -48,33 +40,6 @@ def get_writable_data_root() -> Path:
         if (d / "pyproject.toml").is_file() and (d / "data").is_dir():
             return (d / "data").resolve()
     return (cwd / "data").resolve()
-
-
-def _registry_filename(is_test: bool) -> str:
-    return "test-benchmarks.json" if is_test else "benchmarks.json"
-
-
-def get_benchmarks_file_path(is_test: bool = False) -> Path:
-    """
-    Resolve benchmark registry path, preferring writable local data roots.
-
-    Priority:
-    1) TEXT2SQL_DATA_ROOT/{benchmarks|test-benchmarks}.json
-    2) ./data/{benchmarks|test-benchmarks}.json
-    3) Packaged data file under text2sql_eval_toolkit.data
-    """
-    filename = _registry_filename(is_test)
-    env_root = os.getenv("TEXT2SQL_DATA_ROOT")
-    if env_root:
-        env_candidate = Path(env_root).expanduser().resolve() / filename
-        if env_candidate.exists():
-            return env_candidate
-
-    cwd_candidate = (Path.cwd() / "data" / filename).resolve()
-    if cwd_candidate.exists():
-        return cwd_candidate
-
-    return Path(str(TEST_BENCHMARKS_FILE if is_test else BENCHMARKS_FILE)).resolve()
 
 
 def get_available_benchmarks(include_test: bool = True):
@@ -164,6 +129,7 @@ def save_predictions_data(
     *,
     include_eval: bool = False,
     status: str = "executed",
+    llm_judge_config: dict | None = None,
 ):
     """Persist prediction records to SQLite."""
     get_store(data_root=get_writable_data_root()).save_result_records(
@@ -171,6 +137,7 @@ def save_predictions_data(
         records,
         include_eval=include_eval,
         status=status,
+        llm_judge_config=llm_judge_config,
     )
 
 

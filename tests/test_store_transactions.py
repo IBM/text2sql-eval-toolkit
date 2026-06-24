@@ -5,6 +5,7 @@ import pytest
 
 from text2sql_eval_toolkit.database import jobs as db_jobs
 from text2sql_eval_toolkit.database import session
+from text2sql_eval_toolkit.database.json_importer import JsonToDbImporter
 from text2sql_eval_toolkit.database.store import get_store
 from text2sql_eval_toolkit.utils import (
     get_writable_data_root,
@@ -19,24 +20,23 @@ def _write_minimal_test_benchmark(data_root: Path, benchmark_id: str) -> None:
     bench_dir.mkdir(parents=True)
     (bench_dir / "results").mkdir()
 
+    registry = {
+        benchmark_id: {
+            "name": benchmark_id,
+            "description": "minimal benchmark for store transaction tests",
+            "data": f"benchmarks/test_benchmarks/{benchmark_id}.json",
+            "schema": f"benchmarks/test_benchmarks/{benchmark_id}-schema.json",
+            "predictions": (
+                f"benchmarks/test_benchmarks/results/{benchmark_id}-predictions.json"
+            ),
+            "db_engine": {
+                "db_type": "sqlite",
+                "db_folder": "benchmarks/test_benchmarks/db",
+            },
+        }
+    }
     (data_root / "test-benchmarks.json").write_text(
-        json.dumps(
-            {
-                benchmark_id: {
-                    "name": benchmark_id,
-                    "description": "minimal benchmark for store transaction tests",
-                    "data": f"benchmarks/test_benchmarks/{benchmark_id}.json",
-                    "schema": f"benchmarks/test_benchmarks/{benchmark_id}-schema.json",
-                    "predictions": (
-                        f"benchmarks/test_benchmarks/results/{benchmark_id}-predictions.json"
-                    ),
-                    "db_engine": {
-                        "db_type": "sqlite",
-                        "db_folder": "benchmarks/test_benchmarks/db",
-                    },
-                }
-            }
-        ),
+        json.dumps(registry),
         encoding="utf-8",
     )
     (bench_dir / f"{benchmark_id}.json").write_text(
@@ -52,17 +52,49 @@ def _write_minimal_test_benchmark(data_root: Path, benchmark_id: str) -> None:
         ),
         encoding="utf-8",
     )
+    (bench_dir / f"{benchmark_id}-schema.json").write_text(
+        json.dumps({"tables": []}),
+        encoding="utf-8",
+    )
+
+
+def _seed_test_benchmark(data_root: Path, benchmark_id: str) -> None:
+    conn = session.get_connection()
+    data_rel = f"benchmarks/test_benchmarks/{benchmark_id}.json"
+    schema_rel = f"benchmarks/test_benchmarks/{benchmark_id}-schema.json"
+    predictions_rel = f"benchmarks/test_benchmarks/results/{benchmark_id}-predictions.json"
+    info = {
+        "name": benchmark_id,
+        "description": "minimal benchmark for store transaction tests",
+        "data": data_rel,
+        "schema": schema_rel,
+        "predictions": predictions_rel,
+        "benchmark_json_path": str(data_root / data_rel),
+        "schema_json_path": str(data_root / schema_rel),
+        "db_engine": {
+            "db_type": "sqlite",
+            "db_folder": "benchmarks/test_benchmarks/db",
+        },
+        "is_test_subset": True,
+    }
+    importer = JsonToDbImporter(conn=conn, data_root=data_root)
+    importer._import_benchmark_catalog(benchmark_id, info)
+    importer._import_benchmark_records(benchmark_id, info)
+    importer._import_schema_snapshot(benchmark_id, info)
+    conn.commit()
 
 
 @pytest.fixture
 def isolated_db(tmp_path, monkeypatch):
-    _write_minimal_test_benchmark(tmp_path, "bird_sqlite_test_benchmark")
+    benchmark_id = "bird_sqlite_test_benchmark"
+    _write_minimal_test_benchmark(tmp_path, benchmark_id)
     monkeypatch.setenv("TEXT2SQL_EVAL_TOOLKIT_DATA_ROOT", str(tmp_path))
     monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
     db_path = tmp_path / "text2sql_eval.db"
     monkeypatch.setenv("TEXT2SQL_DATABASE_URL", f"sqlite:///{db_path}")
     session.close_thread_connection()
     session._schema_initialized = False
+    _seed_test_benchmark(tmp_path, benchmark_id)
     yield
     session.close_thread_connection()
     session._schema_initialized = False

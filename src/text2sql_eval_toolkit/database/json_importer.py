@@ -464,6 +464,10 @@ class JsonToDbImporter:
         record_map = self._record_id_map(benchmark_id)
         pipeline_map = self._ensure_pipelines(result_set_id, records)
 
+        judge_config_id = (
+            self._resolve_summary_judge_config(info) if import_eval else None
+        )
+
         stats = {"predictions": 0, "evaluations": 0, "dataframes": 0}
         for record in records:
             record_id = _record_id(record)
@@ -495,7 +499,13 @@ class JsonToDbImporter:
 
                 evaluation = block.get("evaluation")
                 if import_eval and isinstance(evaluation, dict):
-                    self._upsert_evaluation(prediction_id, block, evaluation, stats)
+                    self._upsert_evaluation(
+                        prediction_id,
+                        block,
+                        evaluation,
+                        stats,
+                        judge_config_id=judge_config_id,
+                    )
                     stats["evaluations"] += 1
                 stats["predictions"] += 1
 
@@ -521,10 +531,15 @@ class JsonToDbImporter:
         import_eval: bool = False,
         status: str = "inference",
         source: str = "pipeline",
+        llm_judge_config: dict[str, Any] | None = None,
     ) -> dict[str, int]:
         """Import an in-memory result record list (predictions and optional eval)."""
         if not records:
             return {"predictions": 0, "evaluations": 0, "dataframes": 0}
+
+        judge_config_id = None
+        if import_eval and isinstance(llm_judge_config, dict):
+            judge_config_id = self._upsert_llm_judge_config(llm_judge_config)
 
         result_set_id = self._ensure_result_set(
             benchmark_id=benchmark_id,
@@ -573,7 +588,13 @@ class JsonToDbImporter:
 
                 evaluation = block.get("evaluation")
                 if import_eval and isinstance(evaluation, dict):
-                    self._upsert_evaluation(prediction_id, block, evaluation, stats)
+                    self._upsert_evaluation(
+                        prediction_id,
+                        block,
+                        evaluation,
+                        stats,
+                        judge_config_id=judge_config_id,
+                    )
                     stats["evaluations"] += 1
                 stats["predictions"] += 1
 
@@ -832,6 +853,7 @@ class JsonToDbImporter:
         block: dict[str, Any],
         evaluation: dict[str, Any],
         stats: dict[str, int],
+        judge_config_id: int | None = None,
     ) -> None:
         matched_gt_df_id = self._store_dataframe(
             evaluation.get("matched_gt_df"), stats
@@ -947,7 +969,11 @@ class JsonToDbImporter:
         if llm_score is not None or evaluation.get("llm_explanation") or evaluation.get(
             "llm_judge_error"
         ):
-            judge_config_id = self._ensure_default_llm_judge_config()
+            resolved_config_id = (
+                judge_config_id
+                if judge_config_id is not None
+                else self._ensure_default_llm_judge_config()
+            )
             self.conn.execute(
                 """
                 INSERT INTO llm_judge_evaluations (
@@ -962,7 +988,7 @@ class JsonToDbImporter:
                 """,
                 (
                     prediction_id,
-                    judge_config_id,
+                    resolved_config_id,
                     float(llm_score) if llm_score is not None else None,
                     evaluation.get("llm_explanation"),
                     evaluation.get("llm_judge_error"),
@@ -1020,6 +1046,26 @@ class JsonToDbImporter:
         self._df_cache[content_hash] = df_id
         stats["dataframes"] += 1
         return df_id
+
+    def _resolve_summary_judge_config(self, info: dict[str, Any]) -> int | None:
+        """Upsert the judge config declared in the eval summary, if present.
+
+        Per-prediction LLM scores must be linked to the actual judge model
+        (e.g. llama-3) declared in the summary file, not the synthetic
+        "default" config. The summary is imported after the per-prediction
+        artifacts, so resolve its judge config up front here.
+        """
+        summary_path = Path(info["eval_summary_path"])
+        if not summary_path.is_file():
+            return None
+        with open(summary_path, encoding="utf-8") as handle:
+            summary = json.load(handle)
+        if not isinstance(summary, dict):
+            return None
+        llm_cfg = summary.get("llm_judge_config")
+        if not isinstance(llm_cfg, dict):
+            return None
+        return self._upsert_llm_judge_config(llm_cfg)
 
     def _import_eval_summary(self, benchmark_id: str, info: dict[str, Any]) -> int:
         summary_path = Path(info["eval_summary_path"])

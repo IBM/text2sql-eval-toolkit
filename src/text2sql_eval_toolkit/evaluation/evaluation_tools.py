@@ -715,7 +715,11 @@ async def async_evaluate_predictions(
         summary = compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model)
 
         save_predictions_data(
-            benchmark_id, data, include_eval=True, status="evaluated"
+            benchmark_id,
+            data,
+            include_eval=True,
+            status="evaluated",
+            llm_judge_config=llm_judge_config,
         )
         save_eval_summary(benchmark_id, summary)
 
