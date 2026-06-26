@@ -5,38 +5,28 @@
 
 import os
 import re
-import time
-import random
-import requests
 from typing import Any
 from text2sql_eval_toolkit.logging import get_logger
 
 try:
-    from ibm_watsonx_ai import Credentials
-    from ibm_watsonx_ai.foundation_models import ModelInference
+    import litellm
 except ImportError:
-    Credentials = None
-    ModelInference = None
-
-try:
-    from openai import OpenAI
-except ImportError:
-    OpenAI = None
-
-try:
-    from google import genai
-except ImportError:
-    genai = None
+    litellm = None
 
 
 logger = get_logger(__name__)
 
+# Default system instruction shared by all providers.
+DEFAULT_SYSTEM_PROMPT = (
+    "You are a SQL expert. Your task is to convert natural language questions "
+    "into accurate SQL queries using the given database schema and instructions."
+)
 
-def _require_watsonx() -> None:
-    if Credentials is None or ModelInference is None:
+
+def _require_litellm() -> None:
+    if litellm is None:
         raise ImportError(
-            "ibm_watsonx_ai is not installed. "
-            'Install with: pip install "text2sql-eval-toolkit[watsonx]"'
+            "litellm is not installed. Install with: pip install litellm"
         )
 
 
@@ -219,13 +209,103 @@ def extract_sql_from_reasoning(reasoning_text: str) -> str:
     return ""
 
 
-class WXAIClient:
+class LiteLLMClient:
     """
-    LLM API client using IBM watsonx.ai.
+    Unified LLM client backed by `litellm`.
+
+    A single implementation replaces the previous per-provider clients
+    (watsonx, Gemini, Claude/Anthropic, vLLM, OpenAI/Ollama, RITS). The
+    toolkit's ``<provider>:<model>`` naming convention is mapped onto the
+    corresponding litellm model string and call arguments, so all providers
+    are reached through litellm's OpenAI-compatible interface.
+
+    Supported model name prefixes:
+        - ``wxai:``        -> ``watsonx/<model>``
+        - ``gemini:``      -> ``gemini/<model>``
+        - ``anthropic:``   -> ``anthropic/<model>``
+        - ``vllm:``        -> ``hosted_vllm/<model>`` (uses ``VLLM_API_BASE``)
+        - ``openai:``      -> ``openai/<model>``     (uses ``OPENAI_BASE_URL``)
+        - ``ollama:``      -> OpenAI-compatible (uses ``OLLAMA_BASE_URL``)
+        - ``rits...``      -> ``hosted_vllm/<model>`` against the RITS endpoint
     """
 
-    def __init__(self, model_name: str, model_parameters: dict):
-        _require_watsonx()
+    # Number of automatic retries litellm performs on transient errors
+    # (e.g. rate limits / 429), with exponential backoff.
+    DEFAULT_NUM_RETRIES = 5
+
+    def __init__(self, model_name: str, model_parameters: dict | None = None):
+        _require_litellm()
+        # Drop provider-unsupported params instead of erroring out.
+        litellm.drop_params = True
+
+        self.original_model_name = model_name
+        self.model, self.call_kwargs = self._resolve_model(model_name)
+        self.model_parameters = self._normalize_parameters(model_parameters or {})
+
+    # ------------------------------------------------------------------
+    # Model / parameter resolution
+    # ------------------------------------------------------------------
+    def _resolve_model(self, model_name: str) -> tuple[str, dict]:
+        """
+        Map a toolkit ``<provider>:<model>`` name onto a litellm model string
+        plus any provider-specific call kwargs (api_base, api_key, headers...).
+        """
+        call_kwargs: dict[str, Any] = {}
+
+        if model_name.startswith("wxai:"):
+            model = "watsonx/" + model_name[len("wxai:"):]
+            self._configure_watsonx(call_kwargs)
+            return model, call_kwargs
+
+        if model_name.startswith("gemini:"):
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("Missing GEMINI_API_KEY environment variable")
+            # Handle quoted env var values in .env files gracefully.
+            call_kwargs["api_key"] = api_key.strip().strip('"').strip("'")
+            return "gemini/" + model_name[len("gemini:"):], call_kwargs
+
+        if model_name.startswith("anthropic:"):
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+            if not api_key:
+                raise ValueError("Missing ANTHROPIC_API_KEY environment variable")
+            call_kwargs["api_key"] = api_key
+            return "anthropic/" + model_name[len("anthropic:"):], call_kwargs
+
+        if model_name.startswith("vllm:"):
+            self._configure_vllm(call_kwargs)
+            return "hosted_vllm/" + model_name[len("vllm:"):], call_kwargs
+
+        if model_name.startswith("ollama:"):
+            self._configure_ollama(call_kwargs)
+            return "openai/" + model_name[len("ollama:"):], call_kwargs
+
+        if model_name.startswith("openai:"):
+            self._configure_openai(call_kwargs)
+            return "openai/" + model_name[len("openai:"):], call_kwargs
+
+        if model_name.startswith("rits"):
+            # rits:<provider>/<model> -> derive the RITS endpoint from the model id.
+            # Strip the 5-char "rits:" / "rits/" prefix (matches legacy behaviour).
+            stripped = model_name[5:]
+            logger.info(f"Getting RITS model endpoint for {model_name}")
+            model_id = stripped.split("/")[-1].replace(".", "-").lower()
+            rits_api_key = os.environ.get("RITS_API_KEY")
+            if rits_api_key is None:
+                raise ValueError("Missing RITS_API_KEY environment variable")
+            call_kwargs["api_base"] = (
+                f"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/{model_id}/v1"
+            )
+            call_kwargs["api_key"] = "rits"
+            call_kwargs["extra_headers"] = {"RITS_API_KEY": rits_api_key}
+            return "hosted_vllm/" + stripped, call_kwargs
+
+        raise NotImplementedError(
+            f"Model '{model_name}' is not supported. Supported prefixes: "
+            "'wxai:', 'gemini:', 'anthropic:', 'vllm:', 'openai:', 'ollama:', 'rits:'."
+        )
+
+    def _configure_watsonx(self, call_kwargs: dict) -> None:
         env_vars = {
             "api_key": "WATSONX_APIKEY",
             "url": "WATSONX_API_BASE",
@@ -233,856 +313,214 @@ class WXAIClient:
         }
         values = {k: os.environ.get(v) for k, v in env_vars.items()}
         missing = [env_vars[k] for k, val in values.items() if not val]
-        api_key = values["api_key"]
-        url = values["url"]
-        project_id = values["project_id"]
         if missing:
             raise ValueError(
                 f"Missing WATSONX.AI credentials in environment variables: {', '.join(missing)}"
             )
+        # litellm reads these env vars for the watsonx provider; map the
+        # toolkit's variable names onto the names litellm expects.
+        os.environ.setdefault("WATSONX_URL", values["url"])
+        os.environ.setdefault("WATSONX_PROJECT_ID", values["project_id"])
+        call_kwargs["api_key"] = values["api_key"]
+        call_kwargs["project_id"] = values["project_id"]
 
-        creds = Credentials(api_key=api_key, url=url)
-        self.model = ModelInference(
-            model_id=model_name,
-            credentials=creds,
-            project_id=project_id,
-            params=model_parameters,
-        )
-
-    def generate_sql(self, prompt: Text2SQLPrompt) -> str:
-        logger.debug(f"Inference with prompt: {prompt.prompt}\n\n")
-        # response = run_with_timeout(self.model.generate, prompt=prompt.prompt)
-        response = self.model.generate(prompt.prompt)
-        logger.debug(f"Response: {response}\n\n")
-        sql = response.get("results", [{}])[0].get("generated_text", "").strip()
-        if not sql:
-            raise ValueError("No text generated by the model.")
-        sql = prompt.postprocess_sql(sql)
-        logger.debug(f"Generated SQL: {sql}\n\n")
-        return sql
-
-
-class WXAIClientChatAPI:
-    """
-    LLM API client using IBM watsonx.ai Chat API.
-    """
-
-    def __init__(self, model_name: str, model_parameters: dict):
-        _require_watsonx()
-        env_vars = {
-            "api_key": "WATSONX_APIKEY",
-            "url": "WATSONX_API_BASE",
-            "project_id": "WATSONX_PROJECTID",
-        }
-        values = {k: os.environ.get(v) for k, v in env_vars.items()}
-        missing = [env_vars[k] for k, val in values.items() if not val]
-        if missing:
-            raise ValueError(
-                f"Missing WATSONX.AI credentials in environment variables: {', '.join(missing)}"
-            )
-
-        creds = Credentials(api_key=values["api_key"], url=values["url"])
-        # model_parameters can be a plain dict **or**
-        # a TextChatParameters instance – both are accepted.
-
-        # Filter and convert parameters for WatsonX Chat API compatibility
-        # WatsonX Chat API uses different parameter names than the legacy API:
-        # - max_tokens (not max_new_tokens)
-        # - Does not support: decoding_method, stop_sequences (legacy API only)
-        filtered_params = dict(model_parameters)
-
-        # Convert max_new_tokens -> max_tokens
-        if "max_new_tokens" in filtered_params:
-            filtered_params["max_tokens"] = filtered_params.pop("max_new_tokens")
-
-        # Remove unsupported parameters (supported by legacy WatsonX API but not Chat API)
-        for unsupported_param in ["decoding_method", "stop_sequences"]:
-            filtered_params.pop(unsupported_param, None)
-
-        self.model = ModelInference(
-            model_id=model_name,
-            credentials=creds,
-            project_id=values["project_id"],
-            params=filtered_params,
-        )
-
-    def _build_messages(self, prompt_text: str) -> list[dict]:
-        """
-        Convert the flat prompt text into the Chat API message format.
-        You can customize the system message here if desired.
-        """
-        return [
-            {
-                "role": "system",
-                "content": (
-                    "You are a SQL expert. Your task is to convert natural language questions into accurate SQL queries using the given database schema and instructions."
-                ),
-            },
-            {"role": "user", "content": prompt_text},
-        ]
-
-    def generate_sql(self, prompt: Any) -> tuple[str, dict]:
-        if isinstance(prompt, Text2SQLPrompt):
-            messages = self._build_messages(prompt.prompt)
-            logger.debug(f"Inference with constructed chat prompt: {messages}\n")
-            response = self.model.chat(messages=messages)
-        elif isinstance(prompt, list):
-            logger.debug(f"Inference with provided chat prompt: {prompt}\n")
-            response = self.model.chat(messages=prompt)
-        else:
-            raise ValueError(
-                f"Incorrect prompt type. Prompt must of Text2SQLPrompt or a list for chat prompt: {prompt}"
-            )
-
-        logger.debug(f"Raw response: {response}\n")
-
-        try:
-            message = response["choices"][0]["message"]
-            
-            # Try content first (normal case)
-            sql = message.get("content", "").strip()
-            
-            # Fall back to reasoning_content if content is empty
-            if not sql:
-                reasoning = message.get("reasoning_content", "").strip()
-                if reasoning:
-                    logger.debug("Attempting to extract SQL from reasoning_content")
-                    sql = extract_sql_from_reasoning(reasoning)
-                    if sql:
-                        logger.info("Successfully extracted SQL from reasoning_content")
-                    else:
-                        logger.warning("Could not extract valid SQL from reasoning_content")
-            
-            if not sql:
-                error = ValueError("No SQL content found in response")
-                error.response = str(response)  # Attach raw response to exception
-                raise error
-                
-        except (KeyError, IndexError) as e:
-            logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            error = ValueError("No SQL returned by the model.")
-            error.response = str(response)  # Attach raw response to exception
-            raise error
-
-        # Extract token usage from WatsonX response
-        token_usage = None
-        try:
-            # WatsonX returns usage in the response
-            usage = response.get("usage", {})
-            if usage:
-                token_usage = {
-                    "prompt_tokens": usage.get("prompt_tokens", 0),
-                    "completion_tokens": usage.get("completion_tokens", 0),
-                    "total_tokens": usage.get("total_tokens", 0),
-                }
-                logger.debug(f"Token usage: {token_usage}\n")
-        except Exception as e:
-            logger.warning(f"Could not extract token usage: {e}")
-            token_usage = None
-
-        sql = postprocess_sql(sql)
-        logger.debug(f"Generated SQL: {sql}\n")
-        return sql, token_usage
-
-
-class VLLMClientChatAPI:
-    """
-    LLM API client using vLLM OpenAI-compatible Chat API.
-    """
-
-    def __init__(self, model_name: str, model_parameters: dict):
-        # Environment variables for vLLM API
-        env_vars = {
-            "base_url": "VLLM_API_BASE",  # e.g., "http://localhost:8000/v1"
-            "api_key": "VLLM_API_KEY",  # Optional, some vLLM deployments don't require this
-            "rits_api_key": "RITS_API_KEY",  # Optional, for RITS
-        }
-
-        values = {k: os.environ.get(v) for k, v in env_vars.items()}
-
-        # base_url is required, api_key is optional
-        if not values["base_url"]:
+    def _configure_vllm(self, call_kwargs: dict) -> None:
+        base_url = os.environ.get("VLLM_API_BASE")
+        if not base_url:
             raise ValueError("Missing VLLM_API_BASE environment variable")
+        call_kwargs["api_base"] = base_url.rstrip("/")
+        # vLLM deployments may not require a real key; provide a placeholder.
+        call_kwargs["api_key"] = os.environ.get("VLLM_API_KEY") or "vllm"
+        rits_api_key = os.environ.get("RITS_API_KEY")
+        if rits_api_key:
+            call_kwargs["extra_headers"] = {"RITS_API_KEY": rits_api_key}
 
-        self.base_url = values["base_url"].rstrip("/")
-        self.api_key = values["api_key"]  # Can be None
-        self.rits_api_key = values["rits_api_key"]  # Can be None
-        self.model_name = model_name
-        self.model_parameters = model_parameters
-
-        # Set up headers
-        self.headers = {
-            "Content-Type": "application/json",
-            "accept": "application/json",
-        }
-        if self.rits_api_key:
-            self.headers["RITS_API_KEY"] = f"{self.rits_api_key}"
-        elif self.api_key:
-            self.headers["Authorization"] = f"Bearer {self.api_key}"
-
-    def _build_messages(self, prompt_text: str) -> list[dict[str, str]]:
-        """
-        Convert the flat prompt text into the Chat API message format.
-        You can customize the system message here if desired.
-        """
-        return [
-            {
-                "role": "system",
-                "content": (
-                    "You are a SQL expert. Your task is to convert natural language questions into accurate SQL queries using the given database schema and instructions."
-                ),
-            },
-            {"role": "user", "content": prompt_text},
-        ]
-
-    def _make_chat_request(self, messages: list[dict[str, str]]) -> dict:
-        """
-        Make a request to the vLLM chat completions endpoint.
-        """
-        url = f"{self.base_url}/chat/completions"
-
-        # Prepare the request payload
-        payload = {
-            "model": self.model_name,
-            "messages": messages,
-            **self.model_parameters,  # Include temperature, max_tokens, etc.
-        }
-
-        try:
-            response = requests.post(
-                url,
-                headers=self.headers,
-                json=payload,
-                timeout=120,  # 2 minute timeout
-            )
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logger.error(f"vLLM API request failed: {e}")
-            raise ValueError(f"Failed to get response from vLLM API: {e}")
-
-    def generate_sql(self, prompt: Any) -> tuple[str, dict]:
-        if hasattr(prompt, "prompt"):  # Text2SQLPrompt-like object
-            messages = self._build_messages(prompt.prompt)
-            logger.debug(f"Inference with constructed chat prompt: {messages}\n")
-        elif isinstance(prompt, list):
-            messages = prompt
-            logger.debug(f"Inference with provided chat prompt: {prompt}\n")
-        else:
+    def _configure_ollama(self, call_kwargs: dict) -> None:
+        base_url = os.environ.get("OLLAMA_BASE_URL") or os.environ.get("OPENAI_BASE_URL")
+        if not base_url:
             raise ValueError(
-                f"Incorrect prompt type. Prompt must have a 'prompt' attribute or be a list for chat prompt: {prompt}"
+                "Missing OLLAMA_BASE_URL (or OPENAI_BASE_URL) environment variable"
             )
+        call_kwargs["api_base"] = base_url.rstrip("/")
+        # Ollama doesn't require a real API key.
+        call_kwargs["api_key"] = os.environ.get("OLLAMA_API_KEY", "ollama")
 
-        # Make the API request
-        response = self._make_chat_request(messages)
-        logger.debug(f"Raw response: {response}\n")
-
-        try:
-            sql = response["choices"][0]["message"]["content"].strip()
-        except (KeyError, IndexError) as e:
-            logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
-
-        # Extract token usage from vLLM response (OpenAI-compatible format)
-        token_usage = None
-        try:
-            usage = response.get("usage", {})
-            if usage:
-                token_usage = {
-                    "prompt_tokens": usage.get("prompt_tokens", 0),
-                    "completion_tokens": usage.get("completion_tokens", 0),
-                    "total_tokens": usage.get("total_tokens", 0),
-                }
-                logger.debug(f"Token usage: {token_usage}\n")
-        except Exception as e:
-            logger.warning(f"Could not extract token usage: {e}")
-            token_usage = None
-
-        # Apply post-processing
-        sql = postprocess_sql(sql)
-        logger.debug(f"Generated SQL: {sql}\n")
-        return sql, token_usage
-
-
-class ClaudeClientChatAPI:
-    """
-    LLM API client using Anthropic's Claude API.
-    """
-
-    def __init__(self, model_name: str, model_parameters: dict):
-        # Environment variables for Claude API
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
+    def _configure_openai(self, call_kwargs: dict) -> None:
+        base_url = os.environ.get("OPENAI_BASE_URL")
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not base_url:
+            raise ValueError("Missing OPENAI_BASE_URL environment variable")
         if not api_key:
-            raise ValueError("Missing ANTHROPIC_API_KEY environment variable")
-
-        self.api_key = api_key
-        self.base_url = "https://api.anthropic.com"
-        self.model_name = model_name
-
-        # Filter and convert parameters for Claude API compatibility
-        # Claude uses: max_tokens, temperature, stop_sequences (as array)
-        # Does not support: decoding_method (WatsonX-specific)
-        self.model_parameters = dict(model_parameters)
-
-        # Convert max_new_tokens -> max_tokens
-        if "max_new_tokens" in self.model_parameters:
-            self.model_parameters["max_tokens"] = self.model_parameters.pop(
-                "max_new_tokens"
-            )
-
-        # Remove unsupported parameters
-        self.model_parameters.pop("decoding_method", None)
-
-        # Set up headers for Claude API
-        self.headers = {
-            "Content-Type": "application/json",
-            "x-api-key": self.api_key,
-            "anthropic-version": "2023-06-01",  # API version
-        }
-
-    def _build_messages(self, prompt_text: str) -> list[dict[str, str]]:
-        """
-        Convert the flat prompt text into Claude's message format.
-        Claude uses a slightly different format than OpenAI.
-        """
-        return [{"role": "user", "content": prompt_text}]
-
-    def _build_system_message(self) -> str:
-        """
-        Claude handles system messages separately from the messages array.
-        """
-        return (
-            "You are a SQL expert. Your task is to convert natural language questions "
-            "into accurate SQL queries using the given database schema and instructions."
-        )
-
-    def _make_chat_request(self, messages: list[dict[str, str]]) -> dict:
-        """
-        Make a request to Claude's messages endpoint.
-        """
-        url = f"{self.base_url}/v1/messages"
-
-        # Prepare the request payload for Claude
-        payload = {
-            "model": self.model_name,
-            "messages": messages,
-            "system": self._build_system_message(),
-            **self.model_parameters,
-        }
-
-        print(f"\n\n\n ******** \n payload:{payload} \n\n\n\n")
-
-        try:
-            response = requests.post(
-                url, headers=self.headers, json=payload, timeout=120
-            )
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as e:
-            # Try to extract error details from response
-            error_detail = ""
-            try:
-                error_json = e.response.json()
-                if "error" in error_json:
-                    error_type = error_json["error"].get("type", "unknown")
-                    error_msg = error_json["error"].get("message", "")
-                    error_detail = f" - {error_type}: {error_msg}"
-            except:
-                pass
-            
-            # Provide specific guidance for common errors
-            if e.response.status_code == 401:
-                logger.error(f"Claude API authentication failed{error_detail}")
-                raise ValueError(
-                    f"Claude API authentication failed{error_detail}\n"
-                    "Please check that your ANTHROPIC_API_KEY is valid.\n"
-                    "Get a valid key at: https://console.anthropic.com/settings/keys"
-                )
-            elif e.response.status_code == 429:
-                logger.error(f"Claude API rate limit exceeded{error_detail}")
-                raise ValueError(f"Claude API rate limit exceeded{error_detail}")
-            else:
-                logger.error(f"Claude API request failed: {e}{error_detail}")
-                raise ValueError(f"Failed to get response from Claude API: {e}{error_detail}")
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Claude API request failed: {e}")
-            raise ValueError(f"Failed to get response from Claude API: {e}")
-
-    def generate_sql(self, prompt: Any) -> tuple[str, dict]:
-        if hasattr(prompt, "prompt"):  # Text2SQLPrompt-like object
-            messages = self._build_messages(prompt.prompt)
-            logger.debug(f"Inference with constructed chat prompt: {messages}\n")
-        elif isinstance(prompt, list):
-            # If already formatted messages, use as-is but ensure no system messages in array
-            messages = [msg for msg in prompt if msg.get("role") != "system"]
-            logger.debug(f"Inference with provided chat prompt: {messages}\n")
-        else:
-            raise ValueError(
-                f"Incorrect prompt type. Prompt must have a 'prompt' attribute or be a list for chat prompt: {prompt}"
-            )
-
-        # Make the API request
-        response = self._make_chat_request(messages)
-        logger.debug(f"Raw response: {response}\n")
-
-        try:
-            sql = response["content"][0]["text"].strip()
-        except (KeyError, IndexError) as e:
-            logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
-
-        # Extract token usage from Claude response
-        token_usage = None
-        try:
-            usage = response.get("usage", {})
-            if usage:
-                # Claude returns input_tokens and output_tokens
-                prompt_tokens = usage.get("input_tokens", 0)
-                completion_tokens = usage.get("output_tokens", 0)
-                token_usage = {
-                    "prompt_tokens": prompt_tokens,
-                    "completion_tokens": completion_tokens,
-                    "total_tokens": prompt_tokens + completion_tokens,
-                }
-                logger.debug(f"Token usage: {token_usage}\n")
-        except Exception as e:
-            logger.warning(f"Could not extract token usage: {e}")
-            token_usage = None
-
-        # Apply post-processing
-        sql = postprocess_sql(sql)
-        logger.debug(f"Generated SQL: {sql}\n")
-        return sql, token_usage
-
-
-class OpenAIClientChatAPI:
-    """
-    LLM API client using OpenAI-compatible API (e.g., LiteLLM proxy).
-    """
-
-    def __init__(self, model_name: str, model_parameters: dict):
-        if OpenAI is None:
-            raise ImportError(
-                "openai package is required for OpenAI client. Install it with: pip install openai"
-            )
-
-        # Check if this is an Ollama model (will be passed without prefix after stripping in baseline_llm_pipeline)
-        # For Ollama, try OLLAMA_* env vars first, fall back to OPENAI_* for compatibility
-        ollama_base_url = os.environ.get("OLLAMA_BASE_URL")
-        ollama_api_key = os.environ.get("OLLAMA_API_KEY", "ollama")  # Ollama doesn't require real API key
-        
-        if ollama_base_url:
-            # Using Ollama
-            self.base_url = ollama_base_url.rstrip("/")
-            self.api_key = ollama_api_key
-        else:
-            # Using OpenAI or OpenAI-compatible API
-            env_vars = {
-                "base_url": "OPENAI_BASE_URL",
-                "api_key": "OPENAI_API_KEY",
-            }
-
-            values = {k: os.environ.get(v) for k, v in env_vars.items()}
-
-            # base_url and api_key are required
-            if not values["base_url"]:
-                raise ValueError("Missing OPENAI_BASE_URL environment variable")
-            if not values["api_key"]:
-                raise ValueError("Missing OPENAI_API_KEY environment variable")
-
-            self.base_url = values["base_url"].rstrip("/")
-            self.api_key = values["api_key"]
-        
-        self.model_name = model_name
-
-        # Filter and convert parameters for OpenAI API compatibility
-        # OpenAI uses: max_tokens, temperature, stop (as array or string)
-        # Does not support: decoding_method (WatsonX-specific)
-        self.model_parameters = dict(model_parameters)
-
-        # Convert max_new_tokens -> max_tokens
-        if "max_new_tokens" in self.model_parameters:
-            self.model_parameters["max_tokens"] = self.model_parameters.pop(
-                "max_new_tokens"
-            )
-
-        # Convert stop_sequences -> stop (OpenAI expects stop as a list or string)
-        if "stop_sequences" in self.model_parameters:
-            stop_seqs = self.model_parameters.pop("stop_sequences")
-            if stop_seqs:
-                # OpenAI accepts stop as a list or a single string
-                if isinstance(stop_seqs, list):
-                    self.model_parameters["stop"] = stop_seqs
-                else:
-                    self.model_parameters["stop"] = [stop_seqs]
-
-        # Remove unsupported parameters
-        self.model_parameters.pop("decoding_method", None)
-
-        # Initialize OpenAI client
-        self.client = OpenAI(
-            api_key=self.api_key,
-            base_url=self.base_url,
-        )
-
-    def _build_messages(self, prompt_text: str) -> list[dict[str, str]]:
-        """
-        Convert the flat prompt text into OpenAI Chat API message format.
-        """
-        return [
-            {
-                "role": "system",
-                "content": (
-                    "You are a SQL expert. Your task is to convert natural language questions "
-                    "into accurate SQL queries using the given database schema and instructions."
-                ),
-            },
-            {"role": "user", "content": prompt_text},
-        ]
-
-    def generate_sql(self, prompt: Any) -> tuple[str, dict]:
-        if hasattr(prompt, "prompt"):  # Text2SQLPrompt-like object
-            messages = self._build_messages(prompt.prompt)
-            logger.debug(f"Inference with constructed chat prompt: {messages}\n")
-        elif isinstance(prompt, list):
-            messages = prompt
-            logger.debug(f"Inference with provided chat prompt: {prompt}\n")
-        else:
-            raise ValueError(
-                f"Incorrect prompt type. Prompt must have a 'prompt' attribute or be a list for chat prompt: {prompt}"
-            )
-
-        # Make the API request using OpenAI client
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=messages,
-                **self.model_parameters,
-            )
-            logger.debug(f"Raw response: {response}\n")
-        except Exception as e:
-            logger.error(f"OpenAI API request failed: {e}")
-            raise ValueError(f"Failed to get response from OpenAI API: {e}")
-
-        try:
-            sql = response.choices[0].message.content.strip()
-        except (AttributeError, IndexError, KeyError) as e:
-            logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
-
-        # Extract token usage from OpenAI response
-        token_usage = None
-        try:
-            if hasattr(response, "usage") and response.usage:
-                usage = response.usage
-                token_usage = {
-                    "prompt_tokens": usage.prompt_tokens if hasattr(usage, "prompt_tokens") else 0,
-                    "completion_tokens": usage.completion_tokens if hasattr(usage, "completion_tokens") else 0,
-                    "total_tokens": usage.total_tokens if hasattr(usage, "total_tokens") else 0,
-                }
-                logger.debug(f"Token usage: {token_usage}\n")
-        except Exception as e:
-            logger.warning(f"Could not extract token usage: {e}")
-            token_usage = None
-
-        # Apply post-processing
-        sql = postprocess_sql(sql)
-        logger.debug(f"Generated SQL: {sql}\n")
-        return sql, token_usage
-
-
-class GeminiClientChatAPI:
-    """
-    LLM API client using Google Gemini API via google-genai SDK.
-    """
-
-    def __init__(self, model_name: str, model_parameters: dict):
-        if genai is None:
-            raise ImportError(
-                "google-genai package is required for Gemini client. Install it with: pip install google-genai"
-            )
-
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("Missing GEMINI_API_KEY environment variable")
-
-        # Handle quoted env var values in .env files gracefully
-        api_key = api_key.strip().strip('"').strip("'")
-
-        # Force Gemini Developer API mode when using API key credentials.
-        # This avoids accidental routing to Vertex AI (aiplatform.googleapis.com),
-        # which requires OAuth2/ADC instead of API keys.
-        self.client = genai.Client(api_key=api_key, vertexai=False)
-        self.model_name = model_name
-        self.model_parameters = self._normalize_parameters(model_parameters)
-        # Retry config for rate-limit errors (429/RESOURCE_EXHAUSTED).
-        self.max_retry_attempts = 5
-        self.initial_backoff_seconds = 1.0
-        self.max_backoff_seconds = 16.0
+            raise ValueError("Missing OPENAI_API_KEY environment variable")
+        call_kwargs["api_base"] = base_url.rstrip("/")
+        call_kwargs["api_key"] = api_key
 
     def _normalize_parameters(self, model_parameters: dict) -> dict:
         """
-        Convert toolkit model parameters into Gemini-compatible generation config.
+        Convert the toolkit's model parameters into litellm/OpenAI-compatible
+        keyword arguments. Unknown parameters are passed through (and silently
+        dropped by litellm if a provider doesn't support them).
         """
         params = dict(model_parameters)
 
-        # Unsupported in Gemini API
-        params.pop("decoding_method", None)
+        # WatsonX legacy "decoding_method" is not a chat parameter; treat
+        # greedy decoding as temperature 0.
+        decoding_method = params.pop("decoding_method", None)
+        if decoding_method == "greedy" and "temperature" not in params:
+            params["temperature"] = 0
 
-        # Convert max_new_tokens / max_tokens -> max_output_tokens
-        if "max_new_tokens" in params and "max_output_tokens" not in params:
-            params["max_output_tokens"] = params.pop("max_new_tokens")
-        if "max_tokens" in params and "max_output_tokens" not in params:
-            params["max_output_tokens"] = params.pop("max_tokens")
+        # max_new_tokens -> max_tokens
+        if "max_new_tokens" in params and "max_tokens" not in params:
+            params["max_tokens"] = params.pop("max_new_tokens")
 
+        # stop_sequences -> stop (list)
+        if "stop_sequences" in params:
+            stop_seqs = params.pop("stop_sequences")
+            if stop_seqs:
+                params["stop"] = stop_seqs if isinstance(stop_seqs, list) else [stop_seqs]
+
+        # Reasoning controls (mainly Gemini). Map onto litellm's unified params.
         thinking_level = params.pop("thinking_level", None)
         thinking_budget = params.pop("thinking_budget", None)
         if thinking_level is not None and thinking_budget is not None:
             raise ValueError(
-                "Gemini API does not allow both thinking_level and thinking_budget in the same request"
+                "Cannot set both thinking_level and thinking_budget in the same request"
             )
-
-        if thinking_level is not None:
-            params["thinking_config"] = {"thinking_level": thinking_level}
-        elif thinking_budget is not None:
-            params["thinking_config"] = {"thinking_budget": thinking_budget}
+        if thinking_budget is not None:
+            params["thinking"] = {"type": "enabled", "budget_tokens": thinking_budget}
+        elif thinking_level is not None:
+            params["reasoning_effort"] = thinking_level
 
         return params
 
-    def _default_system_instruction(self) -> str:
-        return (
-            "You are a SQL expert. Your task is to convert natural language questions "
-            "into accurate SQL queries using the given database schema and instructions."
+    # ------------------------------------------------------------------
+    # Messages
+    # ------------------------------------------------------------------
+    def _build_messages(self, prompt_text: str) -> list[dict[str, str]]:
+        return [
+            {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
+            {"role": "user", "content": prompt_text},
+        ]
+
+    def _coerce_to_messages(self, prompt: Any) -> list[dict[str, str]]:
+        if hasattr(prompt, "prompt"):  # Text2SQLPrompt-like object
+            messages = self._build_messages(prompt.prompt)
+            logger.debug(f"Inference with constructed chat prompt: {messages}\n")
+            return messages
+        if isinstance(prompt, list):
+            logger.debug(f"Inference with provided chat prompt: {prompt}\n")
+            return prompt
+        raise ValueError(
+            "Incorrect prompt type. Prompt must have a 'prompt' attribute or be a "
+            f"list of chat messages: {prompt}"
         )
 
-    def _build_contents_from_messages(self, messages: list[dict[str, str]]) -> tuple[list[dict], str | None]:
-        """
-        Convert OpenAI-like chat messages into Gemini contents format.
-        """
-        system_messages = []
-        contents = []
-
-        for message in messages:
-            role = message.get("role", "user")
-            content = message.get("content", "")
-            if content is None:
-                content = ""
-
-            if role == "system":
-                if content:
-                    system_messages.append(content)
-                continue
-
-            gemini_role = "model" if role in {"assistant", "model"} else "user"
-            contents.append({"role": gemini_role, "parts": [{"text": str(content)}]})
-
-        if not contents:
-            contents = [{"role": "user", "parts": [{"text": ""}]}]
-
-        system_instruction = "\n\n".join(system_messages) if system_messages else None
-        return contents, system_instruction
-
-    def _extract_text(self, response: Any) -> str:
-        """
-        Extract text from Gemini response using robust fallbacks.
-        """
-        text = getattr(response, "text", None)
-        if isinstance(text, str) and text.strip():
-            return text.strip()
-
-        # Fallback to candidates[0].content.parts
-        candidates = getattr(response, "candidates", None)
-        if not candidates and isinstance(response, dict):
-            candidates = response.get("candidates", [])
-
-        if candidates:
-            first_candidate = candidates[0]
-            content = getattr(first_candidate, "content", None)
-            if content is None and isinstance(first_candidate, dict):
-                content = first_candidate.get("content", {})
-
-            parts = getattr(content, "parts", None)
-            if parts is None and isinstance(content, dict):
-                parts = content.get("parts", [])
-
-            part_texts = []
-            for part in parts or []:
-                part_text = getattr(part, "text", None)
-                if part_text is None and isinstance(part, dict):
-                    part_text = part.get("text")
-                if part_text:
-                    part_texts.append(part_text)
-
-            merged = "\n".join(part_texts).strip()
-            if merged:
-                return merged
-
-        return ""
-
-    def _extract_token_usage(self, response: Any) -> dict | None:
-        """
-        Extract token usage from Gemini response metadata.
-        """
+    # ------------------------------------------------------------------
+    # Completion
+    # ------------------------------------------------------------------
+    def _completion(self, messages: list[dict[str, str]]):
         try:
-            usage = getattr(response, "usage_metadata", None)
-            if usage is None and isinstance(response, dict):
-                usage = response.get("usage_metadata", {})
+            return litellm.completion(
+                model=self.model,
+                messages=messages,
+                num_retries=self.DEFAULT_NUM_RETRIES,
+                **self.model_parameters,
+                **self.call_kwargs,
+            )
+        except Exception as e:
+            logger.error(f"LiteLLM request failed for model '{self.model}': {e}")
+            error = ValueError(
+                f"Failed to get response from model '{self.original_model_name}': {e}"
+            )
+            error.response = str(e)
+            raise error
 
+    @staticmethod
+    def _extract_message(response: Any) -> tuple[str, str]:
+        """Return (content, reasoning_content) from a litellm response."""
+        try:
+            message = response.choices[0].message
+        except (AttributeError, IndexError, KeyError) as e:
+            raise ValueError(f"No message returned by the model: {e}")
+        content = (getattr(message, "content", None) or "").strip()
+        reasoning = (getattr(message, "reasoning_content", None) or "").strip()
+        return content, reasoning
+
+    @staticmethod
+    def _extract_token_usage(response: Any) -> dict | None:
+        try:
+            usage = getattr(response, "usage", None)
             if not usage:
                 return None
-
-            if isinstance(usage, dict):
-                prompt_tokens = usage.get("prompt_token_count", 0)
-                completion_tokens = usage.get("candidates_token_count", 0)
-                total_tokens = usage.get("total_token_count", 0)
-            else:
-                prompt_tokens = getattr(usage, "prompt_token_count", 0)
-                completion_tokens = getattr(usage, "candidates_token_count", 0)
-                total_tokens = getattr(usage, "total_token_count", 0)
-
             return {
-                "prompt_tokens": prompt_tokens,
-                "completion_tokens": completion_tokens,
-                "total_tokens": total_tokens,
+                "prompt_tokens": getattr(usage, "prompt_tokens", 0) or 0,
+                "completion_tokens": getattr(usage, "completion_tokens", 0) or 0,
+                "total_tokens": getattr(usage, "total_tokens", 0) or 0,
             }
         except Exception as e:
             logger.warning(f"Could not extract token usage: {e}")
             return None
 
-    def _is_rate_limited(self, error: Exception) -> bool:
+    def chat(self, prompt: Any) -> tuple[str, dict | None]:
         """
-        Return True when the exception indicates Gemini rate limiting or quota exhaustion.
+        Run a chat completion and return the raw assistant text plus token usage.
+
+        Used by agentic pipelines that parse the model output themselves. When
+        the model only returns reasoning (no content), the reasoning text is
+        returned so callers can still inspect it.
         """
-        # Common HTTP-style status attributes
-        status_code = getattr(error, "status_code", None)
-        if status_code == 429:
-            return True
+        messages = self._coerce_to_messages(prompt)
+        response = self._completion(messages)
+        logger.debug(f"Raw response: {response}\n")
 
-        response = getattr(error, "response", None)
-        if response is not None and getattr(response, "status_code", None) == 429:
-            return True
+        content, reasoning = self._extract_message(response)
+        text = content or reasoning
+        if not text:
+            error = ValueError("No content returned by the model.")
+            error.response = str(response)
+            raise error
 
-        # Some SDK exceptions expose code as property, callable, or enum-like values
-        code_attr = getattr(error, "code", None)
-        try:
-            if callable(code_attr):
-                code_attr = code_attr()
-        except Exception:
-            pass
-
-        if str(code_attr).lower() in {"429", "statuscode.resource_exhausted", "resource_exhausted"}:
-            return True
-
-        error_text = str(error).lower()
-        retry_markers = [
-            "429",
-            "resource_exhausted",
-            "rate limit",
-            "quota",
-            "too many requests",
-        ]
-        return any(marker in error_text for marker in retry_markers)
-
-    def _is_vertex_auth_mismatch(self, error_text: str) -> bool:
-        return (
-            "api keys are not supported by this api" in error_text
-            or "aiplatform.googleapis.com" in error_text
-            or "predictionservice.generatecontent" in error_text
-        )
-
-    def _compute_backoff_seconds(self, attempt_index: int) -> float:
-        """
-        attempt_index is 0-based for retries (0 => first retry after first failure).
-        """
-        backoff = min(
-            self.max_backoff_seconds,
-            self.initial_backoff_seconds * (2 ** attempt_index),
-        )
-        # Small jitter helps avoid synchronized retries across workers.
-        jitter = random.uniform(0, 0.25 * backoff)
-        return backoff + jitter
+        return text, self._extract_token_usage(response)
 
     def generate_sql(self, prompt: Any) -> tuple[str, dict | None]:
-        config = dict(self.model_parameters)
+        """
+        Generate a SQL query from a prompt and return (sql, token_usage).
+        """
+        messages = self._coerce_to_messages(prompt)
+        response = self._completion(messages)
+        logger.debug(f"Raw response: {response}\n")
 
-        if hasattr(prompt, "prompt"):
-            contents = prompt.prompt
-            config["system_instruction"] = self._default_system_instruction()
-            logger.debug("Inference with constructed Gemini prompt\n")
-        elif isinstance(prompt, list):
-            contents, system_instruction = self._build_contents_from_messages(prompt)
-            if system_instruction:
-                config["system_instruction"] = system_instruction
-            elif "system_instruction" not in config:
-                config["system_instruction"] = self._default_system_instruction()
-            logger.debug(f"Inference with provided Gemini chat prompt: {contents}\n")
-        else:
-            raise ValueError(
-                "Incorrect prompt type. Prompt must have a 'prompt' attribute or be a list for chat prompt: "
-                f"{prompt}"
-            )
+        content, reasoning = self._extract_message(response)
 
-        response = None
-        for attempt in range(1, self.max_retry_attempts + 1):
-            try:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=contents,
-                    config=config,
-                )
-                logger.debug(f"Raw Gemini response: {response}\n")
-                break
-            except Exception as e:
-                error_text = str(e)
-                error_text_lower = error_text.lower()
+        sql = content
+        if not sql and reasoning:
+            logger.debug("Attempting to extract SQL from reasoning_content")
+            sql = extract_sql_from_reasoning(reasoning)
+            if sql:
+                logger.info("Successfully extracted SQL from reasoning_content")
+            else:
+                logger.warning("Could not extract valid SQL from reasoning_content")
 
-                if self._is_vertex_auth_mismatch(error_text_lower):
-                    logger.error(f"Gemini API request failed: {e}")
-                    raise ValueError(
-                        "Gemini authentication mode mismatch: request was sent to Vertex AI "
-                        "(aiplatform), which does not accept GEMINI_API_KEY. "
-                        "Use Gemini Developer API mode with API key (this client now forces it), "
-                        "and ensure Vertex routing env vars are not set for this run "
-                        "(e.g., GOOGLE_GENAI_USE_VERTEXAI/GOOGLE_CLOUD_PROJECT/GOOGLE_CLOUD_LOCATION). "
-                        f"Original error: {e}"
-                    )
-
-                is_retryable = self._is_rate_limited(e)
-                has_retries_left = attempt < self.max_retry_attempts
-                if is_retryable and has_retries_left:
-                    sleep_seconds = self._compute_backoff_seconds(attempt - 1)
-                    logger.warning(
-                        "Gemini API returned 429/RESOURCE_EXHAUSTED "
-                        f"(attempt {attempt}/{self.max_retry_attempts}). "
-                        f"Retrying in {sleep_seconds:.2f}s. Error: {e}"
-                    )
-                    time.sleep(sleep_seconds)
-                    continue
-
-                if is_retryable:
-                    logger.error(
-                        "Gemini API rate limit exhausted after "
-                        f"{self.max_retry_attempts} attempts: {e}"
-                    )
-                    raise ValueError(
-                        "Gemini API rate limit/resource exhausted after "
-                        f"{self.max_retry_attempts} attempts: {e}"
-                    )
-
-                logger.error(f"Gemini API request failed: {e}")
-                raise ValueError(f"Failed to get response from Gemini API: {e}")
-
-        if response is None:
-            raise ValueError(
-                "Failed to get response from Gemini API after retry attempts."
-            )
-
-        sql = self._extract_text(response)
         if not sql:
-            raise ValueError("No SQL returned by the Gemini model.")
+            error = ValueError("No SQL returned by the model.")
+            error.response = str(response)
+            raise error
 
         token_usage = self._extract_token_usage(response)
 
         sql = postprocess_sql(sql)
         logger.debug(f"Generated SQL: {sql}\n")
         return sql, token_usage
+
+
+def create_llm_client(
+    model_name: str, model_parameters: dict | None = None
+) -> LiteLLMClient:
+    """
+    Factory that builds a :class:`LiteLLMClient` from a toolkit model name.
+
+    The ``model_name`` keeps its ``<provider>:<model>`` prefix (e.g.
+    ``wxai:ibm/granite-4-h-small``); provider routing is handled internally
+    by litellm.
+    """
+    return LiteLLMClient(model_name, model_parameters)

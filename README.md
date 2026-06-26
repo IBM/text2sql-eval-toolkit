@@ -144,7 +144,19 @@ pip install -e .
 
 ## Additional Requirements
 
-To use features that rely on LLM inference, you need to set the required environment variables for the relevant services. For watsonx.ai, this includes setting the following environment variables: `WATSONX_APIKEY`, `WATSONX_API_BASE`, and `WATSONX_PROJECTID`. See [env.example](env.example) for all available configuration options.
+LLM inference is routed through [LiteLLM](https://www.litellm.ai/), which provides a single, OpenAI-compatible interface to all supported providers. Models keep the toolkit's `<provider>:<model>` naming convention and are mapped onto the matching LiteLLM provider internally:
+
+| Prefix | Provider | Required environment variables |
+| --- | --- | --- |
+| `wxai:` | IBM watsonx.ai | `WATSONX_APIKEY`, `WATSONX_API_BASE`, `WATSONX_PROJECTID` |
+| `gemini:` | Google Gemini | `GEMINI_API_KEY` |
+| `anthropic:` | Anthropic Claude | `ANTHROPIC_API_KEY` |
+| `openai:` | OpenAI / OpenAI-compatible | `OPENAI_BASE_URL`, `OPENAI_API_KEY` |
+| `vllm:` | vLLM server | `VLLM_API_BASE`, `VLLM_API_KEY` (optional) |
+| `ollama:` | Ollama | `OLLAMA_BASE_URL`, `OLLAMA_API_KEY` (optional) |
+| `rits:` | IBM RITS | `RITS_API_KEY` |
+
+To use features that rely on LLM inference, set the environment variables required for the provider(s) you intend to use. See [env.example](env.example) for all available configuration options.
 
 ### Benchmarks
 
