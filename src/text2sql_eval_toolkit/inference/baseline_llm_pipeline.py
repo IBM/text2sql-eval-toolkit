@@ -25,18 +25,12 @@ Usage:
 """
 
 import asyncio
-import os
-import json
 import time
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.inference.base_pipeline import BasePipeline
 from text2sql_eval_toolkit.inference.inference_tools import (
     Text2SQLPrompt,
-    WXAIClientChatAPI,
-    VLLMClientChatAPI,
-    ClaudeClientChatAPI,
-    OpenAIClientChatAPI,
-    GeminiClientChatAPI,
+    create_llm_client,
 )
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
@@ -73,16 +67,7 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
         if not predictions_data:
             predictions_data = []
 
-        if model_name.startswith("wxai:"):
-            client = WXAIClientChatAPI(model_name[5:], model_parameters)
-        elif model_name.startswith("gemini:"):
-            client = GeminiClientChatAPI(model_name[7:], model_parameters)
-        elif model_name.startswith("vllm"):
-            client = VLLMClientChatAPI(model_name[5:], model_parameters)
-        else:
-            raise NotImplementedError(
-                f"Model {model_name} is not supported. Supported prefixes: 'wxai:', 'gemini:', 'vllm:'."
-            )
+        client = create_llm_client(model_name, model_parameters)
 
         # Extend predictions_data with new predictions
         for idx, record in enumerate(data):
@@ -122,7 +107,7 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
                     )
                     continue
                 # Add/update the prediction for this model_name
-                sql = client.generate_sql(prompt)
+                sql, _ = client.generate_sql(prompt)
                 existing["predictions"][pipeline_id] = {
                     "predicted_sql": sql,
                     "prompt": generation_prompt,
@@ -131,7 +116,7 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
                 }
             else:
                 # New object, add predictions field
-                sql = client.generate_sql(prompt)
+                sql, _ = client.generate_sql(prompt)
                 record["predictions"] = {
                     pipeline_id: {
                         "predicted_sql": sql,
@@ -317,31 +302,7 @@ class LLMSQLGenerationPipeline(BasePipeline):
             if not predictions_data:
                 predictions_data = []
 
-            if model_name.startswith("wxai:"):
-                client = WXAIClientChatAPI(model_name[5:], model_parameters)
-            elif model_name.startswith("gemini:"):
-                client = GeminiClientChatAPI(model_name[7:], model_parameters)
-            elif model_name.startswith("anthropic:"):
-                client = ClaudeClientChatAPI(model_name[10:], model_parameters)
-            elif model_name.startswith("vllm:"):
-                client = VLLMClientChatAPI(model_name[5:], model_parameters)
-            elif model_name.startswith("ollama:"):
-                # Ollama uses OpenAI-compatible API with custom base URL
-                client = OpenAIClientChatAPI(model_name[7:], model_parameters)
-            elif model_name.startswith("openai:"):
-                client = OpenAIClientChatAPI(model_name[7:], model_parameters)
-            elif model_name.startswith("rits"):
-                logger.info(f"Getting RITS model endpoint for {model_name}")
-                model_id = model_name.split("/")[-1].replace(".", "-").lower()
-                rits_api_key = os.environ.get("RITS_API_KEY")
-                if rits_api_key is None:
-                    raise ValueError("Missing RITS_API_KEY environment variable")
-                os.environ["VLLM_API_BASE"] = (
-                    f"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/{model_id}/v1"
-                )
-                client = VLLMClientChatAPI(model_name[5:], model_parameters)
-            else:
-                raise NotImplementedError(f"Model {model_name} is not supported.")
+            client = create_llm_client(model_name, model_parameters)
 
             async def run_all():
                 semaphore = asyncio.Semaphore(max_num_threads)

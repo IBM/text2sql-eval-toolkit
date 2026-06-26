@@ -29,11 +29,7 @@ from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.inference.base_pipeline import BasePipeline
 from text2sql_eval_toolkit.inference.inference_tools import (
     Text2SQLPrompt,
-    WXAIClientChatAPI,
-    VLLMClientChatAPI,
-    ClaudeClientChatAPI,
-    OpenAIClientChatAPI,
-    GeminiClientChatAPI,
+    create_llm_client,
     postprocess_sql,
 )
 from text2sql_eval_toolkit.utils import (
@@ -364,29 +360,8 @@ class AgenticSQLGenerationPipeline(BasePipeline):
         self.version = version
 
     def _create_llm_client(self, model_name: str, model_parameters: dict):
-        """Create an LLM client based on model name."""
-        if model_name.startswith("wxai:"):
-            return WXAIClientChatAPI(model_name[5:], model_parameters)
-        elif model_name.startswith("gemini:"):
-            return GeminiClientChatAPI(model_name[7:], model_parameters)
-        elif model_name.startswith("anthropic:"):
-            return ClaudeClientChatAPI(model_name[10:], model_parameters)
-        elif model_name.startswith("vllm:"):
-            return VLLMClientChatAPI(model_name[5:], model_parameters)
-        elif model_name.startswith("openai:"):
-            return OpenAIClientChatAPI(model_name[7:], model_parameters)
-        elif model_name.startswith("rits"):
-            logger.info(f"Getting RITS model endpoint for {model_name}")
-            model_id = model_name.split("/")[-1].replace(".", "-").lower()
-            rits_api_key = os.environ.get("RITS_API_KEY")
-            if rits_api_key is None:
-                raise ValueError("Missing RITS_API_KEY environment variable")
-            os.environ["VLLM_API_BASE"] = (
-                f"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/{model_id}/v1"
-            )
-            return VLLMClientChatAPI(model_name[5:], model_parameters)
-        else:
-            raise NotImplementedError(f"Model {model_name} is not supported.")
+        """Create a unified litellm-backed LLM client based on model name."""
+        return create_llm_client(model_name, model_parameters)
 
     def _build_v4_system_prompt(self, state: AgentState) -> str:
         """
@@ -907,7 +882,7 @@ REASONING:
         messages = self._build_v3_validation_prompt(state)
 
         try:
-            response = await asyncio.to_thread(client.generate_sql, messages)
+            response, _ = await asyncio.to_thread(client.chat, messages)
 
             # Parse the response
             verdict = "RETRY"  # Default to retry if we can't parse
@@ -1695,85 +1670,15 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                 action_count += 1
                 logger.debug(f"V4 Agent action {action_count}/{max_actions}")
 
-                # Get LLM's next action
+                # Get LLM's next action via the unified litellm client.
                 llm_response = None
                 token_usage = None
                 try:
-                    if isinstance(client, WXAIClientChatAPI):
-                        response = client.model.chat(messages=messages)
-                        # Handle both response formats
-                        if "choices" in response and len(response["choices"]) > 0:
-                            message = response["choices"][0].get("message", {})
-                            llm_response = message.get(
-                                "content", message.get("text", "")
-                            ).strip()
-                        else:
-                            raise ValueError(f"Unexpected response format: {response}")
-                        # Extract token usage
-                        usage = response.get("usage", {})
-                        if usage:
-                            token_usage = {
-                                "prompt_tokens": usage.get("prompt_tokens", 0),
-                                "completion_tokens": usage.get("completion_tokens", 0),
-                                "total_tokens": usage.get("total_tokens", 0),
-                            }
-                    elif isinstance(client, ClaudeClientChatAPI):
-                        # Claude has system separate
-                        claude_messages = [
-                            msg for msg in messages if msg["role"] != "system"
-                        ]
-                        claude_system = next(
-                            (
-                                msg["content"]
-                                for msg in messages
-                                if msg["role"] == "system"
-                            ),
-                            "",
-                        )
-                        response = client.client.messages.create(
-                            model=client.model_name,
-                            max_tokens=client.model_parameters.get("max_tokens", 1024),
-                            system=claude_system,
-                            messages=claude_messages,
-                        )
-                        llm_response = response.content[0].text.strip()
-                        # Extract token usage from Claude
-                        if hasattr(response, 'usage'):
-                            token_usage = {
-                                "prompt_tokens": getattr(response.usage, 'input_tokens', 0),
-                                "completion_tokens": getattr(response.usage, 'output_tokens', 0),
-                                "total_tokens": getattr(response.usage, 'input_tokens', 0) + getattr(response.usage, 'output_tokens', 0),
-                            }
-                    elif isinstance(client, VLLMClientChatAPI):
-                        response = client._make_chat_request(messages)
-                        llm_response = response["choices"][0]["message"][
-                            "content"
-                        ].strip()
-                        # Extract token usage
-                        usage = response.get("usage", {})
-                        if usage:
-                            token_usage = {
-                                "prompt_tokens": usage.get("prompt_tokens", 0),
-                                "completion_tokens": usage.get("completion_tokens", 0),
-                                "total_tokens": usage.get("total_tokens", 0),
-                            }
-                    elif isinstance(client, OpenAIClientChatAPI):
-                        # OpenAI client uses the standard chat completions API
-                        response = client.client.chat.completions.create(
-                            model=client.model_name,
-                            messages=messages,
-                            **client.model_parameters,
-                        )
-                        llm_response = response.choices[0].message.content.strip()
-                        # Extract token usage from OpenAI
-                        if hasattr(response, 'usage') and response.usage:
-                            token_usage = {
-                                "prompt_tokens": response.usage.prompt_tokens,
-                                "completion_tokens": response.usage.completion_tokens,
-                                "total_tokens": response.usage.total_tokens,
-                            }
-                    else:
-                        raise ValueError(f"Unsupported client type: {type(client)}")
+                    llm_response, token_usage = await asyncio.to_thread(
+                        client.chat, messages
+                    )
+                    if llm_response:
+                        llm_response = llm_response.strip()
 
                     if not llm_response:
                         raise ValueError("Empty response from LLM")

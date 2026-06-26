@@ -7,18 +7,9 @@ from pathlib import Path
 import yaml
 from text2sql_eval_toolkit.logging import get_logger
 from typing import Dict, Any, Optional
-from text2sql_eval_toolkit.inference.inference_tools import VLLMClientChatAPI, WXAIClient
+from text2sql_eval_toolkit.inference.inference_tools import create_llm_client
 
 logger = get_logger(__name__)
-
-
-def _normalize_vllm_parameters(model_parameters: dict) -> dict:
-    params = dict(model_parameters)
-    if "max_new_tokens" in params and "max_tokens" not in params:
-        params["max_tokens"] = params.pop("max_new_tokens")
-    if params.pop("decoding_method", None) == "greedy" and "temperature" not in params:
-        params["temperature"] = 0
-    return params
 
 
 def load_llm_judge_config(config_path: Optional[str] = None) -> Dict[str, Any]:
@@ -65,40 +56,24 @@ def evaluate_sql_prediction_with_llm(
     score = 0.0
     explanation = "N/A"
 
-    # Run inference
+    # Run inference (routed through litellm for all supported providers).
     logger.debug("Running LLM-as-a-judge inference...")
-    if evaluator_model.startswith("vllm:"):
-        client = VLLMClientChatAPI(
-            model_name=evaluator_model[5:],
-            model_parameters=_normalize_vllm_parameters(model_parameters),
-        )
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are an expert SQL evaluator. Assess whether predicted SQL "
-                    "queries correctly answer natural language questions."
-                ),
-            },
-            {"role": "user", "content": prompt},
-        ]
-        response = client._make_chat_request(messages)
-        answer = response["choices"][0]["message"]["content"].strip()
-    elif evaluator_model.startswith("wxai:"):
-        client = WXAIClient(
-            model_name=evaluator_model[5:],  # Strip "wxai:"
-            model_parameters=model_parameters,
-        )
-        response = client.model.generate(prompt)
-        answer = response.get("results", [{}])[0].get("generated_text", "").strip()
-    else:
-        raise NotImplementedError(
-            f"Model '{evaluator_model}' is not supported. "
-            "Only 'vllm:' and 'wxai:' models are currently implemented."
-        )
+    client = create_llm_client(evaluator_model, model_parameters)
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are an expert SQL evaluator. Assess whether predicted SQL "
+                "queries correctly answer natural language questions."
+            ),
+        },
+        {"role": "user", "content": prompt},
+    ]
+    answer, _ = client.chat(messages)
+    answer = (answer or "").strip()
     if not answer:
-        logger.error(f"LLM judge inference failed with response: {response}")
-        raise ValueError(f"LLM judge inference failed with response: {response}")
+        logger.error("LLM judge inference returned an empty response")
+        raise ValueError("LLM judge inference returned an empty response")
     elif answer.lower().startswith("yes"):
         verdict = "Yes"
         score = 1.0

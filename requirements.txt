@@ -72,3 +72,4 @@ langchain-core>=0.3.0
 aiomysql>=0.2.0
 greenlet>=3.0.0
 google-genai>=1.0.0
+litellm>=1.55.0

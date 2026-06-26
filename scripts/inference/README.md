@@ -403,23 +403,45 @@ python scripts/run_experiment.py bird_mini_dev_sqlite_sample_50 \
 
 ### LLM Provider Configuration
 
-Set environment variables (or use a `.env` file in the project root):
+Inference is routed through [LiteLLM](https://www.litellm.ai/), so every provider is reached through a single OpenAI-compatible interface. Select a provider via the model-name prefix (e.g. `wxai:`, `gemini:`, `anthropic:`, `openai:`, `vllm:`, `ollama:`, `rits:`) and set the matching environment variables (or use a `.env` file in the project root):
 
-**WatsonX.AI:**
+**WatsonX.AI** (`wxai:`):
 ```bash
 WATSONX_APIKEY=your_api_key
 WATSONX_API_BASE=https://your-instance.cloud.ibm.com
 WATSONX_PROJECTID=your_project_id
 ```
 
-**vLLM:**
+**Google Gemini** (`gemini:`):
 ```bash
-VLLM_API_BASE=http://your-vllm-server:8000/v1
+GEMINI_API_KEY=your_api_key
 ```
 
-**Anthropic Claude:**
+**Anthropic Claude** (`anthropic:`):
 ```bash
 ANTHROPIC_API_KEY=your_api_key
+```
+
+**OpenAI / OpenAI-compatible** (`openai:`):
+```bash
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_API_KEY=your_api_key
+```
+
+**vLLM** (`vllm:`):
+```bash
+VLLM_API_BASE=http://your-vllm-server:8000/v1
+VLLM_API_KEY=optional_api_key_here
+```
+
+**Ollama** (`ollama:`):
+```bash
+OLLAMA_BASE_URL=http://localhost:11434/v1
+```
+
+**IBM RITS** (`rits:`):
+```bash
+RITS_API_KEY=your_api_key
 ```
 
 See [`env.example`](../../env.example) for a complete template.
@@ -438,7 +460,7 @@ Question + Schema
 
 **Files:**
 - `src/text2sql_eval_toolkit/inference/baseline_llm_pipeline.py` - Main pipeline
-- `src/text2sql_eval_toolkit/inference/inference_tools.py` - LLM clients and prompts
+- `src/text2sql_eval_toolkit/inference/inference_tools.py` - Unified LiteLLM client (`LiteLLMClient`), the `create_llm_client` factory, and prompts
 
 ### Agentic Baseline Architecture
 
@@ -678,21 +700,17 @@ The agent uses this classification to decide:
 
 ### Adding a New LLM Provider
 
-1. Create a new client class in `inference_tools.py`:
+Inference goes through [LiteLLM](https://www.litellm.ai/), so most providers are supported out of the box and don't require any new client code.
 
-```python
-class MyLLMClient:
-    def __init__(self, model_name: str, model_parameters: dict):
-        # Initialize your client
-        pass
-    
-    def generate_sql(self, messages: list[dict]) -> str:
-        # Call your LLM API
-        # Return the generated SQL
-        pass
-```
+1. Check whether [LiteLLM already supports the provider](https://docs.litellm.ai/docs/providers). If so, you usually only need to:
+   - Add the provider mapping (toolkit `<prefix>:` → LiteLLM model string and any `api_base`/`api_key`/header kwargs) in `LiteLLMClient._resolve_model` in `inference_tools.py`.
+   - Document the required environment variables in [`env.example`](../../env.example).
 
-2. Register it in the pipeline's `_create_llm_client` method
+2. The unified `LiteLLMClient` exposes two methods used by the pipelines:
+   - `generate_sql(prompt)` → `(sql, token_usage)` — used by the baseline and agentic SQL-generation nodes.
+   - `chat(messages)` → `(text, token_usage)` — used by the agentic v4/v5 ReAct loop and the LLM judge.
+
+   No per-provider branching is needed in the pipelines; they construct clients via `create_llm_client(model_name, model_parameters)`.
 
 ### Adding a New Agentic Variant
 
@@ -725,8 +743,11 @@ Edit the prompt construction in:
 **Issue: "No module named 'langgraph'"**
 - Solution: `pip install langgraph langchain-core`
 
-**Issue: "Missing WATSONX.AI credentials"**
-- Solution: Set environment variables or create `.env` file (see Configuration)
+**Issue: "litellm is not installed"**
+- Solution: `pip install litellm` (installed automatically with the toolkit)
+
+**Issue: "Missing WATSONX.AI credentials" (or other provider credentials)**
+- Solution: Set the environment variables for your selected provider prefix or create a `.env` file (see [LLM Provider Configuration](#llm-provider-configuration))
 
 **Issue: Agentic pipeline is slow**
 - This is expected - multiple LLM calls and SQL executions per question
@@ -745,6 +766,8 @@ Edit the prompt construction in:
 
 ## References
 
+- **LiteLLM Documentation:** https://docs.litellm.ai/
+- **LiteLLM Supported Providers:** https://docs.litellm.ai/docs/providers
 - **LangGraph Documentation:** https://langchain-ai.github.io/langgraph/
 - **BIRD Benchmark:** https://bird-bench.github.io/
 - **Text2SQL Evaluation Metrics:** See `scripts/evaluation/README.md`

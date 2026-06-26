@@ -168,7 +168,7 @@ VLLM_API_BASE=http://localhost:8000/v1
 VLLM_API_KEY=optional_api_key_here
 ```
 
-Then use the `vllm:` prefix in your model configuration:
+Inference is routed through [LiteLLM](https://www.litellm.ai/) (the `vllm:` prefix maps to LiteLLM's `hosted_vllm/` provider against `VLLM_API_BASE`). Then use the `vllm:` prefix in your model configuration:
 
 ```bash
 python scripts/inference/run_inference.py \
