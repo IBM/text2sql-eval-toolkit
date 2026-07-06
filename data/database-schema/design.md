@@ -23,7 +23,7 @@ Full DDL: [schema.sql](./schema.sql)
 | Cover all benchmarks (BIRD, Spider, Beaver, Archer, …) | Normalized core fields + `JSONB` for benchmark-specific extras |
 | Cover all result stages | Separate tables for predictions, execution, evaluation |
 | Fast dashboard queries | Indexed columns, materialized summaries, category aggregates |
-| Multi-pipeline per benchmark | `pipelines` + unique `(record, pipeline)` constraints |
+| Multi-pipeline per benchmark | `pipelines` (globally unique by `pipeline_id`) + unique `(record, pipeline)` constraints on predictions |
 | Large DataFrames | Dedicated `result_dataframes` table with optional external blob refs |
 | HF Hub distribution | `result_artifacts` + `hub_manifests` tables |
 | Backward compatibility | JSON export/import views matching current file shapes |
@@ -77,7 +77,7 @@ Replaces per-benchmark question JSON arrays (one row per record).
 Models how multiple models/pipelines coexist in one predictions file.
 
 - `result_sets` — one eval artifact container per benchmark (with optional label for history)
-- `pipelines` — pipeline_id string, model_name, model_parameters, pipeline_type
+- `pipelines` — standalone definition table; `pipeline_id` is globally unique. Linked to result sets via `predictions`.
 
 ### Layer 4: Predictions, Execution & DataFrames
 
@@ -270,7 +270,7 @@ Row counts are manageable; **DataFrame storage** is the main size driver (plan f
 
 ## Implementation status
 
-1. ~~Schema and `TEXT2SQL_DATABASE_URL`~~ — done ([schema.sql](./schema.sql), migration v3 for `jobs` types)
+1. ~~Schema and `TEXT2SQL_DATABASE_URL`~~ — done ([schema.sql](./schema.sql), migration v4 decouples pipelines from result_sets)
 2. ~~JSON import script~~ — [`scripts/migration/import_json_to_db.py`](../../scripts/migration/import_json_to_db.py)
 3. ~~Repository layer (`BenchmarkStore`)~~ — used by pipeline, dashboard, and scripts
 4. ~~Pipeline writes to SQLite~~ — inference, execution, eval, LLM judge

@@ -313,7 +313,12 @@ class BenchmarkStore:
                     pass
 
         pipeline_rows = self.conn.execute(
-            "SELECT id, pipeline_id FROM pipelines WHERE result_set_id = ?",
+            """
+            SELECT DISTINCT pip.id, pip.pipeline_id
+            FROM pipelines pip
+            JOIN predictions pr ON pr.pipeline_ref = pip.id
+            WHERE pr.result_set_id = ?
+            """,
             (result_set_id,),
         ).fetchall()
         pipeline_name_by_id = {row["id"]: row["pipeline_id"] for row in pipeline_rows}
@@ -375,11 +380,8 @@ class BenchmarkStore:
                     if not isinstance(metrics, dict):
                         continue
                     pipeline_row = self.conn.execute(
-                        """
-                        SELECT id FROM pipelines
-                        WHERE result_set_id = ? AND pipeline_id = ?
-                        """,
-                        (result_set_id, pipeline_id),
+                        "SELECT id FROM pipelines WHERE pipeline_id = ?",
+                        (pipeline_id,),
                     ).fetchone()
                     if pipeline_row is None:
                         continue
