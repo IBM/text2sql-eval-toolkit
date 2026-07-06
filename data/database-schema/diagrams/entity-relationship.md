@@ -9,8 +9,8 @@ erDiagram
     benchmark_records ||--o{ record_features : profiled
 
     benchmarks ||--o{ result_sets : produces
-    result_sets ||--o{ pipelines : contains
     pipelines ||--o{ predictions : generates
+    result_sets ||--o{ predictions : "scoped to"
     benchmark_records ||--o{ predictions : "target of"
 
     predictions ||--o| prediction_inference : has

@@ -462,7 +462,7 @@ class JsonToDbImporter:
             has_eval=import_eval and eval_path.is_file(),
         )
         record_map = self._record_id_map(benchmark_id)
-        pipeline_map = self._ensure_pipelines(result_set_id, records)
+        pipeline_map = self._ensure_pipelines(records)
 
         judge_config_id = (
             self._resolve_summary_judge_config(info) if import_eval else None
@@ -555,7 +555,7 @@ class JsonToDbImporter:
             (status, source, result_set_id),
         )
         record_map = self._record_id_map(benchmark_id)
-        pipeline_map = self._ensure_pipelines(result_set_id, records)
+        pipeline_map = self._ensure_pipelines(records)
 
         stats = {"predictions": 0, "evaluations": 0, "dataframes": 0}
         for record in records:
@@ -652,7 +652,7 @@ class JsonToDbImporter:
         return {str(row["record_id"]): int(row["id"]) for row in rows}
 
     def _ensure_pipelines(
-        self, result_set_id: int, records: list[dict[str, Any]]
+        self, records: list[dict[str, Any]]
     ) -> dict[str, int]:
         pipeline_ids: set[str] = set()
         for record in records:
@@ -670,16 +670,14 @@ class JsonToDbImporter:
             model_parameters = sample.get("model_parameters") or {}
             self.conn.execute(
                 """
-                INSERT INTO pipelines (
-                    result_set_id, pipeline_id, pipeline_type, model_name, model_parameters
-                ) VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(result_set_id, pipeline_id) DO UPDATE SET
+                INSERT INTO pipelines (pipeline_id, pipeline_type, model_name, model_parameters)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(pipeline_id) DO UPDATE SET
                     pipeline_type = excluded.pipeline_type,
                     model_name = excluded.model_name,
                     model_parameters = excluded.model_parameters
                 """,
                 (
-                    result_set_id,
                     pipeline_id,
                     pipeline_type,
                     model_name,
@@ -687,11 +685,8 @@ class JsonToDbImporter:
                 ),
             )
             row = self.conn.execute(
-                """
-                SELECT id FROM pipelines
-                WHERE result_set_id = ? AND pipeline_id = ?
-                """,
-                (result_set_id, pipeline_id),
+                "SELECT id FROM pipelines WHERE pipeline_id = ?",
+                (pipeline_id,),
             ).fetchone()
             assert row is not None
             pipeline_map[pipeline_id] = int(row["id"])
@@ -1103,11 +1098,8 @@ class JsonToDbImporter:
             if not isinstance(metrics, dict):
                 continue
             pipeline_row = self.conn.execute(
-                """
-                SELECT id FROM pipelines
-                WHERE result_set_id = ? AND pipeline_id = ?
-                """,
-                (result_set_id, pipeline_id),
+                "SELECT id FROM pipelines WHERE pipeline_id = ?",
+                (pipeline_id,),
             ).fetchone()
             if pipeline_row is None:
                 logger.warning(

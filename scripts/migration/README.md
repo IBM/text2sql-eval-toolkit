@@ -132,6 +132,34 @@ python3 scripts/migration/import_json_to_db.py --init \
   --benchmark-id bird_mini_dev_sqlite_test_50
 ```
 
+## Incremental schema migrations
+
+Fresh databases created with `--init` or `apply_schema()` already include the latest
+DDL from `data/database-schema/schema.sql` (currently through migration v4).
+
+**Existing databases** are upgraded automatically when the toolkit opens a connection
+(`ensure_schema()` → `apply_pending_migrations()`). You do not need to run SQL
+scripts by hand unless you prefer manual control.
+
+| Version | Script | Description |
+|---------|--------|-------------|
+| 3 | (inline in `migrations.py`) | `jobs` table job types: `inference`, `execution`, `eval`, `llm_judge` |
+| 4 | [`004_decouple_pipelines_from_result_sets.sql`](./004_decouple_pipelines_from_result_sets.sql) | Remove `result_set_id` from `pipelines`; deduplicate by `pipeline_id` |
+
+Check applied versions:
+
+```bash
+sqlite3 data/text2sql_eval.db "SELECT version, description FROM schema_migrations ORDER BY version;"
+```
+
+Manual v4 upgrade (same logic as automatic migration):
+
+```bash
+sqlite3 data/text2sql_eval.db < scripts/migration/004_decouple_pipelines_from_result_sets.sql
+```
+
+Skip automatic migration only if you manage schema versions yourself outside the toolkit.
+
 ## Idempotency and re-runs
 
 The importer uses upserts (`INSERT … ON CONFLICT DO UPDATE`) for most entities. Re-running without `--force` updates existing rows in place.
@@ -185,6 +213,8 @@ conn.close()
 | Path | Role |
 |------|------|
 | `scripts/migration/import_json_to_db.py` | CLI entry point |
+| `scripts/migration/004_decouple_pipelines_from_result_sets.sql` | Migration v4: decouple `pipelines` from `result_sets` |
+| `src/text2sql_eval_toolkit/database/migrations.py` | Automatic incremental migrations on DB open |
 | `src/text2sql_eval_toolkit/database/connection.py` | Database path resolution and schema application |
 | `src/text2sql_eval_toolkit/database/json_importer.py` | Import logic (`JsonToDbImporter`) |
 | `data/database-schema/schema.sql` | Target SQLite DDL |

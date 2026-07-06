@@ -13,6 +13,7 @@ The following databases are required for the benchmarks:
 | **Spider 1.0** | `spider_dev`, `spider_realistic`, `spider_dev_test_50` | SQLite | Download `database` folder |
 | **Archer** | `archer_en_dev`, `archer_en_dev_test_10` | SQLite | Download database files |
 | **Beaver** | `beaver`, `beaver_test_10` | MySQL | MySQL server + connection string |
+| **FIBEN** | `fiben` | PostgreSQL | PostgreSQL server + load DDL & CSV data + connection string |
 
 **Note:** Test benchmarks (e.g., `bird_mini_dev_sqlite_test_50`) use the same databases as their full counterparts but with smaller question subsets.
 
@@ -161,6 +162,89 @@ export MYSQL_CONNECTION_STRING="mysql://username:password@localhost:3306/beaver"
 ```
 
 Refer to the Beaver benchmark documentation for database setup details: https://peterbaile.github.io/beaver/
+
+---
+
+## FIBEN
+
+**Used by:** `fiben`
+
+FIBEN is a financial natural-language querying benchmark whose gold queries target a single PostgreSQL schema named `FIBEN`. You need to:
+
+1. Download the FIBEN DDL and CSV data
+2. Set up a PostgreSQL server (local or Docker) and create the `FIBEN` schema
+3. Load the DDL and CSV data
+4. Set the `POSTGRES_CONNECTION_STRING` environment variable
+
+### Step 1: Download the FIBEN artifacts
+
+The benchmark ships its DDL (`FIBEN.sql`) and per-table CSV data (`data.zip`) in the upstream repository:
+
+👉 [https://github.com/IBM/fiben-benchmark](https://github.com/IBM/fiben-benchmark)
+
+```bash
+git clone https://github.com/IBM/fiben-benchmark.git
+cd fiben-benchmark
+
+# data.zip extracts the per-table CSV files into a ./data directory.
+# tablelist.txt maps each table name to its <TABLE>.csv file.
+unzip data.zip
+```
+
+### Step 2 & 3: Start PostgreSQL and load the schema + data
+
+#### Option 1: Docker (Recommended)
+
+```bash
+# Start PostgreSQL container
+docker run --name fiben-db -e POSTGRES_PASSWORD=yourpass123 -p 5432:5432 -d postgres
+
+# Create the database and the FIBEN schema, and make it the default search path
+docker exec -i fiben-db psql -U postgres -c "CREATE DATABASE fiben;"
+docker exec -i fiben-db psql -U postgres -d fiben -c 'CREATE SCHEMA IF NOT EXISTS "FIBEN";'
+docker exec -i fiben-db psql -U postgres -d fiben -c 'ALTER DATABASE fiben SET search_path TO "FIBEN";'
+
+# Create the tables (FIBEN.sql is PostgreSQL-compatible; the search_path above
+# places them in the FIBEN schema). FK constraints are added at the end.
+docker exec -i fiben-db psql -U postgres -d fiben < FIBEN.sql
+
+# Load the CSV data (db2 "del" export == comma-delimited CSV, no header row)
+for t in $(cat tablelist.txt); do
+  echo "Loading $t"
+  docker exec -i fiben-db psql -U postgres -d fiben \
+    -c "\copy \"FIBEN\".\"$t\" FROM STDIN WITH (FORMAT csv)" < "data/$t.csv"
+done
+```
+
+Set environment variable for connection:
+```bash
+export POSTGRES_CONNECTION_STRING=postgresql://postgres:yourpass123@localhost:5432/fiben
+```
+
+#### Option 2: Local PostgreSQL Installation
+
+```bash
+# Create the database and FIBEN schema
+createdb fiben
+psql fiben -c 'CREATE SCHEMA IF NOT EXISTS "FIBEN";'
+psql fiben -c 'ALTER DATABASE fiben SET search_path TO "FIBEN";'
+
+# Create the tables
+psql fiben < FIBEN.sql
+
+# Load the CSV data
+for t in $(cat tablelist.txt); do
+  echo "Loading $t"
+  psql fiben -c "\copy \"FIBEN\".\"$t\" FROM '$(pwd)/data/$t.csv' WITH (FORMAT csv)"
+done
+```
+
+Set environment variable for connection:
+```bash
+export POSTGRES_CONNECTION_STRING="postgresql://${USER}@localhost:5432/fiben"
+```
+
+> **Note:** The `fiben` benchmark resolves its tables against the `FIBEN` schema (configured via `schema_name` in `benchmarks.json`). Make sure the schema is named exactly `FIBEN` (uppercase) so the gold queries resolve correctly.
 
 ---
 

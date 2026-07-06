@@ -7,33 +7,48 @@ It is built with a **FastAPI** backend and a **React** frontend with a professio
 ### Features
 
 - **Benchmark overview**: Fixed-height, paginated tables listing all benchmarks with description, DB type, number of records, and number of pipelines.
-- **Per-benchmark results**: Pipeline-level metrics (execution accuracy variants, LLM-as-judge score, token and latency stats) similar to `data/results/README.md`, with sortable metrics and pagination.
+- **Per-benchmark results**: Pipeline-level metrics (execution accuracy variants, LLM-as-judge score, token and latency stats) with sortable metrics and pagination.
+- **LLM judge selection**: When multiple judge configurations have stored results for a benchmark, choose which judge's `llm_score` to display (same pattern as pipeline selection). Selection persists across views for the current benchmark.
 - **Error analysis**:
   - Search by question text or record id.
   - Filter records where a given pipeline/metric matches conditions (e.g. `execution_accuracy = 0 AND llm_score = 1`).
   - Cross-pipeline disagreement filters (e.g. pipeline 1 metric = 0 while pipeline 2 = 1).
   - Fixed-height, paginated lists for efficient browsing.
-- **Compare result sets**: Side‑by‑side comparison of two summary files for a benchmark, showing left/right metric values and deltas for each pipeline.
-- **LLM judge configuration**: View and edit LLM‑as‑judge YAML configs through a simple editor UI.
-- **Run evaluations**: Trigger new evaluations for a benchmark and monitor job status from the UI.
+- **Compare result sets**: Side‑by‑side comparison of pipeline metrics, showing left/right values and deltas.
+- **Profile compare**: Cross-benchmark profile analysis with the same LLM judge filter.
+- **LLM judge configuration**: View and edit LLM‑as‑judge YAML config templates (filesystem configs used when *running* new evaluations).
+- **Run evaluations**: Trigger new evaluations for a benchmark and monitor job status from the UI (`GET /api/jobs/{job_id}`).
 
-### First run — fetch pre-computed results
+### Data storage
 
-Before starting the dashboard for the first time, download the pre-computed
-evaluation results from the Hugging Face Hub (~7 GB):
+The dashboard reads evaluation data from **SQLite** (`TEXT2SQL_DATABASE_URL`, default `data/text2sql_eval.db`), not from `*-predictions_eval.json` files.
+
+| What | Where |
+|------|--------|
+| Predictions, execution, evaluations | `text2sql_eval.db` via `BenchmarkStore` |
+| Benchmark catalog & gold questions | `data/benchmarks.json`, `data/benchmarks/*.json` |
+| Legacy result JSON | Import only — [`scripts/migration/import_json_to_db.py`](../scripts/migration/README.md) |
+
+### First run — seed the database
+
+**Option A — migrate legacy JSON results** (if you have `data/results/*.json`):
+
+```bash
+python3 scripts/migration/import_json_to_db.py --init
+```
+
+**Option B — fetch from Hugging Face Hub, then import:**
 
 ```bash
 text2sql-eval-toolkit results fetch
+python3 scripts/migration/import_json_to_db.py --init
 ```
 
-This populates `${TEXT2SQL_DATA_ROOT:-./data}/results/` with all benchmark
-artefacts. You only need to do this once. To fetch only a single benchmark:
+**Option C — run the pipeline** (writes directly to SQLite):
 
 ```bash
-text2sql-eval-toolkit results fetch --benchmarks bird_mini_dev_sqlite
+python scripts/run_experiment.py bird_mini_dev_sqlite
 ```
-
-See `text2sql-eval-toolkit results --help` for all options.
 
 ### Running the dashboard
 
@@ -49,33 +64,47 @@ or with pip:
 pip install -e ".[dashboard]"
 ```
 
-you can start the dashboard with a single command:
+Start the dashboard:
 
 ```bash
 text2sql-eval-dashboard --open-browser
 ```
 
-By default the server listens on `http://127.0.0.1:8000` and, if `--open-browser` is used, opens your default browser to the dashboard.
+By default the server listens on `http://127.0.0.1:8000`.
 
-#### Data location
-
-The backend expects evaluation artifacts under a configurable data root:
-
-- Set `TEXT2SQL_DATA_ROOT` to point to the directory that contains a `results/` folder with files like:
-  - `{benchmark}-predictions_eval.json`
-  - `{benchmark}-predictions_eval_summary.json`
-- If `TEXT2SQL_DATA_ROOT` is not set, the server defaults to `./data`.
-
-For example, in a cloned repo where results live under `data/results/`, you can run:
+#### Environment
 
 ```bash
-export TEXT2SQL_DATA_ROOT="$(pwd)/data"
+export TEXT2SQL_DATA_ROOT="$(pwd)/data"          # benchmark catalog + db file location
+export TEXT2SQL_DATABASE_URL="sqlite:///$(pwd)/data/text2sql_eval.db"
 text2sql-eval-dashboard --open-browser
 ```
+
+### Jobs API
+
+Background evaluation from the UI creates rows in the `jobs` table:
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/benchmarks/{id}/evaluate` | Start eval job; returns `job_id` |
+| `GET /api/jobs/{job_id}` | Poll status (`pending`, `running`, `completed`, `failed`) |
+| `GET /api/benchmarks/{id}/jobs` | List recent jobs for a benchmark |
+
+Pipeline scripts also record jobs for `inference`, `execution`, `eval`, and `llm_judge` stages.
+
+### LLM judge API
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/benchmarks/{id}/llm-judge-configs` | Judge configs with stored results for this benchmark |
+| `GET /api/benchmarks/{id}/summary?llm_judge_config_id=N` | Summary filtered to judge *N* |
+| `GET /api/benchmarks/{id}/errors?llm_judge_config_id=N` | Error list with judge *N* scores |
+
+The dashboard **LLM judge** dropdown calls the listing endpoint and passes `llm_judge_config_id` to summary, error, and insight requests.
 
 ### Development
 
-For UI development, you can run the backend and frontend separately:
+For UI development, run the backend and frontend separately:
 
 1. Start the FastAPI backend:
 
@@ -91,20 +120,17 @@ npm install
 npm run dev
 ```
 
-The Vite dev server proxies `/api` calls to `http://127.0.0.1:8000`, so you can iterate on the React UI with hot reload while using the Python backend.
+The Vite dev server proxies `/api` calls to `http://127.0.0.1:8000`.
 
 #### Rebuilding for `text2sql-eval-dashboard` (port 8000)
 
-The `text2sql-eval-dashboard` command mounts the **production build** from `dashboard/dist/` (see `mount_static` in the Python server).
+The `text2sql-eval-dashboard` command mounts the **production build** from `dashboard/dist/`.
 
-**Auto-rebuild (default in a dev checkout):** When `dashboard/package.json` is found (next to your cwd or the repo root), the server starts **`vite build --watch`** in the background so edits under `dashboard/src/` rebuild into `dashboard/dist/` without running `npm run build` manually. Refresh the browser after each rebuild (Vite prints a completion line in the terminal).
+**Auto-rebuild (default in a dev checkout):** When `dashboard/package.json` is found, the server starts **`vite build --watch`** in the background. Refresh the browser after each rebuild.
 
-- Disable watch (serve existing `dist` only): `text2sql-eval-dashboard --no-watch-dashboard`
-- Force watch even if auto-detection changes in the future: `text2sql-eval-dashboard --watch-dashboard`
+- Disable watch: `text2sql-eval-dashboard --no-watch-dashboard`
 
-Requires **Node.js/npm** and `cd dashboard && npm install` once so `node_modules` exists.
-
-**Manual rebuild** (if you disabled watch or need a one-off build):
+**Manual rebuild:**
 
 ```bash
 cd dashboard

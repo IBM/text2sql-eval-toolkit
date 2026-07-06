@@ -29,6 +29,18 @@ sqlite3 data/text2sql_eval.db < data/database-schema/schema.sql
 
 Default path from env: `TEXT2SQL_DATABASE_URL=sqlite:///./data/text2sql_eval.db`
 
+## Incremental migrations
+
+New checkouts use the full DDL in `schema.sql`. If you already have a
+`text2sql_eval.db` from an older toolkit version, schema upgrades run
+automatically when the app opens the database (`apply_pending_migrations()` in
+`src/text2sql_eval_toolkit/database/migrations.py`).
+
+The latest incremental change is **v4**: `pipelines` no longer has
+`result_set_id`; each `pipeline_id` is globally unique. See
+[`scripts/migration/README.md`](../../scripts/migration/README.md) for manual
+upgrade steps and version history.
+
 ## Migrate from JSON
 
 Legacy benchmark data on disk can be imported into SQLite with the migration script:

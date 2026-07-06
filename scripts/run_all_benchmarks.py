@@ -93,6 +93,11 @@ def main():
         help="Force re-run LLM judge evaluation even if cached results exist. Default: False (reuse cached results)",
     )
     parser.add_argument(
+        "--skip_inference_error_retries",
+        action="store_true",
+        help="Skip retrying records that previously failed with inference errors. Default: False (retry errors automatically)",
+    )
+    parser.add_argument(
         "--run_all_baselines",
         action="store_true",
         help="Run all baselines (standard + all 6 agentic variants). If set, ignores --pipeline_type and related args.",
@@ -307,6 +312,7 @@ def main():
                         model_name=model_name,
                         model_parameters=model_parameters,
                         force_rerun=args.force_rerun,
+                        skip_inference_error_retries=args.skip_inference_error_retries,
                     )
 
             logger.info(f"✅ All inference completed for benchmark '{benchmark_id}'.")
@@ -388,6 +394,7 @@ def main():
     logger.info(f"   Benchmarks: {total_benchmarks} benchmark(s)")
     logger.info(f"   LLM Judge: {'enabled' if args.use_llm_judge else 'disabled'}")
     logger.info(f"   Force Rerun: {'enabled' if args.force_rerun else 'disabled'}")
+    logger.info(f"   Skip Inference Error Retries: {'enabled' if args.skip_inference_error_retries else 'disabled'}")
     if args.use_llm_judge:
         logger.info(f"   Force Rerun LLM Judge: {'enabled' if args.force_rerun_llm_judge else 'disabled'}")
 

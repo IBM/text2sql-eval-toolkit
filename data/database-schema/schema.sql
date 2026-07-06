@@ -133,17 +133,15 @@ CREATE INDEX idx_result_sets_benchmark ON result_sets(benchmark_id);
 
 CREATE TABLE pipelines (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    result_set_id    INTEGER NOT NULL REFERENCES result_sets(id) ON DELETE CASCADE,
-    pipeline_id      TEXT NOT NULL,
+    pipeline_id      TEXT NOT NULL UNIQUE,
     pipeline_type    TEXT NOT NULL DEFAULT 'zero_shot'
         CHECK (pipeline_type IN ('zero_shot', 'agentic', 'custom')),
     model_name       TEXT,
     model_parameters TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(model_parameters)),
-    created_at       TEXT NOT NULL DEFAULT (datetime('now')),
-    UNIQUE (result_set_id, pipeline_id)
+    created_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-CREATE INDEX idx_pipelines_result_set ON pipelines(result_set_id);
+CREATE INDEX idx_pipelines_pipeline_id ON pipelines(pipeline_id);
 
 -- ============================================================
 -- LAYER 4: DATAFRAMES (created before execution tables that reference it)
@@ -542,3 +540,4 @@ INSERT OR IGNORE INTO metric_definitions (name, display_group, description, valu
 INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (1, 'Initial schema design (SQLite)');
 INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (2, 'Multi LLM judge per prediction (llm_judge_configs, llm_judge_evaluations)');
 INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (3, 'Pipeline job types: inference, execution, eval, llm_judge');
+INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (4, 'Decouple pipelines from result_sets — pipeline_id is now globally unique');
