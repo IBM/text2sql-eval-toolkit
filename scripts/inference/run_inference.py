@@ -78,6 +78,11 @@ if __name__ == "__main__":
         choices=["v0", "v1", "v2", "v3", "v4", "v5"],
         help="Agentic pipeline version. v0: agent-aware (baseline0), v1: baseline-compatible (baseline1), v2: smart retries (baseline2), v3: LLM judge (baseline3), v4: truly agentic (baseline4), v5: improved agentic (baseline5). Default: v1.",
     )
+    parser.add_argument(
+        "--force_rerun",
+        action="store_true",
+        help="Re-run inference even when predictions already exist for a question/pipeline. Default: False.",
+    )
     args = parser.parse_args()
 
     model_parameters = {
@@ -114,12 +119,14 @@ if __name__ == "__main__":
                 model_name=model_name,
                 model_parameters=model_parameters,
                 max_attempts=args.max_attempts,
+                force_rerun=args.force_rerun,
             )
         else:
             pipeline.run_pipeline(
                 args.benchmark_id,
                 model_name=model_name,
                 model_parameters=model_parameters,
+                force_rerun=args.force_rerun,
             )
     end_time = time.time()
     print(f"Total running time: {end_time - start_time:.2f} seconds")
