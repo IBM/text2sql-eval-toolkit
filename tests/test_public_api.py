@@ -7,8 +7,10 @@ def test_top_level_import_and_symbols():
     # Core evaluation API
     for name in [
         "evaluate_prediction",
+        "evaluate_llm_judge_for_prediction",
         "evaluate_predictions",
         "run_evaluation",
+        "run_llm_judge",
     ]:
         assert hasattr(mod, name), f"Missing expected API symbol: {name}"
 
