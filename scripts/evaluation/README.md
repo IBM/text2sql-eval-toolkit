@@ -4,6 +4,7 @@ This directory contains scripts for evaluating SQL query predictions against gro
 
 * **`run_evaluation.py`** — full evaluation for a **benchmark id** (reads/writes SQLite).
 * **`rerun_metrics.py`** — **metrics only**: re-score existing `predicted_sql` / `predicted_df` without inference or SQL execution.
+* **`run_llm_judge.py`** — **LLM judge only**: score existing predictions with LLM-as-judge, skipping deterministic metrics.
 
 ## Requirements
 
@@ -109,6 +110,30 @@ python scripts/evaluation/rerun_metrics.py bird_mini_dev_sqlite --preserve-llm-j
 | `--csv-summary-path PATH` | Optional summary CSV export |
 
 LLM-as-judge is **off by default**.
+
+## LLM judge only (`run_llm_judge.py`)
+
+Use this to run LLM-as-judge without recomputing deterministic metrics (execution accuracy, sqlglot equivalence, etc.):
+
+```bash
+python scripts/evaluation/run_llm_judge.py bird_mini_dev_sqlite
+
+# Force re-score even when cached
+python scripts/evaluation/run_llm_judge.py bird_mini_dev_sqlite --force-rerun-llm-judge
+
+# Use a specific judge config
+python scripts/evaluation/run_llm_judge.py bird_mini_dev_sqlite \
+  --llm-judge-config-path src/text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_no_gt_v1.yaml
+```
+
+| Flag | Meaning |
+|------|---------|
+| `--llm-judge-config-path` | Judge YAML config (default: `llm_judge_default_config.yaml`) |
+| `--force-rerun-llm-judge` | Re-call LLM judge even if cached |
+| `--max-concurrency N` | Parallel workers (default 16) |
+| `--csv-summary-path PATH` | Optional summary CSV (works best after a full eval) |
+
+Cached `llm_score` / `llm_explanation` values are reused unless `--force-rerun-llm-judge` is set. Existing deterministic evaluation fields are preserved.
 
 ## Example
 

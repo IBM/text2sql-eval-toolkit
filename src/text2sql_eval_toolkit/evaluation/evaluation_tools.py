@@ -24,6 +24,7 @@ from text2sql_eval_toolkit.utils import (
     load_predictions_data,
     save_predictions_data,
     save_eval_summary,
+    load_eval_summary,
 )
 from text2sql_eval_toolkit.database import jobs as db_jobs
 from text2sql_eval_toolkit.database.session import get_connection
@@ -35,6 +36,130 @@ from text2sql_eval_toolkit.logging import get_logger
 
 
 logger = get_logger(__name__)
+
+
+def _build_llm_judge_generation_context(record, prediction, question: str) -> str:
+    """Build the generation-context string passed to the LLM judge prompt."""
+    if "agent_trace" in prediction and prediction["agent_trace"]:
+        trace = prediction["agent_trace"]
+        trace_text = "Agent Interaction Trace:\n\n"
+        for i, interaction in enumerate(trace, 1):
+            if interaction is None:
+                continue
+            trace_text += f"Step {i}: {interaction.get('step', 'unknown')}\n"
+            if "messages" in interaction:
+                for msg in interaction["messages"]:
+                    role = msg.get("role", "unknown")
+                    content = msg.get("content", "")[:500]
+                    trace_text += f"  [{role}]: {content}...\n"
+            if "response" in interaction:
+                trace_text += f"  [response]: {interaction['response'][:500]}...\n"
+            trace_text += "\n"
+        return trace_text
+
+    if "agent_reasoning" in prediction:
+        reasoning_list = prediction["agent_reasoning"]
+        return "Agent Reasoning:\n" + "\n".join(f"- {r}" for r in reasoning_list)
+
+    if "prompt" in prediction:
+        return prediction["prompt"]
+
+    schema_info = record.get("schema", {})
+    db_type = record.get("db_type", "SQL")
+    return (
+        f"Question: {question}\n\nDatabase Type: {db_type}\n\n"
+        f"Schema: {schema_info}\n\nGenerate SQL to answer the question."
+    )
+
+
+def evaluate_llm_judge_for_prediction(
+    record,
+    prediction,
+    llm_judge_config: dict,
+    *,
+    force_rerun_llm_judge: bool = False,
+    ground_truth_sql: str | None = None,
+    ground_truth_df=None,
+) -> dict:
+    """
+    Run LLM-as-judge for a single prediction.
+
+    Returns a dict with ``llm_score`` and ``llm_explanation``, or ``llm_judge_error``
+    on failure. Existing evaluation fields are not modified.
+    """
+    result: dict = {}
+
+    if "inference_error" in prediction:
+        result["llm_score"] = 0.0
+        result["llm_explanation"] = (
+            f"N/A (inference failed: {prediction['inference_error']})"
+        )
+        return result
+
+    if not force_rerun_llm_judge:
+        existing_eval = prediction.get("evaluation", {})
+        if (
+            "llm_score" in existing_eval
+            and "llm_explanation" in existing_eval
+            and "llm_judge_error" not in existing_eval
+        ):
+            try:
+                cached_score = float(existing_eval["llm_score"])
+                result["llm_score"] = cached_score
+                result["llm_explanation"] = existing_eval["llm_explanation"]
+                logger.info(f"Reusing cached LLM judge results (score: {cached_score})")
+                return result
+            except (ValueError, TypeError):
+                logger.warning("Invalid cached llm_score, will re-run LLM judge")
+
+    pred_df = None
+    try:
+        pred_df = parse_dataframe(prediction["predicted_df"])
+    except Exception:
+        pred_df = None
+
+    if pred_df is None:
+        result["llm_score"] = 0.0
+        result["llm_explanation"] = (
+            "N/A (did not use LLM due to missing prediction dataframe)"
+        )
+        return result
+
+    if ground_truth_sql is None:
+        gold_sqls = get_gt_sqls(record)
+        ground_truth_sql = gold_sqls[0] if gold_sqls else ""
+
+    if ground_truth_df is None:
+        gold_dfs = record["gt_df"]
+        if not isinstance(gold_dfs, list):
+            gold_dfs = [gold_dfs]
+        ground_truth_df = gold_dfs[0] if gold_dfs else None
+
+    try:
+        gold_df = parse_dataframe(ground_truth_df) if ground_truth_df is not None else None
+    except Exception:
+        gold_df = None
+
+    question = get_question(record)
+    generation_context = _build_llm_judge_generation_context(record, prediction, question)
+
+    try:
+        llm_as_judge_response = evaluate_sql_prediction_with_llm(
+            question,
+            ground_truth_sql,
+            truncate_dataframe(gold_df) if gold_df is not None else ground_truth_df,
+            prediction["predicted_sql"],
+            truncate_dataframe(pred_df),
+            generation_context,
+            llm_judge_config,
+        )
+        result["llm_score"] = float(llm_as_judge_response["score"])
+        result["llm_explanation"] = llm_as_judge_response["explanation"]
+    except Exception as e:
+        logger.error(f"LLM judge error: {repr(e)}")
+        result["llm_judge_error"] = repr(e)
+
+    return result
 
 
 def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_llm_judge=False):
@@ -265,101 +390,15 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
                 result["execution_time_ms"] = execution_time
 
             if llm_judge_config:
-                try:
-                    llm_score = None
-                    llm_explanation = None
-                    
-                    # Check if we can reuse existing LLM judge results
-                    use_cached_results = False
-                    if not force_rerun_llm_judge:
-                        existing_eval = prediction.get("evaluation", {})
-                        if (
-                            "llm_score" in existing_eval
-                            and "llm_explanation" in existing_eval
-                            and "llm_judge_error" not in existing_eval
-                        ):
-                            # Validate that llm_score is a valid number
-                            try:
-                                cached_score = float(existing_eval["llm_score"])
-                                llm_score = cached_score
-                                llm_explanation = existing_eval["llm_explanation"]
-                                use_cached_results = True
-                                logger.info(
-                                    f"Reusing cached LLM judge results (score: {llm_score})"
-                                )
-                            except (ValueError, TypeError):
-                                logger.warning(
-                                    "Invalid cached llm_score, will re-run LLM judge"
-                                )
-                    
-                    if not use_cached_results:
-                        if pred_df is None:
-                            llm_score = 0.0
-                            llm_explanation = (
-                                "N/A (did not use LLM due to missing prediction dataframe)"
-                            )
-                        else:
-                            question = get_question(record)
-                            ground_truth_sql = gold_sql
-                            ground_truth_df = truncate_dataframe(gold_df)
-                            predicted_sql = prediction["predicted_sql"]
-                            predicted_df = truncate_dataframe(pred_df)
-
-                            # Get context for LLM judge
-                            # For agentic pipelines: use agent_trace (full conversation history)
-                            # For standard baseline: use prompt
-                            if "agent_trace" in prediction and prediction["agent_trace"]:
-                                # Agentic pipeline - use full trace as context
-                                trace = prediction["agent_trace"]
-                                trace_text = "Agent Interaction Trace:\n\n"
-                                for i, interaction in enumerate(trace, 1):
-                                    if interaction is None:
-                                        continue
-                                    trace_text += (
-                                        f"Step {i}: {interaction.get('step', 'unknown')}\n"
-                                    )
-                                    if "messages" in interaction:
-                                        for msg in interaction["messages"]:
-                                            role = msg.get("role", "unknown")
-                                            content = msg.get("content", "")[
-                                                :500
-                                            ]  # Truncate long content
-                                            trace_text += f"  [{role}]: {content}...\n"
-                                    if "response" in interaction:
-                                        trace_text += f"  [response]: {interaction['response'][:500]}...\n"
-                                    trace_text += "\n"
-                                prompt = trace_text
-                            elif "agent_reasoning" in prediction:
-                                # Fallback to agent_reasoning if trace not available
-                                reasoning_list = prediction["agent_reasoning"]
-                                prompt = "Agent Reasoning:\n" + "\n".join(
-                                    f"- {r}" for r in reasoning_list
-                                )
-                            elif "prompt" in prediction:
-                                # Standard baseline - use prompt
-                                prompt = prediction["prompt"]
-                            else:
-                                # Fallback - construct minimal context
-                                schema_info = record.get("schema", {})
-                                db_type = record.get("db_type", "SQL")
-                                prompt = f"Question: {question}\n\nDatabase Type: {db_type}\n\nSchema: {schema_info}\n\nGenerate SQL to answer the question."
-
-                            llm_as_judge_response = evaluate_sql_prediction_with_llm(
-                                question,
-                                ground_truth_sql,
-                                ground_truth_df,
-                                predicted_sql,
-                                predicted_df,
-                                prompt,
-                                llm_judge_config,
-                            )
-                            llm_score = float(llm_as_judge_response["score"])
-                            llm_explanation = llm_as_judge_response["explanation"]
-                    result["llm_score"] = llm_score
-                    result["llm_explanation"] = llm_explanation
-                except Exception as e:
-                    logger.error(f"LLM judge error: {repr(e)}")
-                    result["llm_judge_error"] = repr(e)
+                llm_result = evaluate_llm_judge_for_prediction(
+                    record,
+                    prediction,
+                    llm_judge_config,
+                    force_rerun_llm_judge=force_rerun_llm_judge,
+                    ground_truth_sql=gold_sql,
+                    ground_truth_df=gold_df_raw,
+                )
+                result.update(llm_result)
 
             if result["subset_non_empty_execution_accuracy"] == 1:
                 result["gt_sql"] = gold_sql
@@ -728,6 +767,190 @@ async def async_evaluate_predictions(
         print_summary(summary, use_llm)
 
         return data, summary_df
+
+
+async def async_run_llm_judge(
+    benchmark_id: str,
+    llm_judge_config: dict,
+    *,
+    max_concurrency: int = 16,
+    force_rerun_llm_judge: bool = False,
+    csv_summary_path: str | None = None,
+    job_id: str | None = None,
+):
+    """Run LLM-as-judge only on existing predictions (no deterministic metrics)."""
+    if not benchmark_id:
+        raise ValueError("benchmark_id is required")
+    if not llm_judge_config:
+        raise ValueError("llm_judge_config is required")
+
+    job_params = {
+        "use_llm_judge": True,
+        "force_rerun_llm_judge": force_rerun_llm_judge,
+        "llm_judge_only": True,
+    }
+    conn = get_connection()
+    with db_jobs.track_job(conn, "llm_judge", benchmark_id, job_id=job_id, params=job_params):
+        data = load_predictions_data(benchmark_id, include_eval=True)
+
+        semaphore = asyncio.Semaphore(max_concurrency)
+
+        async def worker(record, prediction):
+            async with semaphore:
+                return await asyncio.to_thread(
+                    evaluate_llm_judge_for_prediction,
+                    record,
+                    prediction,
+                    llm_judge_config,
+                    force_rerun_llm_judge=force_rerun_llm_judge,
+                )
+
+        tasks = []
+        prediction_references = []
+        for record in data:
+            for model_name, prediction in record.get("predictions", {}).items():
+                tasks.append(worker(record, prediction))
+                prediction_references.append((record, model_name, prediction))
+
+        llm_results = await tqdm_asyncio.gather(
+            *tasks,
+            desc=f"LLM judge (concurrency limit: {max_concurrency})",
+        )
+
+        metrics_by_model: dict[str, list] = {}
+        for i, llm_result in enumerate(llm_results):
+            _, model_name, prediction = prediction_references[i]
+            evaluation = prediction.setdefault("evaluation", {})
+            evaluation.update(llm_result)
+            if llm_result.get("llm_judge_error"):
+                evaluation.pop("llm_score", None)
+                evaluation.pop("llm_explanation", None)
+
+            metrics_by_model.setdefault(model_name, []).append(evaluation)
+
+        save_predictions_data(
+            benchmark_id,
+            data,
+            include_eval=True,
+            status="evaluated",
+            llm_judge_config=llm_judge_config,
+        )
+
+        llm_summary = _compute_llm_judge_only_summary(metrics_by_model, llm_judge_config)
+
+        can_compute_full_summary = all(
+            _has_full_deterministic_metrics(records)
+            for records in metrics_by_model.values()
+            if records
+        )
+        if can_compute_full_summary:
+            summary = compute_summary(metrics_by_model, llm_judge_config)
+            if csv_summary_path:
+                summary_to_df_csv(summary, csv_summary_path, use_llm=True)
+            print_summary(summary, use_llm=True)
+        else:
+            try:
+                existing_summary = load_eval_summary(benchmark_id) or {}
+            except Exception:
+                existing_summary = {}
+            summary = _merge_llm_judge_summary(existing_summary, llm_summary)
+            _print_llm_judge_only_summary(llm_summary)
+
+        save_eval_summary(benchmark_id, summary)
+
+        return data, summary
+
+
+_FULL_SUMMARY_METRICS = frozenset(
+    {
+        "non_empty_execution_accuracy",
+        "subset_non_empty_execution_accuracy",
+    }
+)
+
+
+def _has_full_deterministic_metrics(records: list) -> bool:
+    return bool(records) and all(
+        _FULL_SUMMARY_METRICS.issubset(record) for record in records
+    )
+
+
+def _merge_llm_judge_summary(existing: dict, llm_summary: dict) -> dict:
+    merged = dict(existing or {})
+    if "llm_judge_config" in llm_summary:
+        merged["llm_judge_config"] = llm_summary["llm_judge_config"]
+    for pipeline, llm_metrics in llm_summary.items():
+        if pipeline == "llm_judge_config":
+            continue
+        pipeline_summary = dict(merged.get(pipeline, {}))
+        pipeline_summary["num_records"] = llm_metrics.get(
+            "num_records", pipeline_summary.get("num_records")
+        )
+        pipeline_summary["num_correct_llm"] = llm_metrics["num_correct_llm"]
+        pipeline_summary["num_llm_judge_errors"] = llm_metrics["num_llm_judge_errors"]
+        pipeline_summary["llm_score"] = llm_metrics["llm_score"]
+        pipeline_summary["num_evaluated"] = llm_metrics.get(
+            "num_judged", pipeline_summary.get("num_evaluated")
+        )
+        merged[pipeline] = pipeline_summary
+    return merged
+
+
+def _compute_llm_judge_only_summary(metrics_by_model: dict, llm_judge_config: dict) -> dict:
+    summary: dict = {"llm_judge_config": llm_judge_config}
+    for pipeline, records in metrics_by_model.items():
+        num_records = len(records)
+        judged = [r for r in records if "llm_judge_error" not in r and "llm_score" in r]
+        num_correct = sum(1 for r in judged if r.get("llm_score") == 1)
+        num_errors = sum(1 for r in records if "llm_judge_error" in r)
+        avg_score = (
+            sum(r.get("llm_score", 0) for r in judged) / num_records if num_records else 0.0
+        )
+        summary[pipeline] = {
+            "num_records": num_records,
+            "num_judged": len(judged),
+            "num_correct_llm": num_correct,
+            "num_llm_judge_errors": num_errors,
+            "llm_score": {"average": avg_score},
+        }
+    return summary
+
+
+def _print_llm_judge_only_summary(summary: dict) -> None:
+    print("\n=== LLM Judge Summary ===")
+    for pipeline, metrics in summary.items():
+        if pipeline == "llm_judge_config":
+            continue
+        print(f"\n: {pipeline}")
+        print(f"  Total Records       : {metrics.get('num_records', 0)}")
+        print(f"  Judged              : {metrics.get('num_judged', 0)}")
+        print(f"  Correct (score=1)   : {metrics.get('num_correct_llm', 0)}")
+        avg = metrics.get("llm_score", {}).get("average", 0)
+        print(f"  Avg LLM Score       : {avg:.4f}")
+        print(f"  LLM Judge Errors    : {metrics.get('num_llm_judge_errors', 0)}")
+
+
+def run_llm_judge(
+    benchmark_id: str,
+    *,
+    llm_judge_config_path: str | None = None,
+    force_rerun_llm_judge: bool = False,
+    max_concurrency: int = 16,
+    csv_summary_path: str | None = None,
+    job_id: str | None = None,
+):
+    """Run LLM-as-judge only on existing predictions stored in SQLite."""
+    llm_judge_config = load_llm_judge_config(llm_judge_config_path)
+    return asyncio.run(
+        async_run_llm_judge(
+            benchmark_id=benchmark_id,
+            llm_judge_config=llm_judge_config,
+            max_concurrency=max_concurrency,
+            force_rerun_llm_judge=force_rerun_llm_judge,
+            csv_summary_path=csv_summary_path,
+            job_id=job_id,
+        )
+    )
 
 
 def evaluate_predictions(

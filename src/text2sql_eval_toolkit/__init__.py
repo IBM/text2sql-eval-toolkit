@@ -17,12 +17,15 @@ This package exposes multiple levels of functionality:
 
 from .evaluation.evaluation_tools import (
     evaluate_prediction,
+    evaluate_llm_judge_for_prediction,
     async_evaluate_predictions,
+    async_run_llm_judge,
     evaluate_predictions,
     compute_summary,
     summary_to_df_csv,
     print_summary,
     run_evaluation,
+    run_llm_judge,
 )
 from .evaluation.llm_as_judge import (
     load_llm_judge_config,
@@ -78,12 +81,15 @@ __all__ = [
     "DEFAULT_REVISION",
     # Evaluation APIs
     "evaluate_prediction",
+    "evaluate_llm_judge_for_prediction",
     "async_evaluate_predictions",
+    "async_run_llm_judge",
     "evaluate_predictions",
     "compute_summary",
     "summary_to_df_csv",
     "print_summary",
     "run_evaluation",
+    "run_llm_judge",
     # LLM-as-judge helpers
     "load_llm_judge_config",
     "evaluate_sql_prediction_with_llm",
