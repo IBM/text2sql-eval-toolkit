@@ -789,9 +789,19 @@ def compare_dfs_ignore_colnames_subset(
     def sort_df(df):
         sorted_df = df.copy()
         for i in range(len(sorted_df.columns)):
-            sorted_df.iloc[:, i] = (
-                sorted_df.iloc[:, i].map(_canonical_scalar).sort_values(ignore_index=True)
-            )
+            col = sorted_df.iloc[:, i]
+            if pd.api.types.is_numeric_dtype(col):
+                # Use the canonical string as the sort key (so mixed numeric
+                # representations like 4 and 4.0 sort consistently), but keep
+                # the original numeric values/dtype instead of overwriting
+                # them with strings -- assigning strings back into a numeric
+                # column raises TypeError under pandas' iloc dtype checks.
+                order = col.map(_canonical_scalar).sort_values(ignore_index=False).index
+                sorted_df.iloc[:, i] = col.loc[order].reset_index(drop=True).values
+            else:
+                sorted_df.iloc[:, i] = (
+                    col.map(_canonical_scalar).sort_values(ignore_index=True)
+                )
         return sorted_df
 
     if df1.empty or df2.empty or len(df1) != len(df2):
