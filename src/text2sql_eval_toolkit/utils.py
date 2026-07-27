@@ -114,12 +114,20 @@ def load_predictions_data(
     *,
     include_eval: bool = False,
     llm_judge_config_id: int | None = None,
+    include_payloads: bool = True,
+    record_ids: list | None = None,
 ):
-    """Load prediction records (optionally with evaluation blocks) from SQLite."""
+    """Load prediction records (optionally with evaluation blocks) from SQLite.
+
+    Set ``include_payloads=False`` to omit prompts, agent traces, and
+    dataframe payloads (for dashboard aggregation / list endpoints).
+    """
     return get_store(data_root=get_writable_data_root()).load_result_records(
         benchmark_id,
         include_eval=include_eval,
         llm_judge_config_id=llm_judge_config_id,
+        include_payloads=include_payloads,
+        record_ids=record_ids,
     )
 
 
