@@ -164,3 +164,74 @@ def test_pending_job_resumed_by_track_job(isolated_db):
     completed = db_jobs.get_job(conn, job_id)
     assert completed is not None
     assert completed["status"] == "completed"
+
+
+def test_load_result_records_slim_omits_payloads(isolated_db):
+    """Dashboard slim loads must skip DF/prompt/trace payloads."""
+    benchmark_id = "bird_sqlite_test_benchmark"
+    pipeline_id = "test-pipeline"
+    big_df = '{"columns":["a"],"index":[0],"data":[[1]]}'
+    records = [
+        {
+            "question_id": 11,
+            "predictions": {
+                pipeline_id: {
+                    "predicted_sql": "SELECT 1",
+                    "prompt": "x" * 1000,
+                    "predicted_df": big_df,
+                    "agent_trace": {"steps": [1, 2, 3]},
+                    "evaluation": {"execution_accuracy": 1.0},
+                }
+            },
+        }
+    ]
+    save_predictions_data(
+        benchmark_id, records, include_eval=True, status="evaluated"
+    )
+    store = get_store(data_root=get_writable_data_root())
+
+    slim = store.load_result_records(
+        benchmark_id, include_eval=True, include_payloads=False
+    )
+    assert len(slim) == 1
+    block = slim[0]["predictions"][pipeline_id]
+    assert "evaluation" in block
+    assert block["evaluation"]["execution_accuracy"] == 1.0
+    assert "prompt" not in block
+    assert "predicted_df" not in block
+    assert "agent_trace" not in block
+    assert "gt_df" not in slim[0]
+
+    full = store.load_result_records(
+        benchmark_id,
+        include_eval=True,
+        include_payloads=True,
+        record_ids=["11"],
+    )
+    assert len(full) == 1
+    full_block = full[0]["predictions"][pipeline_id]
+    assert full_block.get("prompt") == "x" * 1000
+    assert full_block.get("predicted_df") == big_df
+    assert full_block.get("agent_trace") == {"steps": [1, 2, 3]}
+
+
+def test_estimate_eval_payload_bytes(isolated_db):
+    benchmark_id = "bird_sqlite_test_benchmark"
+    records = [
+        {
+            "question_id": 11,
+            "predictions": {
+                "p1": {
+                    "predicted_sql": "SELECT 1",
+                    "predicted_df": '{"columns":["a"],"index":[0],"data":[[1]]}',
+                    "evaluation": {"execution_accuracy": 1.0},
+                }
+            },
+        }
+    ]
+    save_predictions_data(
+        benchmark_id, records, include_eval=True, status="evaluated"
+    )
+    store = get_store(data_root=get_writable_data_root())
+    size = store.estimate_eval_payload_bytes(benchmark_id)
+    assert size is not None and size > 0

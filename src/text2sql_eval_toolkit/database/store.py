@@ -157,15 +157,26 @@ class BenchmarkStore:
         *,
         include_eval: bool = False,
         llm_judge_config_id: int | None = None,
+        include_payloads: bool = True,
+        record_ids: list[str] | None = None,
     ) -> list[dict[str, Any]]:
+        """Load prediction records for a benchmark.
+
+        When ``include_payloads`` is False, omit large fields (prompts, agent
+        traces, predicted/logic/gt dataframes). Dashboard list/summary endpoints
+        should use this mode to avoid holding hundreds of MB in memory.
+
+        When ``record_ids`` is set, only those gold records (and their
+        predictions) are reconstructed — used for single-record detail views.
+        """
         self.ensure_benchmark_seeded(benchmark_id)
-        records = self._export_gold_records(benchmark_id)
+        records = self._export_gold_records(benchmark_id, record_ids=record_ids)
         result_set_id = self._default_result_set_id(benchmark_id)
         if result_set_id is None:
             return records
 
-        pred_rows = self.conn.execute(
-            """
+        if include_payloads:
+            select_sql = """
             SELECT
                 br.record_id,
                 pip.pipeline_id,
@@ -198,10 +209,41 @@ class BenchmarkStore:
             LEFT JOIN result_dataframes pdf ON pdf.id = pe.predicted_df_id
             LEFT JOIN result_dataframes ldf ON ldf.id = pe.logic_df_id
             WHERE pr.result_set_id = ?
-            ORDER BY br.sort_order, pip.pipeline_id
-            """,
-            (result_set_id,),
-        ).fetchall()
+            """
+        else:
+            select_sql = """
+            SELECT
+                br.record_id,
+                pip.pipeline_id,
+                pi.predicted_sql,
+                pi.inference_time_ms,
+                pi.inference_error,
+                pi.prompt_tokens,
+                pi.completion_tokens,
+                pi.total_tokens,
+                pip.model_name,
+                pip.model_parameters,
+                pe.sql_execution_error,
+                pe.execution_time_ms,
+                pe.logic_sql,
+                pe.logic_sql_execution_error,
+                pe.logic_execution_time_ms
+            FROM predictions pr
+            JOIN benchmark_records br ON br.id = pr.benchmark_record_id
+            JOIN pipelines pip ON pip.id = pr.pipeline_ref
+            LEFT JOIN prediction_inference pi ON pi.prediction_id = pr.id
+            LEFT JOIN prediction_execution pe ON pe.prediction_id = pr.id
+            WHERE pr.result_set_id = ?
+            """
+
+        params: list[Any] = [result_set_id]
+        if record_ids is not None:
+            placeholders = ",".join("?" for _ in record_ids)
+            select_sql += f" AND br.record_id IN ({placeholders})"
+            params.extend(str(rid) for rid in record_ids)
+        select_sql += " ORDER BY br.sort_order, pip.pipeline_id"
+
+        pred_rows = self.conn.execute(select_sql, params).fetchall()
 
         record_index = {str(r["id"]): r for r in records}
         for row in pred_rows:
@@ -211,39 +253,41 @@ class BenchmarkStore:
             predictions = record.setdefault("predictions", {})
             block: dict[str, Any] = {
                 "predicted_sql": row["predicted_sql"],
-                "prompt": row["prompt"],
                 "model_name": row["model_name"],
                 "model_parameters": json.loads(row["model_parameters"] or "{}"),
                 "inference_time_ms": row["inference_time_ms"],
+                "inference_error": row["inference_error"],
                 "sql_execution_error": row["sql_execution_error"],
                 "execution_time_ms": row["execution_time_ms"],
                 "logic_sql": row["logic_sql"],
                 "logic_sql_execution_error": row["logic_sql_execution_error"],
                 "logic_execution_time_ms": row["logic_execution_time_ms"],
             }
-            if row["predicted_df"]:
-                block["predicted_df"] = row["predicted_df"]
-            if row["logic_df"]:
-                block["logic_df"] = row["logic_df"]
+            if include_payloads:
+                block["prompt"] = row["prompt"]
+                if row["predicted_df"]:
+                    block["predicted_df"] = row["predicted_df"]
+                if row["logic_df"]:
+                    block["logic_df"] = row["logic_df"]
+                for json_field in (
+                    "response_info",
+                    "agent_attempts",
+                    "agent_reasoning",
+                    "agent_trace",
+                    "token_usage_per_attempt",
+                ):
+                    raw = row[json_field]
+                    if raw:
+                        try:
+                            block[json_field] = json.loads(raw)
+                        except json.JSONDecodeError:
+                            block[json_field] = raw
             if row["prompt_tokens"] is not None:
                 block["token_usage"] = {
                     "prompt_tokens": row["prompt_tokens"],
                     "completion_tokens": row["completion_tokens"],
                     "total_tokens": row["total_tokens"],
                 }
-            for json_field in (
-                "response_info",
-                "agent_attempts",
-                "agent_reasoning",
-                "agent_trace",
-                "token_usage_per_attempt",
-            ):
-                raw = row[json_field]
-                if raw:
-                    try:
-                        block[json_field] = json.loads(raw)
-                    except json.JSONDecodeError:
-                        block[json_field] = raw
             predictions[row["pipeline_id"]] = block
 
         if include_eval:
@@ -252,10 +296,48 @@ class BenchmarkStore:
                 records,
                 result_set_id,
                 llm_judge_config_id=llm_judge_config_id,
+                include_payloads=include_payloads,
+                record_ids=record_ids,
             )
 
-        self._attach_gt_execution(records, benchmark_id)
+        if include_payloads:
+            self._attach_gt_execution(records, benchmark_id, record_ids=record_ids)
         return records
+
+    @retry_on_locked
+    def estimate_eval_payload_bytes(self, benchmark_id: str) -> int | None:
+        """Rough on-disk size of dataframe payloads for a benchmark's default result set."""
+        self.ensure_benchmark_seeded(benchmark_id)
+        result_set_id = self._default_result_set_id(benchmark_id)
+        if result_set_id is None:
+            return None
+        row = self.conn.execute(
+            """
+            SELECT COALESCE(SUM(df.byte_size), 0) AS total_bytes
+            FROM result_dataframes df
+            WHERE df.id IN (
+                SELECT pe.predicted_df_id
+                FROM predictions pr
+                JOIN prediction_execution pe ON pe.prediction_id = pr.id
+                WHERE pr.result_set_id = ? AND pe.predicted_df_id IS NOT NULL
+                UNION
+                SELECT pe.logic_df_id
+                FROM predictions pr
+                JOIN prediction_execution pe ON pe.prediction_id = pr.id
+                WHERE pr.result_set_id = ? AND pe.logic_df_id IS NOT NULL
+                UNION
+                SELECT g.gt_df_id
+                FROM record_ground_truth_execution g
+                JOIN benchmark_records br ON br.id = g.benchmark_record_id
+                WHERE br.benchmark_id = ? AND g.gt_df_id IS NOT NULL
+            )
+            """,
+            (result_set_id, result_set_id, benchmark_id),
+        ).fetchone()
+        if row is None:
+            return None
+        total = int(row["total_bytes"] or 0)
+        return total if total > 0 else None
 
     @retry_on_locked
     def save_result_records(
@@ -714,16 +796,24 @@ class BenchmarkStore:
             return int(row["llm_judge_config_ref"])
         return None
 
-    def _export_gold_records(self, benchmark_id: str) -> list[dict[str, Any]]:
+    def _export_gold_records(
+        self, benchmark_id: str, *, record_ids: list[str] | None = None
+    ) -> list[dict[str, Any]]:
+        params: list[Any] = [benchmark_id]
+        record_filter = ""
+        if record_ids is not None:
+            placeholders = ",".join("?" for _ in record_ids)
+            record_filter = f" AND record_id IN ({placeholders})"
+            params.extend(str(rid) for rid in record_ids)
         rows = self.conn.execute(
-            """
+            f"""
             SELECT id, record_id, db_id, question, utterance, evidence,
                    difficulty, extra_metadata, sort_order
             FROM benchmark_records
-            WHERE benchmark_id = ?
+            WHERE benchmark_id = ?{record_filter}
             ORDER BY sort_order, id
             """,
-            (benchmark_id,),
+            params,
         ).fetchall()
         records: list[dict[str, Any]] = []
         for row in rows:
@@ -778,17 +868,29 @@ class BenchmarkStore:
         return records
 
     def _attach_gt_execution(
-        self, records: list[dict[str, Any]], benchmark_id: str
+        self,
+        records: list[dict[str, Any]],
+        benchmark_id: str,
+        *,
+        record_ids: list[str] | None = None,
     ) -> None:
+        if not records:
+            return
+        params: list[Any] = [benchmark_id]
+        record_filter = ""
+        if record_ids is not None:
+            placeholders = ",".join("?" for _ in record_ids)
+            record_filter = f" AND br.record_id IN ({placeholders})"
+            params.extend(str(rid) for rid in record_ids)
         rows = self.conn.execute(
-            """
+            f"""
             SELECT br.record_id, g.gt_df_ids, df.payload_text
             FROM record_ground_truth_execution g
             JOIN benchmark_records br ON br.id = g.benchmark_record_id
             LEFT JOIN result_dataframes df ON df.id = g.gt_df_id
-            WHERE br.benchmark_id = ?
+            WHERE br.benchmark_id = ?{record_filter}
             """,
-            (benchmark_id,),
+            params,
         ).fetchall()
         by_id = {str(row["record_id"]): row for row in rows}
         for record in records:
@@ -811,6 +913,8 @@ class BenchmarkStore:
         result_set_id: int,
         *,
         llm_judge_config_id: int | None = None,
+        include_payloads: bool = True,
+        record_ids: list[str] | None = None,
     ) -> None:
         resolved_judge_id = llm_judge_config_id or self._default_llm_judge_config_id(
             result_set_id
@@ -823,17 +927,32 @@ class BenchmarkStore:
                 "AND lje.llm_judge_config_ref = ?"
             )
             params = [resolved_judge_id, result_set_id]
+        matched_df_select = (
+            "mdf.payload_text AS matched_gt_df,"
+            if include_payloads
+            else "NULL AS matched_gt_df,"
+        )
+        matched_df_join = (
+            "LEFT JOIN result_dataframes mdf ON mdf.id = e.matched_gt_df_id"
+            if include_payloads
+            else ""
+        )
+        record_filter = ""
+        if record_ids is not None:
+            placeholders = ",".join("?" for _ in record_ids)
+            record_filter = f" AND br.record_id IN ({placeholders})"
+            params = list(params) + [str(rid) for rid in record_ids]
         eval_rows = self.conn.execute(
             f"""
-            SELECT br.record_id, pip.pipeline_id, e.*, mdf.payload_text AS matched_gt_df,
+            SELECT br.record_id, pip.pipeline_id, e.*, {matched_df_select}
                    lje.llm_score, lje.llm_explanation, lje.llm_judge_error
             FROM evaluations e
             JOIN predictions pr ON pr.id = e.prediction_id
             JOIN benchmark_records br ON br.id = pr.benchmark_record_id
             JOIN pipelines pip ON pip.id = pr.pipeline_ref
-            LEFT JOIN result_dataframes mdf ON mdf.id = e.matched_gt_df_id
+            {matched_df_join}
             {llm_join}
-            WHERE pr.result_set_id = ?
+            WHERE pr.result_set_id = ?{record_filter}
             """,
             params,
         ).fetchall()
@@ -862,7 +981,7 @@ class BenchmarkStore:
             ):
                 if row[column] is not None:
                     evaluation[column] = row[column]
-            if row["matched_gt_df"]:
+            if include_payloads and row["matched_gt_df"]:
                 evaluation["matched_gt_df"] = row["matched_gt_df"]
             if row["llm_score"] is not None:
                 evaluation["llm_score"] = row["llm_score"]

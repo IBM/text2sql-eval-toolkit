@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import base64
 import json
+import math
 import os
 from copy import deepcopy
 import re
@@ -34,6 +35,7 @@ from text2sql_eval_toolkit.utils import (
 from text2sql_eval_toolkit.database.store import get_store
 from text2sql_eval_toolkit.database.session import ensure_schema, get_connection
 from text2sql_eval_toolkit.database import jobs as db_jobs
+from text2sql_eval_toolkit.database.json_importer import FEATURE_FIELDS
 from text2sql_eval_toolkit.execution.execution_tools import (
     _parse_presto_sqlalchemy_url,
     _normalize_sql_for_db2,
@@ -352,6 +354,68 @@ class CrossPipelineBinaryMetricConfusionResponse(BaseModel):
     disagreement_rate: float
 
 
+class FeatureMetricCorrelation(BaseModel):
+    feature: str
+    metric: str
+    n: int
+    pearson_r: Optional[float] = None
+    pearson_p: Optional[float] = None
+    spearman_rho: Optional[float] = None
+    spearman_p: Optional[float] = None
+
+
+class CategoryMetricAssociation(BaseModel):
+    category: str
+    metric: str
+    n_with: int
+    n_without: int
+    mean_with: Optional[float] = None
+    mean_without: Optional[float] = None
+    delta: Optional[float] = None
+    point_biserial_r: Optional[float] = None
+    point_biserial_p: Optional[float] = None
+
+
+class FeatureMetricBin(BaseModel):
+    x_value: float
+    x_label: str
+    average: Optional[float] = None
+    n: int
+
+
+class FeatureMetricSeries(BaseModel):
+    feature: str
+    metric: str
+    bins: List[FeatureMetricBin]
+    scatter: List[Dict[str, float]] = Field(default_factory=list)
+
+
+class CategoryMetricMean(BaseModel):
+    category: str
+    metric: str
+    average: Optional[float] = None
+    n: int
+    ci95_low: Optional[float] = None
+    ci95_high: Optional[float] = None
+
+
+class ProfileMetricCorrelationsResponse(BaseModel):
+    benchmark_id: str
+    pipeline: str
+    metric: str
+    metrics: List[str]
+    n_records: int
+    n_with_features: int
+    n_with_categories: int
+    feature_correlations: List[FeatureMetricCorrelation]
+    category_associations: List[CategoryMetricAssociation]
+    category_means: List[CategoryMetricMean]
+    feature_series: List[FeatureMetricSeries]
+    available_pipelines: List[str]
+    available_features: List[str]
+    available_categories: List[str]
+
+
 class LLMJudgeConfigInfo(BaseModel):
     name: str
     path: str
@@ -542,10 +606,11 @@ class FetchJobStatus(BaseModel):
 FETCH_JOBS: Dict[str, FetchJobStatus] = {}
 FETCH_JOBS_LOCK = threading.Lock()
 
-# Cache loaded evaluation records to avoid repeatedly parsing large JSON artifacts.
-# Value: (eval_mtime, benchmark_mtime, records)
-EVAL_RECORDS_CACHE: Dict[str, Tuple[float, float, List[Dict[str, Any]]]] = {}
+# Cache slim evaluation records (metrics + metadata only — no DF/prompt/trace payloads).
+# Value: (cache_version, records). Capped with LRU so switching benchmarks releases memory.
+EVAL_RECORDS_CACHE: Dict[str, Tuple[str, List[Dict[str, Any]]]] = {}
 EVAL_RECORDS_LOCK = threading.Lock()
+EVAL_RECORDS_CACHE_MAX = 6
 
 
 def _records_have_eval_predictions(records: List[Dict[str, Any]]) -> bool:
@@ -559,17 +624,27 @@ def _records_have_eval_predictions(records: List[Dict[str, Any]]) -> bool:
     return False
 
 
+def _cache_put(cache_key: str, cache_version: str, data: List[Dict[str, Any]]) -> None:
+    """Insert into the slim-records LRU cache (caller must hold EVAL_RECORDS_LOCK)."""
+    EVAL_RECORDS_CACHE.pop(cache_key, None)
+    EVAL_RECORDS_CACHE[cache_key] = (cache_version, data)
+    while len(EVAL_RECORDS_CACHE) > EVAL_RECORDS_CACHE_MAX:
+        EVAL_RECORDS_CACHE.pop(next(iter(EVAL_RECORDS_CACHE)))
+
+
 def load_eval_records(
     benchmark_id: str,
     llm_judge_config_id: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Load evaluation records for a benchmark from SQLite.
-    Uses an in-memory cache keyed by database update timestamps and judge config.
+    Load slim evaluation records for dashboard aggregation / filtering.
+
+    Omits prompts, agent traces, and dataframe payloads so large benchmarks
+    (e.g. Beaver) stay fast and do not pin ~1GB in the process cache.
     """
     ensure_schema()
     store = get_store(data_root=get_data_root())
-    cache_key = f"{benchmark_id}:{llm_judge_config_id or 'default'}"
+    cache_key = f"{benchmark_id}:{llm_judge_config_id or 'default'}:slim"
     try:
         cache_version = store.get_cache_version(benchmark_id)
     except ValueError:
@@ -578,13 +653,17 @@ def load_eval_records(
     with EVAL_RECORDS_LOCK:
         cached = EVAL_RECORDS_CACHE.get(cache_key)
         if cached is not None and cached[0] == cache_version:
-            return cached[2]
+            # Refresh LRU order.
+            EVAL_RECORDS_CACHE.pop(cache_key)
+            EVAL_RECORDS_CACHE[cache_key] = cached
+            return cached[1]
 
     try:
         data = load_predictions_data(
             benchmark_id,
             include_eval=True,
             llm_judge_config_id=llm_judge_config_id,
+            include_payloads=False,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id)) from exc
@@ -596,8 +675,61 @@ def load_eval_records(
         raise HTTPException(status_code=500, detail="Invalid evaluation record format")
 
     with EVAL_RECORDS_LOCK:
-        EVAL_RECORDS_CACHE[cache_key] = (cache_version, cache_version, data)
+        _cache_put(cache_key, cache_version, data)
         return data
+
+
+def load_eval_record(
+    benchmark_id: str,
+    record_id: str,
+    llm_judge_config_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Load a single record with full payloads (DFs, prompts, traces). Not cached."""
+    ensure_schema()
+    try:
+        data = load_predictions_data(
+            benchmark_id,
+            include_eval=True,
+            llm_judge_config_id=llm_judge_config_id,
+            include_payloads=True,
+            record_ids=[record_id],
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id)) from exc
+    for rec in data or []:
+        rid = str(rec.get("id") or rec.get("question_id") or "")
+        if rid == record_id:
+            return rec
+    raise HTTPException(status_code=404, detail="Record not found")
+
+
+def clear_eval_records_cache(benchmark_id: Optional[str] = None) -> int:
+    """Drop cached slim records. If benchmark_id is set, only that benchmark."""
+    with EVAL_RECORDS_LOCK:
+        if benchmark_id is None:
+            n = len(EVAL_RECORDS_CACHE)
+            EVAL_RECORDS_CACHE.clear()
+            return n
+        prefix = f"{benchmark_id}:"
+        keys = [k for k in EVAL_RECORDS_CACHE if k.startswith(prefix)]
+        for k in keys:
+            EVAL_RECORDS_CACHE.pop(k, None)
+        return len(keys)
+
+
+class EvalCacheClearResponse(BaseModel):
+    benchmark_id: str
+    cleared: int
+
+
+@app.delete(
+    "/api/benchmarks/{benchmark_id}/cache",
+    response_model=EvalCacheClearResponse,
+)
+def unload_benchmark_eval_cache(benchmark_id: str) -> EvalCacheClearResponse:
+    """Drop in-memory eval records for a benchmark (e.g. after deselecting in the UI)."""
+    cleared = clear_eval_records_cache(benchmark_id)
+    return EvalCacheClearResponse(benchmark_id=benchmark_id, cleared=cleared)
 
 
 def get_pipeline_metric_value(
@@ -620,6 +752,121 @@ def to_binary_metric(value: Optional[float]) -> Optional[int]:
     if value is None:
         return None
     return 1 if float(value) == 1.0 else 0
+
+
+def _student_t_sf_two_tail(t_abs: float, df: float) -> Optional[float]:
+    """Two-tailed p-value for |t| under Student-t with ``df`` degrees of freedom."""
+    if df <= 0 or not math.isfinite(t_abs):
+        return None
+    try:
+        from scipy import stats as scipy_stats
+
+        return float(2.0 * scipy_stats.t.sf(t_abs, df))
+    except Exception:
+        # Normal approximation is adequate for dashboard display when n is moderate+.
+        # For small df this is slightly anti-conservative.
+        z = t_abs * (1.0 - 1.0 / (4.0 * df)) / math.sqrt(1.0 + (t_abs * t_abs) / (2.0 * df))
+        # erfc for two-tailed normal survival
+        p = math.erfc(z / math.sqrt(2.0))
+        return float(min(1.0, max(0.0, p)))
+
+
+def _pearson_corr(xs: List[float], ys: List[float]) -> Tuple[Optional[float], Optional[float]]:
+    n = len(xs)
+    if n < 3:
+        return None, None
+    import numpy as np
+
+    x = np.asarray(xs, dtype=float)
+    y = np.asarray(ys, dtype=float)
+    if np.std(x) == 0 or np.std(y) == 0:
+        return None, None
+    r = float(np.corrcoef(x, y)[0, 1])
+    if not math.isfinite(r):
+        return None, None
+    r = max(-1.0, min(1.0, r))
+    if abs(r) >= 1.0 - 1e-15:
+        return r, 0.0
+    t_abs = abs(r) * math.sqrt((n - 2) / (1.0 - r * r))
+    return r, _student_t_sf_two_tail(t_abs, float(n - 2))
+
+
+def _rankdata_average(values: List[float]) -> List[float]:
+    """Average ranks for ties (1-based), matching typical Spearman implementations."""
+    indexed = sorted(enumerate(values), key=lambda item: item[1])
+    ranks = [0.0] * len(values)
+    i = 0
+    while i < len(indexed):
+        j = i
+        while j + 1 < len(indexed) and indexed[j + 1][1] == indexed[i][1]:
+            j += 1
+        avg_rank = 0.5 * ((i + 1) + (j + 1))
+        for k in range(i, j + 1):
+            ranks[indexed[k][0]] = avg_rank
+        i = j + 1
+    return ranks
+
+
+def _spearman_corr(xs: List[float], ys: List[float]) -> Tuple[Optional[float], Optional[float]]:
+    return _pearson_corr(_rankdata_average(xs), _rankdata_average(ys))
+
+
+def _safe_corr_pair(
+    xs: List[float], ys: List[float]
+) -> Tuple[Optional[float], Optional[float], Optional[float], Optional[float]]:
+    """Return (pearson_r, pearson_p, spearman_rho, spearman_p) or Nones if underpowered."""
+    if len(xs) < 3 or len(ys) < 3 or len(xs) != len(ys):
+        return None, None, None, None
+    if len(set(xs)) < 2 or len(set(ys)) < 2:
+        return None, None, None, None
+    try:
+        from scipy import stats as scipy_stats
+
+        pearson_r, pearson_p = scipy_stats.pearsonr(xs, ys)
+        spearman_rho, spearman_p = scipy_stats.spearmanr(xs, ys)
+        return (
+            float(pearson_r),
+            float(pearson_p),
+            float(spearman_rho),
+            float(spearman_p),
+        )
+    except Exception:
+        pearson_r, pearson_p = _pearson_corr(xs, ys)
+        spearman_rho, spearman_p = _spearman_corr(xs, ys)
+        return pearson_r, pearson_p, spearman_rho, spearman_p
+
+
+def _mean_and_ci95(values: List[float]) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+    if not values:
+        return None, None, None
+    n = len(values)
+    mean = sum(values) / n
+    if n < 2:
+        return mean, None, None
+    try:
+        from statistics import stdev
+
+        sd = stdev(values)
+        se = sd / math.sqrt(n)
+        # Approximate normal 95% CI (adequate for dashboard display).
+        return mean, mean - 1.96 * se, mean + 1.96 * se
+    except Exception:
+        return mean, None, None
+
+
+def _parse_metric_list(raw: Optional[str], primary: str) -> List[str]:
+    metrics: List[str] = []
+    seen = set()
+    for part in (raw or "").split(","):
+        name = part.strip()
+        if name and name not in seen:
+            seen.add(name)
+            metrics.append(name)
+    if primary not in seen:
+        metrics.insert(0, primary)
+    elif metrics and metrics[0] != primary:
+        metrics = [primary] + [m for m in metrics if m != primary]
+    return metrics or [primary]
 
 
 @app.get("/api/benchmarks", response_model=BenchmarksResponse)
@@ -659,6 +906,10 @@ def list_benchmarks() -> BenchmarksResponse:
             logger.warning(f"Could not read summary for {benchmark_id}: {e}")
 
         eval_results_bytes: Optional[int] = None
+        try:
+            eval_results_bytes = store.estimate_eval_payload_bytes(benchmark_id)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning(f"Could not estimate payload size for {benchmark_id}: {e}")
 
         items.append(
             BenchmarkSummary(
@@ -1157,13 +1408,7 @@ def get_error_detail(
     """
     Return full record for a given benchmark and record id for detailed error analysis.
     """
-    data = load_eval_records(benchmark_id, llm_judge_config_id)
-    for rec in data:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        if rid == record_id:
-            return rec
-
-    raise HTTPException(status_code=404, detail="Record not found")
+    return load_eval_record(benchmark_id, record_id, llm_judge_config_id)
 
 
 @app.get(
@@ -1181,47 +1426,42 @@ def get_error_detail_for_pipeline(
     """
     Return a normalized, UI-friendly detail payload for one record and one pipeline.
     """
-    data = load_eval_records(benchmark_id, llm_judge_config_id)
-    for rec in data:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        if rid != record_id:
-            continue
+    rec = load_eval_record(benchmark_id, record_id, llm_judge_config_id)
+    rid = str(rec.get("id") or rec.get("question_id") or "")
 
-        preds = rec.get("predictions", {})
-        if pipeline not in preds:
-            raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline}' not found in record")
-        pred = preds[pipeline]
-        eval_metrics = pred.get("evaluation", {})
+    preds = rec.get("predictions", {})
+    if pipeline not in preds:
+        raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline}' not found in record")
+    pred = preds[pipeline]
+    eval_metrics = pred.get("evaluation", {})
 
-        gt_sql = rec.get("sql", [])
-        if isinstance(gt_sql, str):
-            gt_sql = [gt_sql]
+    gt_sql = rec.get("sql", [])
+    if isinstance(gt_sql, str):
+        gt_sql = [gt_sql]
 
-        gt_df = rec.get("gt_df", [])
-        if not isinstance(gt_df, list):
-            gt_df = [gt_df]
+    gt_df = rec.get("gt_df", [])
+    if not isinstance(gt_df, list):
+        gt_df = [gt_df]
 
-        return {
-            "record_id": rid,
-            "pipeline": pipeline,
-            "question": rec.get("question") or rec.get("utterance") or rec.get("page_content") or "",
-            "db_id": rec.get("db_id"),
-            "ground_truth_sql": gt_sql,
-            "predicted_sql": pred.get("predicted_sql"),
-            "evaluation_metrics": eval_metrics,
-            "ground_truth_results": gt_df,
-            "predicted_result": pred.get("predicted_df"),
-            "prompt": pred.get("prompt"),
-            "token_usage": pred.get("token_usage"),
-            "inference_time_ms": pred.get("inference_time_ms"),
-            "execution_time_ms": pred.get("execution_time_ms"),
-            "llm_judge_score": eval_metrics.get("llm_score"),
-            "llm_judge_explanation": eval_metrics.get("llm_explanation"),
-            "sql_execution_error": pred.get("sql_execution_error"),
-            "inference_error": pred.get("inference_error"),
-        }
-
-    raise HTTPException(status_code=404, detail="Record not found")
+    return {
+        "record_id": rid,
+        "pipeline": pipeline,
+        "question": rec.get("question") or rec.get("utterance") or rec.get("page_content") or "",
+        "db_id": rec.get("db_id"),
+        "ground_truth_sql": gt_sql,
+        "predicted_sql": pred.get("predicted_sql"),
+        "evaluation_metrics": eval_metrics,
+        "ground_truth_results": gt_df,
+        "predicted_result": pred.get("predicted_df"),
+        "prompt": pred.get("prompt"),
+        "token_usage": pred.get("token_usage"),
+        "inference_time_ms": pred.get("inference_time_ms"),
+        "execution_time_ms": pred.get("execution_time_ms"),
+        "llm_judge_score": eval_metrics.get("llm_score"),
+        "llm_judge_explanation": eval_metrics.get("llm_explanation"),
+        "sql_execution_error": pred.get("sql_execution_error"),
+        "inference_error": pred.get("inference_error"),
+    }
 
 
 def _resolve_record_db_id(
@@ -1231,11 +1471,9 @@ def _resolve_record_db_id(
         return explicit_db_id
     if not record_id:
         return None
-    records = load_eval_records(benchmark_id)
-    for rec in records:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        if rid == record_id:
-            return rec.get("db_id")
+    gold = _find_gold_record(benchmark_id, record_id)
+    if gold is not None:
+        return gold.get("db_id")
     return None
 
 
@@ -1299,14 +1537,9 @@ def _find_eval_record_optional(
     benchmark_id: str, record_id: str
 ) -> Optional[Dict[str, Any]]:
     try:
-        data = load_eval_records(benchmark_id)
+        return load_eval_record(benchmark_id, record_id)
     except HTTPException:
         return None
-    for rec in data:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        if rid == record_id:
-            return rec
-    return None
 
 
 def _split_df_shape_from_json(s: Any) -> Optional[Tuple[int, int]]:
@@ -2113,6 +2346,269 @@ def cross_pipeline_binary_metric_confusion(
         rates=CrossPipelineBinaryMetricConfusionRates(**rates),
         agreement_rate=agreement_rate,
         disagreement_rate=1.0 - agreement_rate if n_valid > 0 else 0.0,
+    )
+
+
+@app.get(
+    "/api/benchmarks/{benchmark_id}/insights/profile-metric-correlations",
+    response_model=ProfileMetricCorrelationsResponse,
+)
+def profile_metric_correlations(
+    benchmark_id: str,
+    pipeline: Optional[str] = Query(
+        None,
+        description="Pipeline id; defaults to the pipeline with most evaluated records",
+    ),
+    metric: str = Query(
+        "subset_non_empty_execution_accuracy",
+        description="Primary metric for charts and category associations",
+    ),
+    metrics: Optional[str] = Query(
+        None,
+        description=(
+            "Comma-separated metric keys for the correlation matrix "
+            "(primary metric is always included)"
+        ),
+    ),
+    scatter_feature: Optional[str] = Query(
+        None,
+        description="Feature used for scatter sample points (default: first available)",
+    ),
+    scatter_limit: int = Query(
+        400,
+        ge=0,
+        le=2000,
+        description="Max scatter points returned for the selected feature",
+    ),
+    llm_judge_config_id: Optional[int] = Query(
+        None, description="LLM judge config id for llm_score metrics"
+    ),
+):
+    """
+    Correlate SQL/question profiling signals with evaluation metrics for one pipeline.
+
+    - Numeric ``meta.features`` → Pearson / Spearman vs each metric
+    - Binary profile ``meta.categories`` → point-biserial (Pearson of indicator) and
+      mean(metric | tag present) − mean(metric | tag absent)
+    - Feature bins and category means for dashboard charts
+    """
+    data = load_eval_records(benchmark_id, llm_judge_config_id)
+    metric_keys = _parse_metric_list(metrics, metric)
+
+    pipeline_counts: Dict[str, int] = {}
+    for rec in data:
+        preds = rec.get("predictions", {})
+        if not isinstance(preds, dict):
+            continue
+        for pipeline_id, block in preds.items():
+            if isinstance(block, dict) and isinstance(block.get("evaluation"), dict):
+                pipeline_counts[pipeline_id] = pipeline_counts.get(pipeline_id, 0) + 1
+
+    available_pipelines = sorted(
+        pipeline_counts.keys(), key=lambda p: (-pipeline_counts[p], p)
+    )
+    if not available_pipelines:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No evaluated pipelines found for benchmark '{benchmark_id}'.",
+        )
+
+    selected_pipeline = pipeline if pipeline in pipeline_counts else available_pipelines[0]
+
+    # Lightweight per-record rows used for correlation / charts.
+    rows: List[Dict[str, Any]] = []
+    all_features_seen: set = set()
+    all_categories_seen: set = set()
+
+    for rec in data:
+        metric_vals: Dict[str, float] = {}
+        for mk in metric_keys:
+            val = get_pipeline_metric_value(rec, selected_pipeline, mk)
+            if val is not None:
+                metric_vals[mk] = val
+        if not metric_vals:
+            continue
+
+        meta = rec.get("meta") if isinstance(rec.get("meta"), dict) else {}
+        features_raw = meta.get("features") if isinstance(meta.get("features"), dict) else {}
+        categories_raw = meta.get("categories") if isinstance(meta.get("categories"), list) else []
+        categories = sorted(
+            {str(c) for c in categories_raw if c is not None and str(c).strip()}
+        )
+        features: Dict[str, float] = {}
+        for fname in FEATURE_FIELDS:
+            raw = features_raw.get(fname)
+            if isinstance(raw, (int, float)):
+                features[fname] = float(raw)
+                all_features_seen.add(fname)
+        if categories:
+            all_categories_seen.update(categories)
+
+        rows.append(
+            {
+                "metrics": metric_vals,
+                "features": features,
+                "categories": set(categories),
+            }
+        )
+
+    n_records = len(rows)
+    n_with_features = sum(1 for r in rows if r["features"])
+    n_with_categories = sum(1 for r in rows if r["categories"])
+    category_list = sorted(all_categories_seen)
+
+    scatter_feature_resolved = scatter_feature
+    if scatter_feature_resolved not in all_features_seen:
+        scatter_feature_resolved = None
+        for preferred in (
+            "query_join_count",
+            "query_table_count",
+            "query_nested_count",
+            "query_column_count",
+        ):
+            if preferred in all_features_seen:
+                scatter_feature_resolved = preferred
+                break
+        if scatter_feature_resolved is None and all_features_seen:
+            scatter_feature_resolved = sorted(all_features_seen)[0]
+
+    feature_metric_pairs: Dict[Tuple[str, str], Tuple[List[float], List[float]]] = {}
+    feature_bin_values: Dict[Tuple[str, str, float], List[float]] = {}
+    category_means_values: Dict[Tuple[str, str], List[float]] = {}
+    category_metric_values: Dict[Tuple[str, str], Tuple[List[float], List[float]]] = {
+        (cat, mk): ([], []) for cat in category_list for mk in metric_keys
+    }
+    scatter_points: List[Dict[str, float]] = []
+
+    for row in rows:
+        metric_vals = row["metrics"]
+        features = row["features"]
+        category_set = row["categories"]
+
+        for fname, fval in features.items():
+            for mk, mval in metric_vals.items():
+                xs, ys = feature_metric_pairs.setdefault((fname, mk), ([], []))
+                xs.append(fval)
+                ys.append(mval)
+                feature_bin_values.setdefault((fname, mk, fval), []).append(mval)
+
+        for mk, mval in metric_vals.items():
+            for cat in category_set:
+                category_means_values.setdefault((cat, mk), []).append(mval)
+            for cat in category_list:
+                with_vals, without_vals = category_metric_values[(cat, mk)]
+                if cat in category_set:
+                    with_vals.append(mval)
+                else:
+                    without_vals.append(mval)
+
+        if (
+            scatter_feature_resolved
+            and scatter_feature_resolved in features
+            and metric in metric_vals
+            and len(scatter_points) < scatter_limit
+        ):
+            scatter_points.append(
+                {
+                    "x": features[scatter_feature_resolved],
+                    "y": metric_vals[metric],
+                }
+            )
+
+    feature_correlations: List[FeatureMetricCorrelation] = []
+    for (fname, mk), (xs, ys) in sorted(feature_metric_pairs.items()):
+        pearson_r, pearson_p, spearman_rho, spearman_p = _safe_corr_pair(xs, ys)
+        feature_correlations.append(
+            FeatureMetricCorrelation(
+                feature=fname,
+                metric=mk,
+                n=len(xs),
+                pearson_r=pearson_r,
+                pearson_p=pearson_p,
+                spearman_rho=spearman_rho,
+                spearman_p=spearman_p,
+            )
+        )
+
+    category_associations: List[CategoryMetricAssociation] = []
+    for (cat, mk), (with_vals, without_vals) in sorted(category_metric_values.items()):
+        mean_with = (sum(with_vals) / len(with_vals)) if with_vals else None
+        mean_without = (sum(without_vals) / len(without_vals)) if without_vals else None
+        delta = (
+            mean_with - mean_without
+            if mean_with is not None and mean_without is not None
+            else None
+        )
+        indicators: List[float] = [1.0] * len(with_vals) + [0.0] * len(without_vals)
+        metric_series: List[float] = list(with_vals) + list(without_vals)
+        r, p, _, _ = _safe_corr_pair(indicators, metric_series)
+        category_associations.append(
+            CategoryMetricAssociation(
+                category=cat,
+                metric=mk,
+                n_with=len(with_vals),
+                n_without=len(without_vals),
+                mean_with=mean_with,
+                mean_without=mean_without,
+                delta=delta,
+                point_biserial_r=r,
+                point_biserial_p=p,
+            )
+        )
+
+    category_means: List[CategoryMetricMean] = []
+    for (cat, mk), vals in sorted(category_means_values.items()):
+        avg, lo, hi = _mean_and_ci95(vals)
+        category_means.append(
+            CategoryMetricMean(
+                category=cat,
+                metric=mk,
+                average=avg,
+                n=len(vals),
+                ci95_low=lo,
+                ci95_high=hi,
+            )
+        )
+
+    feature_series: List[FeatureMetricSeries] = []
+    for fname in sorted(all_features_seen):
+        bins_map: Dict[float, List[float]] = {}
+        for (f, mk, xval), vals in feature_bin_values.items():
+            if f == fname and mk == metric:
+                bins_map[xval] = vals
+        bins = [
+            FeatureMetricBin(
+                x_value=xval,
+                x_label=str(int(xval) if float(xval).is_integer() else xval),
+                average=(sum(vals) / len(vals)) if vals else None,
+                n=len(vals),
+            )
+            for xval, vals in sorted(bins_map.items())
+        ]
+        feature_series.append(
+            FeatureMetricSeries(
+                feature=fname,
+                metric=metric,
+                bins=bins,
+                scatter=scatter_points if fname == scatter_feature_resolved else [],
+            )
+        )
+
+    return ProfileMetricCorrelationsResponse(
+        benchmark_id=benchmark_id,
+        pipeline=selected_pipeline,
+        metric=metric,
+        metrics=metric_keys,
+        n_records=n_records,
+        n_with_features=n_with_features,
+        n_with_categories=n_with_categories,
+        feature_correlations=feature_correlations,
+        category_associations=category_associations,
+        category_means=category_means,
+        feature_series=feature_series,
+        available_pipelines=available_pipelines,
+        available_features=sorted(all_features_seen),
+        available_categories=sorted(all_categories_seen),
     )
 
 
