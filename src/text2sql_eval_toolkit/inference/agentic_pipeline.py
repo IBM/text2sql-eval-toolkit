@@ -2038,7 +2038,7 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                     pred = existing["predictions"].get(pipeline_id)
                     if pred:
                         # Always retry if there was an inference error (unless skip flag is set)
-                        if "inference_error" in pred and not skip_inference_error_retries:
+                        if pred.get("inference_error") and not skip_inference_error_retries:
                             logger.info(
                                 f"Retrying failed inference for id={question_id}, pipeline={pipeline_id}"
                             )

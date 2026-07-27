@@ -89,7 +89,7 @@ def evaluate_llm_judge_for_prediction(
     """
     result: dict = {}
 
-    if "inference_error" in prediction:
+    if prediction.get("inference_error"):
         result["llm_score"] = 0.0
         result["llm_explanation"] = (
             f"N/A (inference failed: {prediction['inference_error']})"
@@ -264,8 +264,9 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
     """
     result = {}
     
-    # Check for inference error - skip evaluation if inference failed
-    if "inference_error" in prediction:
+    # Check for inference error - skip evaluation if inference failed.
+    # Use truthiness so store-backed nulls (inference_error: null) are not treated as failures.
+    if prediction.get("inference_error"):
         return {
             "execution_accuracy": 0,
             "non_empty_execution_accuracy": 0,
@@ -292,7 +293,7 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
         result["df_error"] = 0
     except Exception as e:
         result["df_error"] = 1
-        result["df_error_message"] = prediction.get("sql_execution_error", str(e))
+        result["df_error_message"] = prediction.get("sql_execution_error") or str(e)
 
     try:
         gold_sqls = get_gt_sqls(record)

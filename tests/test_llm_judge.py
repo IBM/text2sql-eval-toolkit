@@ -148,6 +148,42 @@ def test_evaluate_llm_judge_skips_inference_error(sample_record, llm_judge_confi
     mock_llm.assert_not_called()
 
 
+def test_evaluate_llm_judge_ignores_null_inference_error(
+    sample_record, sample_prediction, llm_judge_config
+):
+    """Store-backed predictions include inference_error: null; that is not a failure."""
+    prediction = {
+        **sample_prediction,
+        "inference_error": None,
+        "sql_execution_error": None,
+    }
+
+    with patch(
+        "text2sql_eval_toolkit.evaluation.evaluation_tools.evaluate_sql_prediction_with_llm",
+        return_value={"score": 1.0, "explanation": "ok", "verdict": "Yes"},
+    ) as mock_llm:
+        result = evaluate_llm_judge_for_prediction(
+            sample_record, prediction, llm_judge_config
+        )
+
+    assert result["llm_score"] == 1.0
+    mock_llm.assert_called_once()
+
+
+def test_evaluate_prediction_ignores_null_inference_error(
+    sample_record, sample_prediction
+):
+    prediction = {
+        **sample_prediction,
+        "inference_error": None,
+        "sql_execution_error": None,
+    }
+    result = evaluate_prediction(sample_record, prediction, llm_judge_config=None)
+    assert result["df_error"] == 0
+    assert "df_error_message" not in result
+    assert "Inference failed" not in str(result.get("df_error_message", ""))
+
+
 def test_evaluate_llm_judge_missing_prediction_df(sample_record, llm_judge_config):
     prediction = {"predicted_sql": "SELECT 1"}
 
