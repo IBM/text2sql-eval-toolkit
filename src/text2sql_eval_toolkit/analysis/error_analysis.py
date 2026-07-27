@@ -144,8 +144,8 @@ def format_failed_example(record, pipeline_id, example_index, total_failed):
         logger.error(f"Error reading prediction in record: {record}")
         return f"⚠️  Error reading prediction in record: {record}\n\n"
     
-    # Check for inference error
-    if "inference_error" in pred:
+    # Check for inference error (ignore nulls from store-backed records)
+    if pred.get("inference_error"):
         return format_inference_error_example(record, pred, example_index, total_failed)
     gt_sqls = (
         record.get("sql")
