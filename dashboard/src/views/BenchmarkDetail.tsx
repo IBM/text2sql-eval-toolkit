@@ -18,6 +18,7 @@ import {
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
 import { withLlmJudgeConfigId } from "../lib/llmJudgeQuery";
+import { unloadBenchmarkCache } from "../services/benchmarks";
 import { LlmJudgeSelector } from "../components/LlmJudgeSelector";
 import type { LlmJudgeFilterProps } from "../hooks/useLlmJudgeConfigs";
 
@@ -28,6 +29,7 @@ interface Props extends LlmJudgeFilterProps {
   onOpenToolkitInsights?: () => void;
   onOpenPipelineCompare?: () => void;
   onOpenProfileCompare?: () => void;
+  onOpenProfileCorrelation?: () => void;
   onOpenErrorAnalysis?: () => void;
 }
 
@@ -54,6 +56,7 @@ export const BenchmarkDetail: React.FC<Props> = ({
   onOpenToolkitInsights,
   onOpenPipelineCompare,
   onOpenProfileCompare,
+  onOpenProfileCorrelation,
   onOpenErrorAnalysis,
 }) => {
   const [data, setData] = useState<SummaryResponse | null>(null);
@@ -91,6 +94,12 @@ export const BenchmarkDetail: React.FC<Props> = ({
     };
     fetchSummary();
   }, [benchmarkId, llmJudgeConfigId]);
+
+  useEffect(() => {
+    return () => {
+      void unloadBenchmarkCache(benchmarkId);
+    };
+  }, [benchmarkId]);
 
   if (error) {
     return (
@@ -204,7 +213,7 @@ export const BenchmarkDetail: React.FC<Props> = ({
         <InlineNotification
           kind="info"
           title="Summary-only mode"
-          subtitle={`The full evaluation results file (${benchmarkId}-predictions_eval.json) was not found. Overall pipeline metrics are shown from the summary file, but category breakdown and error analysis are unavailable. Download pre-computed results with: text2sql-eval-toolkit results fetch --benchmarks ${benchmarkId} or run the evaluation pipeline locally (or fix TEXT2SQL_DATA_ROOT to a directory that already contains this file).`}
+          subtitle={`Full evaluation records were not found in the database for ${benchmarkId}. Overall pipeline metrics are shown from the stored summary, but category breakdown and error analysis are unavailable. Run the evaluation pipeline, or import legacy JSON with: python scripts/migration/import_json_to_db.py --benchmark-id ${benchmarkId}`}
           lowContrast
         />
       )}
@@ -224,6 +233,11 @@ export const BenchmarkDetail: React.FC<Props> = ({
           {onOpenProfileCompare && (
             <Button kind="ghost" size="sm" onClick={() => onOpenProfileCompare()}>
               Profile Compare
+            </Button>
+          )}
+          {onOpenProfileCorrelation && (
+            <Button kind="ghost" size="sm" onClick={() => onOpenProfileCorrelation()}>
+              Profile Correlations
             </Button>
           )}
           {onOpenErrorAnalysis && (

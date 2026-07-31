@@ -300,7 +300,7 @@ export const PipelineCompareView: React.FC<Props> = ({
   const renderDisagreementBlock = (metricKey: string, c: CrossPipelineConfusionResponse | null) => {
     if (!c) {
       return (
-        <InlineNotification kind="info" title={`No evidence for ${metricKey}`} subtitle="Switch pipelines/metrics or ensure results artifacts exist." lowContrast />
+        <InlineNotification kind="info" title={`No evidence for ${metricKey}`} subtitle="Switch pipelines/metrics or ensure evaluation results are loaded in the database." lowContrast />
       );
     }
     const n = c.n_valid;
@@ -524,7 +524,7 @@ export const PipelineCompareView: React.FC<Props> = ({
       <section style={{ border: "1px solid rgba(15,98,254,0.2)", borderRadius: "6px", padding: "0.75rem" }}>
         <h4 style={{ margin: "0 0 0.25rem 0", color: "#0f62fe" }}>Timing and tokens</h4>
         <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.8125rem", lineHeight: 1.45, opacity: 0.88, maxWidth: "52rem" }}>
-          {TIMING_AND_TOKENS_INTRO} Averages are benchmark-wide aggregates from the summary artifact (same fields as Eval
+          {TIMING_AND_TOKENS_INTRO} Averages are benchmark-wide aggregates from the evaluation summary in the database (same fields as Eval
           Playground per-record metrics).
         </p>
         {timingMetricsDef.length === 0 ? (

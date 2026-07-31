@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   ComboBox,
@@ -42,6 +42,7 @@ import {
   formatEvalResultsSize,
   isLargeBenchmark,
 } from "../lib/largeBenchmark";
+import { unloadBenchmarkCache } from "../services/benchmarks";
 import { RecordDetailDrawer } from "../components/RecordDetailDrawer";
 
 type MetricAgreementFilter = "all" | "agree" | "disagree";
@@ -200,6 +201,28 @@ export const ProfileCompareView: React.FC<Props> = ({
 }) => {
   const [selectedBenchmarkIds, setSelectedBenchmarkIds] = useState<string[]>([]);
   const [summariesById, setSummariesById] = useState<Record<string, CategorySummaryResponse>>({});
+  const prevSelectedIdsRef = useRef<string[]>([]);
+
+  // Drop server-side eval caches when a benchmark is deselected or this view unmounts.
+  useEffect(() => {
+    const prev = prevSelectedIdsRef.current;
+    const nextSet = new Set(selectedBenchmarkIds);
+    for (const id of prev) {
+      if (!nextSet.has(id)) {
+        void unloadBenchmarkCache(id);
+      }
+    }
+    prevSelectedIdsRef.current = selectedBenchmarkIds;
+  }, [selectedBenchmarkIds]);
+
+  useEffect(() => {
+    return () => {
+      for (const id of prevSelectedIdsRef.current) {
+        void unloadBenchmarkCache(id);
+      }
+    };
+  }, []);
+
   const [loadErrorsById, setLoadErrorsById] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
@@ -592,7 +615,7 @@ export const ProfileCompareView: React.FC<Props> = ({
               const large = meta != null && isLargeBenchmark(meta);
               const sizeLabel = formatEvalResultsSize(meta?.eval_results_bytes);
               const largeTitle = large
-                ? `${LARGE_BENCHMARK_WARNING}${sizeLabel ? ` (${sizeLabel} on disk)` : ""}`
+                ? `${LARGE_BENCHMARK_WARNING}${sizeLabel ? ` (${sizeLabel} estimated)` : ""}`
                 : undefined;
               return (
                 <span
@@ -705,7 +728,7 @@ export const ProfileCompareView: React.FC<Props> = ({
         <InlineNotification
           kind="info"
           title="Partial profile data"
-          subtitle="Some selected benchmarks lack full eval JSON; their profile breakdown may be missing or incomplete."
+          subtitle="Some selected benchmarks lack full evaluation records in the database; their profile breakdown may be missing or incomplete."
           lowContrast
         />
       )}
@@ -714,7 +737,7 @@ export const ProfileCompareView: React.FC<Props> = ({
         <InlineNotification
           kind="warning"
           title="No profiles found"
-          subtitle="Records have no meta.categories tags. Run scripts/profiling/run_profiling.py on eval JSON files."
+          subtitle="Records have no meta.categories tags. Re-profile the benchmark (e.g. scripts/profiling/run_profiling.py) and re-import or re-run evaluation so categories are stored in the database."
           lowContrast
         />
       )}

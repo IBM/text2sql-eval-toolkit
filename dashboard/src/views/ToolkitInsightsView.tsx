@@ -557,7 +557,7 @@ export const ToolkitInsightsView: React.FC<Props> = ({
             title={confusionError ? "Confusion data unavailable" : "No evidence available"}
             subtitle={
               confusionError ||
-              "Check that evaluation artifacts exist under your TEXT2SQL_DATA_ROOT/results/."
+              "Ensure evaluation results are in the database for this benchmark (run evaluation or import with scripts/migration/import_json_to_db.py)."
             }
             lowContrast
           />
@@ -656,7 +656,7 @@ export const ToolkitInsightsView: React.FC<Props> = ({
             title={confusionError ? "Confusion data unavailable" : "No evidence available"}
             subtitle={
               confusionError ||
-              "Check that evaluation artifacts exist under your TEXT2SQL_DATA_ROOT/results/."
+              "Ensure evaluation results are in the database for this benchmark (run evaluation or import with scripts/migration/import_json_to_db.py)."
             }
             lowContrast
           />

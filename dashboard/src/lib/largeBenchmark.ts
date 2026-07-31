@@ -1,6 +1,6 @@
 import type { BenchmarkSummary } from "../types/benchmark";
 
-/** On-disk size of {id}-predictions_eval.json above which the dashboard may OOM on low RAM. */
+/** Estimated eval payload size above which the dashboard may OOM on low RAM. */
 export const LARGE_EVAL_RESULTS_BYTES = 100 * 1024 * 1024; // 100 MiB
 
 export function isLargeBenchmark(benchmark: BenchmarkSummary): boolean {
@@ -23,4 +23,4 @@ export function formatEvalResultsSize(bytes: number | null | undefined): string 
 }
 
 export const LARGE_BENCHMARK_WARNING =
-  "Large evaluation file — loading profile data uses a lot of memory and may crash the server on machines with limited RAM.";
+  "Large evaluation payload — loading profile data uses a lot of memory and may crash the server on machines with limited RAM.";
