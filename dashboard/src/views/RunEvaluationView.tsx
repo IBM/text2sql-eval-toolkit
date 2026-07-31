@@ -821,7 +821,7 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
 
         {benchPipelineNames.length === 0 && selectedBenchmark && (
           <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--cds-text-secondary)" }}>
-            No summary file found for this benchmark yet; pipeline names appear after you have evaluation results, or
+            No evaluation summary found in the database for this benchmark yet; pipeline names appear after you have evaluation results, or
             from the loaded record below.
           </p>
         )}

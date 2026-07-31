@@ -29,6 +29,18 @@ export async function fetchBenchmarks(): Promise<BenchmarkSummary[]> {
   return data.items;
 }
 
+/** Ask the server to drop cached eval records for a benchmark (best-effort). */
+export async function unloadBenchmarkCache(benchmarkId: string): Promise<void> {
+  try {
+    await fetch(
+      apiUrl(`/api/benchmarks/${encodeURIComponent(benchmarkId)}/cache`),
+      { method: "DELETE" }
+    );
+  } catch {
+    // Cache unload is best-effort; ignore network errors on navigate-away.
+  }
+}
+
 export async function fetchBenchmarkConfig(
   benchmarkId: string
 ): Promise<BenchmarkConfigResponse> {

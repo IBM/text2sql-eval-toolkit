@@ -389,7 +389,7 @@ export const RecordDetailDrawer: React.FC<Props> = ({
               <InlineNotification
                 kind="info"
                 title="Loading raw JSON..."
-                subtitle="Fetching full record payload from predictions_eval"
+                subtitle="Fetching full record payload from the database"
                 lowContrast
               />
             )}
