@@ -48,7 +48,6 @@ import pandas as pd
 import re
 import sqlite3
 import time
-from func_timeout import func_timeout, FunctionTimedOut
 from io import StringIO
 from pathlib import Path
 from sqlglot import parse_one, exp
@@ -702,16 +701,42 @@ async def postgres_run_execution_async(
     return updated_predictions_data, query_count
 
 
-def run_sqlite_query(db_path: str, sql: str) -> str:
+def run_sqlite_query(db_path: str, sql: str, timeout: float | None = None) -> str:
+    """Execute a SQLite query and return results as a split-oriented JSON string.
+
+    When ``timeout`` is set, uses sqlite3's progress handler to abort the query
+    cleanly. Do not wrap this in ``func_timeout``: forcibly stopping a thread
+    while sqlite3 is in C code causes segmentation faults under concurrency.
+    """
     conn = sqlite3.connect(db_path)
-    conn.text_factory = lambda b: b.decode(errors='replace')
+    conn.text_factory = lambda b: b.decode(errors="replace")
     conn.row_factory = sqlite3.Row
-    cursor = conn.execute(sql)
-    rows = cursor.fetchall()
-    columns = [col[0] for col in cursor.description]
-    data = [dict(zip(columns, row)) for row in rows]
-    conn.close()
-    return pd.DataFrame(data, columns=columns).to_json(orient="split")
+
+    if timeout is not None and timeout > 0:
+        # Bound lock waits as well as query VM steps.
+        conn.execute(f"PRAGMA busy_timeout = {int(timeout * 1000)}")
+        start = time.monotonic()
+
+        def _progress_handler() -> int:
+            return 1 if time.monotonic() - start >= timeout else 0
+
+        # Checked roughly every N SQLite VM instructions.
+        conn.set_progress_handler(_progress_handler, 1000)
+
+    try:
+        cursor = conn.execute(sql)
+        rows = cursor.fetchall()
+        columns = [col[0] for col in cursor.description] if cursor.description else []
+        data = [dict(zip(columns, row)) for row in rows]
+        return pd.DataFrame(data, columns=columns).to_json(orient="split")
+    except sqlite3.OperationalError as e:
+        # Progress-handler abort surfaces as OperationalError("interrupted").
+        if timeout is not None and "interrupt" in str(e).lower():
+            raise TimeoutError(f"Query timed out after {timeout} seconds") from e
+        raise
+    finally:
+        conn.set_progress_handler(None, 0)
+        conn.close()
 
 
 async def run_sqlite_query_with_timeout(
@@ -721,13 +746,16 @@ async def run_sqlite_query_with_timeout(
     try:
         json_result = await loop.run_in_executor(
             None,
-            lambda: func_timeout(timeout, run_sqlite_query, args=(str(db_path), sql)),
+            run_sqlite_query,
+            str(db_path),
+            sql,
+            float(timeout),
         )
         return pd.read_json(StringIO(json_result), orient="split")
-    except FunctionTimedOut:
-        raise asyncio.TimeoutError(f"Query timed out after {timeout} seconds")
+    except TimeoutError as e:
+        raise asyncio.TimeoutError(f"Query timed out after {timeout} seconds") from e
     except Exception as e:
-        raise RuntimeError(f"Error running query: {e}")
+        raise RuntimeError(f"Error running query: {e}") from e
 
 
 async def sqlite_run_execution_async(
