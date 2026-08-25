@@ -787,9 +787,9 @@ async def run_sqlite_query_with_timeout(
         )
         return pd.read_json(StringIO(json_result), orient="split")
     except FunctionTimedOut:
-        raise asyncio.TimeoutError(f"Query timed out after {timeout} seconds")
+        raise asyncio.TimeoutError(f"Query timed out after {timeout} seconds") from None
     except Exception as e:
-        raise RuntimeError(f"Error running query: {e}")
+        raise RuntimeError(f"Error running query: {e}") from e
 
 
 def resolve_sqlite_db_path(db_folder, db_id: str, db_filename: str) -> Path:

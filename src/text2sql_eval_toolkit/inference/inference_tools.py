@@ -356,7 +356,7 @@ class WXAIClientChatAPI:
             logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
             error = ValueError("No SQL returned by the model.")
             error.response = str(response)  # Attach raw response to exception
-            raise error
+            raise error from e
 
         # Extract token usage from WatsonX response
         token_usage = None
@@ -453,7 +453,7 @@ class VLLMClientChatAPI:
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"vLLM API request failed: {e}")
-            raise ValueError(f"Failed to get response from vLLM API: {e}")
+            raise ValueError(f"Failed to get response from vLLM API: {e}") from e
 
     def generate_sql(self, prompt: Any) -> tuple[str, dict]:
         if hasattr(prompt, "prompt"):  # Text2SQLPrompt-like object
@@ -475,7 +475,7 @@ class VLLMClientChatAPI:
             sql = response["choices"][0]["message"]["content"].strip()
         except (KeyError, IndexError) as e:
             logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
+            raise ValueError("No SQL returned by the model.") from e
 
         # Extract token usage from vLLM response (OpenAI-compatible format)
         token_usage = None
@@ -591,18 +591,18 @@ class ClaudeClientChatAPI:
                     f"Claude API authentication failed{error_detail}\n"
                     "Please check that your ANTHROPIC_API_KEY is valid.\n"
                     "Get a valid key at: https://console.anthropic.com/settings/keys"
-                )
+                ) from e
             elif e.response.status_code == 429:
                 logger.error(f"Claude API rate limit exceeded{error_detail}")
-                raise ValueError(f"Claude API rate limit exceeded{error_detail}")
+                raise ValueError(f"Claude API rate limit exceeded{error_detail}") from e
             else:
                 logger.error(f"Claude API request failed: {e}{error_detail}")
                 raise ValueError(
                     f"Failed to get response from Claude API: {e}{error_detail}"
-                )
+                ) from e
         except requests.exceptions.RequestException as e:
             logger.error(f"Claude API request failed: {e}")
-            raise ValueError(f"Failed to get response from Claude API: {e}")
+            raise ValueError(f"Failed to get response from Claude API: {e}") from e
 
     def generate_sql(self, prompt: Any) -> tuple[str, dict]:
         if hasattr(prompt, "prompt"):  # Text2SQLPrompt-like object
@@ -625,7 +625,7 @@ class ClaudeClientChatAPI:
             sql = response["content"][0]["text"].strip()
         except (KeyError, IndexError) as e:
             logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
+            raise ValueError("No SQL returned by the model.") from e
 
         # Extract token usage from Claude response
         token_usage = None
@@ -760,13 +760,13 @@ class OpenAIClientChatAPI:
             logger.debug(f"Raw response: {response}\n")
         except Exception as e:
             logger.error(f"OpenAI API request failed: {e}")
-            raise ValueError(f"Failed to get response from OpenAI API: {e}")
+            raise ValueError(f"Failed to get response from OpenAI API: {e}") from e
 
         try:
             sql = response.choices[0].message.content.strip()
         except (AttributeError, IndexError, KeyError) as e:
             logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
+            raise ValueError("No SQL returned by the model.") from e
 
         # Extract token usage from OpenAI response
         token_usage = None
@@ -1057,7 +1057,7 @@ class GeminiClientChatAPI:
                         "and ensure Vertex routing env vars are not set for this run "
                         "(e.g., GOOGLE_GENAI_USE_VERTEXAI/GOOGLE_CLOUD_PROJECT/GOOGLE_CLOUD_LOCATION). "
                         f"Original error: {e}"
-                    )
+                    ) from e
 
                 is_retryable = self._is_rate_limited(e)
                 has_retries_left = attempt < self.max_retry_attempts
@@ -1079,10 +1079,10 @@ class GeminiClientChatAPI:
                     raise ValueError(
                         "Gemini API rate limit/resource exhausted after "
                         f"{self.max_retry_attempts} attempts: {e}"
-                    )
+                    ) from e
 
                 logger.error(f"Gemini API request failed: {e}")
-                raise ValueError(f"Failed to get response from Gemini API: {e}")
+                raise ValueError(f"Failed to get response from Gemini API: {e}") from e
 
         if response is None:
             raise ValueError(

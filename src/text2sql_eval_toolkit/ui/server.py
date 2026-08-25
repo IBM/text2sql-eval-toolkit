@@ -1343,7 +1343,9 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
                 judge_config,
             )
         except ValueError as exc:
-            raise HTTPException(status_code=502, detail=f"LLM judge failed: {exc}")
+            raise HTTPException(
+                status_code=502, detail=f"LLM judge failed: {exc}"
+            ) from exc
         except Exception as exc:
             logger.exception("LLM judge call failed")
             raise HTTPException(
@@ -2198,7 +2200,7 @@ async def _playground_execute_sql_guarded(
         raise HTTPException(
             status_code=408,
             detail=f"{error_label}: SQL execution timed out after {timeout_s}s",
-        )
+        ) from None
     except Exception as e:
         logger.exception("Playground SQL execution failed")
         raise HTTPException(

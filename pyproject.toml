@@ -131,14 +131,6 @@ ignore = [
     # the framework's documented idiom (21 uses in ui/server.py), not the bug
     # B008 describes.
     "B008",
-
-    # ---- Deferred, not dismissed -------------------------------------------
-    # 39 real findings from the first lint run.  Each changes runtime behaviour
-    # or touches exception handling, so they belong in a reviewed follow-up
-    # rather than mixed into the tooling commit (plan item 4.2).  Tracked as
-    # item 4.12 in docs/plan/04-code-quality.md -- remove these entries as each
-    # is addressed.
-    "B904",  # 19x: `raise ... from e` inside except -- loses exception chaining
 ]
 
 [tool.ruff.lint.per-file-ignores]
