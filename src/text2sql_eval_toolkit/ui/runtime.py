@@ -106,3 +106,18 @@ def current_user_email(request: Request) -> Optional[str]:
         if isinstance(email, str):
             return email
     return None
+
+
+# When True the /api/results/fetch endpoints are active.  Set by main() via the
+# --enable-fetch CLI flag.  Off by default so a deployment is safe with no
+# configuration at all: the endpoint downloads gigabytes into the data root.
+_ENABLE_FETCH_ENDPOINT: bool = False
+
+
+def fetch_endpoint_enabled() -> bool:
+    return _ENABLE_FETCH_ENDPOINT
+
+
+def set_fetch_endpoint_enabled(enabled: bool) -> None:
+    global _ENABLE_FETCH_ENDPOINT
+    _ENABLE_FETCH_ENDPOINT = enabled

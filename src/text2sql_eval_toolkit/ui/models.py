@@ -70,6 +70,14 @@ class BenchmarkDetailResponse(BaseModel):
     pipelines: List[PipelineMetrics]
 
 
+class CreateBenchmarkRequest(BenchmarkConfigInput):
+    benchmark_id: str
+
+
+class UpdateBenchmarkRequest(BenchmarkConfigInput):
+    pass
+
+
 class PipelineAliasesResponse(BaseModel):
     """``{alias: pipeline_id}`` for one benchmark, plus its inverse."""
 

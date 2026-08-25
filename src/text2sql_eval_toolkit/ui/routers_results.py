@@ -1,0 +1,148 @@
+#
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+
+"""
+Fetching a results snapshot from the Hugging Face Hub.
+
+Off unless ``--enable-fetch`` was passed, because the endpoint downloads
+gigabytes into the data root and a shared deployment has provisioning do that
+once, ahead of serving, rather than on a request.
+"""
+
+import threading
+import uuid
+from typing import Any, Dict
+
+from fastapi import APIRouter, HTTPException
+
+import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
+
+from text2sql_eval_toolkit.ui.models import (
+    FetchJobStatus,
+    ResultsFetchRequest,
+)
+
+# Runtime state (deployment ceiling, judge allowlist, request identity) and the
+# middleware stack live in their own modules.  Their names are re-exported here
+# because ``server.set_mode`` / ``server.reset_rate_limits`` are the surface the
+# CLI and the tests already use -- and re-exporting is only safe because they are
+# accessors over module state rather than the state itself.
+from text2sql_eval_toolkit.ui.indexes import (  # noqa: F401
+    EVAL_INDEX_CACHE,
+    get_index,
+    invalidate_index_cache,
+)
+from text2sql_eval_toolkit.ui.paths import (  # noqa: F401
+    _eval_not_found_detail,
+    _summary_not_found_detail,
+    count_records,
+    get_data_root,
+    get_results_dir,
+    load_json,
+)
+from text2sql_eval_toolkit.ui.registry import (  # noqa: F401
+    ALLOWED_DB_TYPES,
+    ALLOWED_LOGO_EXTENSIONS,
+    MAX_LOGO_UPLOAD_BYTES,
+    STATIC_ASSET_SUBDIR,
+    get_benchmark_registry_path,
+    load_benchmark_registry,
+    normalize_benchmark_config,
+    normalize_benchmark_id,
+    write_json_atomic,
+)
+from text2sql_eval_toolkit.ui.middleware import reset_rate_limits  # noqa: F401
+from text2sql_eval_toolkit.ui.runtime import (  # noqa: F401
+    _cookie_secure,
+    current_user_email,
+    get_judge_allowlist,
+    get_mode,
+    set_judge_allowlist,
+    set_mode,
+)
+from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.ui import runtime
+from text2sql_eval_toolkit.ui.jobs import FETCH_JOBS, FETCH_JOBS_LOCK
+
+logger = get_logger(__name__)
+
+router = APIRouter()
+
+
+# ---------------------------------------------------------------------------
+# Results Hub endpoints (enabled only when --enable-fetch is passed)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/api/results/status")
+def get_results_status() -> Dict[str, Any]:
+    """
+    Report whether the fetch endpoint is enabled and whether local results exist.
+
+    The React UI calls this on mount to decide whether to show the
+    "Fetch results" banner.
+    """
+    data_root = get_data_root()
+    results_dir = data_root / "results"
+    has_results = results_dir.is_dir() and any(results_dir.iterdir())
+    return {
+        "fetch_enabled": runtime.fetch_endpoint_enabled(),
+        "has_results": has_results,
+        "results_path": str(results_dir),
+    }
+
+
+@router.post("/api/results/fetch", response_model=FetchJobStatus)
+def start_results_fetch(
+    req: ResultsFetchRequest = ResultsFetchRequest(),
+) -> FetchJobStatus:
+    """
+    Kick off a background download of results from the Hugging Face Hub.
+
+    Only available when the dashboard is started with ``--enable-fetch``.
+    Returns 404 otherwise (so that the default prod setup is unaffected).
+    """
+    if not runtime.fetch_endpoint_enabled():
+        raise HTTPException(status_code=404, detail="Not Found")
+
+    job_id = str(uuid.uuid4())
+    job = FetchJobStatus(job_id=job_id, state="queued")
+    with FETCH_JOBS_LOCK:
+        FETCH_JOBS[job_id] = job
+
+    def worker() -> None:
+        job.state = "running"
+        try:
+            from text2sql_eval_toolkit.results import fetch_results
+
+            fetch_results(
+                benchmarks=req.benchmarks,
+                pipelines=req.pipelines,
+                models=req.models,
+                revision=req.revision,
+                data_root=get_data_root(),
+                force=req.force,
+                show_progress=False,
+            )
+            job.state = "completed"
+        except Exception as exc:
+            logger.exception("Results fetch job failed")
+            job.state = "failed"
+            job.error = str(exc)
+
+    threading.Thread(target=worker, daemon=True).start()
+    return job
+
+
+@router.get("/api/results/fetch/{job_id}", response_model=FetchJobStatus)
+def get_results_fetch_status(job_id: str) -> FetchJobStatus:
+    """Poll the status of a fetch job started by POST /api/results/fetch."""
+    if not runtime.fetch_endpoint_enabled():
+        raise HTTPException(status_code=404, detail="Not Found")
+    with FETCH_JOBS_LOCK:
+        job = FETCH_JOBS.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Fetch job not found")
+    return job
