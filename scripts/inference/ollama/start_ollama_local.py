@@ -50,7 +50,7 @@ def is_ollama_running():
                 ["ps", "aux"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
             return "ollama" in result.stdout
-        except:
+        except Exception:
             return False
 
 
@@ -84,7 +84,7 @@ def check_model_available(model):
             text=True,
         )
         return model in result.stdout
-    except:
+    except Exception:
         return False
 
 

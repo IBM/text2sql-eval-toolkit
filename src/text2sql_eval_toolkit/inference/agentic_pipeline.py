@@ -812,7 +812,7 @@ Step 3 (after SQL executes successfully):
                 df_preview = df.head(10).to_string(index=False)
                 if len(df) > 10:
                     df_preview += f"\n... ({len(df) - 10} more rows)"
-            except:
+            except Exception:
                 df_preview = (
                     f"({row_count} rows returned, but could not parse dataframe)"
                 )
