@@ -24,7 +24,7 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
-from text2sql_eval_toolkit.ui import server  # noqa: E402
+from text2sql_eval_toolkit.ui import routers_judge, server  # noqa: E402
 from text2sql_eval_toolkit.ui.capabilities import Tier  # noqa: E402
 from text2sql_eval_toolkit.ui.judge_budget import (  # noqa: E402
     JudgeStore,
@@ -96,7 +96,7 @@ def fake_llm(monkeypatch):
         calls.append(args)
         return dict(FAKE_RESULT)
 
-    monkeypatch.setattr(server, "evaluate_sql_prediction_with_llm", _fake)
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
     return calls
 
 
@@ -255,12 +255,14 @@ def test_missing_token_usage_is_not_silently_treated_as_free(client, monkeypatch
     while the meter reads zero.
     """
     monkeypatch.setattr(
-        server,
+        routers_judge,
         "evaluate_sql_prediction_with_llm",
         lambda *a, **k: {"verdict": "Yes", "score": 1.0, "explanation": "x"},
     )
     warnings = []
-    monkeypatch.setattr(server.logger, "warning", lambda *a, **k: warnings.append(a))
+    monkeypatch.setattr(
+        routers_judge.logger, "warning", lambda *a, **k: warnings.append(a)
+    )
 
     api, _ = client
     resp = api.post(

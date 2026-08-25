@@ -1,9 +1,6 @@
 import argparse
-import asyncio
 import base64
 import os
-import re
-import shutil
 import subprocess
 import threading
 import time
@@ -11,10 +8,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import Body, FastAPI, HTTPException, Query, Request, Response
-from fastapi.responses import FileResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi import FastAPI, HTTPException, Query, Request
 import uvicorn
 
 import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
@@ -22,10 +16,6 @@ import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, 
 from text2sql_eval_toolkit.utils import get_benchmarks_info
 from text2sql_eval_toolkit.evaluation.evaluation_tools import (
     run_evaluation,
-)
-from text2sql_eval_toolkit.evaluation.llm_as_judge import (
-    evaluate_sql_prediction_with_llm,
-    load_llm_judge_config,
 )
 from text2sql_eval_toolkit import __version__
 from text2sql_eval_toolkit.ui import auth
@@ -38,25 +28,11 @@ from text2sql_eval_toolkit.ui.models import (
     BenchmarkLogoUploadRequest,
     BenchmarkSummary,
     BenchmarksResponse,
-    BinaryMetricConfusionByPipelineResponse,
-    BinaryMetricConfusionByPipelineRow,
-    BinaryMetricConfusionCounts,
-    BinaryMetricConfusionRates,
-    CompareResponse,
-    CompareRow,
-    CrossPipelineBinaryMetricConfusionCounts,
-    CrossPipelineBinaryMetricConfusionRates,
-    CrossPipelineBinaryMetricConfusionResponse,
     DeploymentInfo,
     ErrorRecordSummary,
     EvaluateRequest,
     FetchJobStatus,
     JobStatus,
-    JudgeRequest,
-    JudgeResponse,
-    JudgeUsage,
-    LLMJudgeConfigInfo,
-    LLMJudgeConfigListResponse,
     PaginatedErrorResponse,
     PipelineAliasesResponse,
     PipelineMetrics,
@@ -64,10 +40,7 @@ from text2sql_eval_toolkit.ui.models import (
     SessionInfo,
 )
 from text2sql_eval_toolkit.ui.judge_budget import (
-    BudgetExceeded,
-    JudgeStore,
     judge_disabled,
-    verdict_cache_key,
 )
 from text2sql_eval_toolkit.ui.capabilities import (
     Tier,
@@ -81,7 +54,14 @@ from text2sql_eval_toolkit.ui.capabilities import (
 # CLI and the tests already use -- and re-exporting is only safe because they are
 # accessors over module state rather than the state itself.
 from text2sql_eval_toolkit.ui import middleware as _middleware
-from text2sql_eval_toolkit.ui import routers_execution
+from text2sql_eval_toolkit.ui import (
+    routers_auth,
+    routers_compare,
+    routers_execution,
+    routers_judge,
+    routers_judge_configs,
+    static_files,
+)
 from text2sql_eval_toolkit.ui.indexes import (  # noqa: F401
     EVAL_INDEX_CACHE,
     get_index,
@@ -128,9 +108,32 @@ _ENABLE_FETCH_ENDPOINT: bool = False
 
 _middleware.install(app)
 
-# Routes that execute caller-supplied SQL live in their own module; see there
-# for why they are grouped rather than scattered.
-app.include_router(routers_execution.router)
+# Routes are grouped by what they can do rather than by URL shape: the execution
+# and judge routers are the two that carry capability beyond reading artifacts,
+# and keeping each in one file is what makes that reviewable.
+for _router in (
+    routers_auth.router,
+    routers_judge.router,
+    routers_execution.router,
+    routers_compare.router,
+    routers_judge_configs.router,
+    static_files.router,
+):
+    app.include_router(_router)
+
+# Names main() and the tests reach for, kept on `server` so moving a definition
+# is not also an API change for callers.
+SPAStaticFiles = static_files.SPAStaticFiles
+mount_static = static_files.mount_static
+_resolve_dashboard_source_dir = static_files._resolve_dashboard_source_dir
+_ensure_dashboard_dist = static_files._ensure_dashboard_dist
+_spawn_dashboard_watch = static_files._spawn_dashboard_watch
+_terminate_dashboard_watch = static_files._terminate_dashboard_watch
+get_judge_store = routers_judge.get_judge_store
+reset_judge_store = routers_judge.reset_judge_store
+_judge_config_dir = routers_judge._judge_config_dir
+get_oauth = routers_auth.get_oauth
+_judge_usage_model = routers_judge._judge_usage_model
 
 
 def configure_cors(mode: Tier) -> None:
@@ -157,323 +160,6 @@ FETCH_JOBS_LOCK = threading.Lock()
 def _update_job(job: JobStatus) -> None:
     with JOBS_LOCK:
         JOBS[job.job_id] = job
-
-
-# ---------------------------------------------------------------------------
-# Authentication (Google OIDC)
-# ---------------------------------------------------------------------------
-
-_OAUTH: Any = None
-
-
-def get_oauth() -> Any:
-    """Lazily built so importing the module never requires OAuth credentials."""
-    global _OAUTH
-    if _OAUTH is None:
-        _OAUTH = auth.build_oauth_client()
-    return _OAUTH
-
-
-@app.get("/api/auth/login")
-async def auth_login(request: Request, next: str = Query("/")):
-    """Start the Google sign-in redirect."""
-    if not auth.is_configured():
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Google sign-in is not configured on this server "
-                "(GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are unset)."
-            ),
-        )
-    request.session["post_login_redirect"] = auth.safe_redirect_target(next)
-    redirect_uri = str(request.url_for("auth_callback"))
-    return await get_oauth().google.authorize_redirect(request, redirect_uri)
-
-
-@app.get("/api/auth/callback", name="auth_callback")
-async def auth_callback(request: Request):
-    """
-    Complete sign-in.
-
-    Authlib verifies the ID token signature, issuer, audience, and nonce, and
-    checks the PKCE and state values against the session. What is left for us is
-    the claim that actually matters: the address must be *verified*.
-    """
-    if not auth.is_configured():
-        raise HTTPException(status_code=503, detail="Google sign-in is not configured.")
-
-    try:
-        token = await get_oauth().google.authorize_access_token(request)
-    except Exception as e:
-        logger.warning("Sign-in failed during token exchange: %s", e)
-        raise HTTPException(status_code=401, detail="Sign-in failed.") from None
-
-    email = auth.extract_verified_email(token.get("userinfo") or {})
-    if not email:
-        raise HTTPException(
-            status_code=403,
-            detail=("Sign-in requires a Google account with a verified email address."),
-        )
-
-    request.session["email"] = email
-    tier = resolve_tier(get_mode(), email, get_judge_allowlist())
-    logger.info(
-        "Sign-in for identity %s granted tier %s",
-        auth.hash_identity(email),
-        tier.name.lower(),
-    )
-
-    target = request.session.pop("post_login_redirect", "/")
-    return RedirectResponse(url=target, status_code=303)
-
-
-@app.post("/api/auth/logout")
-def auth_logout(request: Request):
-    """Clear the session. The cookie is the whole of the state."""
-    session = request.scope.get("session")
-    if isinstance(session, dict):
-        session.clear()
-    return {"signed_out": True}
-
-
-# ---------------------------------------------------------------------------
-# On-demand LLM-as-judge (judge tier)
-# ---------------------------------------------------------------------------
-
-
-def _judge_config_dir() -> Path:
-    from text2sql_eval_toolkit.evaluation import llm_as_judge
-
-    return Path(llm_as_judge.__file__).parent / "llm_judge_config"
-
-
-def _resolve_judge_config_path(name: str) -> Path:
-    """
-    Path of a judge config, refusing anything that escapes the config directory.
-
-    ``name`` arrives from a URL segment or request body. FastAPI will not match
-    a raw ``/`` into a single path parameter, but percent-encoded separators and
-    ``..`` segments are decoded before they reach here, so containment is
-    asserted on the resolved path rather than assumed from the routing.
-    """
-    # Constrain the shape first: a plain stem cannot traverse, cannot name a
-    # dotfile, and cannot be empty. Containment below stays as a second line of
-    # defence rather than the only one.
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", name or ""):
-        raise FileNotFoundError(name)
-    base = _judge_config_dir().resolve()
-    candidate = (base / f"{name}.yaml").resolve()
-    if candidate.parent != base:
-        raise FileNotFoundError(name)
-    return candidate
-
-
-def _load_judge_config_by_name(name: str) -> Dict[str, Any]:
-    """
-    Load a judge config by stem, refusing anything that escapes the config dir.
-
-    The name arrives from a request body, so a traversal attempt must not be
-    able to read or select an arbitrary YAML file.
-    """
-    candidate = _resolve_judge_config_path(name)
-    if not candidate.is_file():
-        raise FileNotFoundError(name)
-    return load_llm_judge_config(str(candidate))
-
-
-_JUDGE_STORE: Optional[JudgeStore] = None
-_JUDGE_STORE_LOCK = threading.Lock()
-# One judge call at a time. The ceiling is per month, but a burst of concurrent
-# requests could each pass the check before any of them records spend, so the
-# semaphore is what makes the check meaningful under load.
-_JUDGE_SEMAPHORE = asyncio.Semaphore(1)
-
-
-def get_judge_store() -> JudgeStore:
-    global _JUDGE_STORE
-    with _JUDGE_STORE_LOCK:
-        if _JUDGE_STORE is None:
-            _JUDGE_STORE = JudgeStore(get_data_root() / "judge" / "usage.sqlite")
-        return _JUDGE_STORE
-
-
-def reset_judge_store() -> None:
-    """Drop the cached handle; used by tests and after a data-root change."""
-    global _JUDGE_STORE
-    with _JUDGE_STORE_LOCK:
-        _JUDGE_STORE = None
-
-
-def _judge_usage_model(usage: Any) -> JudgeUsage:
-    return JudgeUsage(
-        month=usage.month,
-        # Six places, not two: a single judge call costs a fraction of a cent,
-        # and rounding that to 0.00 would make the meter look stuck. Enforcement
-        # always uses the unrounded value from the store.
-        spent_usd=round(usage.spent_usd, 6),
-        budget_usd=usage.budget_usd,
-        remaining_usd=round(usage.remaining_usd, 6),
-        calls=usage.calls,
-        warning=usage.warning,
-    )
-
-
-@app.post("/api/benchmarks/{benchmark_id}/judge", response_model=JudgeResponse)
-async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
-    """
-    Run LLM-as-judge for one (record, pipeline) pair.
-
-    Deliberately narrow. The existing /evaluate endpoint re-evaluates an entire
-    benchmark and writes back to the shared artifacts, which on a shared
-    deployment would mean one user's re-run silently changing what every other
-    visitor sees. Verdicts here are stored separately and attributed to the
-    caller; the published numbers stay reproducible against the pinned snapshot.
-
-    Needs no database: the judge reads question, SQL, and dataframes from the
-    artifacts, so this works on a deployment that holds no DB credentials.
-    """
-    if judge_disabled():
-        raise HTTPException(
-            status_code=503,
-            detail="LLM-as-judge is currently disabled on this server.",
-        )
-
-    store = get_judge_store()
-    email = current_user_email(request) or "local-operator"
-    user_hash = auth.hash_identity(email)
-
-    config_name = req.config_name or "llm_judge_default_config"
-    try:
-        judge_config = _load_judge_config_by_name(config_name)
-    except FileNotFoundError:
-        raise HTTPException(
-            status_code=404, detail=f"LLM judge config '{config_name}' not found"
-        ) from None
-    model = str((judge_config.get("model") or {}).get("id", "unknown"))
-
-    cache_key = verdict_cache_key(
-        benchmark_id, req.record_id, req.pipeline, config_name, model
-    )
-    cached = store.get_verdict(cache_key)
-    if cached:
-        return JudgeResponse(
-            benchmark_id=benchmark_id,
-            record_id=req.record_id,
-            pipeline=req.pipeline,
-            verdict=cached["verdict"],
-            score=cached["score"],
-            explanation=cached["explanation"],
-            model=cached["model"],
-            config_name=config_name,
-            cached=True,
-            usage=_judge_usage_model(store.usage()),
-        )
-
-    try:
-        store.check_budget()
-    except BudgetExceeded as exc:
-        raise HTTPException(status_code=429, detail=str(exc)) from None
-
-    # Index access can build an index; keep it off the event loop.
-    index = await asyncio.to_thread(get_index, benchmark_id)
-    record = await asyncio.to_thread(index.read_record, req.record_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail="Record not found")
-
-    predictions = record.get("predictions", {})
-    if req.pipeline not in predictions:
-        raise HTTPException(
-            status_code=404, detail=f"Pipeline '{req.pipeline}' not found in record"
-        )
-    prediction = predictions[req.pipeline]
-
-    gt_sqls = record.get("sql") or []
-    if isinstance(gt_sqls, str):
-        gt_sqls = [gt_sqls]
-    gt_dfs = record.get("gt_df") or []
-    if not isinstance(gt_dfs, list):
-        gt_dfs = [gt_dfs]
-
-    async with _JUDGE_SEMAPHORE:
-        # Re-check inside the semaphore: a queued request may have exhausted the
-        # budget while this one was waiting.
-        try:
-            store.check_budget()
-        except BudgetExceeded as exc:
-            raise HTTPException(status_code=429, detail=str(exc)) from None
-        try:
-            result = await asyncio.to_thread(
-                evaluate_sql_prediction_with_llm,
-                record.get("question")
-                or record.get("utterance")
-                or record.get("page_content")
-                or "",
-                gt_sqls[0] if gt_sqls else "",
-                gt_dfs[0] if gt_dfs else "",
-                prediction.get("predicted_sql") or "",
-                prediction.get("predicted_df") or "",
-                prediction.get("prompt") or "",
-                judge_config,
-            )
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=502, detail=f"LLM judge failed: {exc}"
-            ) from exc
-        except Exception as exc:
-            logger.exception("LLM judge call failed")
-            raise HTTPException(
-                status_code=502, detail=f"LLM judge failed: {exc}"
-            ) from exc
-
-    token_usage = result.get("token_usage") or {}
-    store.record_spend(
-        user_hash,
-        model,
-        int(token_usage.get("prompt_tokens") or 0),
-        int(token_usage.get("completion_tokens") or 0),
-    )
-    if not token_usage:
-        # Spend is metered from reported tokens; without them the ceiling would
-        # quietly stop counting, so make the gap visible.
-        logger.warning(
-            "LLM judge returned no token usage for model %s; that call was not "
-            "metered against the budget.",
-            model,
-        )
-
-    store.put_verdict(
-        cache_key,
-        benchmark_id=benchmark_id,
-        record_id=req.record_id,
-        pipeline_id=req.pipeline,
-        config_name=config_name,
-        model=model,
-        verdict=str(result.get("verdict", "N/A")),
-        score=result.get("score"),
-        explanation=result.get("explanation"),
-        user_hash=user_hash,
-    )
-
-    usage = store.usage()
-    if usage.warning:
-        logger.warning(
-            "LLM judge spend is at %.0f%% of the $%.2f monthly budget.",
-            usage.fraction_used * 100,
-            usage.budget_usd,
-        )
-
-    return JudgeResponse(
-        benchmark_id=benchmark_id,
-        record_id=req.record_id,
-        pipeline=req.pipeline,
-        verdict=str(result.get("verdict", "N/A")),
-        score=result.get("score"),
-        explanation=result.get("explanation"),
-        model=model,
-        config_name=config_name,
-        cached=False,
-        usage=_judge_usage_model(usage),
-    )
 
 
 @app.get("/api/me", response_model=SessionInfo)
@@ -1101,255 +787,6 @@ def get_error_detail_for_pipeline(
     }
 
 
-@app.get("/api/compare", response_model=CompareResponse)
-def compare_summaries(
-    benchmark_id: str,
-    left_id: str = Query(..., description="Left result id (usually same as benchmark)"),
-    right_id: str = Query(
-        ..., description="Right result id (usually same as benchmark)"
-    ),
-):
-    """
-    Compare two summary JSON files for the same benchmark.
-
-    For now, we assume filenames follow the pattern
-    {id}-predictions_eval_summary.json under the results dir.
-    """
-    results_dir = get_results_dir()
-    left_path = results_dir / f"{left_id}-predictions_eval_summary.json"
-    right_path = results_dir / f"{right_id}-predictions_eval_summary.json"
-    missing = [
-        f"data/results/{left_id}-predictions_eval_summary.json"
-        for _ in [None]
-        if not left_path.exists()
-    ] + [
-        f"data/results/{right_id}-predictions_eval_summary.json"
-        for _ in [None]
-        if not right_path.exists()
-    ]
-    if missing:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"Summary file(s) not found: {', '.join(missing)}. "
-                "Download pre-computed results with: "
-                "`text2sql-eval-toolkit results fetch`, "
-                "or generate locally by running the evaluation pipeline."
-            ),
-        )
-
-    left_raw = load_json(left_path)
-    right_raw = load_json(right_path)
-    left_raw.pop("llm_judge_config", None)
-    right_raw.pop("llm_judge_config", None)
-
-    rows: List[CompareRow] = []
-    pipelines = sorted(set(left_raw.keys()) | set(right_raw.keys()))
-    numeric_keys = set()
-    for src in (left_raw, right_raw):
-        for _pl, metrics in src.items():
-            for k, v in metrics.items():
-                if isinstance(v, dict) and "average" in v:
-                    numeric_keys.add(k)
-
-    for pl in pipelines:
-        l_metrics = left_raw.get(pl, {})
-        r_metrics = right_raw.get(pl, {})
-        for metric in sorted(numeric_keys):
-            l_val = l_metrics.get(metric, {}).get("average")
-            r_val = r_metrics.get(metric, {}).get("average")
-            diff = None
-            if isinstance(l_val, (int, float)) and isinstance(r_val, (int, float)):
-                diff = r_val - l_val
-            rows.append(
-                CompareRow(
-                    pipeline=pl,
-                    metric=metric,
-                    left=l_val,
-                    right=r_val,
-                    diff=diff,
-                )
-            )
-
-    return CompareResponse(
-        benchmark_id=benchmark_id, left_id=left_id, right_id=right_id, rows=rows
-    )
-
-
-@app.get(
-    "/api/benchmarks/{benchmark_id}/insights/binary-metric-confusion-by-pipeline",
-    response_model=BinaryMetricConfusionByPipelineResponse,
-)
-def binary_metric_confusion_by_pipeline(
-    benchmark_id: str,
-    metric_a: str = Query(..., description="Metric key for dimension A"),
-    metric_b: str = Query(..., description="Metric key for dimension B"),
-):
-    """
-    For each pipeline, compute binary confusion counts for (A, B).
-    Metrics are treated as binary (1 means success, anything else is 0).
-    Only records where both metric values exist are counted.
-    """
-    per_pipeline_counts = get_index(benchmark_id).binary_confusion_by_pipeline(
-        metric_a, metric_b
-    )
-    per_pipeline_n: Dict[str, int] = {
-        pipeline_id: sum(counts.values())
-        for pipeline_id, counts in per_pipeline_counts.items()
-    }
-
-    per_pipeline_rows: List[BinaryMetricConfusionByPipelineRow] = []
-    for pipeline_id in sorted(per_pipeline_counts.keys()):
-        counts = per_pipeline_counts[pipeline_id]
-        n_valid = per_pipeline_n.get(pipeline_id, 0)
-
-        if n_valid <= 0:
-            rates = {"a0b0": 0.0, "a0b1": 0.0, "a1b0": 0.0, "a1b1": 0.0}
-            agreement_rate = 0.0
-        else:
-            rates = {
-                "a0b0": counts["a0b0"] / n_valid,
-                "a0b1": counts["a0b1"] / n_valid,
-                "a1b0": counts["a1b0"] / n_valid,
-                "a1b1": counts["a1b1"] / n_valid,
-            }
-            agreement_rate = (counts["a0b0"] + counts["a1b1"]) / n_valid
-
-        per_pipeline_rows.append(
-            BinaryMetricConfusionByPipelineRow(
-                pipeline=pipeline_id,
-                counts=BinaryMetricConfusionCounts(**counts),
-                n_valid=n_valid,
-                rates=BinaryMetricConfusionRates(**rates),
-                agreement_rate=agreement_rate,
-                disagreement_rate=1.0 - agreement_rate if n_valid > 0 else 0.0,
-            )
-        )
-
-    return BinaryMetricConfusionByPipelineResponse(
-        benchmark_id=benchmark_id,
-        metric_a=metric_a,
-        metric_b=metric_b,
-        per_pipeline=per_pipeline_rows,
-    )
-
-
-@app.get(
-    "/api/benchmarks/{benchmark_id}/insights/cross-pipeline-binary-metric-confusion",
-    response_model=CrossPipelineBinaryMetricConfusionResponse,
-)
-def cross_pipeline_binary_metric_confusion(
-    benchmark_id: str,
-    pipeline_left: str = Query(..., description="Left pipeline id"),
-    pipeline_right: str = Query(..., description="Right pipeline id"),
-    metric_left: str = Query("execution_accuracy", description="Metric key for left"),
-    metric_right: Optional[str] = Query(
-        None,
-        description="Metric key for right (defaults to metric_left)",
-    ),
-):
-    """
-    Compute binary confusion counts across two pipelines for a (possibly)
-    different metric. Metrics are treated as binary (1 means success).
-    Only records where both metric values exist are counted.
-    """
-    metric_right_key = metric_right or metric_left
-    counts = get_index(benchmark_id).cross_pipeline_binary_confusion(
-        pipeline_left, metric_left, pipeline_right, metric_right_key
-    )
-    n_valid = sum(counts.values())
-
-    if n_valid <= 0:
-        rates = {
-            "left0right0": 0.0,
-            "left0right1": 0.0,
-            "left1right0": 0.0,
-            "left1right1": 0.0,
-        }
-        agreement_rate = 0.0
-    else:
-        rates = {
-            "left0right0": counts["left0right0"] / n_valid,
-            "left0right1": counts["left0right1"] / n_valid,
-            "left1right0": counts["left1right0"] / n_valid,
-            "left1right1": counts["left1right1"] / n_valid,
-        }
-        agreement_rate = (counts["left0right0"] + counts["left1right1"]) / n_valid
-
-    return CrossPipelineBinaryMetricConfusionResponse(
-        benchmark_id=benchmark_id,
-        left_id=pipeline_left,
-        right_id=pipeline_right,
-        metric_left=metric_left,
-        metric_right=metric_right_key,
-        n_valid=n_valid,
-        counts=CrossPipelineBinaryMetricConfusionCounts(**counts),
-        rates=CrossPipelineBinaryMetricConfusionRates(**rates),
-        agreement_rate=agreement_rate,
-        disagreement_rate=1.0 - agreement_rate if n_valid > 0 else 0.0,
-    )
-
-
-@app.get("/api/llm-judge/configs", response_model=LLMJudgeConfigListResponse)
-def list_llm_judge_configs() -> LLMJudgeConfigListResponse:
-    """
-    List available LLM-judge YAML config files.
-    """
-    from text2sql_eval_toolkit.evaluation import llm_as_judge
-
-    base_dir = Path(llm_as_judge.__file__).parent / "llm_judge_config"
-    items: List[LLMJudgeConfigInfo] = []
-    if base_dir.exists():
-        for path in sorted(base_dir.glob("*.yaml")):
-            items.append(LLMJudgeConfigInfo(name=path.stem, path=str(path.resolve())))
-    return LLMJudgeConfigListResponse(items=items)
-
-
-@app.get("/api/llm-judge/configs/{name}", response_model=Dict[str, Any])
-def get_llm_judge_config(name: str):
-    """
-    Return the parsed YAML config by name (stem).
-    """
-
-    try:
-        path = _resolve_judge_config_path(name)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Config not found") from None
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="Config not found")
-
-    import yaml
-
-    with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-
-@app.put("/api/llm-judge/configs/{name}", response_model=Dict[str, Any])
-def update_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
-    """
-    Overwrite a YAML config file with the provided structure.
-    Performs minimal validation (must have model.id and prompt_template).
-    """
-    model_cfg = body.get("model") or {}
-    if "id" not in model_cfg:
-        raise HTTPException(status_code=400, detail="model.id is required")
-    if "prompt_template" not in body:
-        raise HTTPException(status_code=400, detail="prompt_template is required")
-
-    try:
-        path = _resolve_judge_config_path(name)
-    except FileNotFoundError:
-        raise HTTPException(status_code=400, detail="Invalid config name") from None
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    import yaml
-
-    with path.open("w", encoding="utf-8") as f:
-        yaml.safe_dump(body, f, sort_keys=False, allow_unicode=True)
-
-    return body
-
-
 @app.post("/api/benchmarks/{benchmark_id}/evaluate", response_model=JobStatus)
 def evaluate_benchmark(benchmark_id: str, req: EvaluateRequest):
     """
@@ -1476,197 +913,6 @@ def get_results_fetch_status(job_id: str) -> FetchJobStatus:
     if not job:
         raise HTTPException(status_code=404, detail="Fetch job not found")
     return job
-
-
-@app.get("/api/static/{file_path:path}")
-def serve_dashboard_asset(file_path: str, request: Request):
-    """
-    Serve a benchmark logo.
-
-    Deliberately scoped to one directory and to image types. This used to serve
-    anything beneath the data root, which on a shared deployment would have
-    exposed internal files that happen to live there -- notably
-    ``judge/usage.sqlite`` -- to any anonymous visitor, because this is a GET
-    and so runs at the public tier.
-
-    Responses are validated with an ETag from the file's size and mtime, so an
-    unchanged logo costs a 304 rather than a full body.
-    """
-    # The URL carries the full relative path ("benchmarks/logos/beaver.png"), so
-    # resolve against the data root and then require the result to sit inside
-    # the logos directory.
-    data_root = get_data_root().resolve()
-    allowed_root = (data_root / STATIC_ASSET_SUBDIR).resolve()
-    candidate = (data_root / file_path).resolve()
-
-    # Containment, then type: a logo directory should only yield images.
-    if allowed_root not in candidate.parents:
-        raise HTTPException(status_code=403, detail="Forbidden path")
-    if candidate.suffix.lower() not in ALLOWED_LOGO_EXTENSIONS:
-        raise HTTPException(status_code=403, detail="Forbidden asset type")
-    if not candidate.is_file():
-        raise HTTPException(status_code=404, detail="Asset not found")
-
-    stat = candidate.stat()
-    etag = f'W/"{stat.st_size:x}-{stat.st_mtime_ns:x}"'
-    headers = {"ETag": etag, "Cache-Control": "no-cache, must-revalidate"}
-
-    if request.headers.get("if-none-match") == etag:
-        return Response(status_code=304, headers=headers)
-
-    return FileResponse(str(candidate), headers=headers)
-
-
-def _resolve_dashboard_source_dir() -> Optional[Path]:
-    """
-    Location of the Vite project (directory containing package.json), if present.
-    Prefer cwd (repo checkout) then package-relative path for editable installs.
-    """
-    candidates = [
-        Path.cwd() / "dashboard",
-        Path(__file__).resolve().parents[3] / "dashboard",
-    ]
-    for p in candidates:
-        pkg = p / "package.json"
-        if pkg.is_file():
-            return p.resolve()
-    return None
-
-
-def _ensure_dashboard_dist(dashboard_dir: Path) -> None:
-    """Ensure dist/index.html exists so StaticFiles can mount before the first watch rebuild."""
-    dist_index = dashboard_dir / "dist" / "index.html"
-    if dist_index.is_file():
-        return
-    npm = shutil.which("npm")
-    if not npm:
-        logger.warning(
-            "npm not found on PATH; cannot build dashboard. Install Node.js/npm or run "
-            "`cd dashboard && npm install && npm run build`."
-        )
-        return
-    if not (dashboard_dir / "node_modules").is_dir():
-        logger.info(
-            "dashboard/node_modules missing; running `npm install` in %s", dashboard_dir
-        )
-        install = subprocess.run(
-            [npm, "install"],
-            cwd=str(dashboard_dir),
-        )
-        if install.returncode != 0:
-            logger.warning(
-                "npm install failed (exit %s). Run `cd dashboard && npm install && npm run build` manually.",
-                install.returncode,
-            )
-            return
-    logger.info(
-        "No dashboard dist found; running one-time `npm run build` in %s", dashboard_dir
-    )
-    r = subprocess.run(
-        [npm, "run", "build"],
-        cwd=str(dashboard_dir),
-    )
-    if r.returncode != 0:
-        logger.warning(
-            "Dashboard build failed (exit %s). The UI may not load until you build successfully.",
-            r.returncode,
-        )
-
-
-def _spawn_dashboard_watch(dashboard_dir: Path) -> Optional[subprocess.Popen]:
-    """Run `vite build --watch` so dashboard/dist updates when sources change."""
-    npm = shutil.which("npm")
-    if not npm:
-        logger.warning(
-            "npm not found on PATH; skipping dashboard watch. Run `cd dashboard && npm run build` after edits."
-        )
-        return None
-    if not (dashboard_dir / "node_modules").is_dir():
-        logger.warning(
-            "dashboard/node_modules missing; skipping dashboard watch. Run `cd dashboard && npm install`."
-        )
-        return None
-    try:
-        proc = subprocess.Popen(
-            [npm, "run", "watch-build"],
-            cwd=str(dashboard_dir),
-        )
-        logger.info(
-            "Dashboard watch started (%s): Vite will rebuild dashboard/dist when sources change",
-            dashboard_dir,
-        )
-        return proc
-    except OSError as exc:
-        logger.warning("Could not start dashboard watch: %s", exc)
-        return None
-
-
-def _terminate_dashboard_watch(
-    proc: Optional[subprocess.Popen], *, timeout: float = 12.0
-) -> None:
-    if proc is None or proc.poll() is not None:
-        return
-    proc.terminate()
-    try:
-        proc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-
-
-class SPAStaticFiles(StaticFiles):
-    """
-    Static files with a single-page-app fallback.
-
-    The dashboard uses real paths (``/b/{benchmark}/errors``) so links can be
-    shared, but those paths exist only in the client router -- there is no such
-    file on disk.  Without a fallback, opening a shared link or refreshing any
-    view returns 404.  Unknown non-API paths therefore serve ``index.html`` and
-    let the client resolve them.
-
-    ``/api/*`` is deliberately excluded: an unknown API path must stay a real
-    404 rather than silently returning an HTML page, which would turn a typo
-    into a confusing parse error in the caller.
-    """
-
-    async def get_response(self, path: str, scope: Any) -> Any:
-        try:
-            return await super().get_response(path, scope)
-        except StarletteHTTPException as exc:
-            if exc.status_code != 404:
-                raise
-            request_path = scope.get("path", "")
-            if request_path.startswith("/api/"):
-                raise
-            # Anything that looks like a missing asset should stay a 404 rather
-            # than returning HTML with a JS or CSS content type.
-            if Path(path).suffix:
-                raise
-            return await super().get_response("index.html", scope)
-
-
-def mount_static(app: FastAPI) -> None:
-    """
-    Mount built frontend assets if available.
-
-    We expect a Vite build under `dashboard/dist` at the project root.
-    When installed as a package, these assets can be bundled as package data
-    and looked up via importlib.resources instead; for now we focus on
-    local development usage.
-    """
-    candidate_dirs = [
-        Path.cwd() / "dashboard" / "dist",
-        Path(__file__).resolve().parents[3] / "dashboard" / "dist",
-    ]
-    for static_dir in candidate_dirs:
-        if static_dir.exists():
-            app.mount(
-                "/",
-                SPAStaticFiles(directory=str(static_dir), html=True),
-                name="dashboard",
-            )
-            logger.info(f"Mounted dashboard static files from {static_dir}")
-            return
-    logger.info("No built dashboard assets found to mount")
 
 
 def main(argv: Optional[List[str]] = None) -> None:

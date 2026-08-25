@@ -20,7 +20,7 @@ pytest.importorskip("fastapi")
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from text2sql_eval_toolkit.ui import middleware, server  # noqa: E402
+from text2sql_eval_toolkit.ui import middleware, routers_judge, server  # noqa: E402
 from text2sql_eval_toolkit.ui.capabilities import Tier  # noqa: E402
 
 
@@ -63,16 +63,16 @@ def client(tmp_path, monkeypatch):
 )
 def test_hostile_config_names_are_refused(name):
     with pytest.raises(FileNotFoundError):
-        server._resolve_judge_config_path(name)
+        routers_judge._resolve_judge_config_path(name)
 
 
 @pytest.mark.parametrize(
     "name", ["llm_judge_default_config", "llm_judge_alt_config", "llm_judge_no_gt_v1"]
 )
 def test_real_config_names_still_resolve(name):
-    path = server._resolve_judge_config_path(name)
+    path = routers_judge._resolve_judge_config_path(name)
     assert path.name == f"{name}.yaml"
-    assert path.parent == server._judge_config_dir().resolve()
+    assert path.parent == routers_judge._judge_config_dir().resolve()
 
 
 def test_reading_a_traversal_config_over_http_is_404(client):
