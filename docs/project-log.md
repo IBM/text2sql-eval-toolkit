@@ -47,9 +47,30 @@ Verified in a browser: a link carrying benchmark, pipeline filter, metric value,
 record id reopens with page 2 showing `26–50 of 62` and the record detail panel populated
 with the question, both SQL statements, and evaluation metrics.
 
-**Not yet done in Phase C:** the stable pipeline-hash alias (1.6). Still outstanding from
-Phase B: HTTP caching (2.7), frontend data-fetching/code-splitting/virtualisation (2.8),
-and the async-handler audit (2.9).
+**Then (plan items 2.7–2.9)** — the rest of Phase B:
+
+- **Code splitting.** Route views load on demand; the entry chunk carried all eleven
+  whether or not they were opened. 556 KB → 401 KB (gzip 167 → 127 KB) across 12 chunks.
+  The CI budget was changed to measure the *entry* chunk rather than the sum of all JS —
+  summing every chunk would have gone *up* after splitting, hiding exactly what the budget
+  exists to guard.
+- **Asset revalidation.** Data-root assets (benchmark logos) were served `no-store`, so
+  every page view re-downloaded every logo. They now carry an ETag from size and mtime.
+- **Async audit.** Both `async def` endpoints reached `get_index()` through sync helpers
+  (`execute_sql_for_record → _resolve_record_db_id → get_index`, and
+  `playground_evaluate → _find_eval_record_optional → get_index`). `get_index()` builds
+  the index when it is missing or stale — 4.6 s for a 415 MB artifact — so an unlucky
+  first request would have stalled the event loop and every other in-flight request with
+  it. Both now warm the index via `asyncio.to_thread` first. A structural test walks the
+  call graph and fails if a new async endpoint reintroduces the path.
+
+Also corrected a test that was asserting nothing: the path-traversal check on
+`/api/static/` used a plain `../`, which HTTP clients normalise away before sending, so
+the request never reached the handler. It now uses encoded traversal, which does reach it;
+the containment check holds.
+
+**Not yet done in Phase C:** the stable pipeline-hash alias (1.6). Phase B's data-fetching
+work (TanStack Query, list virtualisation) is also outstanding.
 
 ---
 
