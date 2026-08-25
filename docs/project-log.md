@@ -12,6 +12,28 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — Known trap: `make_summary_report.py` clobbers a hand-written file
+
+`scripts/analysis/make_summary_report.py` writes the generated benchmark dashboard to
+`data/results/README.md`, and `README.md` documents exactly that. But commit `59a2b99`
+deliberately replaced that file with a 36-line guide to downloading results from the
+Hugging Face Hub.
+
+So running the documented command silently overwrites a file someone wrote on purpose. I
+hit this while checking that a change to `report_tools` did not alter the published report:
+the regenerated output differed completely, which looked like a regression until the git
+history explained it.
+
+Not fixed here, because the right fix is a product decision:
+
+- point the generator at a different filename (say `data/results/SUMMARY.md`) and leave
+  `README.md` as the download guide, or
+- restore the generated dashboard as `README.md` and move the download guide elsewhere.
+
+Either way the docs and the script should agree. Recorded rather than silently changed.
+
+---
+
 ## 2026-08-25 — Phase D begins: capability tiers and Google sign-in (3.1–3.2)
 
 **Capability tiers (3.1).** Authorization is now resolved once per request from the

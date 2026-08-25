@@ -316,16 +316,32 @@ def collect_results(output_folder: Path, is_test: bool = False):
     return results, benchmarks_info
 
 
+def average_of(metrics: dict, key: str, default=None):
+    """
+    Read a metric's average from a summary entry.
+
+    compute_summary emits ``{"average": ..., "stddev": ...}``, but a summary
+    written by an older version -- or edited by hand -- may hold a bare number.
+    Subscripting ``.get(key, {}).get("average")`` on that raises AttributeError
+    and takes out the whole report, so both shapes are accepted and anything
+    else falls back.
+    """
+    value = metrics.get(key)
+    if isinstance(value, dict):
+        return value.get("average", default)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    return default
+
+
 def generate_bar_chart(output_file_path, pipeline_metrics, title, chart_filename):
     pipelines = list(pipeline_metrics.keys())
     subset_scores = [
-        pipeline_metrics[m]
-        .get("subset_non_empty_execution_accuracy", {})
-        .get("average", 0)
+        average_of(pipeline_metrics[m], "subset_non_empty_execution_accuracy", 0)
         for m in pipelines
     ]
     non_empty_scores = [
-        pipeline_metrics[m].get("non_empty_execution_accuracy", {}).get("average", 0)
+        average_of(pipeline_metrics[m], "non_empty_execution_accuracy", 0)
         for m in pipelines
     ]
 
@@ -428,16 +444,17 @@ def generate_markdown_table(
     }
     if "llm_judge_config" in pipeline_metrics:
         pipeline_metrics.pop("llm_judge_config")
+
     sorted_pipelines = sorted(
         pipeline_metrics.items(),
-        key=lambda x: x[1].get(sort_by, {}).get("average", 0.0),
+        key=lambda x: average_of(x[1], sort_by, 0.0) or 0.0,
         reverse=True,
     )
 
     for rank, (pipeline, metrics) in enumerate(sorted_pipelines, start=1):
         row = [str(rank), pipeline]
         for _label, key in metric_keys.items():
-            score = metrics.get(key, {}).get("average", None)
+            score = average_of(metrics, key)
             row.append(f"{score:.2f}" if score is not None else "N/A")
         for _label, key in count_keys.items():
             val = metrics.get(key, None)
