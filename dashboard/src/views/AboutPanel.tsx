@@ -26,6 +26,10 @@ const CITATION = `@article{HassanzadehPPKZVGSPR26,
 /**
  * Context for someone arriving from a shared link.
  *
+ * This panel renders on the benchmark list and nowhere else, so it must not
+ * point at controls that are not on that page -- the short-link button, for
+ * one, appears only where the address names a pipeline.
+ *
  * Such a visitor may never have seen the toolkit, so this says what the numbers
  * are, where they came from, and how to cite them -- without which a link is
  * just a table of figures with no provenance.
@@ -78,9 +82,7 @@ export const AboutPanel: React.FC = () => {
       <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.45, fontSize: "0.875rem" }}>
         Every view is addressable: the address bar always names the exact
         benchmark, pipeline, filter, or individual record you are looking at, so
-        copying it shares precisely this view. Where the address names a
-        pipeline, <strong>Copy short link</strong> in the header gives a shorter
-        form of the same link.
+        copying it shares precisely that view.
       </p>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", fontSize: "0.8125rem" }}>
