@@ -44,7 +44,6 @@ from text2sql_eval_toolkit.utils import (
     get_utterance,
 )
 
-
 logger = get_logger(__name__)
 
 
@@ -197,7 +196,10 @@ class LLMSQLGenerationPipeline(BasePipeline):
                     pred = existing["predictions"].get(pipeline_id)
                     if pred:
                         # Always retry if there was an inference error (unless skip flag is set)
-                        if "inference_error" in pred and not skip_inference_error_retries:
+                        if (
+                            "inference_error" in pred
+                            and not skip_inference_error_retries
+                        ):
                             logger.info(
                                 f"Retrying failed inference for id={question_id}, pipeline={pipeline_id}"
                             )
@@ -264,7 +266,7 @@ class LLMSQLGenerationPipeline(BasePipeline):
                 else:
                     record["predictions"] = {pipeline_id: error_record}
                     predictions_data.append(record)
-                    
+
             except Exception as e:
                 logger.error(f"Record {idx} (question id={question_id}) failed: {e}")
                 # Create prediction record with inference error
@@ -276,13 +278,17 @@ class LLMSQLGenerationPipeline(BasePipeline):
                     "inference_error": str(e),
                 }
                 # Try to capture serializable response info if available
-                if hasattr(e, 'response'):
+                if hasattr(e, "response"):
                     try:
                         response = e.response
                         error_record["response_info"] = {
-                            "status_code": getattr(response, 'status_code', None),
-                            "reason": getattr(response, 'reason', None),
-                            "text": getattr(response, 'text', None)[:1000] if hasattr(response, 'text') else None,  # Limit text length
+                            "status_code": getattr(response, "status_code", None),
+                            "reason": getattr(response, "reason", None),
+                            "text": (
+                                getattr(response, "text", None)[:1000]
+                                if hasattr(response, "text")
+                                else None
+                            ),  # Limit text length
                         }
                     except Exception:
                         # If we can't serialize the response, just skip it

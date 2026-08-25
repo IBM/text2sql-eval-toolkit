@@ -12,12 +12,12 @@ from collections import defaultdict
 
 def collect_value_samples(cursor, table_name, column_name):
     try:
-        query = f'''
+        query = f"""
             SELECT DISTINCT "{column_name}"
             FROM "{table_name}"
             WHERE "{column_name}" IS NOT NULL
             LIMIT 5
-        '''
+        """
         cursor.execute(query)
         return [row[0] for row in cursor.fetchall()]
     except Exception as e:

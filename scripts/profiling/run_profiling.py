@@ -9,7 +9,6 @@ from text2sql_eval_toolkit.profiling.profiling_tools import (
 )
 from text2sql_eval_toolkit.logging import get_logger
 
-
 logger = get_logger(__name__)
 
 

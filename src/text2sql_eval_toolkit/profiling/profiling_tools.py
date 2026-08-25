@@ -12,7 +12,6 @@ from typing import Dict
 from text2sql_eval_toolkit.utils import get_gt_sqls
 from text2sql_eval_toolkit.logging import get_logger
 
-
 logger = get_logger(__name__)
 
 

@@ -68,7 +68,9 @@ def _resolve_paths(
     return out_path, summary_path, str(csv_path), str(input_path)
 
 
-def _paths_from_benchmark(benchmark_id: str, is_test: bool) -> Tuple[Path, Path, Path, Path]:
+def _paths_from_benchmark(
+    benchmark_id: str, is_test: bool
+) -> Tuple[Path, Path, Path, Path]:
     info = get_benchmark_info(benchmark_id, is_test=is_test)
     predictions = Path(info["predictions_path"]).resolve()
     eval_out = Path(info["eval_results_path"]).resolve()
@@ -119,8 +121,12 @@ Examples:
         type=Path,
         help="Evaluated JSON output (default: <input>_eval.json, or in-place for *_eval.json)",
     )
-    parser.add_argument("--summary-file", type=Path, help="Summary JSON path (optional)")
-    parser.add_argument("--csv-summary-file", type=Path, help="Summary CSV path (optional)")
+    parser.add_argument(
+        "--summary-file", type=Path, help="Summary JSON path (optional)"
+    )
+    parser.add_argument(
+        "--csv-summary-file", type=Path, help="Summary CSV path (optional)"
+    )
     parser.add_argument(
         "--in-place",
         action="store_true",
@@ -169,7 +175,9 @@ Examples:
     use_llm = args.use_llm_judge or args.preserve_llm_judge
     force_rerun_llm = args.force_rerun_llm_judge
     if args.preserve_llm_judge and force_rerun_llm:
-        parser.error("--preserve-llm-judge and --force-rerun-llm-judge are mutually exclusive")
+        parser.error(
+            "--preserve-llm-judge and --force-rerun-llm-judge are mutually exclusive"
+        )
 
     llm_judge_config = None
     if use_llm:

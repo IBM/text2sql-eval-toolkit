@@ -89,18 +89,20 @@ def main():
         pipeline = LLMSQLGenerationPipeline()
 
     start_time = time.time()
-    
+
     # Determine which models to use
     if args.pipeline_type == "agentic" and args.agentic_models:
         # Use specified agentic models
         models_to_run = args.agentic_models
-        print(f"Using {len(models_to_run)} specified agentic model(s): {', '.join(models_to_run)}")
+        print(
+            f"Using {len(models_to_run)} specified agentic model(s): {', '.join(models_to_run)}"
+        )
     else:
         # Use all models from --model_names
         models_to_run = args.model_names
         if args.pipeline_type == "agentic":
             print(f"Using {len(models_to_run)} model(s) for agentic pipeline")
-    
+
     for model_name in models_to_run:
         pipeline.run_pipeline(
             args.benchmark_id,
@@ -123,7 +125,12 @@ def main():
     )
 
     evaluation_start_time = time.time()
-    run_evaluation(args.benchmark_id, args.use_llm_judge, force_rerun_llm_judge=args.force_rerun_llm_judge, force_rerun=args.force_rerun)
+    run_evaluation(
+        args.benchmark_id,
+        args.use_llm_judge,
+        force_rerun_llm_judge=args.force_rerun_llm_judge,
+        force_rerun=args.force_rerun,
+    )
     evaluation_end_time = time.time()
     print(f"✅ Evaluation completed for benchmark '{args.benchmark_id}'.")
     print(

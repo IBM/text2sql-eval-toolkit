@@ -37,4 +37,3 @@ def test_get_available_benchmarks_non_empty():
     assert isinstance(benchmarks, list)
     # The packaged benchmark metadata should define at least one benchmark id
     assert len(benchmarks) > 0
-

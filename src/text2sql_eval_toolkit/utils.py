@@ -14,7 +14,6 @@ from typing import Any, Dict
 from pathlib import Path
 from text2sql_eval_toolkit.logging import get_logger
 
-
 BENCHMARKS_FILE = resources.files("text2sql_eval_toolkit.data").joinpath(
     "benchmarks.json"
 )
@@ -78,29 +77,29 @@ def get_benchmarks_file_path(is_test: bool = False) -> Path:
 def get_available_benchmarks(include_test: bool = True):
     """
     Get list of available benchmark IDs.
-    
+
     Args:
         include_test: If True, include test benchmarks from test-benchmarks.json
-    
+
     Returns:
         List of benchmark IDs
     """
     benchmarks = []
-    
+
     # Load production benchmarks
     benchmarks_path = get_benchmarks_file_path(is_test=False)
     if benchmarks_path.exists():
         with open(benchmarks_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         benchmarks.extend(list(data.keys()))
-    
+
     # Load test benchmarks if requested
     test_benchmarks_path = get_benchmarks_file_path(is_test=True)
     if include_test and test_benchmarks_path.exists():
         with open(test_benchmarks_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         benchmarks.extend(list(data.keys()))
-    
+
     return benchmarks
 
 
@@ -184,13 +183,15 @@ def get_benchmark_info(benchmark_id: str, is_test: bool = False) -> Dict[str, An
         with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
             benchmarks_meta = json.load(meta_file)
         if benchmark_id not in benchmarks_meta:
-            raise ValueError(f"Benchmark ID '{benchmark_id}' not found in test-benchmarks.json.")
+            raise ValueError(
+                f"Benchmark ID '{benchmark_id}' not found in test-benchmarks.json."
+            )
     else:
         # Try production benchmarks first
         benchmarks_file = get_benchmarks_file_path(is_test=False)
         with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
             benchmarks_meta = json.load(meta_file)
-        
+
         # If not found in production, try test benchmarks
         test_benchmarks_file = get_benchmarks_file_path(is_test=True)
         if benchmark_id not in benchmarks_meta and test_benchmarks_file.exists():
@@ -198,10 +199,14 @@ def get_benchmark_info(benchmark_id: str, is_test: bool = False) -> Dict[str, An
             with open(benchmarks_file, "r", encoding="utf-8") as meta_file:
                 benchmarks_meta = json.load(meta_file)
             if benchmark_id not in benchmarks_meta:
-                raise ValueError(f"Benchmark ID '{benchmark_id}' not found in benchmarks.json or test-benchmarks.json.")
+                raise ValueError(
+                    f"Benchmark ID '{benchmark_id}' not found in benchmarks.json or test-benchmarks.json."
+                )
         elif benchmark_id not in benchmarks_meta:
-            raise ValueError(f"Benchmark ID '{benchmark_id}' not found in benchmarks.json.")
-    
+            raise ValueError(
+                f"Benchmark ID '{benchmark_id}' not found in benchmarks.json."
+            )
+
     package_data_root = benchmarks_file.parent
     predictions_root = get_writable_data_root()
     benchmark_info = benchmarks_meta[benchmark_id]

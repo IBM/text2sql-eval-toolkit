@@ -30,7 +30,7 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentPa
         "--model_names",
         nargs="+",
         default=DEFAULT_MODEL_NAMES,
-        help=F"Optional list of model names. Defaults to {DEFAULT_MODEL_NAMES}.",
+        help=f"Optional list of model names. Defaults to {DEFAULT_MODEL_NAMES}.",
     )
     parser.add_argument(
         "--decoding_method",

@@ -64,7 +64,6 @@ from text2sql_eval_toolkit.execution.replace_select_tool import (
 from text2sql_eval_toolkit.logging import get_logger
 from urllib.parse import urlparse, parse_qs, unquote
 
-
 _ibm_db_mod = None
 _sqlalchemy_mod = None
 _aiomysql_mod = None
@@ -213,21 +212,25 @@ def quote_mysql_identifiers(sql: str) -> str:
 
 
 async def run_sql_and_get_dataframe_mysql_async(
-    normalized_conn_str: str, connect_args: dict, db_id: str, sql: str, timeout: int = 90
+    normalized_conn_str: str,
+    connect_args: dict,
+    db_id: str,
+    sql: str,
+    timeout: int = 90,
 ) -> pd.DataFrame:
     """
     Execute SQL query on MySQL using SQLAlchemy async engine with timeout.
-    
+
     Args:
         normalized_conn_str: MySQL connection string
         connect_args: Connection arguments
         db_id: Database ID to connect to
         sql: SQL query to execute
         timeout: Query timeout in seconds (default: 90)
-        
+
     Returns:
         pd.DataFrame: Query results
-        
+
     Raises:
         asyncio.TimeoutError: If query execution exceeds timeout
     """
@@ -268,10 +271,12 @@ async def run_sql_and_get_dataframe_mysql_async(
                 else:
                     columns = []
                     data = []
-                
+
                 elapsed = time.perf_counter() - start_time
-                logger.debug(f"Query completed in {elapsed:.2f}s, returned {len(data)} rows")
-                
+                logger.debug(
+                    f"Query completed in {elapsed:.2f}s, returned {len(data)} rows"
+                )
+
                 return await asyncio.to_thread(pd.DataFrame, data, columns=columns)
     except asyncio.TimeoutError:
         elapsed = time.perf_counter() - start_time
@@ -286,7 +291,7 @@ async def mysql_run_execution_async(
     predictions_path: Path | str,
     max_concurrent_tasks: int = 16,
     per_query_timeout_s: int = 90,
-    force_rerun: bool = False
+    force_rerun: bool = False,
 ):
     """
     Execute SQL queries against MySQL database asynchronously.
@@ -528,19 +533,20 @@ async def run_sql_and_get_dataframe_async(
 ) -> pd.DataFrame:
     """
     Execute SQL query on PostgreSQL with timeout.
-    
+
     Args:
         pool: asyncpg connection pool
         schema_name: PostgreSQL schema name
         sql: SQL query to execute
         timeout: Query timeout in seconds (default: 90)
-    
+
     Returns:
         pd.DataFrame: Query results as DataFrame
-    
+
     Raises:
         asyncio.TimeoutError: If query execution exceeds timeout
     """
+
     async def _execute_query():
         async with pool.acquire() as conn:
             # Set search_path for this connection
@@ -553,17 +559,22 @@ async def run_sql_and_get_dataframe_async(
             data = [dict(row) for row in rows]
             # Use `to_thread` because DataFrame creation is not async
             return await asyncio.to_thread(pd.DataFrame, data, columns=columns)
-    
+
     # Wrap execution with timeout
     return await asyncio.wait_for(_execute_query(), timeout=timeout)
 
 
 async def postgres_run_execution_async(
-    connection_string, schema_name, predictions_path, max_concurrent_tasks: int = 16, per_query_timeout_s: int = 90, force_rerun: bool = False
+    connection_string,
+    schema_name,
+    predictions_path,
+    max_concurrent_tasks: int = 16,
+    per_query_timeout_s: int = 90,
+    force_rerun: bool = False,
 ):
     """
     Execute SQL queries on PostgreSQL using asyncpg with timeout.
-    
+
     Args:
         connection_string: PostgreSQL connection string
         schema_name: PostgreSQL schema name
@@ -571,19 +582,19 @@ async def postgres_run_execution_async(
         max_concurrent_tasks: Maximum number of concurrent database connections
         per_query_timeout_s: Timeout for each SQL query in seconds (default: 90)
         force_rerun: Force re-execution even if results exist
-    
+
     Returns:
         int: Total number of queries executed
     """
     with open(predictions_path, "r") as pf:
         predictions_data = json.load(pf)
-    
+
     # Set search_path using server_settings parameter
     pool = await asyncpg.create_pool(
         dsn=connection_string,
         min_size=1,
         max_size=max_concurrent_tasks,
-        server_settings={'search_path': schema_name}
+        server_settings={"search_path": schema_name},
     )
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
 
@@ -593,7 +604,9 @@ async def postgres_run_execution_async(
 
     async def run_sql_with_count(sql):
         nonlocal query_count
-        df = await run_sql_and_get_dataframe_async(pool, schema_name, sql, per_query_timeout_s)
+        df = await run_sql_and_get_dataframe_async(
+            pool, schema_name, sql, per_query_timeout_s
+        )
         async with query_lock:
             query_count += 1
         return df
@@ -725,7 +738,7 @@ async def postgres_run_execution_async(
 
 def run_sqlite_query(db_path: str, sql: str) -> str:
     conn = sqlite3.connect(db_path)
-    conn.text_factory = lambda b: b.decode(errors='replace')
+    conn.text_factory = lambda b: b.decode(errors="replace")
     conn.row_factory = sqlite3.Row
     cursor = conn.execute(sql)
     rows = cursor.fetchall()
@@ -830,7 +843,7 @@ async def sqlite_run_execution_async(
                     )
                     execution_end = time.perf_counter()
                     execution_time_ms = (execution_end - execution_start) * 1000
-                    
+
                     query_count_ref[0] += 1
                     logger.debug(f"Finished running SQL query #{query_count_ref[0]}.")
 
@@ -906,7 +919,6 @@ async def sqlite_run_execution_async(
     logger.debug("Finished writing.")
 
     return query_count
-
 
 
 _LIMIT_RE = re.compile(r"(?is)\s+LIMIT\s+(\d+)\s*$")
@@ -1391,20 +1403,27 @@ def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = 
         connection_string = os.getenv(db_engine["connection_string_env_var"])
         if not connection_string:
             raise ValueError("Missing connection string.")
-        
+
         # Optional: get query timeout from config
         query_timeout = db_engine.get("query_timeout", 90)
-        
+
         query_count = asyncio.run(
             postgres_run_execution_async(
-                connection_string, schema_name, predictions_path, num_threads, query_timeout, force_rerun
+                connection_string,
+                schema_name,
+                predictions_path,
+                num_threads,
+                query_timeout,
+                force_rerun,
             )
         )
 
     elif db_engine["db_type"] == "sqlite":
         db_folder = benchmark_info["db_engine"]["db_folder"]
         query_count = asyncio.run(
-            sqlite_run_execution_async(db_folder, predictions_path, force_rerun=force_rerun)
+            sqlite_run_execution_async(
+                db_folder, predictions_path, force_rerun=force_rerun
+            )
         )
 
     elif db_engine["db_type"] == "db2":
@@ -1414,20 +1433,28 @@ def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = 
             raise ValueError("Missing DB2 connection string.")
         query_count = asyncio.run(
             db2_run_execution_async(
-                connection_string, schema_name, predictions_path, num_threads, force_rerun
+                connection_string,
+                schema_name,
+                predictions_path,
+                num_threads,
+                force_rerun,
             )
         )
     elif db_engine["db_type"] == "mysql":
         connection_string = os.getenv(db_engine["connection_string_env_var"])
         if not connection_string:
             raise ValueError("Missing MySQL connection string.")
-        
+
         # Optional: get query timeout from config
         query_timeout = db_engine.get("query_timeout", 90)
-        
+
         query_count = asyncio.run(
             mysql_run_execution_async(
-                connection_string, predictions_path, num_threads, query_timeout, force_rerun
+                connection_string,
+                predictions_path,
+                num_threads,
+                query_timeout,
+                force_rerun,
             )
         )
     elif db_engine["db_type"] == "presto":

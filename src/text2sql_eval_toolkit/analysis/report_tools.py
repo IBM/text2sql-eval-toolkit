@@ -17,7 +17,6 @@ from text2sql_eval_toolkit.analysis.error_analysis import (
 )
 from text2sql_eval_toolkit.logging import get_logger
 
-
 logger = get_logger(__name__)
 DEFAULT_METRIC = "subset_non_empty_execution_accuracy"
 DEFAULT_PRINT_METRICS = [
@@ -28,7 +27,13 @@ DEFAULT_PRINT_METRICS = [
     "inference_time_ms",
     "execution_time_ms",
 ]
-COUNT_KEYS = ["num_records", "num_evaluated", "sum_total_tokens", "sum_inference_time_ms", "sum_execution_time_ms"]
+COUNT_KEYS = [
+    "num_records",
+    "num_evaluated",
+    "sum_total_tokens",
+    "sum_inference_time_ms",
+    "sum_execution_time_ms",
+]
 
 
 def prettify(metric_name):
@@ -190,19 +195,21 @@ def print_summary_results_by_category(
     print_per_pipeline_tables(sort_by, all_avg, cat_avg)
 
 
-def get_benchmark_statistics(benchmark_id: str, benchmarks_info: dict, pipeline_metrics: dict) -> dict:
+def get_benchmark_statistics(
+    benchmark_id: str, benchmarks_info: dict, pipeline_metrics: dict
+) -> dict:
     """
     Extract statistics for a benchmark including:
     - Description from benchmarks.json
     - Database type (sqlite/mysql)
     - Number of records in benchmark data file
     - Number of pipelines with predictions
-    
+
     Args:
         benchmark_id: Benchmark identifier
         benchmarks_info: Full benchmark metadata from get_benchmarks_info()
         pipeline_metrics: Evaluation metrics for all pipelines
-        
+
     Returns:
         dict with keys: description, db_type, num_records, num_pipelines
     """
@@ -212,16 +219,16 @@ def get_benchmark_statistics(benchmark_id: str, benchmarks_info: dict, pipeline_
         "num_records": 0,
         "num_pipelines": 0,
     }
-    
+
     # Get benchmark metadata
     if benchmark_id in benchmarks_info:
         benchmark_info = benchmarks_info[benchmark_id]
         stats["description"] = benchmark_info.get("description", "N/A")
-        
+
         # Extract db_type from db_engine
         db_engine = benchmark_info.get("db_engine", {})
         stats["db_type"] = db_engine.get("db_type", "N/A")
-        
+
         # Count records from benchmark data file
         try:
             benchmark_data_path = benchmark_info.get("benchmark_json_path")
@@ -231,41 +238,51 @@ def get_benchmark_statistics(benchmark_id: str, benchmarks_info: dict, pipeline_
                     stats["num_records"] = len(data) if isinstance(data, list) else 0
         except Exception as e:
             logger.warning(f"Could not count records for {benchmark_id}: {e}")
-    
+
     # Count pipelines (exclude llm_judge_config if present)
     if pipeline_metrics:
-        stats["num_pipelines"] = len([k for k in pipeline_metrics.keys() if k != "llm_judge_config"])
-    
+        stats["num_pipelines"] = len(
+            [k for k in pipeline_metrics.keys() if k != "llm_judge_config"]
+        )
+
     return stats
 
 
-def generate_toc_section(results: dict, benchmarks_info: dict, sort_by: str = DEFAULT_METRIC) -> str:
+def generate_toc_section(
+    results: dict, benchmarks_info: dict, sort_by: str = DEFAULT_METRIC
+) -> str:
     """
     Generate table of contents with benchmark summaries.
-    
+
     Args:
         results: Dict mapping benchmark_id to (eval_path, eval_relpath, metrics)
         benchmarks_info: Full benchmark metadata
         sort_by: Metric used for sorting (for anchor link generation)
-        
+
     Returns:
         Markdown string for TOC section
     """
     toc_lines = []
-    
+
     # Table header
     toc_lines.append("| Benchmark | Description | DB Type | Records | Pipelines |")
     toc_lines.append("|-----------|-------------|---------|---------|-----------|")
-    
+
     # Generate rows for each benchmark
-    for benchmark_id, (eval_results_path, eval_results_relpath, pipeline_metrics) in results.items():
-        stats = get_benchmark_statistics(benchmark_id, benchmarks_info, pipeline_metrics)
-        
+    for benchmark_id, (
+        eval_results_path,
+        eval_results_relpath,
+        pipeline_metrics,
+    ) in results.items():
+        stats = get_benchmark_statistics(
+            benchmark_id, benchmarks_info, pipeline_metrics
+        )
+
         # Create anchor link (matches GitHub's automatic heading anchor generation)
         # GitHub converts: lowercase, removes special chars, keeps underscores, replaces spaces with hyphens
         # Format: #benchmark-{benchmark_id}
         anchor = f"#benchmark-{benchmark_id}".lower()
-        
+
         # Create table row
         row = [
             f"[{benchmark_id}]({anchor})",
@@ -275,9 +292,9 @@ def generate_toc_section(results: dict, benchmarks_info: dict, sort_by: str = DE
             str(stats["num_pipelines"]),
         ]
         toc_lines.append("| " + " | ".join(row) + " |")
-    
+
     toc_lines.append("\n---\n")
-    
+
     return "\n".join(toc_lines)
 
 
@@ -490,9 +507,11 @@ def generate_markdown_table(
     return table_md
 
 
-def create_dashboard(output_file_path: str, results, benchmarks_info, sort_by=DEFAULT_METRIC):
+def create_dashboard(
+    output_file_path: str, results, benchmarks_info, sort_by=DEFAULT_METRIC
+):
     markdown = "# Text-to-SQL Evaluation Results Dashboard\n\n"
-    
+
     # Add table of contents
     markdown += generate_toc_section(results, benchmarks_info, sort_by)
 
