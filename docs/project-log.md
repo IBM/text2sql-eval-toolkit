@@ -5,6 +5,58 @@ Plans for upcoming work live in [`docs/plan/`](plan/).
 
 ---
 
+## 2026-08-25 — Local setup fixed: full result set fetched, index validated on real data
+
+The dashboard was 404ing on five of six benchmarks because only `archer_en_dev` had ever
+been downloaded. Fetched the published snapshot (3.6 GB) and validated the Phase B work
+against real artifacts rather than a synthetic file.
+
+**Two defects in the results distribution, found on the way**
+
+1. **The published manifest is stale.** `results list` reported `bak`, `charts`, and
+   `logs` as the available benchmarks — those are `results/` sub-directories, not
+   benchmarks. The manifest was generated 2026-05-13, before commit `4a04755` fixed
+   manifest generation, so `upload_results_to_hub.py` is already correct and the snapshot
+   simply needs regenerating. Downloads are unaffected: an unfiltered fetch ignores the
+   manifest, and a filtered one already falls back to direct path patterns. `results list`
+   now says so instead of presenting directories as data.
+2. **The 2.0.0 release is blocked on republishing the snapshot.** `_validate_manifest()`
+   *raises* when the installed version falls outside `toolkit_version_compat`, and the
+   published manifest declares `>=1.1.0,<2.0.0`. A 2.0.0 install would fail
+   `results fetch` outright. The upload script derives that string from the toolkit
+   version at upload time, so re-uploading from a 2.0.0 install fixes it — but it has to
+   happen *after* the bump. Recorded on the release checklist (plan item 4.8).
+
+**Index validated on the real corpus**
+
+| Benchmark | Artifact | Index | Ratio | Build |
+|---|---|---|---|---|
+| beaver | 880 MB | 13.7 MB | 2% | 8.4 s |
+| bird_mini_dev_postgres | 385 MB | 22.7 MB | 6% | 2.8 s |
+| bird_mini_dev_sqlite | 334 MB | 23.1 MB | 7% | 2.3 s |
+| spider_dev | 195 MB | 37.7 MB | 19% | 2.4 s |
+| spider_realistic | 108 MB | 18.4 MB | 17% | 1.5 s |
+| archer_en_dev | 15 MB | 1.9 MB | 13% | 0.2 s |
+| **total** | **1,915 MB** | **117 MB** | **6%** | ~18 s |
+
+Better than the 14% estimated from the synthetic file. **Five of the six artifacts exceed
+the 100 MB threshold** at which the old UI warned that loading might crash the server, so
+the index is what makes this data usable at all, not merely faster.
+
+Serving latency on real data — page 1 3–11 ms, page 20 1–6 ms, record detail 1–13 ms —
+flat in page number and independent of artifact size. All 65 pipeline drill-downs across
+the six benchmarks return correctly.
+
+**Build memory is dominated by the largest single record, not by batching.** Beaver
+contains one 108 MB record whose parsed form costs ~324 MB transiently, which is why that
+build peaks near 1 GB while the others sit at 288–537 MB. Flushing is now size-aware
+rather than every-500-records (record sizes span two orders of magnitude: 4.2 MB average
+in Beaver against 0.14 MB in Archer), and outsized records are logged. The deployment
+implication is on record: **provision indices before starting the server**, so a rebuild
+never spikes while the app and both databases are live on a 4 GB VM.
+
+---
+
 ## 2026-08-25 — Phase C: shareable URLs (plan items 1.1–1.5, 1.7)
 
 The dashboard had no URL state at all: navigation was nine `useState` values, no router

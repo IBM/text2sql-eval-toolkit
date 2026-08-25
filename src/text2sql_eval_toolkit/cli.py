@@ -91,6 +91,27 @@ def _cmd_list(args: argparse.Namespace) -> int:
     print()
 
     benchmarks = manifest.get("benchmarks", {})
+
+    # A manifest generated before the flat-layout fix lists the results/
+    # sub-directories (bak, logs, charts) as if they were benchmarks. Presenting
+    # those as available data is worse than saying nothing, so call it out.
+    stale_markers = {"bak", "logs", "charts"}
+    looks_stale = bool(benchmarks) and set(benchmarks).issubset(stale_markers)
+    if looks_stale:
+        print(
+            "WARNING: this manifest lists no benchmarks -- only the results/ "
+            "sub-directories below. It predates the manifest-generation fix and "
+            "needs regenerating with scripts/curation/upload_results_to_hub.py.",
+            file=sys.stderr,
+        )
+        print(
+            "         Downloads still work: `results fetch` ignores the manifest "
+            "when no filters are given, and falls back to direct paths when they "
+            "are.",
+            file=sys.stderr,
+        )
+        print(file=sys.stderr)
+
     col_b, col_p, col_m = 30, 20, 60
     header = f"{'Benchmark':<{col_b}}" f"{'Pipeline':<{col_p}}" f"{'Models':<{col_m}}"
     print(header)
