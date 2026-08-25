@@ -12,6 +12,78 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — Sweeping every view for responsiveness found a data-corruption bug
+
+Prompted by "mini-dev postgres is somewhat slow too — check all the views". Timed every
+endpoint the dashboard calls, on all six benchmarks. Server-side, nothing was slow any
+more: the worst was 112 ms. The problems were elsewhere.
+
+**Result tables rendered every row.** A record carries the full result set of every query
+it ran. One Beaver record holds an 86,502-row ground truth beside a 55,817-row prediction,
+and the panel showing them is a 240-pixel scroll box. Opening it built **854,563 DOM nodes
+and 858 MB of JS heap** to display about eight visible rows. Measured, not estimated.
+
+The cause was duplication that had drifted. There were two copies of the result table, one
+per detail view; the pipeline-detail copy had gained pagination and the error-analysis copy
+never did. The same result was 10 rows in one panel and 86,502 in the other. One copy now.
+
+The server previews too — 200 rows plus the true count. The count is the part that matters:
+a table showing 200 of 86,502 rows without saying so misrepresents what the query returned.
+
+    DOM nodes  854,563 -> 894
+    JS heap    858 MB  -> 10 MB
+    reflow     103 ms  -> 1 ms
+
+One ordering constraint is now written into the code: in the playground, the trim happens
+*after* `evaluate_prediction` has run, on copies. Truncating any earlier would compute the
+metrics against a fraction of the result set.
+
+**Then the end-to-end suite started failing about one run in six.** I spent a while
+treating that as test flakiness — added a wait for the view to settle, then a
+row-stability poll, then weakened two strict assertions to polls. The failure rate barely
+moved. That should have been the signal sooner: waits that do not help are usually waiting
+for the wrong thing.
+
+Reading the captured server output instead of the test diff found it:
+
+```
+sqlite3.InterfaceError: bad parameter or other API misuse
+  at EvalIndex.list_records
+```
+
+`EvalIndex` opened **one** sqlite3 connection with `check_same_thread=False` and shared it
+across threads. That flag silences sqlite3's ownership check; it does not make a connection
+safe to use concurrently. The server caches one `EvalIndex` per benchmark and runs sync
+endpoints in a threadpool, so concurrent access is the ordinary case, not an edge case.
+
+Reproduced off the server: twelve threads over one handle, **9 of 12 failing**. And the
+failures were not all exceptions — some returned rows as `None`, meaning a page of results
+could come back short or empty **with no error at all**. Wrong answers, not crashes. On a
+public deployment with real traffic this would have been silently serving incorrect result
+pages.
+
+Each thread now opens its own read-only connection. SQLite allows any number of concurrent
+readers and read-only connections are cheap, so this costs essentially nothing.
+
+With the fix in, twelve consecutive end-to-end runs are clean — and the two assertions I
+had weakened to polls are back to strict, because the weakening was never the problem. The
+one test-timing change kept is real: the error-analysis view chooses its default pipeline
+after the first paint, so a snapshot taken before that captures a state no recipient of a
+shared link ever sees.
+
+**Two lessons worth writing down.** Every sequential measurement I took said the dashboard
+was fine; the bug needed ten browsers at once. And a passing test suite that fails
+intermittently is reporting something — I treated it as noise for several rounds before
+reading the server log.
+
+Also: the same view no longer prints "N/A" in its metric columns before a pipeline is
+chosen. "N/A" says the record has no value for that metric, which is a different claim and
+not a true one.
+
+580 backend, 77 frontend and 10 end-to-end tests passing.
+
+---
+
 ## 2026-08-25 — The Beaver page took 14 seconds; one endpoint was doing all of it
 
 Reported as "the beaver page loads slowly". Timing every request the page makes found
