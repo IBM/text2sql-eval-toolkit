@@ -449,6 +449,11 @@ def count_records(data_path: Any) -> int:
 
 ALLOWED_DB_TYPES = {"sqlite", "postgres", "mysql", "db2", "presto"}
 ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+
+# The only directory /api/static serves. Restricting to it keeps the rest of
+# the data root -- results, indices, and the judge spend store -- unreadable,
+# since that route is a GET and therefore runs at the public tier.
+STATIC_ASSET_SUBDIR = Path("benchmarks") / "logos"
 MAX_LOGO_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
@@ -2919,24 +2924,34 @@ def get_results_fetch_status(job_id: str) -> FetchJobStatus:
 @app.get("/api/static/{file_path:path}")
 def serve_dashboard_asset(file_path: str, request: Request):
     """
-    Serve a file from the data root (benchmark logos and similar).
+    Serve a benchmark logo.
 
-    These were previously sent with ``no-store``, which is right for a
-    hot-reloading dev tool but means every page view re-downloads every logo.
-    They are now validated with an ETag derived from the file's size and mtime,
-    so an unchanged file costs a 304 rather than a full body.
+    Deliberately scoped to one directory and to image types. This used to serve
+    anything beneath the data root, which on a shared deployment would have
+    exposed internal files that happen to live there -- notably
+    ``judge/usage.sqlite`` -- to any anonymous visitor, because this is a GET
+    and so runs at the public tier.
+
+    Responses are validated with an ETag from the file's size and mtime, so an
+    unchanged logo costs a 304 rather than a full body.
     """
+    # The URL carries the full relative path ("benchmarks/logos/beaver.png"), so
+    # resolve against the data root and then require the result to sit inside
+    # the logos directory.
     data_root = get_data_root().resolve()
+    allowed_root = (data_root / STATIC_ASSET_SUBDIR).resolve()
     candidate = (data_root / file_path).resolve()
-    if data_root != candidate and data_root not in candidate.parents:
+
+    # Containment, then type: a logo directory should only yield images.
+    if allowed_root not in candidate.parents:
         raise HTTPException(status_code=403, detail="Forbidden path")
-    if not candidate.exists() or not candidate.is_file():
+    if candidate.suffix.lower() not in ALLOWED_LOGO_EXTENSIONS:
+        raise HTTPException(status_code=403, detail="Forbidden asset type")
+    if not candidate.is_file():
         raise HTTPException(status_code=404, detail="Asset not found")
 
     stat = candidate.stat()
     etag = f'W/"{stat.st_size:x}-{stat.st_mtime_ns:x}"'
-    # must-revalidate keeps the client asking, so a replaced logo is picked up
-    # immediately while an unchanged one costs only a conditional request.
     headers = {"ETag": etag, "Cache-Control": "no-cache, must-revalidate"}
 
     if request.headers.get("if-none-match") == etag:

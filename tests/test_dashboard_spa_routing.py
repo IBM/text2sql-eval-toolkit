@@ -108,35 +108,39 @@ def test_api_routes_still_work_behind_the_fallback(spa_client):
     assert resp.json()["total"] == 1
 
 
+def _logo(tmp_path, name: str, data: bytes = b"\x89PNG-not-really"):
+    target = tmp_path / "benchmarks" / "logos" / name
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(data)
+    return f"/api/static/benchmarks/logos/{name}"
+
+
 def test_static_assets_revalidate_with_an_etag(spa_client, tmp_path):
     """Logos were sent with no-store, so every page view re-downloaded them."""
-    asset = tmp_path / "logo.png"
-    asset.write_bytes(b"\x89PNG-not-really")
+    url = _logo(tmp_path, "logo.png")
 
-    first = spa_client.get("/api/static/logo.png")
+    first = spa_client.get(url)
     assert first.status_code == 200
     etag = first.headers.get("etag")
     assert etag, "asset responses must carry an ETag"
     assert "no-store" not in first.headers.get("cache-control", "")
 
-    second = spa_client.get("/api/static/logo.png", headers={"If-None-Match": etag})
+    second = spa_client.get(url, headers={"If-None-Match": etag})
     assert second.status_code == 304
     assert second.content == b""
 
 
 def test_changed_asset_gets_a_new_etag(spa_client, tmp_path):
-    asset = tmp_path / "logo2.png"
-    asset.write_bytes(b"one")
-    first_etag = spa_client.get("/api/static/logo2.png").headers["etag"]
+    url = _logo(tmp_path, "logo2.png", b"one")
+    asset = tmp_path / "benchmarks" / "logos" / "logo2.png"
+    first_etag = spa_client.get(url).headers["etag"]
 
     # Force a distinct mtime so the fingerprint genuinely differs.
     import os
 
     os.utime(asset, (0, 0))
     asset.write_bytes(b"two-different-length")
-    second = spa_client.get(
-        "/api/static/logo2.png", headers={"If-None-Match": first_etag}
-    )
+    second = spa_client.get(url, headers={"If-None-Match": first_etag})
     assert second.status_code == 200, "an edited asset must not be served from cache"
     assert second.headers["etag"] != first_etag
 
@@ -155,3 +159,35 @@ def test_encoded_asset_path_traversal_is_refused(spa_client, suffix):
     resp = spa_client.get(f"/api/static/{suffix}")
     assert resp.status_code in (403, 404), resp.status_code
     assert b"root:" not in resp.content
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        # The judge spend store and the derived indices live under the data
+        # root. This route is a GET, so it runs at the public tier -- serving
+        # the whole data root would have handed them to any visitor.
+        "judge/usage.sqlite",
+        "results/demo-predictions_eval.json",
+        "results/.index/demo-predictions_eval.sqlite",
+        "benchmarks.json",
+        "benchmarks/logos/../../judge/usage.sqlite",
+        "%2e%2e%2fjudge%2fusage.sqlite",
+    ],
+)
+def test_static_route_serves_nothing_outside_the_logo_directory(spa_client, target):
+    resp = spa_client.get(f"/api/static/{target}")
+    assert resp.status_code in (403, 404), resp.status_code
+    assert b"SQLite format" not in resp.content
+
+
+def test_static_route_refuses_non_image_types_inside_the_logo_directory(
+    spa_client, tmp_path
+):
+    """A logo directory should only ever yield images."""
+    path = tmp_path / "benchmarks" / "logos" / "notes.txt"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("internal")
+    resp = spa_client.get("/api/static/benchmarks/logos/notes.txt")
+    assert resp.status_code == 403
+    assert b"internal" not in resp.content
