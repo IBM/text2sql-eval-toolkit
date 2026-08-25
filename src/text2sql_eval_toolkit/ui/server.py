@@ -46,6 +46,8 @@ from text2sql_eval_toolkit.evaluation.llm_as_judge import load_llm_judge_config
 from text2sql_eval_toolkit.evaluation.metric_definitions import (
     get_metric_definitions_payload,
 )
+from text2sql_eval_toolkit.indexing import is_stale as is_index_stale
+from text2sql_eval_toolkit.indexing.store import EvalIndex
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.utils import get_gt_sqls, get_question
 
@@ -574,9 +576,11 @@ class FetchJobStatus(BaseModel):
 FETCH_JOBS: Dict[str, FetchJobStatus] = {}
 FETCH_JOBS_LOCK = threading.Lock()
 
-# Cache loaded evaluation records to avoid repeatedly parsing large JSON artifacts.
-EVAL_RECORDS_CACHE: Dict[str, List[Dict[str, Any]]] = {}
-EVAL_RECORDS_LOCK = threading.Lock()
+# Open index handles, keyed by benchmark.  These hold a read-only SQLite
+# connection and a path, not parsed records, so this map stays small no matter how
+# large the artifacts are.
+EVAL_INDEX_CACHE: Dict[str, EvalIndex] = {}
+EVAL_INDEX_LOCK = threading.Lock()
 
 
 def _update_job(job: JobStatus) -> None:
@@ -584,51 +588,53 @@ def _update_job(job: JobStatus) -> None:
         JOBS[job.job_id] = job
 
 
-def load_eval_records(benchmark_id: str) -> List[Dict[str, Any]]:
+def get_index(benchmark_id: str) -> EvalIndex:
     """
-    Load {benchmark_id}-predictions_eval.json as a list of records.
-    Uses an in-memory cache for performance.
-    """
-    with EVAL_RECORDS_LOCK:
-        cached = EVAL_RECORDS_CACHE.get(benchmark_id)
-        if cached is not None:
-            return cached
+    Return the query index for a benchmark, building it if missing or stale.
 
+    Replaces parsing the whole evaluation artifact per request.  Handles are
+    cached and reused; a source file that changed on disk invalidates its index,
+    so a re-run is picked up without restarting the server.
+    """
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
         raise HTTPException(
             status_code=404, detail=_eval_not_found_detail(benchmark_id)
         )
 
-    data = load_json(eval_path)
-    if not isinstance(data, list):
-        raise HTTPException(status_code=500, detail="Invalid evaluation JSON format")
+    with EVAL_INDEX_LOCK:
+        cached = EVAL_INDEX_CACHE.get(benchmark_id)
+        if cached is not None:
+            if not is_index_stale(eval_path):
+                return cached
+            cached.close()
+            EVAL_INDEX_CACHE.pop(benchmark_id, None)
 
-    with EVAL_RECORDS_LOCK:
-        EVAL_RECORDS_CACHE[benchmark_id] = data
-        return data
+    try:
+        index = EvalIndex.for_benchmark(benchmark_id, get_results_dir())
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=404, detail=_eval_not_found_detail(benchmark_id)
+        ) from None
+    except Exception as e:
+        logger.exception("Failed to open evaluation index")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to open evaluation index: {e}"
+        ) from e
+
+    with EVAL_INDEX_LOCK:
+        EVAL_INDEX_CACHE[benchmark_id] = index
+    return index
 
 
-def get_pipeline_metric_value(
-    record: Dict[str, Any], pipeline_id: str, metric_key: str
-) -> Optional[float]:
-    preds = record.get("predictions", {})
-    if not isinstance(preds, dict) or pipeline_id not in preds:
-        return None
-    eval_block = preds[pipeline_id].get("evaluation", {})
-    if not isinstance(eval_block, dict):
-        return None
-    val = eval_block.get(metric_key)
-    if isinstance(val, (int, float)):
-        return float(val)
-    return None
-
-
-def to_binary_metric(value: Optional[float]) -> Optional[int]:
-    """Metrics in this UI are binary; treat exactly 1 as positive, else 0."""
-    if value is None:
-        return None
-    return 1 if float(value) == 1.0 else 0
+def invalidate_index_cache(benchmark_id: Optional[str] = None) -> None:
+    """Drop cached index handles, e.g. after an evaluation run rewrites results."""
+    with EVAL_INDEX_LOCK:
+        keys = [benchmark_id] if benchmark_id else list(EVAL_INDEX_CACHE)
+        for key in keys:
+            handle = EVAL_INDEX_CACHE.pop(key, None)
+            if handle is not None:
+                handle.close()
 
 
 @app.get("/api/benchmarks", response_model=BenchmarksResponse)
@@ -982,8 +988,9 @@ def get_benchmark_summary_by_category(
             has_full_results=False,
         )
 
-    records = load_json(eval_path)
-    agg = _collect_category_summary(records)
+    # Whole-corpus aggregation the index does not model.  Streamed one record at
+    # a time so memory stays bounded even on multi-hundred-megabyte artifacts.
+    agg = _collect_category_summary(get_index(benchmark_id).iter_records())
 
     overall = [
         PipelineMetrics(name=name, metrics=metrics)
@@ -1042,110 +1049,43 @@ def list_errors(
     ),
 ):
     """
-    Paginated list of records for error analysis with simple single- and cross-pipeline filters.
+    Paginated list of records for error analysis with simple single- and
+    cross-pipeline filters.
+
+    Filtering, counting, and pagination run in the index rather than over a
+    freshly parsed copy of the artifact, so page latency no longer scales with
+    file size or page number.
     """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
+    if failed_only and not pipeline:
         raise HTTPException(
-            status_code=404, detail=_eval_not_found_detail(benchmark_id)
+            status_code=400,
+            detail="pipeline is required when failed_only=true",
         )
 
-    data = load_json(eval_path)
+    index = get_index(benchmark_id)
+    summaries, total = index.list_records(
+        page=page,
+        page_size=page_size,
+        q=q,
+        pipeline=pipeline,
+        metric=metric,
+        value=value,
+        op=op,
+        pipeline2=pipeline2,
+        metric2=metric2,
+        disagree=disagree,
+        failed_only=failed_only,
+    )
 
-    def match_search(rec: Dict[str, Any]) -> bool:
-        if not q:
-            return True
-        q_lower = q.lower()
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        question = (
-            rec.get("page_content") or rec.get("question") or rec.get("utterance", "")
+    items = [
+        ErrorRecordSummary(
+            record_id=summary.record_id,
+            question=summary.question,
+            # Only evaluations are exposed; raw dataframes can be large.
+            predictions=summary.predictions,
         )
-        return q_lower in rid.lower() or q_lower in str(question).lower()
-
-    def get_metric(rec: Dict[str, Any], pl: str, m: str) -> Optional[float]:
-        preds = rec.get("predictions", {})
-        if pl not in preds:
-            return None
-        eval_block = preds[pl].get("evaluation", {})
-        val = eval_block.get(m)
-        if isinstance(val, (int, float)):
-            return float(val)
-        return None
-
-    def apply_op(lhs: Optional[float], rhs: float, operator: str) -> bool:
-        if lhs is None:
-            return False
-        if operator == "eq":
-            return lhs == rhs
-        if operator == "ne":
-            return lhs != rhs
-        if operator == "lt":
-            return lhs < rhs
-        if operator == "gt":
-            return lhs > rhs
-        if operator == "le":
-            return lhs <= rhs
-        if operator == "ge":
-            return lhs >= rhs
-        return False
-
-    filtered: List[Dict[str, Any]] = []
-    for rec in data:
-        if not match_search(rec):
-            continue
-
-        # Single-pipeline metric filter
-        if pipeline and value is not None:
-            mv = get_metric(rec, pipeline, metric)
-            if not apply_op(mv, value, op):
-                continue
-
-        # Common "pipeline failed" view for drill-down screens
-        if failed_only:
-            if not pipeline:
-                raise HTTPException(
-                    status_code=400,
-                    detail="pipeline is required when failed_only=true",
-                )
-            exec_acc = get_metric(rec, pipeline, "execution_accuracy")
-            if exec_acc != 0:
-                continue
-
-        # Cross-pipeline disagreement filter
-        if pipeline and pipeline2 and disagree:
-            m2 = metric2 or metric
-            v1 = get_metric(rec, pipeline, metric)
-            v2 = get_metric(rec, pipeline2, m2)
-            if v1 is None or v2 is None or v1 == v2:
-                continue
-
-        filtered.append(rec)
-
-    total = len(filtered)
-    start = (page - 1) * page_size
-    end = start + page_size
-    page_items = filtered[start:end]
-
-    items: List[ErrorRecordSummary] = []
-    for rec in page_items:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        question = (
-            rec.get("page_content") or rec.get("question") or rec.get("utterance", "")
-        )
-        preds = rec.get("predictions", {})
-
-        # Only expose evaluations; raw DFs can be large
-        evals: Dict[str, Dict[str, Any]] = {}
-        for pl, info in preds.items():
-            evals[pl] = info.get("evaluation", {})
-
-        items.append(
-            ErrorRecordSummary(
-                record_id=rid,
-                question=str(question),
-                predictions=evals,
-            )
-        )
+        for summary in summaries
+    ]
 
     return PaginatedErrorResponse(
         items=items,
@@ -1163,19 +1103,10 @@ def get_error_detail(benchmark_id: str, record_id: str):
     """
     Return full record for a given benchmark and record id for detailed error analysis.
     """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
-        raise HTTPException(
-            status_code=404, detail=_eval_not_found_detail(benchmark_id)
-        )
-
-    data = load_json(eval_path)
-    for rec in data:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        if rid == record_id:
-            return rec
-
-    raise HTTPException(status_code=404, detail="Record not found")
+    record = get_index(benchmark_id).read_record(record_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Record not found")
+    return record
 
 
 @app.get(
@@ -1190,58 +1121,48 @@ def get_error_detail_for_pipeline(
     """
     Return a normalized, UI-friendly detail payload for one record and one pipeline.
     """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
+    rec = get_index(benchmark_id).read_record(record_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="Record not found")
+
+    preds = rec.get("predictions", {})
+    if pipeline not in preds:
         raise HTTPException(
-            status_code=404, detail=_eval_not_found_detail(benchmark_id)
+            status_code=404, detail=f"Pipeline '{pipeline}' not found in record"
         )
+    pred = preds[pipeline]
+    eval_metrics = pred.get("evaluation", {})
 
-    data = load_json(eval_path)
-    for rec in data:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        if rid != record_id:
-            continue
+    gt_sql = rec.get("sql", [])
+    if isinstance(gt_sql, str):
+        gt_sql = [gt_sql]
 
-        preds = rec.get("predictions", {})
-        if pipeline not in preds:
-            raise HTTPException(
-                status_code=404, detail=f"Pipeline '{pipeline}' not found in record"
-            )
-        pred = preds[pipeline]
-        eval_metrics = pred.get("evaluation", {})
+    gt_df = rec.get("gt_df", [])
+    if not isinstance(gt_df, list):
+        gt_df = [gt_df]
 
-        gt_sql = rec.get("sql", [])
-        if isinstance(gt_sql, str):
-            gt_sql = [gt_sql]
-
-        gt_df = rec.get("gt_df", [])
-        if not isinstance(gt_df, list):
-            gt_df = [gt_df]
-
-        return {
-            "record_id": rid,
-            "pipeline": pipeline,
-            "question": rec.get("question")
-            or rec.get("utterance")
-            or rec.get("page_content")
-            or "",
-            "db_id": rec.get("db_id"),
-            "ground_truth_sql": gt_sql,
-            "predicted_sql": pred.get("predicted_sql"),
-            "evaluation_metrics": eval_metrics,
-            "ground_truth_results": gt_df,
-            "predicted_result": pred.get("predicted_df"),
-            "prompt": pred.get("prompt"),
-            "token_usage": pred.get("token_usage"),
-            "inference_time_ms": pred.get("inference_time_ms"),
-            "execution_time_ms": pred.get("execution_time_ms"),
-            "llm_judge_score": eval_metrics.get("llm_score"),
-            "llm_judge_explanation": eval_metrics.get("llm_explanation"),
-            "sql_execution_error": pred.get("sql_execution_error"),
-            "inference_error": pred.get("inference_error"),
-        }
-
-    raise HTTPException(status_code=404, detail="Record not found")
+    return {
+        "record_id": record_id,
+        "pipeline": pipeline,
+        "question": rec.get("question")
+        or rec.get("utterance")
+        or rec.get("page_content")
+        or "",
+        "db_id": rec.get("db_id"),
+        "ground_truth_sql": gt_sql,
+        "predicted_sql": pred.get("predicted_sql"),
+        "evaluation_metrics": eval_metrics,
+        "ground_truth_results": gt_df,
+        "predicted_result": pred.get("predicted_df"),
+        "prompt": pred.get("prompt"),
+        "token_usage": pred.get("token_usage"),
+        "inference_time_ms": pred.get("inference_time_ms"),
+        "execution_time_ms": pred.get("execution_time_ms"),
+        "llm_judge_score": eval_metrics.get("llm_score"),
+        "llm_judge_explanation": eval_metrics.get("llm_explanation"),
+        "sql_execution_error": pred.get("sql_execution_error"),
+        "inference_error": pred.get("inference_error"),
+    }
 
 
 def _resolve_record_db_id(
@@ -1251,12 +1172,7 @@ def _resolve_record_db_id(
         return explicit_db_id
     if not record_id:
         return None
-    records = load_eval_records(benchmark_id)
-    for rec in records:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        if rid == record_id:
-            return rec.get("db_id")
-    return None
+    return get_index(benchmark_id).record_db_id(record_id)
 
 
 def _resolve_sqlite_db_path(db_folder: str, db_id: str) -> Path:
@@ -1347,14 +1263,10 @@ def _find_eval_record_optional(
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
         return None
-    data = load_json(eval_path)
-    if not isinstance(data, list):
+    try:
+        return get_index(benchmark_id).read_record(record_id)
+    except HTTPException:
         return None
-    for rec in data:
-        rid = str(rec.get("id") or rec.get("question_id") or "")
-        if rid == record_id:
-            return rec
-    return None
 
 
 def _split_df_shape_from_json(s: Any) -> Optional[Tuple[int, int]]:
@@ -2018,36 +1930,13 @@ def binary_metric_confusion_by_pipeline(
     Metrics are treated as binary (1 means success, anything else is 0).
     Only records where both metric values exist are counted.
     """
-    data = load_eval_records(benchmark_id)
-
-    per_pipeline_counts: Dict[str, Dict[str, int]] = {}
-    per_pipeline_n: Dict[str, int] = {}
-
-    def ensure(p: str) -> None:
-        if p not in per_pipeline_counts:
-            per_pipeline_counts[p] = {"a0b0": 0, "a0b1": 0, "a1b0": 0, "a1b1": 0}
-            per_pipeline_n[p] = 0
-
-    for rec in data:
-        preds = rec.get("predictions", {})
-        if not isinstance(preds, dict):
-            continue
-
-        for pipeline_id in preds.keys():
-            a_val = get_pipeline_metric_value(rec, pipeline_id, metric_a)
-            b_val = get_pipeline_metric_value(rec, pipeline_id, metric_b)
-            if a_val is None or b_val is None:
-                continue
-
-            ensure(pipeline_id)
-            a_bin = to_binary_metric(a_val)
-            b_bin = to_binary_metric(b_val)
-            if a_bin is None or b_bin is None:
-                continue
-
-            key = f"a{a_bin}b{b_bin}"
-            per_pipeline_counts[pipeline_id][key] += 1
-            per_pipeline_n[pipeline_id] += 1
+    per_pipeline_counts = get_index(benchmark_id).binary_confusion_by_pipeline(
+        metric_a, metric_b
+    )
+    per_pipeline_n: Dict[str, int] = {
+        pipeline_id: sum(counts.values())
+        for pipeline_id, counts in per_pipeline_counts.items()
+    }
 
     per_pipeline_rows: List[BinaryMetricConfusionByPipelineRow] = []
     for pipeline_id in sorted(per_pipeline_counts.keys()):
@@ -2105,36 +1994,10 @@ def cross_pipeline_binary_metric_confusion(
     Only records where both metric values exist are counted.
     """
     metric_right_key = metric_right or metric_left
-    data = load_eval_records(benchmark_id)
-
-    counts = {
-        "left0right0": 0,
-        "left0right1": 0,
-        "left1right0": 0,
-        "left1right1": 0,
-    }
-    n_valid = 0
-
-    for rec in data:
-        l_val = get_pipeline_metric_value(rec, pipeline_left, metric_left)
-        r_val = get_pipeline_metric_value(rec, pipeline_right, metric_right_key)
-        if l_val is None or r_val is None:
-            continue
-        l_bin = to_binary_metric(l_val)
-        r_bin = to_binary_metric(r_val)
-        if l_bin is None or r_bin is None:
-            continue
-
-        if l_bin == 0 and r_bin == 0:
-            counts["left0right0"] += 1
-        elif l_bin == 0 and r_bin == 1:
-            counts["left0right1"] += 1
-        elif l_bin == 1 and r_bin == 0:
-            counts["left1right0"] += 1
-        else:
-            counts["left1right1"] += 1
-
-        n_valid += 1
+    counts = get_index(benchmark_id).cross_pipeline_binary_confusion(
+        pipeline_left, metric_left, pipeline_right, metric_right_key
+    )
+    n_valid = sum(counts.values())
 
     if n_valid <= 0:
         rates = {
@@ -2252,6 +2115,9 @@ def evaluate_benchmark(benchmark_id: str, req: EvaluateRequest):
                 force_rerun_llm_judge=req.force_rerun_llm_judge or req.force_rerun,
                 force_rerun=req.force_rerun,
             )
+            # The run rewrote the artifact; drop the cached index handle so the
+            # next request rebuilds against the new bytes.
+            invalidate_index_cache(benchmark_id)
             job.status = "completed"
             job.error = None
         except Exception as e:  # pragma: no cover - defensive
