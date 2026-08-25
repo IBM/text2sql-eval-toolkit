@@ -43,6 +43,17 @@ The following databases are required for the benchmarks:
    data/benchmarks/dbs/bird/dev_databases/
    ```
 
+   A symlink works too, if you keep the download elsewhere:
+
+   ```bash
+   mkdir -p data/benchmarks/dbs/bird
+   ln -s /path/to/MINIDEV/dev_databases data/benchmarks/dbs/bird/dev_databases
+   ```
+
+   `db_folder` resolves against the registry actually in use — `$TEXT2SQL_DATA_ROOT`
+   or the repository's `data/` — so this location is what the toolkit reads.
+   All 500 gold queries have been verified to run from here.
+
 ---
 
 ## BIRD Mini-Dev (PostgreSQL)
@@ -101,6 +112,28 @@ Set environment variable for connection:
 ```bash
 export POSTGRES_CONNECTION_STRING="postgresql://${USER}@localhost:5432/bird"
 ```
+
+### Option 3: Scripted load (recommended)
+
+```bash
+BIRD_DUMP=/path/to/MINIDEV_postgresql/BIRD_dev.sql \
+PGUSER=$(whoami) BIRD_DB=bird ./deploy/load-bird-postgres.sh
+```
+
+The script drops and recreates the database, loads with `ON_ERROR_STOP` so a
+partial load fails loudly, verifies the table count, and optionally creates the
+`SELECT`-only role the dashboard should connect as
+(set `POSTGRES_READONLY_PASSWORD`).
+
+It also creates any role the dump names in `OWNER TO` but which does not exist
+locally, as `NOLOGIN`. The published dump references its author's role, and
+`psql` aborts on an unknown role; creating a login-less role is safer than
+rewriting a gigabyte of SQL to strip ownership.
+
+**Note the shape of this benchmark.** Unlike the SQLite variant, the Postgres
+dump merges all eleven BIRD databases into a single `public` schema (75 tables),
+which is why execution sets `search_path` once rather than switching per record.
+All 500 gold queries have been verified against a loaded server.
 
 ---
 

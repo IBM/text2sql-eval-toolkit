@@ -52,10 +52,12 @@ import time
 from func_timeout import func_timeout, FunctionTimedOut
 from io import StringIO
 from pathlib import Path
+from typing import Optional
 from sqlglot import parse_one, exp
 from tqdm.asyncio import tqdm_asyncio
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
+    get_benchmarks_file_path,
     get_gt_sqls,
     BENCHMARKS_FILE,
 )
@@ -790,6 +792,43 @@ async def run_sqlite_query_with_timeout(
         raise RuntimeError(f"Error running query: {e}")
 
 
+def resolve_sqlite_db_path(db_folder, db_id: str, db_filename: str) -> Path:
+    """
+    Locate a benchmark's SQLite file.
+
+    ``db_folder`` is registry-relative, so it must resolve against the registry
+    that was actually loaded -- ``$TEXT2SQL_DATA_ROOT`` or the repository's
+    ``data/`` -- not against the copy packaged inside the installed wheel. It
+    previously used the packaged path unconditionally, so databases placed where
+    ``data/benchmarks/dbs/README.md`` says to put them were never found.
+
+    Falls back to the packaged location so an installed-only layout still works.
+    """
+    folder = Path(db_folder)
+    if folder.is_absolute():
+        return folder / db_id / db_filename
+
+    candidates = [
+        get_benchmarks_file_path(is_test=False).parent,
+        get_benchmarks_file_path(is_test=True).parent,
+        Path(str(BENCHMARKS_FILE)).parent,
+    ]
+    seen = set()
+    first: Optional[Path] = None
+    for root in candidates:
+        if root in seen:
+            continue
+        seen.add(root)
+        candidate = root / folder / db_id / db_filename
+        if first is None:
+            first = candidate
+        if candidate.exists():
+            return candidate
+    # Nothing found: return the primary candidate so the error names the place
+    # the user was told to use.
+    return first if first is not None else Path(folder) / db_id / db_filename
+
+
 async def sqlite_run_execution_async(
     db_folder,
     predictions_path,
@@ -811,9 +850,7 @@ async def sqlite_run_execution_async(
                 record["sql"] = record["metadata"]["sql"]
             db_id = record["db_id"]
             db_filename = db_id + ".sqlite"
-            db_path = (
-                Path(BENCHMARKS_FILE).parent / Path(db_folder) / db_id / db_filename
-            )
+            db_path = resolve_sqlite_db_path(db_folder, db_id, db_filename)
             if not db_path.exists():
                 raise ValueError(f"DB does not exist: {db_path}")
 

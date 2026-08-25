@@ -203,8 +203,35 @@ clear unknown-database error. That is a data gap rather than a configuration mis
 it is now documented in `data/benchmarks/dbs/README.md` alongside the load procedure — which
 previously just pointed at the upstream project.
 
-430 tests passing. Phase D is complete apart from PostgreSQL (3.11), which needs the
-upstream BIRD dump.
+**BIRD Mini-Dev, SQLite and PostgreSQL (3.11).** The Mini-Dev download arrived, and both
+variants now execute.
+
+*A path bug meant the documented SQLite setup could never have worked.*
+`sqlite_run_execution_async` built database paths from `Path(BENCHMARKS_FILE).parent`, the
+copy packaged inside the installed wheel — while the registry, and
+`data/benchmarks/dbs/README.md`, both use `data/benchmarks/dbs/`. Following the
+instructions put the databases somewhere the code never looked. `resolve_sqlite_db_path()`
+now resolves against the registry actually in use (`$TEXT2SQL_DATA_ROOT`, else the
+repository's `data/`), falling back to the packaged location so an installed-only layout
+still works, and reports the documented path in the error when a database is absent.
+**All 500 BIRD SQLite gold queries pass** across the 11 databases.
+
+*PostgreSQL.* `deploy/load-bird-postgres.sh` loads the 1 GB dump with `ON_ERROR_STOP`, so a
+partial load fails loudly rather than leaving a database that looks fine until a query hits
+a missing table. The first attempt failed on `role "xiaolongli" does not exist` — the dump
+carries `OWNER TO` for whoever produced it. The script now creates any such role as
+`NOLOGIN` before loading, rather than rewriting a gigabyte of SQL to strip ownership: a
+login-less role grants nobody anything, and editing the dump risks mangling a data line.
+**All 500 gold queries pass, in 3.4 s.**
+
+Worth recording the shape difference, since it explains the execution code: the Postgres
+dump merges all eleven BIRD databases into a single `public` schema (75 tables), which is
+why `postgres_run_execution_async` sets `search_path` once and never switches on `db_id`,
+while the SQLite and MySQL paths do switch per record.
+
+437 tests passing. **Phase D is complete.** Four of six benchmarks are fully executable
+locally (BIRD SQLite 500/500, BIRD Postgres 500/500, Beaver 194/194 loadable); Spider and
+Archer need their own downloads, and 15 Beaver questions await three unpublished dumps.
 
 ---
 
