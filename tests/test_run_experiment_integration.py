@@ -17,6 +17,7 @@ from text2sql_eval_toolkit.analysis.error_analysis import (
 )
 
 
+@pytest.mark.integration
 def test_run_experiment_end_to_end():
     benchmark_id = "bird_sqlite_test_benchmark"
     model_name = "wxai:meta-llama/llama-3-3-70b-instruct"

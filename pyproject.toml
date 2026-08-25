@@ -69,6 +69,16 @@ dashboard = [
   "greenlet>=3.0.0",
   "cryptography>=45.0.6"
 ]
+dev = [
+  "pytest>=8.0.0",
+  "pytest-cov>=5.0.0",
+  "pytest-asyncio>=0.24.0",
+  "ruff>=0.6.0",
+  "black>=24.0.0",
+  "mypy>=1.11.0",
+  "types-PyYAML>=6.0",
+  "types-requests>=2.32"
+]
 
 [project.scripts]
 text2sql-eval-dashboard = "text2sql_eval_toolkit.ui.server:main"
@@ -85,3 +95,97 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "text2sql_eval_toolkit" = ["data/*.json"]
+
+
+# ---------------------------------------------------------------------------
+# Tooling
+#
+# Conventions previously documented in CONTRIBUTING.md but not enforced.
+# See docs/plan/04-code-quality.md for the rationale behind each choice.
+# ---------------------------------------------------------------------------
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+extend-exclude = "dashboard/"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+exclude = ["dashboard", "notebooks", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+# Conservative starting set: pyflakes plus the pycodestyle rules that catch real
+# errors rather than formatting noise (Black owns formatting).  Widen this
+# deliberately -- adding `I` (import sorting) or `UP` (pyupgrade) rewrites many
+# files and belongs in its own commit, not mixed with logic changes.
+select = ["E4", "E7", "E9", "F", "B"]
+ignore = [
+    # Assigned-but-unused is common in this codebase's step-by-step pipeline
+    # code where intermediate values document the flow.  Revisit later.
+    "F841",
+    # FastAPI's `Query(...)` / `Body(...)` / `Depends(...)` parameter defaults are
+    # the framework's documented idiom (21 uses in ui/server.py), not the bug
+    # B008 describes.
+    "B008",
+
+    # ---- Deferred, not dismissed -------------------------------------------
+    # 39 real findings from the first lint run.  Each changes runtime behaviour
+    # or touches exception handling, so they belong in a reviewed follow-up
+    # rather than mixed into the tooling commit (plan item 4.2).  Tracked as
+    # item 4.12 in docs/plan/04-code-quality.md -- remove these entries as each
+    # is addressed.
+    "B904",  # 19x: `raise ... from e` inside except -- loses exception chaining
+    "B007",  # 11x: unused loop control variable
+    "B905",  # 5x:  zip() without explicit strict=
+    "E722",  # 4x:  bare `except:` also swallows KeyboardInterrupt/SystemExit
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-exports: __init__ files intentionally import names they do not use.
+"__init__.py" = ["F401"]
+"src/text2sql_eval_toolkit/__init__.py" = ["F401", "E402"]
+# Scripts load .env before importing the toolkit, so imports follow code.
+"scripts/**" = ["E402"]
+"tests/**" = ["B011"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# Default run is hermetic: no network, no credentials, no databases.
+# Opt in with `pytest -m integration` (and the env the tests document).
+addopts = "-m 'not integration' --strict-markers"
+markers = [
+    "integration: requires live LLM/database credentials or network access",
+]
+
+[tool.mypy]
+# Deliberately no `python_version` pin: forcing 3.11 makes mypy parse third-party
+# stubs (numpy) under 3.11 rules, and those stubs use PEP 695 syntax, which
+# aborts the run.  mypy therefore checks against the interpreter it runs on
+# (3.13 in CI).  The 3.11 floor is enforced where it actually matters -- the test
+# matrix runs on 3.11 -- which is a stronger guarantee than a static assumption.
+# Narrow initial scope, widened module by module as annotations land.
+# See docs/plan/04-code-quality.md item 4.2.
+files = [
+    "src/text2sql_eval_toolkit/results",
+    "src/text2sql_eval_toolkit/utils.py",
+    "src/text2sql_eval_toolkit/env_loader.py",
+    "src/text2sql_eval_toolkit/config_args.py",
+]
+ignore_missing_imports = true
+warn_unused_configs = true
+no_implicit_optional = true
+
+[tool.coverage.run]
+branch = true
+source = ["src/text2sql_eval_toolkit"]
+omit = ["*/data/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
