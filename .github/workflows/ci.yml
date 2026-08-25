@@ -122,6 +122,12 @@ jobs:
         run: npm ci
       - name: Lint
         run: npm run lint
+      - name: Type check
+        # Advisory for now: `vite build` never type-checked, so 18 pre-existing
+        # errors are outstanding. Tracked as item 4.13 in
+        # docs/plan/04-code-quality.md; make this blocking once they are clear.
+        continue-on-error: true
+        run: npm run typecheck
       - name: Build
         run: npm run build
       - name: Bundle size budget

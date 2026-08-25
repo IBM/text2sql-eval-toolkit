@@ -169,6 +169,21 @@ Do these as separate commits by rule, not one sweep.
 
 *Acceptance:* the four entries are gone from `ignore` and CI is green.
 
+### 4.13 Clear the deferred frontend findings
+Landed with Phase B, deferred for the same reason as 4.12 — each needs
+restructuring that the routing work will largely redo:
+
+| Source | Count | Note |
+|---|---|---|
+| `react-hooks/set-state-in-effect` | 19 | Effects calling `setState` synchronously. Goal 1 replaces much of this state with route params and loaders, so fix *after* routing. |
+| `react-hooks/preserve-manual-memoization` | 1 | `RunEvaluationView` |
+| `tsc --noEmit` | 18 | Never ran before: `vite build` does not type-check. Includes 7 `TS2783` duplicate-`key` warnings where a Carbon `getHeaderProps()` spread overwrites an explicit `key`, plus nullability and implicit-`any` errors. |
+
+The ESLint rules are `off` in `dashboard/eslint.config.js` and the CI type-check
+step is `continue-on-error`. Re-enable both as the findings clear.
+
+*Acceptance:* both rules re-enabled, the type-check step blocking, and CI green.
+
 ## Known bugs to fix along the way
 
 | Issue | Location | Notes |
@@ -180,6 +195,9 @@ Do these as separate commits by rule, not one sweep.
 | Version skew | `pyproject.toml` / `CHANGELOG.md` | 4.8 |
 | Record counting re-parses data files per request | `ui/server.py:630` | Goal 2, item 2.6 |
 | ~~Ranking window functions counted as aggregations~~ | `profiling/profiling_tools.py` | **Fixed** in `a8f2c96`; caused by unpinned sqlglot |
+| ~~`npm ci` fails: lockfile out of sync with `package.json`~~ | `dashboard/package-lock.json` | **Fixed**; would have failed CI on its first run |
+| ~~`npm run lint` declared but ESLint not installed~~ | `dashboard/package.json` | **Fixed**; ESLint added with a flat config |
+| ~~Ref assigned during render~~ | `RunEvaluationView.tsx` | **Fixed**; moved into an effect |
 
 ## Risks
 
