@@ -104,10 +104,24 @@ caught it at install time rather than in published results.
 
 *Acceptance:* one authoritative source; CI catches staleness.
 
-### 4.8 Version hygiene
-Fix the 1.1.0/1.2.0 skew. Single-source the version (read from package metadata rather
-than duplicating in `__init__.py`), and add a release checklist plus a CI check that the
-version, changelog, and git tag agree.
+### 4.8 Version hygiene → the 2.0.0 release
+**Decided: release as `2.0.0`**, as the final commit on `dashboard-v2` after the
+comprehensive test pass. This supersedes the 1.1.0 / 1.2.0 skew rather than adjudicating
+it; the existing CHANGELOG entries remain as historical record.
+
+Release checklist:
+
+1. Comprehensive test pass green (all phases, `pytest` + `pytest -m integration`).
+2. Bump `pyproject.toml` to `2.0.0`; single-source `__init__.__version__` from package
+   metadata so the number lives in one place.
+3. CHANGELOG entry for 2.0.0 covering the URL scheme, capability tiers, artifact index,
+   and deployment.
+4. **Publish a `v2.0.0` tag on the Hugging Face results repo.** `DEFAULT_REVISION` is
+   derived as `v{version}` (`results/_hub.py:39`), so without it every fetch falls back
+   to `main` with a warning and shared links stop being reproducible.
+5. Tag `v2.0.0` in git — note only `v1.0.0` is currently tagged, so the tag history has
+   its own gap.
+6. Add a CI check that version, changelog, and git tag agree, so this cannot recur.
 
 *Acceptance:* one version string; CI fails on a changelog entry with no matching bump.
 
