@@ -110,7 +110,12 @@ jobs:
       - name: Pytest
         # pyproject's addopts excludes `integration`, so this needs no
         # credentials, no database, and no network.
-        run: pytest --cov --cov-report=xml --cov-report=term-missing
+        run: pytest --cov --cov-report=xml --cov-report=json --cov-report=term-missing
+      - name: Coverage floors
+        # Per-module minimums for the code where being wrong is expensive:
+        # published metrics, the artifact index, and authorization. The
+        # project-wide fail_under in pyproject is only a backstop.
+        run: python scripts/ci/check_coverage.py
       - name: Upload coverage
         if: matrix.python-version == '3.13'
         uses: actions/upload-artifact@v4

@@ -177,6 +177,12 @@ source = ["src/text2sql_eval_toolkit"]
 omit = ["*/data/*"]
 
 [tool.coverage.report]
+# A project-wide backstop only.  It is low because most of the codebase is
+# inference and execution paths that need live LLM and DB endpoints to
+# exercise; raising it would mean either weak tests or a suite that cannot run
+# offline.  The floors that matter are per module and live in
+# scripts/ci/check_coverage.py, where each one has a stated reason.
+fail_under = 38
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
