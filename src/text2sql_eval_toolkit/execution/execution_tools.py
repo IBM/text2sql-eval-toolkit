@@ -47,6 +47,7 @@ import json
 import pandas as pd
 import re
 import sqlite3
+import urllib.parse
 import time
 from func_timeout import func_timeout, FunctionTimedOut
 from io import StringIO
@@ -737,14 +738,39 @@ async def postgres_run_execution_async(
 
 
 def run_sqlite_query(db_path: str, sql: str) -> str:
-    conn = sqlite3.connect(db_path)
-    conn.text_factory = lambda b: b.decode(errors="replace")
-    conn.row_factory = sqlite3.Row
-    cursor = conn.execute(sql)
-    rows = cursor.fetchall()
-    columns = [col[0] for col in cursor.description]
-    data = [dict(zip(columns, row)) for row in rows]
-    conn.close()
+    """
+    Execute one read-only query against a SQLite benchmark database.
+
+    Opened read-only. Benchmark databases are immutable reference data, and the
+    dashboard's execute endpoint runs arbitrary caller-supplied SQL -- so a
+    write should be refused by SQLite itself rather than by anything upstream of
+    it. Tooling that genuinely needs to modify a benchmark database should use
+    sqlite3 directly rather than routing through the evaluation path.
+    """
+    # The URI form is the only way to ask SQLite for a read-only handle. Not
+    # `immutable=1`: that also promises the file will not change underneath us,
+    # which is a stronger claim than we can make.
+    uri = f"file:{urllib.parse.quote(str(db_path))}?mode=ro"
+    conn = sqlite3.connect(uri, uri=True)
+    try:
+        # Nothing legitimate in a benchmark query attaches another database, and
+        # a single execute() runs one statement so this is not exploitable
+        # today; refusing it outright keeps that from depending on a detail of
+        # the driver.
+        try:
+            conn.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
+        except (AttributeError, sqlite3.NotSupportedError):  # pragma: no cover
+            pass
+
+        conn.text_factory = lambda b: b.decode(errors="replace")
+        conn.row_factory = sqlite3.Row
+        cursor = conn.execute(sql)
+        rows = cursor.fetchall()
+        # description is None for statements that return no result set.
+        columns = [col[0] for col in cursor.description or []]
+        data = [dict(zip(columns, row)) for row in rows]
+    finally:
+        conn.close()
     return pd.DataFrame(data, columns=columns).to_json(orient="split")
 
 
