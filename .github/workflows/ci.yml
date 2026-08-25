@@ -1,0 +1,158 @@
+#
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# Phase A of the refactor plan (docs/plan/04-code-quality.md, item 4.4).
+# Before this workflow existed, nothing ran tests or linting on a PR.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep every job hermetic: no .env discovery, no credential-dependent paths.
+  TEXT2SQL_DATA_ROOT: ${{ github.workspace }}/data
+
+jobs:
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install tooling
+        # Lint tools only -- no project dependencies needed, so this job stays fast.
+        run: python -m pip install --upgrade pip ruff black
+      - name: Ruff
+        run: ruff check src tests scripts --output-format=github
+      - name: Black
+        run: black --check --diff src tests scripts
+
+  typecheck:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,dashboard]"
+      - name: Mypy
+        # Scope is narrow by design and widens module by module; see
+        # docs/plan/04-code-quality.md item 4.2.
+        run: mypy
+
+  test:
+    name: Tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,dashboard]"
+      - name: Pytest
+        # pyproject's addopts excludes `integration`, so this needs no
+        # credentials, no database, and no network.
+        run: pytest --cov --cov-report=xml --cov-report=term-missing
+      - name: Upload coverage
+        if: matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
+
+  test-next:
+    # Non-blocking early warning for the next interpreter. Promote into `test`
+    # once dependency wheels (psycopg2-binary, ibm_watsonx_ai) are confirmed.
+    name: Tests (py3.14, advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,dashboard]"
+      - name: Pytest
+        run: pytest
+
+  frontend:
+    name: Dashboard build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Bundle size budget
+        # Guards the code-splitting work in docs/plan/02-performance.md item 2.8.
+        # Baseline at time of writing: ~508 KB JS, ~808 KB CSS.
+        run: |
+          budget_js=768
+          budget_css=1024
+          js=$(du -ck dist/assets/*.js | tail -1 | cut -f1)
+          css=$(du -ck dist/assets/*.css | tail -1 | cut -f1)
+          echo "JS ${js} KB (budget ${budget_js} KB), CSS ${css} KB (budget ${budget_css} KB)"
+          fail=0
+          if [ "$js" -gt "$budget_js" ]; then
+            echo "::error::JS bundle ${js} KB exceeds budget ${budget_js} KB"
+            fail=1
+          fi
+          if [ "$css" -gt "$budget_css" ]; then
+            echo "::error::CSS bundle ${css} KB exceeds budget ${budget_css} KB"
+            fail=1
+          fi
+          exit $fail
+      - name: Verify committed dist is current
+        # dashboard/dist is committed and served by text2sql-eval-dashboard, so a
+        # stale build silently ships different UI than the source. See
+        # docs/plan/03-public-deployment.md item 3.6.
+        run: |
+          # Content-hashed filenames mean any real change shows as deleted+untracked,
+          # so check porcelain status rather than `git diff` alone.
+          changed=$(git status --porcelain -- dist)
+          if [ -n "$changed" ]; then
+            echo "::warning::dashboard/dist differs from a fresh build of dashboard/src."
+            echo "Run 'cd dashboard && npm run build' and commit the result."
+            echo "$changed"
+          fi

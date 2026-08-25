@@ -80,38 +80,64 @@ cd text2sql-eval-toolkit
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install in development mode with all dependencies
-pip install -e ".[db2,mysql,presto]"
+# Install in development mode with the dev toolchain
+pip install -e ".[dev,dashboard]"
 
-# Install development dependencies
-pip install pytest black ruff mypy
+# Add database extras only if you run those benchmarks locally
+pip install -e ".[dev,dashboard,db2,mysql,presto]"
 ```
+
+All tool configuration lives in `pyproject.toml`, so the versions you run locally
+match the versions CI enforces.
 
 ### Running Tests
 
 ```bash
-# Run all tests
+# Default suite: hermetic -- no network, no credentials, no databases
 pytest
 
-# Run tests with coverage
-pytest --cov=src/text2sql_eval_toolkit
+# With coverage
+pytest --cov
 
-# Run specific test file
-pytest tests/test_evaluation.py
+# A specific file
+pytest tests/test_text2sql_metrics.py
 ```
+
+Tests that need live LLM or database credentials are marked `integration` and are
+excluded from the default run. Run them deliberately:
+
+```bash
+# Requires the credentials in env.example to be configured
+pytest -m integration
+```
+
+Hub network tests additionally require `RUN_NETWORK_TESTS=1`.
 
 ## Coding style guidelines
 
-We follow these coding standards:
+These are enforced by CI on every pull request, so run them before pushing:
 
-- **Formatting**: Use [Black](https://black.readthedocs.io/) for code formatting
+- **Formatting**: [Black](https://black.readthedocs.io/), line length 88
   ```bash
-  black src/ tests/
+  black src/ tests/ scripts/
   ```
 
-- **Linting**: Use [Ruff](https://docs.astral.sh/ruff/) for linting
+- **Linting**: [Ruff](https://docs.astral.sh/ruff/)
   ```bash
-  ruff check src/ tests/
+  ruff check src/ tests/ scripts/
+  ```
+
+- **Type checking**: [mypy](https://mypy.readthedocs.io/) over the modules listed
+  under `[tool.mypy]` in `pyproject.toml`. The scope is intentionally narrow and
+  widens as annotations land.
+  ```bash
+  mypy
+  ```
+
+- **Dashboard**: lint and build must pass, and the bundle stays within the size
+  budget checked in CI.
+  ```bash
+  cd dashboard && npm ci && npm run lint && npm run build
   ```
 
 - **Type Hints**: Add type hints to function signatures
