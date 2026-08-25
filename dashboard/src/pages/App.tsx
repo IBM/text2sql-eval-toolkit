@@ -93,6 +93,31 @@ export const App: React.FC = () => {
     return out;
   }, [urlFilters]);
 
+  // Filter/page/record changes rewrite the URL in place: a shared link must
+  // reproduce the exact view, but each keystroke should not add a history entry.
+  const onErrorAnalysisStateChange = useCallback(
+    (state: {
+      filters: Record<string, unknown>;
+      page: number;
+      pageSize: number;
+      record: string | null;
+    }) => {
+      const benchmark = match.benchmarkId;
+      if (!benchmark) return;
+      const next = routes.errors(benchmark, {
+        ...(state.filters as Record<string, string | boolean>),
+        page: state.page,
+        pageSize: state.pageSize,
+        record: state.record,
+      });
+      const current = `${location.pathname}${location.search}`;
+      if (next !== current) {
+        navigate(next, { replace: true });
+      }
+    },
+    [match.benchmarkId, location.pathname, location.search, navigate]
+  );
+
   const selectedBenchmark = match.benchmarkId;
   const selectedPipeline = match.pipelineId;
   const activeView = match.view;
@@ -415,9 +440,14 @@ export const App: React.FC = () => {
       }
       return (
         <ErrorAnalysis
+          key={effectiveBenchmarkId}
           benchmarkId={effectiveBenchmarkId}
           onBack={() => navigate(routes.benchmark(effectiveBenchmarkId))}
           initialFilters={errorAnalysisFilters}
+          initialPage={urlFilters.page ?? undefined}
+          initialPageSize={urlFilters.pageSize ?? undefined}
+          initialRecordId={urlFilters.record ?? undefined}
+          onStateChange={onErrorAnalysisStateChange}
         />
       );
     }

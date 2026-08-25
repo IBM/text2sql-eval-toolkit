@@ -5,6 +5,54 @@ Plans for upcoming work live in [`docs/plan/`](plan/).
 
 ---
 
+## 2026-08-25 — Phase C: shareable URLs (plan items 1.1–1.5, 1.7)
+
+The dashboard had no URL state at all: navigation was nine `useState` values, no router
+dependency, and nothing under `dashboard/src` ever touched `window.location`. Every view
+rendered at `/`.
+
+**Landed**
+
+- `lib/routes.ts` — the whole URL scheme as pure functions: path builders, query
+  serialization with defaults omitted, and a parser. Pipeline ids contain both `:` and `/`
+  (`wxai:openai/gpt-oss-120b-...`), so they must be percent-encoded in path position;
+  keeping that in one place is what stops a missed `encodeURIComponent` from silently
+  producing a 404.
+- `App.tsx` derives view, benchmark, and pipeline from the URL and navigates instead of
+  setting state. Error-analysis filters, page, page size, and the selected record all
+  travel in the query string.
+- Unknown paths render an explicit not-found state instead of silently showing the landing
+  page — a shared link is exactly where the target may not exist.
+- `SPAStaticFiles` serves `index.html` for unknown non-API paths. Without it every deep
+  link 404s on refresh and the feature is useless in practice. `/api/*` and paths with a
+  file suffix still return real 404s, so a typo'd bundle path does not come back as HTML.
+- A **Copy link** control in the header, with a fallback for browsers that withhold
+  `navigator.clipboard` over plain http.
+- Vitest added and wired into CI; 34 frontend tests.
+
+**Two bugs found by actually opening the app in a browser**
+
+Both passed every automated check first:
+
+1. **Pagination did not round-trip.** The URL carried `page=2` but the view rendered page 1
+   — `page`, `pageSize`, and `record` were being filtered out before reaching
+   `ErrorAnalysis`. Fixed by widening its props and reporting state changes back so the
+   address bar follows.
+2. **A restored record opened an empty panel.** Clicking a row resolves which pipeline's
+   detail to show; restoring from a URL set only the record id, so the detail fetch — which
+   requires both — never ran. The resolution is now a shared pure function
+   (`lib/detailPipeline.ts`) used by both paths, with tests asserting they agree.
+
+Verified in a browser: a link carrying benchmark, pipeline filter, metric value, page, and
+record id reopens with page 2 showing `26–50 of 62` and the record detail panel populated
+with the question, both SQL statements, and evaluation metrics.
+
+**Not yet done in Phase C:** the stable pipeline-hash alias (1.6). Still outstanding from
+Phase B: HTTP caching (2.7), frontend data-fetching/code-splitting/virtualisation (2.8),
+and the async-handler audit (2.9).
+
+---
+
 ## 2026-08-24 — Phase B: artifact index landed (plan items 2.1–2.2)
 
 The backend half of the performance work. Endpoints are not rewired yet; this entry

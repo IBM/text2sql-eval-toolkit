@@ -214,3 +214,6 @@ data/manifest.json
 # artifacts with `text2sql-eval-toolkit index build`; never a source of truth.
 data/results/.index/
 **/.index/
+
+# Local editor/agent launch config
+.claude/
