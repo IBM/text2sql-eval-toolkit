@@ -177,17 +177,146 @@ async def enforce_capability_tier(request: Request, call_next):
 
 
 # Allow local dev frontends by default
+# The Vite dev server runs on a different port, so local development needs CORS
+# with credentials. A shared deployment serves the UI from the same origin and
+# needs neither -- and `allow_credentials` with a permissive origin list stops
+# being theoretical once session cookies exist, so the allowance is withdrawn
+# outside full mode by `configure_cors()` below.
+_DEV_ORIGINS = [
+    "http://localhost",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=_DEV_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def configure_cors(mode: "Tier") -> None:
+    """
+    Narrow CORS for shared deployments.
+
+    Middleware cannot be removed once the app has started, so the instance is
+    reconfigured in place: outside full mode the origin list is emptied and
+    credentialed cross-origin requests are refused.
+    """
+    for entry in app.user_middleware:
+        if entry.cls is not CORSMiddleware:
+            continue
+        kwargs = getattr(entry, "kwargs", None)
+        if not isinstance(kwargs, dict):
+            continue
+        if mode is Tier.FULL:
+            kwargs["allow_origins"] = list(_DEV_ORIGINS)
+            kwargs["allow_credentials"] = True
+        else:
+            kwargs["allow_origins"] = []
+            kwargs["allow_credentials"] = False
+    app.middleware_stack = app.build_middleware_stack()
+
+
+# In-process token buckets, keyed by client address. Adequate for a
+# single-container deployment; a multi-replica setup would need shared state,
+# and the reverse proxy should carry a limit of its own regardless.
+_RATE_BUCKETS: Dict[str, Tuple[float, float]] = {}
+_RATE_LOCK = threading.Lock()
+
+#: Requests per second sustained, and the burst allowance above it.
+RATE_LIMIT_RPS = float(os.getenv("TEXT2SQL_RATE_LIMIT_RPS", "20"))
+RATE_LIMIT_BURST = float(os.getenv("TEXT2SQL_RATE_LIMIT_BURST", "60"))
+
+#: Sign-in is cheaper to abuse than to serve, so it gets its own tighter bucket.
+AUTH_RATE_LIMIT_RPS = float(os.getenv("TEXT2SQL_AUTH_RATE_LIMIT_RPS", "1"))
+AUTH_RATE_LIMIT_BURST = float(os.getenv("TEXT2SQL_AUTH_RATE_LIMIT_BURST", "10"))
+
+
+def _client_key(request: Request) -> str:
+    # Behind the deployment's reverse proxy the real address arrives in
+    # X-Forwarded-For; fall back to the socket for a direct connection.
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    client = request.client
+    return client.host if client else "unknown"
+
+
+def _take_token(key: str, rps: float, burst: float) -> bool:
+    """Classic token bucket. Returns False when the caller is over budget."""
+    if rps <= 0:
+        return True
+    now = time.monotonic()
+    with _RATE_LOCK:
+        tokens, last = _RATE_BUCKETS.get(key, (burst, now))
+        tokens = min(burst, tokens + (now - last) * rps)
+        if tokens < 1.0:
+            _RATE_BUCKETS[key] = (tokens, now)
+            return False
+        _RATE_BUCKETS[key] = (tokens - 1.0, now)
+        return True
+
+
+def reset_rate_limits() -> None:
+    with _RATE_LOCK:
+        _RATE_BUCKETS.clear()
+
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    """
+    Coarse per-client rate limiting.
+
+    Local mode is exempt: it is one operator on loopback, and throttling an
+    interactive tool would be a regression for no benefit.
+    """
+    path = request.scope.get("path", "")
+    if get_mode() is Tier.FULL or not path.startswith("/api/"):
+        return await call_next(request)
+
+    is_auth = path.startswith("/api/auth/")
+    rps = AUTH_RATE_LIMIT_RPS if is_auth else RATE_LIMIT_RPS
+    burst = AUTH_RATE_LIMIT_BURST if is_auth else RATE_LIMIT_BURST
+    key = f"{'auth' if is_auth else 'api'}:{_client_key(request)}"
+
+    if not _take_token(key, rps, burst):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Too many requests. Please slow down."},
+            headers={"Retry-After": "1"},
+        )
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """
+    Baseline response hardening.
+
+    The dashboard is self-contained -- its own bundle, its own API, no third
+    party scripts or frames -- so a restrictive policy costs nothing here and
+    removes a class of injection. Carbon injects styles at runtime, hence
+    'unsafe-inline' for style-src only.
+    """
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "img-src 'self' data:; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'",
+    )
+    return response
 
 
 def get_data_root() -> Path:
@@ -212,7 +341,19 @@ def get_results_dir() -> Path:
 
 
 def _eval_not_found_detail(benchmark_id: str) -> str:
-    """Human-readable 404 detail for a missing predictions_eval.json file."""
+    """
+    404 detail for a missing predictions_eval.json.
+
+    Local operators want the exact path and the command that fixes it. A public
+    visitor can act on none of that, and it discloses the server's filesystem
+    layout and data root, so the shared deployment says only that the benchmark
+    is unavailable.
+    """
+    if get_mode() is not Tier.FULL:
+        return (
+            f"No evaluation results are available for '{benchmark_id}' on this "
+            "server."
+        )
     rel = f"data/results/{benchmark_id}-predictions_eval.json"
     return (
         f"Evaluation results file not found: {rel}. "
@@ -227,7 +368,9 @@ def _eval_not_found_detail(benchmark_id: str) -> str:
 
 
 def _summary_not_found_detail(benchmark_id: str) -> str:
-    """Human-readable 404 detail for a missing predictions_eval_summary.json file."""
+    """404 detail for a missing summary file. See _eval_not_found_detail."""
+    if get_mode() is not Tier.FULL:
+        return f"No summary is available for '{benchmark_id}' on this server."
     rel = f"data/results/{benchmark_id}-predictions_eval_summary.json"
     return (
         f"Summary file not found: {rel}. "
@@ -874,6 +1017,27 @@ def _judge_config_dir() -> Path:
     return Path(llm_as_judge.__file__).parent / "llm_judge_config"
 
 
+def _resolve_judge_config_path(name: str) -> Path:
+    """
+    Path of a judge config, refusing anything that escapes the config directory.
+
+    ``name`` arrives from a URL segment or request body. FastAPI will not match
+    a raw ``/`` into a single path parameter, but percent-encoded separators and
+    ``..`` segments are decoded before they reach here, so containment is
+    asserted on the resolved path rather than assumed from the routing.
+    """
+    # Constrain the shape first: a plain stem cannot traverse, cannot name a
+    # dotfile, and cannot be empty. Containment below stays as a second line of
+    # defence rather than the only one.
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", name or ""):
+        raise FileNotFoundError(name)
+    base = _judge_config_dir().resolve()
+    candidate = (base / f"{name}.yaml").resolve()
+    if candidate.parent != base:
+        raise FileNotFoundError(name)
+    return candidate
+
+
 def _load_judge_config_by_name(name: str) -> Dict[str, Any]:
     """
     Load a judge config by stem, refusing anything that escapes the config dir.
@@ -881,10 +1045,7 @@ def _load_judge_config_by_name(name: str) -> Dict[str, Any]:
     The name arrives from a request body, so a traversal attempt must not be
     able to read or select an arbitrary YAML file.
     """
-    base = _judge_config_dir().resolve()
-    candidate = (base / f"{name}.yaml").resolve()
-    if candidate.parent != base:
-        raise FileNotFoundError(name)
+    candidate = _resolve_judge_config_path(name)
     if not candidate.is_file():
         raise FileNotFoundError(name)
     return load_llm_judge_config(str(candidate))
@@ -2579,10 +2740,11 @@ def get_llm_judge_config(name: str):
     """
     Return the parsed YAML config by name (stem).
     """
-    from text2sql_eval_toolkit.evaluation import llm_as_judge
 
-    base_dir = Path(llm_as_judge.__file__).parent / "llm_judge_config"
-    path = base_dir / f"{name}.yaml"
+    try:
+        path = _resolve_judge_config_path(name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Config not found") from None
     if not path.exists():
         raise HTTPException(status_code=404, detail="Config not found")
 
@@ -2604,11 +2766,11 @@ def update_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
     if "prompt_template" not in body:
         raise HTTPException(status_code=400, detail="prompt_template is required")
 
-    from text2sql_eval_toolkit.evaluation import llm_as_judge
-
-    base_dir = Path(llm_as_judge.__file__).parent / "llm_judge_config"
-    base_dir.mkdir(parents=True, exist_ok=True)
-    path = base_dir / f"{name}.yaml"
+    try:
+        path = _resolve_judge_config_path(name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=400, detail="Invalid config name") from None
+    path.parent.mkdir(parents=True, exist_ok=True)
 
     import yaml
 
@@ -3009,6 +3171,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         )
     set_mode(mode)
     set_judge_allowlist(parse_allowlist(os.getenv("TEXT2SQL_JUDGE_ALLOWLIST")))
+    configure_cors(mode)
 
     if auth.is_configured():
         from starlette.middleware.sessions import SessionMiddleware
