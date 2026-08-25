@@ -261,7 +261,7 @@ def run_with_timeout(func, timeout=90, retries=2, wait=3, *args, **kwargs):
                 else:
                     raise TimeoutError(
                         f"❗️ Function timed out after {retries + 1} attempts."
-                    )
+                    ) from None
 
 
 async def run_with_timeout_async(task, base_timeout=90, retries=2, wait=3):
@@ -277,7 +277,7 @@ async def run_with_timeout_async(task, base_timeout=90, retries=2, wait=3):
             else:
                 raise asyncio.TimeoutError(
                     f"❗️ Function timed out after {retries + 1} attempts."
-                )
+                ) from None
 
 
 def parse_dataframe(json_str):
@@ -290,7 +290,7 @@ def parse_dataframe(json_str):
     except Exception as e:
         raise ValueError(
             f"Failed to parse DataFrame JSON. Error: {e}. JSON string: {json_str}"
-        )
+        ) from e
 
 
 def truncate_dataframe(
