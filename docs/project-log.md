@@ -63,8 +63,9 @@ queries as aggregating** — the declared constraint is `sqlglot>=27.0.0` and it
 30.17.0. Fixed in `a8f2c96`; windowed true aggregates such as `AVG(x) OVER (...)` are
 still counted, matching the existing test expectations.
 
-This is the first concrete return on adding CI: an unpinned-dependency regression that
-had no way of being noticed before.
+Found by running the test suite locally once the toolchain existed — not by CI, which has
+not run yet (see status below). Still the first concrete return on the Phase A work: an
+unpinned-dependency regression that nothing in the repo was positioned to notice.
 
 **Follow-ups opened**
 
@@ -73,6 +74,12 @@ had no way of being noticed before.
   folded into tooling setup.
 - Dependency pinning: the sqlglot drift suggests the unbounded `>=` constraints deserve
   upper bounds or a tested lockfile — folded into plan item 4.7.
+
+**CI status: written, validated, never executed.** `.github/workflows/ci.yml` is committed
+on a local branch with no upstream, so no workflow run exists. The file parses as YAML and
+passes `actionlint` clean, but that is static validation — whether the jobs actually
+succeed (dependency install on three interpreters, `npm ci`, the bundle-size budget)
+is unknown until the branch is pushed. Treat every job as unproven until then.
 
 **Commits** (branch `phase-a-foundations`, not pushed)
 
