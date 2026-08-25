@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Sequence, Tuple
 
 from text2sql_eval_toolkit.indexing.builder import build_index, index_path_for, is_stale
 
@@ -134,6 +134,13 @@ class EvalIndex:
             fh.seek(row["byte_start"])
             raw = fh.read(row["byte_end"] - row["byte_start"])
         return json.loads(raw)
+
+    def record_db_id(self, record_id: str) -> Optional[str]:
+        """The record's ``db_id``, without reading the artifact."""
+        row = self._conn.execute(
+            "SELECT db_id FROM records WHERE record_id = ?", (record_id,)
+        ).fetchone()
+        return row["db_id"] if row else None
 
     # -- filtered listing -------------------------------------------------
 
@@ -312,6 +319,92 @@ class EvalIndex:
             refs,
         ).fetchall()
         return {(r["av"], r["bv"]): r["n"] for r in rows}
+
+    def binary_confusion_by_pipeline(
+        self, metric_a: str, metric_b: str
+    ) -> Dict[str, Dict[str, int]]:
+        """
+        Per pipeline, binary confusion counts for two metrics on the same record.
+
+        "Binary" matches the endpoints' rule: exactly 1.0 is a success, anything
+        else is a failure.  Only records where both metrics exist are counted,
+        which the inner join enforces.
+        """
+        a_ref = self._metric_ref(metric_a)
+        b_ref = self._metric_ref(metric_b)
+        if a_ref is None or b_ref is None:
+            return {}
+        rows = self._conn.execute(
+            "SELECT pl.pipeline_id AS pipeline,"
+            "       CASE WHEN a.value = 1.0 THEN 1 ELSE 0 END AS ab,"
+            "       CASE WHEN b.value = 1.0 THEN 1 ELSE 0 END AS bb,"
+            "       COUNT(*) AS n"
+            "  FROM metrics a"
+            "  JOIN metrics b ON a.ordinal = b.ordinal"
+            "                AND a.pipeline_ref = b.pipeline_ref"
+            "  JOIN pipelines pl ON pl.pipeline_ref = a.pipeline_ref"
+            " WHERE a.metric_ref = ? AND b.metric_ref = ?"
+            " GROUP BY pl.pipeline_id, ab, bb",
+            (a_ref, b_ref),
+        ).fetchall()
+
+        out: Dict[str, Dict[str, int]] = {}
+        for row in rows:
+            bucket = out.setdefault(
+                row["pipeline"], {"a0b0": 0, "a0b1": 0, "a1b0": 0, "a1b1": 0}
+            )
+            bucket[f"a{row['ab']}b{row['bb']}"] += row["n"]
+        return out
+
+    def cross_pipeline_binary_confusion(
+        self,
+        pipeline_left: str,
+        metric_left: str,
+        pipeline_right: str,
+        metric_right: str,
+    ) -> Dict[str, int]:
+        """Binary confusion counts across two pipelines, same rules as above."""
+        counts = {
+            "left0right0": 0,
+            "left0right1": 0,
+            "left1right0": 0,
+            "left1right1": 0,
+        }
+        refs = (
+            self._pipeline_ref(pipeline_left),
+            self._metric_ref(metric_left),
+            self._pipeline_ref(pipeline_right),
+            self._metric_ref(metric_right),
+        )
+        if any(r is None for r in refs):
+            return counts
+        rows = self._conn.execute(
+            "SELECT CASE WHEN a.value = 1.0 THEN 1 ELSE 0 END AS lb,"
+            "       CASE WHEN b.value = 1.0 THEN 1 ELSE 0 END AS rb,"
+            "       COUNT(*) AS n"
+            "  FROM metrics a JOIN metrics b ON a.ordinal = b.ordinal"
+            " WHERE a.pipeline_ref = ? AND a.metric_ref = ?"
+            "   AND b.pipeline_ref = ? AND b.metric_ref = ?"
+            " GROUP BY lb, rb",
+            refs,
+        ).fetchall()
+        for row in rows:
+            counts[f"left{row['lb']}right{row['rb']}"] += row["n"]
+        return counts
+
+    def iter_records(self) -> "Iterator[Dict[str, Any]]":
+        """
+        Stream every record in file order, one at a time.
+
+        For whole-corpus aggregations that the index does not model. Unlike
+        ``json.load`` this holds one record in memory rather than the entire
+        artifact.
+        """
+        from text2sql_eval_toolkit.indexing.scanner import iter_record_spans
+
+        with self._source_path.open("rb") as fh:
+            for span in iter_record_spans(fh):
+                yield json.loads(span.raw)
 
 
 def default_filters(**overrides: Any) -> Dict[str, Any]:
