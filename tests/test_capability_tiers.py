@@ -1,0 +1,224 @@
+#
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+
+"""
+Authorization is enforced in one place, so it is tested in one place.
+
+The properties that matter:
+
+* every mutating endpoint is refused below its declared tier;
+* a route nobody classified fails closed rather than open;
+* a default local launch still behaves exactly as it did before tiers existed,
+  because the local dashboard must keep working;
+* the deployment mode is a ceiling that no sign-in can raise.
+"""
+
+import json
+
+import pytest
+
+pytest.importorskip("fastapi")
+from fastapi.testclient import TestClient  # noqa: E402
+
+from text2sql_eval_toolkit.ui import server  # noqa: E402
+from text2sql_eval_toolkit.ui.capabilities import (  # noqa: E402
+    ROUTE_TIERS,
+    SAFE_METHODS,
+    Tier,
+    parse_allowlist,
+    required_tier,
+    resolve_tier,
+    unclassified_routes,
+)
+
+ALLOWED = "oktieh@gmail.com"
+
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "demo-predictions_eval.json").write_text(
+        json.dumps([{"id": "r1", "question": "q", "predictions": {}}]), encoding="utf-8"
+    )
+    monkeypatch.setattr(server, "get_data_root", lambda: tmp_path)
+    server.invalidate_index_cache()
+    original_mode = server.get_mode()
+    try:
+        yield TestClient(server.app)
+    finally:
+        server.set_mode(original_mode)
+        server.set_judge_allowlist(set())
+        server.invalidate_index_cache()
+
+
+def _mutating_routes():
+    out = []
+    for route in server.app.routes:
+        path = getattr(route, "path", "")
+        methods = getattr(route, "methods", None) or set()
+        if not path.startswith("/api"):
+            continue
+        for method in sorted(methods - SAFE_METHODS):
+            out.append((method, path))
+    return out
+
+
+def _concrete(path: str) -> str:
+    """Substitute placeholders so the request actually routes."""
+    return (
+        path.replace("{benchmark_id}", "demo")
+        .replace("{record_id}", "r1")
+        .replace("{name}", "llm_judge_default_config")
+        .replace("{job_id}", "abc")
+        .replace("{file_path:path}", "logo.png")
+    )
+
+
+# --- the classification table itself -------------------------------------
+
+
+def test_every_mutating_route_is_explicitly_classified():
+    """
+    An unclassified route still fails closed, but silently defaulting is how an
+    endpoint meant for the judge tier ends up unreachable in production.
+    """
+    missing = unclassified_routes(server.app)
+    assert (
+        not missing
+    ), "these mutating routes have no entry in ROUTE_TIERS:\n  " + "\n  ".join(
+        f"{m} {p}" for m, p in missing
+    )
+
+
+def test_classification_table_has_no_stale_entries():
+    live = set(_mutating_routes())
+    declared = set(ROUTE_TIERS)
+    # A judge endpoint may be declared before it is implemented; anything else
+    # stale means the table drifted from the app.
+    stale = {e for e in declared - live if not e[1].endswith("/judge")}
+    assert not stale, f"ROUTE_TIERS references routes that no longer exist: {stale}"
+
+
+def test_safe_methods_are_public():
+    assert required_tier("GET", "/api/benchmarks") is Tier.PUBLIC
+    assert required_tier("HEAD", "/api/benchmarks") is Tier.PUBLIC
+
+
+def test_unknown_mutating_route_fails_closed():
+    assert required_tier("POST", "/api/some/future/endpoint") is Tier.FULL
+    assert required_tier("DELETE", "/api/anything") is Tier.FULL
+
+
+# --- enforcement ----------------------------------------------------------
+
+
+@pytest.mark.parametrize("method,path", _mutating_routes(), ids=lambda v: str(v))
+def test_public_mode_refuses_every_mutating_endpoint(client, method, path):
+    server.set_mode(Tier.PUBLIC)
+    resp = client.request(method, _concrete(path), json={})
+    assert resp.status_code == 403, f"{method} {path} returned {resp.status_code}"
+    assert "read-only" in resp.json()["detail"]
+
+
+def test_public_mode_still_serves_reads(client):
+    server.set_mode(Tier.PUBLIC)
+    assert client.get("/api/benchmarks").status_code == 200
+    assert client.get("/api/benchmarks/demo/errors").status_code == 200
+    assert client.get("/api/evaluation-metric-definitions").status_code == 200
+
+
+def test_full_mode_reaches_the_handlers(client):
+    """The local dashboard must keep every capability it had before tiers."""
+    server.set_mode(Tier.FULL)
+    for method, path in _mutating_routes():
+        resp = client.request(method, _concrete(path), json={})
+        assert resp.status_code != 403, f"{method} {path} was blocked in full mode"
+
+
+def test_mode_is_a_ceiling_that_signing_in_cannot_raise(client, monkeypatch):
+    """A public deployment must not become full because someone signed in."""
+    server.set_mode(Tier.PUBLIC)
+    server.set_judge_allowlist({ALLOWED})
+    monkeypatch.setattr(server, "current_user_email", lambda request: ALLOWED)
+
+    resp = client.post("/api/benchmarks/demo/execute", json={"sql": "SELECT 1"})
+    assert resp.status_code == 403
+
+    body = client.get("/api/me").json()
+    assert body["tier"] == "public"
+    assert body["can_mutate"] is False
+
+
+# --- tier resolution ------------------------------------------------------
+
+
+def test_allowlisted_user_reaches_judge_but_not_full():
+    allowlist = {ALLOWED}
+    assert resolve_tier(Tier.JUDGE, ALLOWED, allowlist) is Tier.JUDGE
+    assert resolve_tier(Tier.JUDGE, ALLOWED, allowlist) < Tier.FULL
+
+
+def test_signed_in_stranger_is_public():
+    assert resolve_tier(Tier.JUDGE, "someone@else.com", {ALLOWED}) is Tier.PUBLIC
+
+
+def test_anonymous_is_public():
+    assert resolve_tier(Tier.JUDGE, None, {ALLOWED}) is Tier.PUBLIC
+
+
+def test_allowlist_matching_is_case_insensitive():
+    assert resolve_tier(Tier.JUDGE, "Oktieh@Gmail.COM", {ALLOWED}) is Tier.JUDGE
+
+
+def test_empty_allowlist_grants_nobody_judge():
+    assert resolve_tier(Tier.JUDGE, ALLOWED, set()) is Tier.PUBLIC
+
+
+def test_local_mode_ignores_identity_entirely():
+    assert resolve_tier(Tier.FULL, None, set()) is Tier.FULL
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        (None, set()),
+        ("", set()),
+        ("  ", set()),
+        ("a@b.com", {"a@b.com"}),
+        ("a@b.com,c@d.com", {"a@b.com", "c@d.com"}),
+        (" A@B.com , c@d.com ", {"a@b.com", "c@d.com"}),
+        ("a@b.com,,c@d.com", {"a@b.com", "c@d.com"}),
+    ],
+)
+def test_allowlist_parsing(raw, expected):
+    assert parse_allowlist(raw) == expected
+
+
+def test_tier_parse_rejects_nonsense():
+    assert Tier.parse("PUBLIC") is Tier.PUBLIC
+    assert Tier.parse(" judge ") is Tier.JUDGE
+    with pytest.raises(ValueError, match="Unknown tier"):
+        Tier.parse("admin")
+
+
+# --- session info ---------------------------------------------------------
+
+
+def test_me_reports_local_operator_capability(client):
+    server.set_mode(Tier.FULL)
+    body = client.get("/api/me").json()
+    assert body["tier"] == "full"
+    assert body["can_mutate"] is True
+    assert body["signed_in"] is False
+
+
+def test_me_works_without_session_middleware_installed(client):
+    """Local mode installs no session middleware; reading identity must not
+    blow up because of that."""
+    server.set_mode(Tier.PUBLIC)
+    resp = client.get("/api/me")
+    assert resp.status_code == 200
+    assert resp.json()["email"] is None

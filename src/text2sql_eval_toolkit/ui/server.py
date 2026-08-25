@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, ConfigDict, Field
@@ -48,6 +48,12 @@ from text2sql_eval_toolkit.evaluation.metric_definitions import (
     get_metric_definitions_payload,
 )
 from text2sql_eval_toolkit.indexing import is_stale as is_index_stale
+from text2sql_eval_toolkit.ui.capabilities import (
+    Tier,
+    parse_allowlist,
+    required_tier,
+    resolve_tier,
+)
 from text2sql_eval_toolkit.indexing.store import EvalIndex
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.utils import get_gt_sqls, get_question
@@ -60,6 +66,105 @@ app = FastAPI(title="Text2SQL Evaluation Dashboard API")
 # the --enable-fetch CLI flag.  Off by default so production deployments are
 # safe without any configuration.
 _ENABLE_FETCH_ENDPOINT: bool = False
+
+# Deployment ceiling, set at startup. FULL is the local-operator default so a
+# plain `text2sql-eval-dashboard` keeps every capability it has today; a public
+# deployment lowers it and no sign-in can raise it back.
+_MODE: Tier = Tier.FULL
+
+# Emails allowed to reach the judge tier, from TEXT2SQL_JUDGE_ALLOWLIST.
+_JUDGE_ALLOWLIST: set = parse_allowlist(os.getenv("TEXT2SQL_JUDGE_ALLOWLIST"))
+
+
+def get_mode() -> Tier:
+    return _MODE
+
+
+def set_mode(mode: Tier) -> None:
+    global _MODE
+    _MODE = mode
+
+
+def get_judge_allowlist() -> set:
+    return _JUDGE_ALLOWLIST
+
+
+def set_judge_allowlist(allowlist: set) -> None:
+    global _JUDGE_ALLOWLIST
+    _JUDGE_ALLOWLIST = allowlist
+
+
+def current_user_email(request: Request) -> Optional[str]:
+    """
+    Identity for the request.
+
+    Sign-in lands in a later step; until then only the local operator exists,
+    and FULL mode does not consult identity at all.
+    """
+    # request.session raises unless SessionMiddleware is installed, and it is
+    # not in local mode, so check the scope rather than the property.
+    session = request.scope.get("session")
+    if isinstance(session, dict):
+        email = session.get("email")
+        if isinstance(email, str):
+            return email
+    return None
+
+
+def _route_template(request: Request) -> Optional[str]:
+    """
+    The matched route's path template (``/api/benchmarks/{benchmark_id}/execute``).
+
+    Returns None when nothing matches, which leaves the caller with the concrete
+    path -- and therefore the fail-closed FULL default for mutating methods.
+    """
+    from starlette.routing import Match
+
+    for route in app.router.routes:
+        try:
+            match, _ = route.matches(request.scope)
+        except Exception:  # pragma: no cover - defensive
+            continue
+        if match is Match.FULL:
+            return getattr(route, "path", None)
+    return None
+
+
+@app.middleware("http")
+async def enforce_capability_tier(request: Request, call_next):
+    """
+    Single choke point for authorization.
+
+    Applied as middleware rather than per-handler so a route added later is
+    covered whether or not its author remembered. Undeclared mutating routes
+    require FULL, so the failure mode is a locked door rather than an open one.
+    """
+    path = request.scope.get("path", "")
+    if not path.startswith("/api/"):
+        return await call_next(request)
+
+    # HTTP middleware runs before routing, so scope["route"] is not set yet;
+    # resolve the template ourselves. Matching the template rather than the
+    # concrete path means ids in the URL cannot be used to dodge a rule.
+    template = _route_template(request) or path
+    needed = required_tier(request.method, template)
+    granted = resolve_tier(
+        get_mode(), current_user_email(request), get_judge_allowlist()
+    )
+
+    if granted < needed:
+        return JSONResponse(
+            status_code=403,
+            content={
+                "detail": (
+                    f"This endpoint requires the '{needed.name.lower()}' capability; "
+                    f"this session has '{granted.name.lower()}'. "
+                    "The public dashboard is read-only."
+                )
+            },
+        )
+    return await call_next(request)
+
 
 # Allow local dev frontends by default
 app.add_middleware(
@@ -669,6 +774,37 @@ def invalidate_index_cache(benchmark_id: Optional[str] = None) -> None:
             handle = EVAL_INDEX_CACHE.pop(key, None)
             if handle is not None:
                 handle.close()
+
+
+class SessionInfo(BaseModel):
+    """What the frontend needs to decide which actions to offer."""
+
+    tier: str
+    mode: str
+    email: Optional[str] = None
+    signed_in: bool = False
+    can_run_judge: bool = False
+    can_mutate: bool = False
+
+
+@app.get("/api/me", response_model=SessionInfo)
+def get_session_info(request: Request) -> SessionInfo:
+    """
+    The caller's effective capability.
+
+    The UI uses this to hide actions that would 403, so a read-only visitor is
+    not offered buttons that cannot work.
+    """
+    email = current_user_email(request)
+    tier = resolve_tier(get_mode(), email, get_judge_allowlist())
+    return SessionInfo(
+        tier=tier.name.lower(),
+        mode=get_mode().name.lower(),
+        email=email,
+        signed_in=bool(email),
+        can_run_judge=tier >= Tier.JUDGE,
+        can_mutate=tier >= Tier.FULL,
+    )
 
 
 @app.get("/api/benchmarks", response_model=BenchmarksResponse)
@@ -2478,6 +2614,27 @@ def main(argv: Optional[List[str]] = None) -> None:
         ),
     )
     parser.add_argument(
+        "--mode",
+        default=os.getenv("TEXT2SQL_DASHBOARD_MODE", "full"),
+        choices=[t.name.lower() for t in Tier],
+        help=(
+            "Capability ceiling for this deployment. 'full' (default) is the "
+            "local operator tool and is refused on a non-loopback interface "
+            "without --allow-remote-full. 'public' serves pre-computed results "
+            "read-only. 'judge' additionally lets allowlisted signed-in users "
+            "run LLM-as-judge."
+        ),
+    )
+    parser.add_argument(
+        "--allow-remote-full",
+        action="store_true",
+        help=(
+            "Permit --mode full on a non-loopback interface. This exposes SQL "
+            "execution and registry writes to anyone who can reach the port; "
+            "do not use it to serve the public dashboard."
+        ),
+    )
+    parser.add_argument(
         "--enable-fetch",
         action="store_true",
         default=False,
@@ -2489,6 +2646,25 @@ def main(argv: Optional[List[str]] = None) -> None:
         ),
     )
     args = parser.parse_args(argv)
+
+    mode = Tier.parse(args.mode)
+    # The dangerous configuration should take deliberate effort, not a default.
+    loopback = args.host in {"127.0.0.1", "localhost", "::1"}
+    if mode is Tier.FULL and not loopback and not args.allow_remote_full:
+        parser.error(
+            f"--mode full refuses to bind {args.host}: it exposes SQL execution "
+            "against configured database credentials, evaluation runs, and "
+            "registry writes to anyone who can reach the port. Use --mode public "
+            "for a shared deployment, or --allow-remote-full if you are certain."
+        )
+    set_mode(mode)
+    set_judge_allowlist(parse_allowlist(os.getenv("TEXT2SQL_JUDGE_ALLOWLIST")))
+    logger.info(
+        "Capability mode: %s (judge allowlist: %d entr%s)",
+        mode.name.lower(),
+        len(get_judge_allowlist()),
+        "y" if len(get_judge_allowlist()) == 1 else "ies",
+    )
 
     global _ENABLE_FETCH_ENDPOINT
     if args.enable_fetch:
