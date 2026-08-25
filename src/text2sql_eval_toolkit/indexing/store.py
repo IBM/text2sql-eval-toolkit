@@ -392,6 +392,73 @@ class EvalIndex:
             counts[f"left{row['lb']}right{row['rb']}"] += row["n"]
         return counts
 
+    def metric_values_by_category(
+        self,
+    ) -> "Tuple[Dict[str, Dict[str, List[float]]], Dict[str, Dict[str, Dict[str, List[float]]]]]":
+        """
+        Every numeric metric value, grouped for the by-category summary.
+
+        Returns ``(overall, by_category)`` where ``overall[pipeline][metric]``
+        and ``by_category[category][pipeline][metric]`` are lists of values in
+        record order.
+
+        This exists because the summary was reading these numbers by parsing the
+        whole source artifact: for Beaver that is 880 MB of JSON to collect a few
+        tens of thousands of floats. The index stores each prediction's whole
+        evaluation block, which is 8.5 MB for the same benchmark.
+
+        Reading the stored blocks rather than the interned ``metrics`` table is
+        deliberate, and so is ordering by ``position``. Iterating an evaluation
+        block reproduces the record's own metric order, and ``position`` is the
+        pipeline's index within that record's ``predictions`` object -- so the
+        accumulated lists, the key order of the JSON response, and the order the
+        floating-point sums accumulate in are all identical to what parsing the
+        artifact produced. Ordering by the interned refs instead sorts by global
+        first-appearance, which silently reshuffles both.
+        """
+        from collections import defaultdict
+
+        categories_of: Dict[int, List[str]] = defaultdict(list)
+        for row in self._conn.execute(
+            "SELECT rc.ordinal AS ordinal, c.category AS category "
+            "FROM record_categories rc "
+            "JOIN categories c ON c.category_ref = rc.category_ref "
+            "ORDER BY rc.ordinal, rc.category_ref"
+        ):
+            categories_of[row["ordinal"]].append(row["category"])
+
+        overall: Dict[str, Dict[str, List[float]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
+        by_category: Dict[str, Dict[str, Dict[str, List[float]]]] = defaultdict(
+            lambda: defaultdict(lambda: defaultdict(list))
+        )
+
+        for row in self._conn.execute(
+            "SELECT pr.ordinal AS ordinal, p.pipeline_id AS pipeline, "
+            "       pr.evaluation_json AS evaluation "
+            "FROM predictions pr "
+            "JOIN pipelines p ON p.pipeline_ref = pr.pipeline_ref "
+            "ORDER BY pr.ordinal, pr.position"
+        ):
+            evaluation = json.loads(row["evaluation"])
+            if not isinstance(evaluation, dict):
+                continue
+            pipeline = row["pipeline"]
+            categories = categories_of.get(row["ordinal"], ())
+            for metric, value in evaluation.items():
+                # The same `isinstance` test the endpoints applied. bool passes
+                # it in Python, so a boolean metric counts as 1.0/0.0 rather
+                # than being dropped.
+                if not isinstance(value, (int, float)):
+                    continue
+                value = float(value)
+                overall[pipeline][metric].append(value)
+                for category in categories:
+                    by_category[category][pipeline][metric].append(value)
+
+        return overall, by_category
+
     def iter_records(self) -> "Iterator[Dict[str, Any]]":
         """
         Stream every record in file order, one at a time.
