@@ -12,6 +12,54 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — Coverage floors, and two more defects in the reports nobody tests (4.10)
+
+`error_analysis.py` went 9% → 70%. It writes the per-pipeline failure reports that ship
+beside `data/results/README.md` and render inline in the analysis notebooks. The risk in a
+module like that is never a crash — it is a report that looks fine and says something
+untrue — and writing the tests turned up two of those.
+
+**A question the pipeline never answered lost its identity.** A record with no prediction
+for a pipeline was appended to the failed list as the bare string
+`"No predictions for {pipeline}"`. It still counted towards the failure total, which is
+right: a pipeline that produced nothing for a question did fail on it. But the record was
+gone, so the report could not say *which* question — and the formatter, handed a string
+where it expected a mapping, fell into its error branch and rendered
+`⚠️ Error reading prediction in record: {…}` instead of an example. Those stay records
+now, and format as an explicit "No Prediction" entry naming the question.
+
+**That error note inlined the whole record.** A record carries serialized result
+dataframes, so one malformed record put hundreds of kilobytes of them into a published
+markdown file, and the same again into the log line beside it. It names the record now.
+
+**On the floors themselves.** A single project-wide percentage would have been close to
+useless here. 39% is carried by the modules that were written with tests; it would sit
+perfectly flat while `evaluation_tools` or `capabilities` lost half their coverage. So
+`scripts/ci/check_coverage.py` enforces 16 per-module minimums, grouped by what a
+regression would actually cost — the published numbers, the artifact index, authorization,
+data access — and every entry carries its reason in the file.
+
+Two details that make it a guard rather than decoration:
+
+- It **fails on a module named in the table that the report has never heard of.** A typo or
+  a rename would otherwise enforce nothing at all, silently, which is precisely the failure
+  mode the file exists to prevent.
+- It **reports when a module has drifted 10 points clear of its floor.** A ratchet nobody
+  tightens stops being a ratchet.
+
+Floors sit a few points under what is reached, because branch coverage differs slightly
+across the 3.11/3.12/3.13 matrix and a floor that fails on noise gets deleted by the next
+person. Verified the check fails on a regression rather than merely passing today.
+
+`fail_under = 38` in `pyproject.toml` covers everything else, and is low on purpose: the
+remaining bulk is inference and execution code that needs live LLM and DB endpoints, and
+raising it would mean either weak tests or a suite that cannot run offline. Saying that
+out loud is better than a number that implies more assurance than exists.
+
+548 backend and 77 frontend tests passing.
+
+---
+
 ## 2026-08-25 — Splitting server.py found a hole in the authorization layer (4.9)
 
 `ui/server.py` is 3,184 lines down to **343**, across 18 modules with nothing over 800.
