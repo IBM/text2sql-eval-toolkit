@@ -80,9 +80,39 @@ calibration against a real invoice, and a provider that reports no usage is logg
 `llm_as_judge` now returns `token_usage`, handling both the legacy `generate` shape
 (`results[0].input_token_count`) and the Chat API shape (`usage.prompt_tokens`).
 
-366 tests passing. Still outstanding in Phase D: hardening (3.5), the container and
-Compose stack (3.6), provisioning (3.7), operations (3.8), polish (3.9), and the database
-services (3.10–3.12).
+**Hardening (3.5).**
+
+- **Judge config names** are validated and contained. Both the read *and write* endpoints
+  interpolated a URL segment straight into `base_dir / f"{name}.yaml"`, so the write
+  endpoint could place YAML outside the config directory.
+- **CORS** allowed credentialed requests from a localhost origin list. Harmless while no
+  session existed; adding sign-in made it real. Withdrawn outside full mode, where the UI
+  is same-origin anyway.
+- **Security headers** on every response: a restrictive CSP (no third-party scripts or
+  frames), nosniff, DENY framing, same-origin referrer.
+- **Rate limiting** per client outside full mode, with a tighter bucket for `/api/auth/*`.
+  Local mode is exempt — throttling a single-operator interactive tool would be a
+  regression for nothing.
+- **Error detail** is tier-dependent. 404s named the exact file under `data/results/` and
+  the commands to fix it; a public visitor can act on none of that and it discloses the
+  filesystem layout.
+
+**One real exposure found and fixed, created by two safe things combining.**
+`/api/static/{path}` served any file beneath the data root, and being a GET it runs at the
+public tier. The judge spend store was then placed *under* the data root. Neither is a
+problem alone; together, `GET /api/static/judge/usage.sqlite` returned the full SQLite
+database — spend ledger, cached verdicts, per-user hashes — to any anonymous visitor.
+Confirmed against a running server, not inferred. The derived indices were equally
+readable. The route is now scoped to `benchmarks/logos/` and to image extensions, which
+is its only actual use; the URL contract is unchanged.
+
+Verified end-to-end in public mode against the real 3.6 GB corpus: reads work (including
+the 880 MB Beaver benchmark), `/execute`, `/evaluate`, `/judge` and the static store are
+all 403, and 404s disclose nothing.
+
+400 tests passing. Still outstanding in Phase D: the container and Compose stack (3.6),
+provisioning (3.7), operations (3.8), public-facing polish including a sign-in affordance
+and a read-only indication (3.9), and the database services (3.10–3.12).
 
 ---
 
