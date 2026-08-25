@@ -288,7 +288,7 @@ OIDC against Google directly, via Authlib on FastAPI. No third-party identity se
 for an allowlist this small, Auth0/Clerk add cost and a dependency for nothing. Google
 OAuth itself is free.
 
-**Initial allowlist: `oktieh@gmail.com` only.** Everyone else — signed in or not — is
+**Initial allowlist: `operator@example.com` only.** Everyone else — signed in or not — is
 `public`.
 
 - Authorization-code flow **with PKCE and a `state` parameter**.
@@ -297,7 +297,7 @@ OAuth itself is free.
 - Session as a signed, `httpOnly`, `Secure`, `SameSite=Lax` cookie with a short TTL.
   Store no user records — the session cookie is the whole state, which keeps the privacy
   story simple and means no user database to secure.
-- Allowlist from a secret env var — `TEXT2SQL_JUDGE_ALLOWLIST=oktieh@gmail.com` —
+- Allowlist from a secret env var — `TEXT2SQL_JUDGE_ALLOWLIST=operator@example.com` —
   parsed as a comma-separated list and matched case-insensitively against the verified
   email. Adding a user later is an env var change and a restart, no redeploy and no code
   change. Keep it list-valued from day one even though it holds one entry.

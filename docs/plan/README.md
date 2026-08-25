@@ -221,7 +221,7 @@ Decisions on record:
   Live read-only API, not a static export. Roughly **$54–55/month all-in** with the judge
   budget.
 - **Data: the pinned Hugging Face Hub snapshot**, fetched once onto a persistent volume.
-- **Judge allowlist: `oktieh@gmail.com` only**, extendable later via env var.
+- **Judge allowlist: `operator@example.com` only**, extendable later via env var.
 - **Judge budget: $50/month** for LLM spend, metered from token usage.
 - **Python: floor stays `>=3.11`**, CI matrix 3.11–3.13 (3.14 non-blocking), container
   pinned to 3.13. Rationale in [`04-code-quality.md`](04-code-quality.md).

@@ -134,12 +134,6 @@ export function parseQuery(search: string | URLSearchParams): ErrorFilters {
   };
 }
 
-/** Absolute URL for the current view, for the "Copy link" affordance. */
-export function absoluteUrl(path: string): string {
-  if (typeof window === "undefined") return path;
-  return new URL(path, window.location.origin).toString();
-}
-
 /** What a URL path resolves to. */
 export interface RouteMatch {
   view: ViewName;
