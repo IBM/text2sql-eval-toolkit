@@ -57,6 +57,9 @@ FLOORS: dict[str, int] = {
     "ui/auth.py": 85,
     "ui/judge_budget.py": 85,
     "ui/aliases.py": 95,
+    # Called at module scope across the package, so a failure here is an
+    # import failure -- which is exactly how it reached a container.
+    "logging.py": 90,
     # --- Data access -------------------------------------------------------
     # What a browser is asked to render. A regression here is a frozen tab.
     "ui/dataframes.py": 90,
