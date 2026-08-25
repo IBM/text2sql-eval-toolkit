@@ -22,8 +22,11 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
-from text2sql_eval_toolkit.ui import runtime, server  # noqa: E402
+from fastapi import Request  # noqa: E402
+
+from text2sql_eval_toolkit.ui import middleware, runtime, server  # noqa: E402
 from text2sql_eval_toolkit.ui.capabilities import (  # noqa: E402
+    iter_routes,
     ROUTE_TIERS,
     SAFE_METHODS,
     Tier,
@@ -56,7 +59,9 @@ def client(tmp_path, monkeypatch):
 
 def _mutating_routes():
     out = []
-    for route in server.app.routes:
+    # iter_routes, not app.routes: an included router is a wrapper with no path
+    # of its own, so a flat walk would report every route inside it as missing.
+    for route in iter_routes(server.app):
         path = getattr(route, "path", "")
         methods = getattr(route, "methods", None) or set()
         if not path.startswith("/api"):
@@ -350,3 +355,48 @@ def test_sign_in_availability_follows_configuration(client, monkeypatch):
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "id")
     monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret")
     assert client.get("/api/deployment").json()["sign_in_available"] is True
+
+
+# --- seeing every route ---------------------------------------------------
+
+
+def test_routes_inside_an_included_router_are_visible():
+    """
+    Since Starlette 1.6, include_router leaves a wrapper in app.routes holding
+    the real routes rather than splicing them in. A flat walk sees an object
+    with no `path` and skips it -- so every route in that router becomes
+    invisible to the classification audit and to template resolution.
+
+    This asserts the walk descends. If it regresses, the SQL-execution routes
+    stop being auditable, which is the opposite of why they were grouped into a
+    module of their own.
+    """
+    paths = {getattr(r, "path", None) for r in iter_routes(server.app)}
+    assert "/api/benchmarks/{benchmark_id}/execute" in paths
+    assert "/api/benchmarks/{benchmark_id}/playground/evaluate" in paths
+
+
+def test_the_tier_gate_resolves_a_template_for_a_router_hosted_route():
+    """
+    The gate matches on the route *template*, so an id in the URL cannot be
+    used to dodge a rule. Falling back to the concrete path still fails closed
+    for mutating methods, but it means the ROUTE_TIERS entry is never consulted
+    -- a route deliberately placed below `full` would be unreachable rather
+    than merely over-restricted, and nothing would say so.
+    """
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "path": "/api/benchmarks/spider_dev/execute",
+        "root_path": "",
+        "headers": [],
+        "query_string": b"",
+        "app": server.app,
+    }
+    template = middleware._route_template(Request(scope))
+    assert template == "/api/benchmarks/{benchmark_id}/execute"
+    assert required_tier("POST", template) is Tier.FULL
+
+
+def test_iter_routes_tolerates_something_with_no_routes_at_all():
+    assert list(iter_routes(object())) == []

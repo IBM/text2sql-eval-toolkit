@@ -33,7 +33,12 @@ from fastapi.responses import JSONResponse
 from starlette.routing import get_route_path
 
 from text2sql_eval_toolkit.ui import runtime
-from text2sql_eval_toolkit.ui.capabilities import Tier, required_tier, resolve_tier
+from text2sql_eval_toolkit.ui.capabilities import (
+    Tier,
+    iter_routes,
+    required_tier,
+    resolve_tier,
+)
 
 
 def _route_template(request: Request) -> Optional[str]:
@@ -44,11 +49,14 @@ def _route_template(request: Request) -> Optional[str]:
     path -- and therefore the fail-closed FULL default for mutating methods.
 
     The route table comes from ``request.app`` rather than a module-level
-    reference, so this stays correct for any app the stack is installed on.
+    reference, so this stays correct for any app the stack is installed on, and
+    the walk descends into included routers -- which are wrapper objects with no
+    ``path`` of their own, so a flat iteration would match none of their routes
+    and silently fall back to the concrete path.
     """
     from starlette.routing import Match
 
-    for route in request.app.router.routes:
+    for route in iter_routes(request.app):
         try:
             match, _ = route.matches(request.scope)
         except Exception:  # pragma: no cover - defensive
