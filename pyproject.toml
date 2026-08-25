@@ -63,6 +63,9 @@ notebook = [
 dashboard = [
   "fastapi>=0.115.0",
   "uvicorn[standard]>=0.30.0",
+  # Google OIDC sign-in for shared deployments; unused in local (full) mode.
+  "authlib>=1.3",
+  "itsdangerous>=2.1",
   # MySQL async driver (Beaver benchmark); execution_tools uses mysql+aiomysql://
   "pymysql>=1.1.1",
   "aiomysql>=0.2.0",

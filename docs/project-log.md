@@ -5,6 +5,57 @@ Plans for upcoming work live in [`docs/plan/`](plan/).
 
 ---
 
+## 2026-08-25 — Phase D begins: capability tiers and Google sign-in (3.1–3.2)
+
+**Capability tiers (3.1).** Authorization is now resolved once per request from the
+deployment mode and the caller's identity, and enforced in a single middleware rather than
+across twenty-eight handlers.
+
+- `public` — read-only. Anonymous, or signed in without an allowlist entry.
+- `judge` — adds on-demand LLM-as-judge for allowlisted signed-in users.
+- `full` — everything, as before; still the local default.
+
+Two properties make it hard to get wrong. A mutating route with no declared tier requires
+`full`, so forgetting to classify a new endpoint fails closed. And the startup mode is a
+*ceiling* — signing in can never raise a public deployment to `full`. `--mode full`
+refuses a non-loopback bind without `--allow-remote-full`, so the dangerous configuration
+takes deliberate effort.
+
+The classification test earned its keep immediately: adding `/api/auth/logout` in the very
+next step made it fail until the route was explicitly classified.
+
+**Google sign-in (3.2).** Direct OIDC via Authlib — for an allowlist this small, an
+identity service would add cost and a dependency for nothing.
+
+The load-bearing check is `email_verified`. Google returns an `email` claim for unverified
+addresses too, so matching the allowlist on `email` alone would make the allowlist
+meaningless: anyone could create an account claiming `oktieh@gmail.com`. Sessions carry the
+verified address and nothing else, so there is no user database to secure, and logs carry a
+hash rather than the address.
+
+`safe_redirect_target()` restricts the post-sign-in redirect to same-site paths, so a
+crafted sign-in link cannot bounce a freshly authenticated user to another origin.
+
+**Three bugs found by running it rather than reasoning about it**
+
+1. HTTP middleware executes *before* routing, so `scope["route"]` is unset. Matching the
+   concrete path would have sent every parameterised route to the fail-closed default —
+   safe, but it would have made the judge tier unreachable. The template is now resolved
+   against the router.
+2. `request.session` *raises* when `SessionMiddleware` is absent, which it is in local
+   mode, so `getattr(..., None)` did not help. Reads go through `request.scope` now.
+3. The first tier test asserted every mutating route is refused in `public`, which was
+   wrong as soon as a deliberately-public mutating route existed. It now checks each route
+   against its *declared* tier, with a separate explicit list asserting the genuinely
+   dangerous endpoints stay `full` — otherwise a relaxed tier would simply be rubber-
+   stamped by the parametrised test.
+
+345 tests passing. Still outstanding in Phase D: the scoped judge endpoint (3.3), cost
+controls (3.4), hardening (3.5), the container and Compose stack (3.6), provisioning
+(3.7), operations (3.8), polish (3.9), and the database services (3.10–3.12).
+
+---
+
 ## 2026-08-25 — Local setup fixed: full result set fetched, index validated on real data
 
 The dashboard was 404ing on five of six benchmarks because only `archer_en_dev` had ever

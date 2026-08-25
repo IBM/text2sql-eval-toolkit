@@ -116,11 +116,40 @@ def test_unknown_mutating_route_fails_closed():
 
 
 @pytest.mark.parametrize("method,path", _mutating_routes(), ids=lambda v: str(v))
-def test_public_mode_refuses_every_mutating_endpoint(client, method, path):
+def test_public_mode_refuses_endpoints_above_its_tier(client, method, path):
+    """
+    Checked against each route's *declared* tier rather than assuming every
+    mutating route is privileged -- signing out, for instance, is deliberately
+    available to anyone.
+    """
     server.set_mode(Tier.PUBLIC)
     resp = client.request(method, _concrete(path), json={})
-    assert resp.status_code == 403, f"{method} {path} returned {resp.status_code}"
-    assert "read-only" in resp.json()["detail"]
+    if required_tier(method, path) > Tier.PUBLIC:
+        assert resp.status_code == 403, f"{method} {path} returned {resp.status_code}"
+        assert "read-only" in resp.json()["detail"]
+    else:
+        assert resp.status_code != 403, f"{method} {path} was wrongly blocked"
+
+
+def test_at_least_the_dangerous_endpoints_are_privileged():
+    """
+    A guard on the guard: if someone relaxes a tier by accident, the
+    parametrised test above would happily assert the new, weaker behaviour.
+    These specific endpoints must never be reachable from the public tier.
+    """
+    dangerous = [
+        ("POST", "/api/benchmarks/{benchmark_id}/execute"),
+        ("POST", "/api/benchmarks/{benchmark_id}/playground/evaluate"),
+        ("POST", "/api/benchmarks/{benchmark_id}/evaluate"),
+        ("POST", "/api/benchmarks/{benchmark_id}/ground-truth-sql"),
+        ("PUT", "/api/llm-judge/configs/{name}"),
+        ("POST", "/api/benchmarks"),
+        ("PUT", "/api/benchmarks/{benchmark_id}"),
+        ("POST", "/api/benchmarks/logo-upload"),
+        ("POST", "/api/results/fetch"),
+    ]
+    for method, path in dangerous:
+        assert required_tier(method, path) is Tier.FULL, f"{method} {path}"
 
 
 def test_public_mode_still_serves_reads(client):
