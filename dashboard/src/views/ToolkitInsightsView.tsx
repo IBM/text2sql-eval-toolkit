@@ -220,7 +220,9 @@ export const ToolkitInsightsView: React.FC<Props> = ({
   }, [summary, selectedPipeline]);
 
   const pipelineDeltaRows = useMemo(() => {
-    if (!summary) return [];
+    // `!summary` alone is not enough: a response missing `overall` is truthy and
+    // then throws on .map, taking the whole view down.
+    if (!summary?.overall?.length) return [];
     const rows = summary.overall
       .map((p) => {
         const delta = metricDelta(p, "execution_accuracy", "subset_non_empty_execution_accuracy");
@@ -232,17 +234,20 @@ export const ToolkitInsightsView: React.FC<Props> = ({
   }, [summary]);
 
   const availablePipelines = useMemo(
-    () => summary?.overall.map((p) => p.name) ?? [],
+    () => summary?.overall?.map((p) => p.name) ?? [],
     [summary]
   );
 
   const selectedExecVsSubset = useMemo(
-    () => execVsSubset?.per_pipeline.find((p) => p.pipeline === selectedPipeline) ?? null,
+    () =>
+      execVsSubset?.per_pipeline?.find((p) => p.pipeline === selectedPipeline) ??
+      null,
     [execVsSubset, selectedPipeline]
   );
 
   const selectedExecVsLLM = useMemo(
-    () => execVsLLM?.per_pipeline.find((p) => p.pipeline === selectedPipeline) ?? null,
+    () =>
+      execVsLLM?.per_pipeline?.find((p) => p.pipeline === selectedPipeline) ?? null,
     [execVsLLM, selectedPipeline]
   );
 

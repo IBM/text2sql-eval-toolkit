@@ -75,7 +75,7 @@ export const CompareView: React.FC<Props> = ({ benchmarkId }) => {
 
   const rows = useMemo(
     () =>
-      data?.rows.map((r, idx) => ({
+      data?.rows?.map((r, idx) => ({
         id: `${r.pipeline}-${r.metric}-${idx}`,
         pipeline: r.pipeline,
         metric: r.metric,

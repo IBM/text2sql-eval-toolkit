@@ -341,9 +341,10 @@ export const PipelineDetailView: React.FC<Props> = ({
 
   const pipelineSummary = useMemo(() => {
     if (!summary) return null;
-    const overall = summary.overall.find((p) => p.name === pipelineName)?.metrics ?? {};
+    const overall =
+      (summary.overall ?? []).find((p) => p.name === pipelineName)?.metrics ?? {};
     const perCategory: Record<string, Record<string, any>> = {};
-    for (const [cat, rows] of Object.entries(summary.categories)) {
+    for (const [cat, rows] of Object.entries(summary.categories ?? {})) {
       const row = rows.find((p) => p.name === pipelineName);
       if (row) perCategory[cat] = row.metrics;
     }
