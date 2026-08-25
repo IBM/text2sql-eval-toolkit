@@ -124,6 +124,50 @@ jobs:
           path: coverage.xml
           if-no-files-found: warn
 
+  e2e:
+    name: End-to-end (shareable links)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install the toolkit
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dashboard]"
+      - name: Install frontend dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Install Chromium
+        working-directory: dashboard
+        # Only the one browser: these tests are about routing and history, not
+        # cross-browser rendering, and three engines would triple the download
+        # for no additional signal.
+        run: npx playwright install --with-deps chromium
+      - name: Build the dashboard
+        # The tests run against dashboard/dist, so this must be the build under
+        # test rather than the committed one.
+        working-directory: dashboard
+        run: npm run build
+      - name: Playwright
+        working-directory: dashboard
+        run: npx playwright test
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: dashboard/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   test-next:
     # Non-blocking early warning for the next interpreter. Promote into `test`
     # once dependency wheels (psycopg2-binary, ibm_watsonx_ai) are confirmed.

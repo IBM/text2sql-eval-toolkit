@@ -67,7 +67,7 @@ import {
 import toolkitLogo from "../assets/text2sql-eval-toolkit-logo.png";
 import githubLogo from "../assets/github.png";
 import type { BenchmarkConfigInput, BenchmarkSummary } from "../types/benchmark";
-import { parseLocation, parseQuery, routes } from "../lib/routes";
+import { FILTER_DEFAULTS, parseLocation, parseQuery, routes } from "../lib/routes";
 import {
   expandUrl,
   looksLikeAlias,
@@ -166,8 +166,15 @@ export const App: React.FC = () => {
     return out;
   }, [urlFilters]);
 
-  // Filter/page/record changes rewrite the URL in place: a shared link must
-  // reproduce the exact view, but each keystroke should not add a history entry.
+  // Every filter, page and record change is written to the URL, so a shared
+  // link reproduces the exact view. Whether it also becomes a history entry
+  // depends on what changed.
+  //
+  // Typing in a filter must not: a search term would otherwise leave one entry
+  // per keystroke, and the back button becomes a way to delete characters.
+  // Turning a page or opening a record must: those are the deliberate steps a
+  // reader expects to walk back through, and replacing them meant "back" left
+  // the view entirely from page 2.
   const onErrorAnalysisStateChange = useCallback(
     (state: {
       filters: Record<string, unknown>;
@@ -184,11 +191,14 @@ export const App: React.FC = () => {
         record: state.record,
       });
       const current = `${location.pathname}${location.search}`;
-      if (next !== current) {
-        navigate(next, { replace: true });
-      }
+      if (next === current) return;
+
+      const stepped =
+        state.page !== (urlFilters.page ?? FILTER_DEFAULTS.page) ||
+        (state.record ?? null) !== (urlFilters.record ?? null);
+      navigate(next, { replace: !stepped });
     },
-    [match.benchmarkId, location.pathname, location.search, navigate]
+    [match.benchmarkId, location.pathname, location.search, navigate, urlFilters]
   );
 
   const selectedBenchmark = match.benchmarkId;
@@ -235,26 +245,32 @@ export const App: React.FC = () => {
     benchmarks[0]?.benchmark_id ??
     null;
 
-  // Views that need a benchmark redirect to one rather than rendering empty, so
-  // the address bar always reflects what is on screen.
+  // A view that needs a benchmark and was opened without one redirects to a
+  // default, so the address bar always reflects what is on screen.
+  //
+  // A benchmark the URL *names* is a different case and is not redirected. This
+  // is the situation shared links are most likely to hit -- the recipient's
+  // server has a different set of benchmarks -- and silently swapping in
+  // another one shows them numbers for something they did not ask about, with
+  // nothing to say the link failed.
   useEffect(() => {
     if (!fallbackBenchmarkId || benchmarks.length === 0) return;
+    if (selectedBenchmark) return;
     const needsBenchmark =
       activeView === "toolkitInsights" ||
       activeView === "pipelineCompare" ||
       activeView === "profileCompare" ||
       activeView === "errorAnalysis";
-    if (!selectedBenchmark) {
-      if (needsBenchmark) {
-        navigate(routes.benchmark(fallbackBenchmarkId), { replace: true });
-      }
-      return;
-    }
-    const exists = benchmarks.some((b) => b.benchmark_id === selectedBenchmark);
-    if (!exists) {
+    if (needsBenchmark) {
       navigate(routes.benchmark(fallbackBenchmarkId), { replace: true });
     }
   }, [activeView, benchmarks, fallbackBenchmarkId, selectedBenchmark, navigate]);
+
+  // Named, but not here.
+  const unknownBenchmark =
+    !!selectedBenchmark &&
+    benchmarks.length > 0 &&
+    !benchmarks.some((b) => b.benchmark_id === selectedBenchmark);
 
   const resetBenchmarkModal = () => {
     setShowBenchmarkModal(false);
@@ -367,6 +383,19 @@ export const App: React.FC = () => {
     }
     if (pendingAlias) {
       return <DataTableSkeleton role="progressbar" />;
+    }
+
+    if (unknownBenchmark) {
+      return (
+        <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
+          <NotFound
+            message={`This server has no benchmark called "${selectedBenchmark}". It may be from a deployment with a different results snapshot.`}
+          />
+          <Button kind="tertiary" size="sm" onClick={() => navigate(routes.home())}>
+            Go to benchmarks
+          </Button>
+        </div>
+      );
     }
 
     if (match.notFound) {
