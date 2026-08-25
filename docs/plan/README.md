@@ -19,7 +19,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | Goal | Done | Remaining |
 |---|---|---|
 | 1 — Shareable URLs | 7 / 7 | — |
-| 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8) |
+| 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8), both deliberately deferred |
 | 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
 | 4 — Code quality | 9.5 / 13 | Playwright E2E, router split, coverage floor, 2.0.0 |
 
@@ -46,7 +46,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 2.5 Retire the large-benchmark warning | Done | Memory no longer scales with artifact size |
 | 2.6 Cache the benchmark listing | Done | Keyed on file size and mtime |
 | 2.7 HTTP-level efficiency | Done | ETag revalidation on data-root assets |
-| **2.8 Frontend responsiveness** | **Partial** | Code splitting done (entry 556 → 401 KB). Data-fetching library and list virtualisation not done — worth re-assessing now that pages serve in ~3 ms |
+| **2.8 Frontend responsiveness** | **Partial** | Code splitting done (entry 556 → 419 KB; it has grown back 18 KB as Phase D and the alias layer landed). Data-fetching library and list virtualisation reassessed and deliberately dropped — pages now serve in 3–11 ms, below where either is perceptible |
 | 2.9 Async correctness | Done | Index builds moved off the event loop; structural test guards it |
 
 ### Goal 3 — Public deployment
@@ -74,12 +74,12 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.2 Lint/type baseline | Done | 83 ruff findings → 0; 44 files reformatted. mypy scope widened to `indexing/` and `ui/aliases.py` |
 | 4.3 Test markers | Done | Default run is hermetic |
 | 4.4 CI | Done (unrun) | 6 jobs; `actionlint` clean |
-| 4.5 Frontend test harness | Partial | Vitest with Testing Library, 51 tests including component tests that mount real views against stubbed APIs. Playwright E2E still not done — the URL round-trip is proven by hand |
+| 4.5 Frontend test harness | Partial | Vitest with Testing Library, 77 tests including component tests that mount real views against stubbed APIs. Playwright E2E still not done — the URL round-trip is proven by hand and in the browser |
 | 4.6 Registry single source of truth | Done | Checkout copy canonical; sync script, test, and CI check |
 | 4.7 One dependency source | Done | `requirements.txt` now generated from `uv.lock`; CI checks both it and lock freshness |
 | **4.8 Version hygiene → 2.0.0** | **Not started** | The final commit. Gated on a matching Hugging Face snapshot |
-| 4.9 Reduce the large modules | Partial | 41 Pydantic models extracted to `ui/models.py`; `server.py` 3,446 → 3,149 lines. Splitting the 37 routes into routers is the remaining half, and interacts with the tier middleware |
-| 4.10 Coverage targets | Partial | `evaluate_prediction` 4% → 35% and `report_tools` 0% → 52%; both found defects. Overall 29% → 35%. No floor enforced yet; `error_analysis` (5%) still untouched |
+| 4.9 Reduce the large modules | Partial | 41 Pydantic models extracted to `ui/models.py`; `server.py` 3,446 → 3,184 lines (it grew again with the alias endpoint). Splitting the 38 routes into routers is the remaining half, and interacts with the tier middleware |
+| 4.10 Coverage targets | Partial | `evaluate_prediction` 4% → 35% and `report_tools` 0% → 52%; both found defects. Overall 29% → 36%. No floor enforced yet; `error_analysis` (9%) still untouched |
 | 4.11 Documentation refresh | Done | README gains a documentation index and sections on shareable links, the query index, and shared deployment; the ~7 GB snapshot figure corrected to ~4 GB |
 | 4.12 Clear deferred Ruff findings | Done | All 4 rules re-enabled; only `F841` and `B008` remain ignored, both with stated reasons |
 | 4.13 Clear deferred frontend findings | Partial | **All 17 `tsc` errors fixed and the check is now blocking.** Effect findings 21 → 17: the metric- and pipeline-selection effects in three views are now derived state, with the rule in `lib/` and unit-tested. The rest need a component test each first |
@@ -103,9 +103,9 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
   can, since the artifacts are keyed by the id itself and there is nowhere to persist a
   mapping from a stable key to today's name. What shipped shortens links, which was the
   other half of the item; the rename half is not solved and is not pretended to be.
-- **Coverage is 35%.** The suite is strong where it was written deliberately (indexing,
-  tiers, auth, judge, evaluation, reporting) and thin elsewhere — `error_analysis.py`
-  is at 5% and the inference pipelines are largely uncovered.
+- **Coverage is 36%.** The suite is strong where it was written deliberately (indexing,
+  tiers, auth, judge, aliases, evaluation, reporting) and thin elsewhere — `error_analysis.py`
+  is at 9% and the inference pipelines are largely uncovered.
 
 ---
 
