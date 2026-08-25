@@ -16,6 +16,34 @@ from text2sql_eval_toolkit.logging import get_logger
 logger = get_logger(__name__)
 
 
+# Ranking / navigation window functions.  sqlglot >=28 made several of these
+# subclasses of `exp.AggFunc`, which silently made `RANK() OVER (...)` count as
+# an aggregation and mis-tagged pure window queries as `has_aggregation`.
+# A windowed true aggregate (`AVG(x) OVER (...)`) is still an aggregation and is
+# deliberately *not* listed here.  Resolved by name so the tuple stays valid
+# across sqlglot versions that add or rename these classes.
+_NON_AGGREGATE_WINDOW_FUNCS = tuple(
+    cls
+    for cls in (
+        getattr(exp, name, None)
+        for name in (
+            "Rank",
+            "DenseRank",
+            "RowNumber",
+            "NTile",
+            "Lag",
+            "Lead",
+            "PercentRank",
+            "CumeDist",
+            "FirstValue",
+            "LastValue",
+            "NthValue",
+        )
+    )
+    if isinstance(cls, type)
+)
+
+
 def analyze_sql_query(sql: str, dialect: str = "postgres") -> Dict:
     """
     Analyze a SQL query and classify it into categories with structural features and descriptive tags.
@@ -35,6 +63,16 @@ def analyze_sql_query(sql: str, dialect: str = "postgres") -> Dict:
     def count_names(exp_type):
         return len([e.name for e in parsed.find_all(exp_type)])
 
+    def count_aggregates():
+        """Aggregate calls, excluding ranking/navigation window functions."""
+        return len(
+            [
+                e
+                for e in parsed.find_all(exp.AggFunc)
+                if not isinstance(e, _NON_AGGREGATE_WINDOW_FUNCS)
+            ]
+        )
+
     features = {
         "query_table_count": count_names(exp.Table),
         "query_column_count": count_names(exp.Column),
@@ -42,7 +80,7 @@ def analyze_sql_query(sql: str, dialect: str = "postgres") -> Dict:
         + count(exp.Delete)
         + count(exp.Insert)
         - 1,
-        "query_aggregate_count": count(exp.AggFunc),
+        "query_aggregate_count": count_aggregates(),
         "query_sort_count": count(exp.Ordered),
         "query_window_func_count": count(exp.Window),
         "query_join_count": count(exp.Join),
