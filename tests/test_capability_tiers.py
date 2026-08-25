@@ -43,7 +43,7 @@ def client(tmp_path, monkeypatch):
     (results / "demo-predictions_eval.json").write_text(
         json.dumps([{"id": "r1", "question": "q", "predictions": {}}]), encoding="utf-8"
     )
-    monkeypatch.setattr(server, "get_data_root", lambda: tmp_path)
+    monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
     server.invalidate_index_cache()
     original_mode = server.get_mode()
     try:

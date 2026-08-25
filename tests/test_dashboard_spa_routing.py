@@ -38,7 +38,7 @@ def spa_client(tmp_path, monkeypatch):
     )
 
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(server, "get_data_root", lambda: tmp_path)
+    monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
 
     # Mount onto a fresh app so the test does not depend on import order.
     app = FastAPI()
