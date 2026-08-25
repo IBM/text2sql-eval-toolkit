@@ -44,6 +44,9 @@ GOOGLE_METADATA_URL = "https://accounts.google.com/.well-known/openid-configurat
 #: allowlist takes effect quickly, long enough not to be a nuisance.
 SESSION_MAX_AGE_SECONDS = 12 * 60 * 60
 
+#: Minimum length for a session signing key.
+MIN_SESSION_SECRET_LENGTH = 32
+
 
 class AuthNotConfigured(RuntimeError):
     """Raised when a sign-in route is reached without OAuth credentials."""
@@ -63,6 +66,14 @@ def session_secret() -> str:
     """
     secret = os.getenv("TEXT2SQL_SESSION_SECRET")
     if secret:
+        # A short key is forgeable, and forging {"email": "<allowlisted>"}
+        # grants the judge tier outright.
+        if len(secret) < MIN_SESSION_SECRET_LENGTH:
+            raise ValueError(
+                "TEXT2SQL_SESSION_SECRET must be at least "
+                f"{MIN_SESSION_SECRET_LENGTH} characters. Generate one with: "
+                'python -c "import secrets; print(secrets.token_urlsafe(48))"'
+            )
         return secret
     logger.warning(
         "TEXT2SQL_SESSION_SECRET is not set; generating an ephemeral key. "
