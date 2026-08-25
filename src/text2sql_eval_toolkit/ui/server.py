@@ -13,7 +13,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -2260,21 +2260,32 @@ def get_results_fetch_status(job_id: str) -> FetchJobStatus:
 
 
 @app.get("/api/static/{file_path:path}")
-def serve_dashboard_asset(file_path: str):
+def serve_dashboard_asset(file_path: str, request: Request):
+    """
+    Serve a file from the data root (benchmark logos and similar).
+
+    These were previously sent with ``no-store``, which is right for a
+    hot-reloading dev tool but means every page view re-downloads every logo.
+    They are now validated with an ETag derived from the file's size and mtime,
+    so an unchanged file costs a 304 rather than a full body.
+    """
     data_root = get_data_root().resolve()
     candidate = (data_root / file_path).resolve()
     if data_root != candidate and data_root not in candidate.parents:
         raise HTTPException(status_code=403, detail="Forbidden path")
     if not candidate.exists() or not candidate.is_file():
         raise HTTPException(status_code=404, detail="Asset not found")
-    return FileResponse(
-        str(candidate),
-        headers={
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
-    )
+
+    stat = candidate.stat()
+    etag = f'W/"{stat.st_size:x}-{stat.st_mtime_ns:x}"'
+    # must-revalidate keeps the client asking, so a replaced logo is picked up
+    # immediately while an unchanged one costs only a conditional request.
+    headers = {"ETag": etag, "Cache-Control": "no-cache, must-revalidate"}
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+
+    return FileResponse(str(candidate), headers=headers)
 
 
 def _resolve_dashboard_source_dir() -> Optional[Path]:

@@ -133,21 +133,25 @@ jobs:
       - name: Build
         run: npm run build
       - name: Bundle size budget
-        # Guards the code-splitting work in docs/plan/02-performance.md item 2.8.
-        # Baseline at time of writing: ~508 KB JS, ~808 KB CSS.
+        # Budgets the *entry* chunk, not the sum of all JS: route views are
+        # code-split and load on demand, so summing every chunk would hide the
+        # thing this guards. Baseline after splitting: ~401 KB entry, ~826 KB CSS.
+        # See docs/plan/02-performance.md item 2.8.
         run: |
-          budget_js=768
-          budget_css=1024
-          js=$(du -ck dist/assets/*.js | tail -1 | cut -f1)
+          budget_entry=460
+          budget_css=900
+          entry=$(du -k dist/assets/index-*.js | sort -rn | head -1 | cut -f1)
           css=$(du -ck dist/assets/*.css | tail -1 | cut -f1)
-          echo "JS ${js} KB (budget ${budget_js} KB), CSS ${css} KB (budget ${budget_css} KB)"
+          lazy=$(find dist/assets -name "*.js" | wc -l | tr -d ' ')
+          echo "entry ${entry} KB (budget ${budget_entry} KB) across ${lazy} JS chunks"
+          echo "CSS ${css} KB (budget ${budget_css} KB)"
           fail=0
-          if [ "$js" -gt "$budget_js" ]; then
-            echo "::error::JS bundle ${js} KB exceeds budget ${budget_js} KB"
+          if [ "$entry" -gt "$budget_entry" ]; then
+            echo "::error::entry chunk ${entry} KB exceeds budget ${budget_entry} KB"
             fail=1
           fi
           if [ "$css" -gt "$budget_css" ]; then
-            echo "::error::CSS bundle ${css} KB exceeds budget ${budget_css} KB"
+            echo "::error::CSS ${css} KB exceeds budget ${budget_css} KB"
             fail=1
           fi
           exit $fail
