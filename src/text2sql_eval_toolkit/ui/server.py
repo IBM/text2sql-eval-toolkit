@@ -394,6 +394,13 @@ async def add_security_headers(request: Request, call_next):
         "style-src 'self' 'unsafe-inline'; "
         "script-src 'self'; "
         "connect-src 'self'; "
+        # Carbon's stylesheet references IBM Plex from IBM's CDN in 120 places.
+        # Without this the policy blocks every one of them and the UI silently
+        # falls back to system fonts -- which is what happened when the CSP was
+        # first added. Self-hosting the fonts would remove this origin, and with
+        # it the visitor IPs disclosed to that CDN; until then it is allowed
+        # explicitly rather than by loosening default-src.
+        "font-src 'self' data: https://1.www.s81c.com; "
         "frame-ancestors 'none'; "
         "base-uri 'self'; "
         "form-action 'self'",

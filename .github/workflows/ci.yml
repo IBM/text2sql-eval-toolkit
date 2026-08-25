@@ -206,10 +206,9 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Type check
-        # Advisory for now: `vite build` never type-checked, so 18 pre-existing
-        # errors are outstanding. Tracked as item 4.13 in
-        # docs/plan/04-code-quality.md; make this blocking once they are clear.
-        continue-on-error: true
+        # Blocking. `vite build` does not type-check, so without this an
+        # undefined identifier in JSX ships and only fails when that view is
+        # opened -- which is exactly what happened once on this branch.
         run: npm run typecheck
       - name: Unit tests
         run: npm test

@@ -121,8 +121,8 @@ export function parseQuery(search: string | URLSearchParams): ErrorFilters {
     metric2: params.get("metric2"),
     disagree: params.get("disagree") === "true",
     q: params.get("q"),
-    page: num("page", FILTER_DEFAULTS.page),
-    pageSize: num("pageSize", FILTER_DEFAULTS.pageSize),
+    page: num("page", FILTER_DEFAULTS.page ?? 1),
+    pageSize: num("pageSize", FILTER_DEFAULTS.pageSize ?? 25),
     record: params.get("record"),
   };
 }

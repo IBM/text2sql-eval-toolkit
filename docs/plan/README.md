@@ -21,7 +21,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 1 — Shareable URLs | 6 / 7 | Stable pipeline alias (1.6) |
 | 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8) |
 | 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
-| 4 — Code quality | 7.5 / 13 | Frontend lint/type findings, module size, coverage, 2.0.0 |
+| 4 — Code quality | 8 / 13 | Effect findings, module size, coverage, 2.0.0 |
 
 ### Goal 1 — Shareable URLs
 
@@ -82,7 +82,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | **4.10 Coverage targets** | **Not started** | Currently **29%**. No floor enforced |
 | **4.11 Documentation refresh** | **Partial** | Runbook and benchmark docs done; `README.md` still predates all of this |
 | 4.12 Clear deferred Ruff findings | Done | All 4 rules re-enabled; only `F841` and `B008` remain ignored, both with stated reasons |
-| **4.13 Clear deferred frontend findings** | **Not started** | 2 eslint rules off; 17 `tsc` errors, type-check advisory |
+| 4.13 Clear deferred frontend findings | Partial | **All 17 `tsc` errors fixed and the check is now blocking.** 21 eslint effect findings remain off with a stated reason: 5 are the fetch-on-mount pattern the rule cannot distinguish, 15 are real debt that needs component tests (4.5) before being rewritten |
 
 ### Known limitations, stated plainly
 
