@@ -54,7 +54,7 @@ const ProfileCompareView = lazy(() =>
   }))
 );
 import { FetchResultsBanner } from "../views/FetchResultsBanner";
-import { CopyLinkButton } from "../views/CopyLinkButton";
+import { CopyShortLinkButton } from "../views/CopyShortLinkButton";
 import { DataStampBar, SessionBar } from "../views/SessionBar";
 import { AboutPanel } from "../views/AboutPanel";
 import {
@@ -684,7 +684,7 @@ export const App: React.FC = () => {
         </HeaderName>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center" }}>
           <SessionBar />
-          <CopyLinkButton />
+          <CopyShortLinkButton />
           <Button
             kind="ghost"
             size="sm"

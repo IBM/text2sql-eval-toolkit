@@ -35,7 +35,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 1.1 Introduce routing | Done | `react-router-dom`, `lib/routes.ts` |
 | 1.2 Replace `activeView` with route state | Done | URL is the source of truth |
 | 1.3 Sync filter state to the query string | Done | Filters, page, page size, selected record. Page turns and record opens push history; filter edits replace — back used to do nothing at all |
-| 1.4 Copy-link affordance | Done | Header control, with a clipboard fallback |
+| 1.4 Copy-link affordance | Done, narrowed | The plain "Copy link" button was removed — it duplicated the address bar. **Copy short link** remains, shown only on addresses that name a pipeline |
 | 1.5 Server-side SPA fallback | Done | `SPAStaticFiles`; `/api/*` still 404s properly |
 | 1.6 Short identifiers | Done | Ten-character aliases, derived server-side and expanded on arrival; **Copy short link** in the header. A 247-character comparison link becomes 158. Renamed from "stable": a hash of the id cannot survive a rename — see the note below |
 | 1.7 Not-found and permission states | Done | Explicit not-found; capability surfaced via `/api/me`. A benchmark the URL names but this server lacks now says so instead of silently opening a different one — found by E2E |

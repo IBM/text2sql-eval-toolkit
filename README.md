@@ -336,21 +336,24 @@ Every view has its own URL, so a benchmark, a pipeline, a filtered error-analysi
 query, or an individual record can be linked to directly:
 
 ```
-/b/bird_mini_dev_sqlite                             benchmark summary
-/b/bird_mini_dev_sqlite/pipeline/{pipeline_id}      pipeline detail
-/b/bird_mini_dev_sqlite/errors?pipeline=…&value=0   filtered error analysis
-/b/bird_mini_dev_sqlite/errors?…&record={id}        one record, open
+/benchmark/bird_mini_dev_sqlite                             benchmark summary
+/benchmark/bird_mini_dev_sqlite/pipeline/{pipeline_id}      pipeline detail
+/benchmark/bird_mini_dev_sqlite/errors?pipeline=…&value=0   filtered error analysis
+/benchmark/bird_mini_dev_sqlite/errors?…&record={id}        one record, open
 ```
 
-The **Copy link** control in the header copies the current view's address.
+The address bar is the link — there is no "copy this URL" button, since it would
+duplicate what the browser already offers.
 
-Pipeline ids embed the model name, so a comparison link can carry two of
+There is one case the address bar cannot cover. Pipeline ids embed the model name, so
+a comparison link can carry two of
 `wxai:openai/gpt-oss-120b-agentic-baseline1-3attempts` and end up long enough for a
-mail client to wrap it. **Copy short link** substitutes a ten-character alias for
-each one, which the dashboard expands on arrival:
+mail client to wrap it. **Copy short link** — which appears in the header only on an
+address that names a pipeline — substitutes a ten-character alias for each one, which
+the dashboard expands on arrival:
 
 ```
-/b/archer_en_dev/pipeline/ec64b733f4     the same view, 90 characters shorter
+/benchmark/archer_en_dev/pipeline/ec64b733f4     the same view, 90 characters shorter
 ```
 
 Aliases are derived from the id (`GET /api/benchmarks/{id}/pipeline-aliases`), not

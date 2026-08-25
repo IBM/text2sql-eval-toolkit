@@ -17,7 +17,7 @@ describe("path builders", () => {
   it("encodes pipeline ids so slashes do not create extra path segments", () => {
     const path = routes.pipeline(BENCHMARK, PIPELINE);
     expect(path).toBe(
-      `/b/${BENCHMARK}/pipeline/${encodeURIComponent(PIPELINE)}`
+      `/benchmark/${BENCHMARK}/pipeline/${encodeURIComponent(PIPELINE)}`
     );
     // One segment after /pipeline/, not three.
     expect(path.split("/pipeline/")[1].includes("/")).toBe(false);
@@ -42,11 +42,11 @@ describe("path builders", () => {
 
   it("builds the documented paths", () => {
     expect(routes.home()).toBe("/");
-    expect(routes.benchmark(BENCHMARK)).toBe(`/b/${BENCHMARK}`);
-    expect(routes.errors(BENCHMARK)).toBe(`/b/${BENCHMARK}/errors`);
-    expect(routes.insights(BENCHMARK)).toBe(`/b/${BENCHMARK}/insights`);
-    expect(routes.compare(BENCHMARK)).toBe(`/b/${BENCHMARK}/compare`);
-    expect(routes.profileCompare(BENCHMARK)).toBe(`/b/${BENCHMARK}/compare/profile`);
+    expect(routes.benchmark(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}`);
+    expect(routes.errors(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/errors`);
+    expect(routes.insights(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/insights`);
+    expect(routes.compare(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/compare`);
+    expect(routes.profileCompare(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/compare/profile`);
     expect(routes.llmJudge()).toBe("/llm-judge");
     expect(routes.llmJudge("default")).toBe("/llm-judge/default");
     expect(routes.run()).toBe("/run");
@@ -137,21 +137,21 @@ describe("query parsing", () => {
 describe("parseLocation", () => {
   it("resolves the documented paths", () => {
     expect(parseLocation("/")).toMatchObject({ view: "home", notFound: false });
-    expect(parseLocation(`/b/${BENCHMARK}`)).toMatchObject({
+    expect(parseLocation(`/benchmark/${BENCHMARK}`)).toMatchObject({
       view: "benchmark",
       benchmarkId: BENCHMARK,
     });
-    expect(parseLocation(`/b/${BENCHMARK}/errors`)).toMatchObject({
+    expect(parseLocation(`/benchmark/${BENCHMARK}/errors`)).toMatchObject({
       view: "errorAnalysis",
       benchmarkId: BENCHMARK,
     });
-    expect(parseLocation(`/b/${BENCHMARK}/insights`)).toMatchObject({
+    expect(parseLocation(`/benchmark/${BENCHMARK}/insights`)).toMatchObject({
       view: "toolkitInsights",
     });
-    expect(parseLocation(`/b/${BENCHMARK}/compare`)).toMatchObject({
+    expect(parseLocation(`/benchmark/${BENCHMARK}/compare`)).toMatchObject({
       view: "pipelineCompare",
     });
-    expect(parseLocation(`/b/${BENCHMARK}/compare/profile`)).toMatchObject({
+    expect(parseLocation(`/benchmark/${BENCHMARK}/compare/profile`)).toMatchObject({
       view: "profileCompare",
     });
     expect(parseLocation("/llm-judge")).toMatchObject({ view: "llmJudge", configName: null });
@@ -179,18 +179,18 @@ describe("parseLocation", () => {
 
   it("flags unknown paths rather than silently rendering home", () => {
     expect(parseLocation("/nope")).toMatchObject({ notFound: true });
-    expect(parseLocation(`/b/${BENCHMARK}/bogus`)).toMatchObject({
+    expect(parseLocation(`/benchmark/${BENCHMARK}/bogus`)).toMatchObject({
       notFound: true,
       benchmarkId: BENCHMARK,
     });
   });
 
   it("tolerates trailing slashes and repeated separators", () => {
-    expect(parseLocation(`/b/${BENCHMARK}/`)).toMatchObject({ view: "benchmark" });
-    expect(parseLocation(`//b//${BENCHMARK}//`)).toMatchObject({ view: "benchmark" });
+    expect(parseLocation(`/benchmark/${BENCHMARK}/`)).toMatchObject({ view: "benchmark" });
+    expect(parseLocation(`//benchmark//${BENCHMARK}//`)).toMatchObject({ view: "benchmark" });
   });
 
   it("does not throw on a malformed percent escape", () => {
-    expect(() => parseLocation("/b/%E0%A4%A")).not.toThrow();
+    expect(() => parseLocation("/benchmark/%E0%A4%A")).not.toThrow();
   });
 });

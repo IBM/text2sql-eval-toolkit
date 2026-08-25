@@ -54,17 +54,24 @@ export const FILTER_DEFAULTS: Required<
 
 const encode = (segment: string): string => encodeURIComponent(segment);
 
+/**
+ * The path prefix for a benchmark. Spelled out rather than abbreviated: these
+ * addresses get pasted into issues and papers, where `/benchmark/spider_dev`
+ * says what it points at and `/b/spider_dev` needs the reader to already know.
+ */
+const BENCHMARK_SEGMENT = "benchmark";
+
 export const routes = {
   home: (): string => "/",
-  benchmark: (benchmarkId: string): string => `/b/${encode(benchmarkId)}`,
+  benchmark: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}`,
   pipeline: (benchmarkId: string, pipelineId: string): string =>
-    `/b/${encode(benchmarkId)}/pipeline/${encode(pipelineId)}`,
+    `/benchmark/${encode(benchmarkId)}/pipeline/${encode(pipelineId)}`,
   errors: (benchmarkId: string, filters?: ErrorFilters): string =>
-    `/b/${encode(benchmarkId)}/errors${buildQuery(filters)}`,
-  insights: (benchmarkId: string): string => `/b/${encode(benchmarkId)}/insights`,
-  compare: (benchmarkId: string): string => `/b/${encode(benchmarkId)}/compare`,
+    `/benchmark/${encode(benchmarkId)}/errors${buildQuery(filters)}`,
+  insights: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}/insights`,
+  compare: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}/compare`,
   profileCompare: (benchmarkId: string): string =>
-    `/b/${encode(benchmarkId)}/compare/profile`,
+    `/benchmark/${encode(benchmarkId)}/compare/profile`,
   llmJudge: (configName?: string): string =>
     configName ? `/llm-judge/${encode(configName)}` : "/llm-judge",
   run: (): string => "/run",
@@ -180,7 +187,7 @@ export function parseLocation(pathname: string): RouteMatch {
     return { ...EMPTY, view: "llmJudge", configName: segments[1] ?? null };
   }
 
-  if (segments[0] === "b" && segments.length >= 2) {
+  if (segments[0] === BENCHMARK_SEGMENT && segments.length >= 2) {
     const benchmarkId = segments[1];
     const rest = segments.slice(2);
 

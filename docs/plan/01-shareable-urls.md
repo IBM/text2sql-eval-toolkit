@@ -26,13 +26,13 @@ filtered. Human-readable, stable, and diffable.
 
 ```
 /                                                     benchmark list (home)
-/b/:benchmarkId                                       benchmark summary
-/b/:benchmarkId/pipeline/:pipelineId                  pipeline detail
-/b/:benchmarkId/errors                                error analysis (filters in query)
-/b/:benchmarkId/errors/:recordId                      record detail
-/b/:benchmarkId/insights                              metric insights
-/b/:benchmarkId/compare                               pipeline comparison
-/b/:benchmarkId/compare/profile                       profile-based comparison
+/benchmark/:benchmarkId                                       benchmark summary
+/benchmark/:benchmarkId/pipeline/:pipelineId                  pipeline detail
+/benchmark/:benchmarkId/errors                                error analysis (filters in query)
+/benchmark/:benchmarkId/errors/:recordId                      record detail
+/benchmark/:benchmarkId/insights                              metric insights
+/benchmark/:benchmarkId/compare                               pipeline comparison
+/benchmark/:benchmarkId/compare/profile                       profile-based comparison
 /llm-judge/:configName?                               judge config viewer
 /run                                                  run evaluation (full mode only)
 ```
@@ -40,7 +40,7 @@ filtered. Human-readable, stable, and diffable.
 Error-analysis filter state, all optional with documented defaults:
 
 ```
-/b/bird_mini_dev_sqlite/errors
+/benchmark/bird_mini_dev_sqlite/errors
   ?pipeline=wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi
   &metric=execution_accuracy&op=eq&value=0
   &pipeline2=...&metric2=...&disagree=true
@@ -79,18 +79,25 @@ reaches the URL.
 *Acceptance:* setting any error-analysis filter updates the URL; pasting that URL in a new
 tab reproduces the filtered view exactly; typing in search does not flood history.
 
-### 1.4 Copy-link affordance
-A "Copy link" control on error analysis, record detail, pipeline detail, and comparison
-views, copying the current absolute URL. Cheap, and it makes the feature discoverable.
+### 1.4 Copy-link affordance — **narrowed to the case that needs it**
+Originally: a "Copy link" control on every view. Built, then removed. The address bar
+already holds the address and every browser already offers a way to copy it; a button
+that duplicates that is chrome with no purpose.
 
-*Acceptance:* control present on the four views and copies a URL that round-trips.
+What survives is the case the address bar *cannot* serve: a pipeline id is long, the
+comparison views carry two, and the result gets wrapped by mail clients and truncated by
+chat apps. **Copy short link** rewrites those ids to aliases (1.6) and appears only on an
+address that names a pipeline, so it is absent wherever it would change nothing.
+
+*Acceptance:* the short link reopens the identical view (covered end-to-end), and the
+control is not rendered when the address contains no pipeline reference.
 
 ### 1.5 Server-side SPA fallback
 `mount_static()` in `ui/server.py:2438` currently mounts `dashboard/dist`. Unknown
 non-`/api` paths must return `index.html` (200) rather than 404, or deep links break on
 refresh. Do not blanket-catch `/api/*` — those must keep returning real 404s.
 
-*Acceptance:* `curl -I http://host/b/spider_dev/errors` returns 200 HTML; a bad API path
+*Acceptance:* `curl -I http://host/benchmark/spider_dev/errors` returns 200 HTML; a bad API path
 still returns 404 JSON.
 
 ### 1.6 Short identifiers — **done**, with the goal narrowed

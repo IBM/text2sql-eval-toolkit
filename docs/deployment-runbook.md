@@ -111,7 +111,7 @@ curl -s -o /dev/null -w '%{http_code}\n' $DOMAIN/api/static/judge/usage.sqlite
 curl -s $DOMAIN/api/deployment | jq '{data_revision, data_provisioned_at}'
 
 # Deep links survive a refresh (SPA fallback).
-curl -s -o /dev/null -w '%{http_code}\n' $DOMAIN/b/spider_dev/errors
+curl -s -o /dev/null -w '%{http_code}\n' $DOMAIN/benchmark/spider_dev/errors
 # expect: 200
 
 # Short links resolve: the alias table is what makes a shared /pipeline/<alias>

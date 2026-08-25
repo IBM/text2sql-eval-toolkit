@@ -49,12 +49,12 @@ describe("alias shape", () => {
 
 describe("shortening a link", () => {
   it("replaces the pipeline in the path", () => {
-    const url = `/b/demo/pipeline/${encodeURIComponent(PIPE_A)}`;
-    expect(shortenUrl(url, TABLE)).toBe(`/b/demo/pipeline/${ALIAS_A}`);
+    const url = `/benchmark/demo/pipeline/${encodeURIComponent(PIPE_A)}`;
+    expect(shortenUrl(url, TABLE)).toBe(`/benchmark/demo/pipeline/${ALIAS_A}`);
   });
 
   it("replaces both pipelines in a comparison link", () => {
-    const url = `/b/demo/errors?pipeline=${encodeURIComponent(
+    const url = `/benchmark/demo/errors?pipeline=${encodeURIComponent(
       PIPE_A
     )}&pipeline2=${encodeURIComponent(PIPE_B)}`;
     const short = shortenUrl(url, TABLE);
@@ -64,7 +64,7 @@ describe("shortening a link", () => {
 
   it("actually makes the link shorter", () => {
     // The entire justification for the feature.
-    const url = `/b/demo/errors?pipeline=${encodeURIComponent(
+    const url = `/benchmark/demo/errors?pipeline=${encodeURIComponent(
       PIPE_A
     )}&pipeline2=${encodeURIComponent(PIPE_B)}`;
     expect(shortenUrl(url, TABLE).length).toBeLessThan(url.length / 2);
@@ -73,7 +73,7 @@ describe("shortening a link", () => {
   it("leaves a search term alone even when it names a model", () => {
     // A blanket string replacement would rewrite this and change what the
     // shared link searches for.
-    const url = `/b/demo/errors?q=${encodeURIComponent(PIPE_A)}`;
+    const url = `/benchmark/demo/errors?q=${encodeURIComponent(PIPE_A)}`;
     expect(expandUrl(shortenUrl(url, TABLE), TABLE)).toBe(url);
     expect(new URLSearchParams(shortenUrl(url, TABLE).split("?")[1]).get("q")).toBe(
       PIPE_A
@@ -81,7 +81,7 @@ describe("shortening a link", () => {
   });
 
   it("leaves other filters untouched", () => {
-    const url = `/b/demo/errors?pipeline=${encodeURIComponent(
+    const url = `/benchmark/demo/errors?pipeline=${encodeURIComponent(
       PIPE_A
     )}&metric=llm_score&page=3`;
     const short = shortenUrl(url, TABLE);
@@ -90,33 +90,33 @@ describe("shortening a link", () => {
   });
 
   it("is a no-op with no alias table", () => {
-    const url = `/b/demo/pipeline/${encodeURIComponent(PIPE_A)}`;
+    const url = `/benchmark/demo/pipeline/${encodeURIComponent(PIPE_A)}`;
     expect(shortenUrl(url, EMPTY)).toBe(url);
   });
 
   it("is a no-op for a pipeline the table does not list", () => {
-    const url = `/b/demo/pipeline/${encodeURIComponent("some-other-pipeline")}`;
+    const url = `/benchmark/demo/pipeline/${encodeURIComponent("some-other-pipeline")}`;
     expect(shortenUrl(url, TABLE)).toBe(url);
   });
 
   it("preserves an absolute URL as absolute", () => {
-    const url = `http://localhost:8000/b/demo/pipeline/${encodeURIComponent(PIPE_A)}`;
+    const url = `http://localhost:8000/benchmark/demo/pipeline/${encodeURIComponent(PIPE_A)}`;
     expect(shortenUrl(url, TABLE)).toBe(
-      `http://localhost:8000/b/demo/pipeline/${ALIAS_A}`
+      `http://localhost:8000/benchmark/demo/pipeline/${ALIAS_A}`
     );
   });
 });
 
 describe("expanding a link", () => {
   it("restores the readable id in the path", () => {
-    expect(expandUrl(`/b/demo/pipeline/${ALIAS_A}`, TABLE)).toBe(
-      `/b/demo/pipeline/${encodeURIComponent(PIPE_A)}`
+    expect(expandUrl(`/benchmark/demo/pipeline/${ALIAS_A}`, TABLE)).toBe(
+      `/benchmark/demo/pipeline/${encodeURIComponent(PIPE_A)}`
     );
   });
 
   it("restores both query parameters", () => {
     const expanded = expandUrl(
-      `/b/demo/errors?pipeline=${ALIAS_A}&pipeline2=${ALIAS_B}`,
+      `/benchmark/demo/errors?pipeline=${ALIAS_A}&pipeline2=${ALIAS_B}`,
       TABLE
     );
     const params = new URLSearchParams(expanded.split("?")[1]);
@@ -125,7 +125,7 @@ describe("expanding a link", () => {
   });
 
   it("round-trips", () => {
-    const url = `/b/demo/errors?pipeline=${encodeURIComponent(
+    const url = `/benchmark/demo/errors?pipeline=${encodeURIComponent(
       PIPE_A
     )}&pipeline2=${encodeURIComponent(PIPE_B)}&metric=llm_score`;
     expect(expandUrl(shortenUrl(url, TABLE), TABLE)).toBe(url);
@@ -134,17 +134,17 @@ describe("expanding a link", () => {
   it("leaves an unknown alias in place for the caller to reject", () => {
     // The app renders "not found" from this; quietly dropping the reference
     // would open a different view than the link named.
-    const url = "/b/demo/pipeline/cccccccccc";
+    const url = "/benchmark/demo/pipeline/cccccccccc";
     expect(expandUrl(url, TABLE)).toBe(url);
   });
 
   it("leaves a full id untouched", () => {
-    const url = `/b/demo/pipeline/${encodeURIComponent(PIPE_A)}`;
+    const url = `/benchmark/demo/pipeline/${encodeURIComponent(PIPE_A)}`;
     expect(expandUrl(url, TABLE)).toBe(url);
   });
 
   it("does not throw on a malformed escape in the path", () => {
-    expect(() => expandUrl("/b/demo/pipeline/%E0%A4%A", TABLE)).not.toThrow();
+    expect(() => expandUrl("/benchmark/demo/pipeline/%E0%A4%A", TABLE)).not.toThrow();
   });
 });
 
