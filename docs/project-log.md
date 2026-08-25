@@ -1,7 +1,14 @@
 # Project Log
 
 A running record of where the codebase stands and why. Newest entry first.
-Plans for upcoming work live in [`docs/plan/`](plan/).
+
+- **Current status at a glance**, item by item:
+  [`plan/README.md#where-things-stand`](plan/README.md#where-things-stand)
+- **Plans** for the remaining work: [`plan/`](plan/)
+- **Running the deployment**: [`deployment-runbook.md`](deployment-runbook.md)
+
+This file explains *why* each change was made and what it cost; the plan index is the
+place to look for what is finished and what is not.
 
 ---
 
