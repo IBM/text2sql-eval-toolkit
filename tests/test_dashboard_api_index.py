@@ -322,3 +322,77 @@ def test_record_count_handles_missing_and_none(tmp_path):
 
     assert srv.count_records(None) == 0
     assert srv.count_records(tmp_path / "absent.json") == 0
+
+
+def test_no_async_handler_reaches_a_blocking_index_build():
+    """
+    get_index() can build an index, which takes seconds on a large artifact.
+    Reaching it synchronously from an async handler would stall the event loop
+    for every concurrent request, so async handlers must offload it.
+
+    Enforced structurally: a new async endpoint that forgets this fails here
+    rather than degrading the server under load.
+    """
+    import ast
+    from pathlib import Path
+
+    from text2sql_eval_toolkit.ui import server as srv
+
+    source = Path(srv.__file__).read_text()
+    tree = ast.parse(source)
+    funcs = {
+        n.name: n
+        for n in ast.walk(tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    def called_names(node):
+        return {
+            (
+                c.func.attr
+                if isinstance(c.func, ast.Attribute)
+                else (c.func.id if isinstance(c.func, ast.Name) else "")
+            )
+            for c in ast.walk(node)
+            if isinstance(c, ast.Call)
+        }
+
+    def reaches_sync(name, target, seen=None, depth=0):
+        if seen is None:
+            seen = set()
+        if name in seen or depth > 6:
+            return None
+        seen.add(name)
+        node = funcs.get(name)
+        if node is None:
+            return None
+        names = called_names(node)
+        if target in names:
+            return [name, target]
+        for callee in sorted(names):
+            sub = funcs.get(callee)
+            if sub is not None and not isinstance(sub, ast.AsyncFunctionDef):
+                path = reaches_sync(callee, target, seen, depth + 1)
+                if path:
+                    return [name] + path
+        return None
+
+    offenders = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.AsyncFunctionDef):
+            continue
+        if not any(ast.unparse(d).startswith("app.") for d in node.decorator_list):
+            continue
+        # Offloading via asyncio.to_thread(get_index, ...) is the accepted fix.
+        body = ast.unparse(node)
+        if "to_thread(get_index" in body:
+            continue
+        path = reaches_sync(node.name, "get_index")
+        if path:
+            offenders.append(" -> ".join(path))
+
+    assert (
+        not offenders
+    ), "async endpoints reach get_index() without offloading it:\n  " + "\n  ".join(
+        offenders
+    )

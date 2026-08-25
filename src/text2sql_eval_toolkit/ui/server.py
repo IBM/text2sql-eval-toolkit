@@ -1529,6 +1529,12 @@ async def execute_sql_for_record(
     if not sql:
         raise HTTPException(status_code=400, detail="sql is required")
 
+    # Warm the index off the event loop. The sync helpers below reach
+    # get_index(), which builds the index when it is missing or stale -- seconds
+    # on a large artifact -- and doing that inline in an async handler would
+    # stall every other in-flight request. After this the helpers hit the cache.
+    await asyncio.to_thread(get_index, benchmark_id)
+
     timeout_s = req.timeout_s or 90
     if timeout_s < 1 or timeout_s > 600:
         raise HTTPException(
@@ -1764,6 +1770,9 @@ def get_playground_init(benchmark_id: str, record_id: str) -> PlaygroundInitResp
 async def playground_evaluate(
     benchmark_id: str, req: PlaygroundEvaluateRequest
 ) -> PlaygroundEvaluateResponse:
+    # See execute_sql_for_record: keep a possible index build off the event loop.
+    await asyncio.to_thread(get_index, benchmark_id)
+
     gold = _find_gold_record(benchmark_id, req.record_id)
     if gold is None:
         raise HTTPException(
