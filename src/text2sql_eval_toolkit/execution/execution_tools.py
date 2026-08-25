@@ -450,7 +450,7 @@ async def mysql_run_execution_async(
                     model_predictions[execution_time_key] = None
                     logger.debug(f"SQL error: {e}")
 
-            for model_name, model_predictions in obj.get("predictions", {}).items():
+            for _model_name, model_predictions in obj.get("predictions", {}).items():
                 await _run_and_store_df(
                     sql_key="predicted_sql",
                     df_key="predicted_df",
@@ -702,7 +702,7 @@ async def postgres_run_execution_async(
                     model_predictions[execution_time_key] = None
                     logger.debug(f"SQL error: {e}")
 
-            for model_name, model_predictions in obj.get("predictions", {}).items():
+            for _model_name, model_predictions in obj.get("predictions", {}).items():
                 await _run_and_store_df(
                     sql_key="predicted_sql",
                     df_key="predicted_df",
@@ -942,7 +942,7 @@ async def sqlite_run_execution_async(
                     logger.debug(f"{sql_key} error: {e}")
 
             query_count_ref = [query_count]  # wrap in list to mutate inside helper
-            for model_name, model_predictions in record.get("predictions", {}).items():
+            for _model_name, model_predictions in record.get("predictions", {}).items():
                 await _run_sqlite_and_store(
                     sql_key="predicted_sql",
                     df_key="predicted_df",

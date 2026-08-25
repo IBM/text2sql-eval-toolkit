@@ -270,8 +270,8 @@ def generate_toc_section(
 
     # Generate rows for each benchmark
     for benchmark_id, (
-        eval_results_path,
-        eval_results_relpath,
+        _eval_results_path,
+        _eval_results_relpath,
         pipeline_metrics,
     ) in results.items():
         stats = get_benchmark_statistics(
@@ -436,10 +436,10 @@ def generate_markdown_table(
 
     for rank, (pipeline, metrics) in enumerate(sorted_pipelines, start=1):
         row = [str(rank), pipeline]
-        for label, key in metric_keys.items():
+        for _label, key in metric_keys.items():
             score = metrics.get(key, {}).get("average", None)
             row.append(f"{score:.2f}" if score is not None else "N/A")
-        for label, key in count_keys.items():
+        for _label, key in count_keys.items():
             val = metrics.get(key, None)
             row.append(str(val) if val is not None else "N/A")
         rows.append(row)
