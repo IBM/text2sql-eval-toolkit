@@ -82,6 +82,16 @@ round-trip test that Goal 1 needs (navigate → copy URL → reopen → identica
 
 *Acceptance:* harness runs in CI; the URL round-trip test exists and passes.
 
+**Status — half done.** Vitest with Testing Library and jsdom, 77 tests across six files:
+the URL scheme, the alias layer, detail-pipeline resolution, metric clamping, and
+component tests that mount `ToolkitInsightsView` and `SessionBar` against stubbed APIs.
+Those component tests were written specifically as a net for 4.13 and have since paid for
+themselves twice.
+
+Playwright is not in. The round-trip it is meant to prove has been exercised by hand in a
+browser at each routing change — including alias expansion — but by hand is not the same
+as in CI, and this is the test that actually proves Goal 1.
+
 ## Phase E — Cleanup (after the structural work)
 
 ### 4.6 Single source of truth for the benchmark registry
@@ -148,6 +158,20 @@ version invalidates existing artifacts and shared links.
 *Acceptance:* no module over ~800 lines without justification; public API and pipeline ids
 unchanged.
 
+**Status — half done, and the target moved.** 41 Pydantic models are out in `ui/models.py`.
+But `server.py` was 2,549 lines when this was written and is now **3,184 across 38
+endpoints**: Phase D added tiers, auth, the judge endpoint and the deployment surface
+faster than extraction removed anything. The models split bought 297 lines and Phase D
+spent them.
+
+The remaining half — splitting routes into routers by domain — is the part with real risk
+attached, because `enforce_capability_tier` walks `app.router.routes` and
+`unclassified_routes()` asserts over the same list. A router split that changes registered
+paths changes what the tier table matches, and the failure mode is a mutating endpoint
+silently falling through to the deny-by-default branch (harmless) or, worse, a path
+mismatch that stops the middleware matching at all. `agentic_pipeline.py` is untouched and
+should stay that way until someone confirms which of v0–v5 still have published results.
+
 ### 4.10 Coverage targets
 Set a floor and ratchet it. Prioritize by risk: `evaluation/evaluation_tools.py` and
 `metrics/text2sql_utils.py` (correctness of the published numbers), `execution_tools.py`
@@ -155,6 +179,15 @@ Set a floor and ratchet it. Prioritize by risk: `evaluation/evaluation_tools.py`
 
 *Acceptance:* an agreed floor enforced in CI; the four risk areas above meaningfully
 covered.
+
+**Status — partial; no floor yet.** Overall 29% → 36%. The index layer from Goal 2 is
+covered (`scanner` 99%, `builder` 86%, `store` 82%), as are the tiers, auth, judge budget
+and aliases (100%). `evaluate_prediction` went 4% → 35% and `report_tools` 0% → 52%, and
+writing those tests found real defects in both.
+
+Untouched: `error_analysis.py` at 9%, `execution_tools.py`'s five backends, and the
+inference pipelines. No floor is enforced, which means the number can slide back without
+anything failing — the floor is the point of the item and it is the part not done.
 
 ### 4.11 Documentation refresh
 `README.md` is comprehensive but predates several features. Reconcile it with the CLI,
@@ -184,27 +217,44 @@ Do these as separate commits by rule, not one sweep.
 Landed with Phase B, deferred for the same reason as 4.12 — each needs
 restructuring that the routing work will largely redo:
 
-| Source | Count | Note |
-|---|---|---|
-| `react-hooks/set-state-in-effect` | 19 | Effects calling `setState` synchronously. Goal 1 replaces much of this state with route params and loaders, so fix *after* routing. |
-| `react-hooks/preserve-manual-memoization` | 1 | `RunEvaluationView` |
-| `tsc --noEmit` | 18 | Never ran before: `vite build` does not type-check. Includes 7 `TS2783` duplicate-`key` warnings where a Carbon `getHeaderProps()` spread overwrites an explicit `key`, plus nullability and implicit-`any` errors. |
+| Source | Count at deferral | Now | Note |
+|---|---|---|---|
+| `react-hooks/set-state-in-effect` | 20 | **16** | Effects calling `setState` synchronously. The premise was that Goal 1 would replace much of this state with route params; it did not — re-assessed after routing landed and the findings were still there. |
+| `react-hooks/preserve-manual-memoization` | 1 | 1 | `RunEvaluationView` |
+| `tsc --noEmit` | 18 | **0** | Never ran before: `vite build` does not type-check. All fixed, and the check is now blocking rather than `continue-on-error`. |
 
-The ESLint rules are `off` in `dashboard/eslint.config.js` and the CI type-check
-step is `continue-on-error`. Re-enable both as the findings clear.
+**Where this stands.** The type-check half is finished. Of the 21 eslint findings, 4 are
+gone: the metric- and pipeline-selection effects in `ToolkitInsightsView`,
+`PipelineCompareView` and `ProfileCompareView` are now derived state, with the shared
+clamp rule extracted to `lib/metricInsightsSelect` and unit-tested. One of them had been
+depending on `selectedPipeline` while also setting it, so it re-ran on its own output.
+
+Of the 17 that remain, **5 are the fetch-on-mount pattern** — `setState` inside an async
+callback, which is the sanctioned use of an effect and which this rule cannot distinguish
+from the synchronous kind. Those are not debt and will need a rule-level exception or a
+data-fetching library (2.8), not a rewrite. The other 12 are per-view state resets in
+`RunEvaluationView` (5), `ErrorAnalysis` (4), `ProfileCompareView` (3) and one each in
+`App`, `BenchmarkConfigModal`, `CompareView`, `PipelineDetailView` and `SessionBar`.
+
+Each of those decides which option a user ends up looking at, and there is no component
+test covering most of them. The three that were converted had one written first, and that
+is the order the rest should follow — the rules stay `off` in `dashboard/eslint.config.js`
+with the current count and reason recorded inline, so `npm run lint` is green and the debt
+is visible rather than silent.
 
 *Acceptance:* both rules re-enabled, the type-check step blocking, and CI green.
+**Type-check: done. ESLint rules: still off, 17 findings.**
 
 ## Known bugs to fix along the way
 
 | Issue | Location | Notes |
 |---|---|---|
-| Uncached full-file parse on hot endpoints | `ui/server.py:994`, `:1149` | Addressed by Goal 2 |
-| Unbounded, never-invalidated record cache | `ui/server.py:576` | Serves stale data after a re-run |
-| Unsanitized `{name}` in judge config path | `ui/server.py:2174` | Verify traversal; add containment check |
-| Registry copies drifted | `data/benchmarks.json` vs packaged | 4.6 |
-| Version skew | `pyproject.toml` / `CHANGELOG.md` | 4.8 |
-| Record counting re-parses data files per request | `ui/server.py:630` | Goal 2, item 2.6 |
+| ~~Uncached full-file parse on hot endpoints~~ | `ui/server.py:994`, `:1149` | **Fixed** by Goal 2; endpoints read through the SQLite index |
+| ~~Unbounded, never-invalidated record cache~~ | `ui/server.py:576` | **Fixed**; replaced by the index handle cache, which invalidates on a changed source file |
+| ~~Unsanitized `{name}` in judge config path~~ | `ui/server.py:2174` | **Fixed** in the hardening commit; the name must match a plain stem, with containment asserted on the resolved path |
+| ~~Registry copies drifted~~ | `data/benchmarks.json` vs packaged | **Fixed** (4.6); checkout copy is canonical, with a sync script and a CI check |
+| Version skew | `pyproject.toml` / `CHANGELOG.md` | **Open** — resolved by the 2.0.0 bump (4.8), which is the last commit |
+| ~~Record counting re-parses data files per request~~ | `ui/server.py:630` | **Fixed** (2.6); cached on file size and mtime |
 | ~~Ranking window functions counted as aggregations~~ | `profiling/profiling_tools.py` | **Fixed** in `a8f2c96`; caused by unpinned sqlglot |
 | ~~`npm ci` fails: lockfile out of sync with `package.json`~~ | `dashboard/package-lock.json` | **Fixed**; would have failed CI on its first run |
 | ~~`npm run lint` declared but ESLint not installed~~ | `dashboard/package.json` | **Fixed**; ESLint added with a flat config |

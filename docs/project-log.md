@@ -12,6 +12,44 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — Status audit: three plan items rested on premises that turned out false
+
+Went through every plan item against the code rather than against the previous status
+line. Most matched. Three did not, and in each case the item's *reasoning* had expired
+even though its status was still defensible.
+
+**2.8 assumed a slow backend.** The data-fetching library and list virtualisation were
+sized against a dashboard where a record detail took 921 ms and a page of records forced a
+full-artifact parse. After Goal 2 the same requests are 0.3 ms and 3–11 ms. Request
+deduplication and windowed rendering solve problems that no longer exist at that latency,
+so both are now recorded as *deliberately dropped pending a measured reason*, not as
+outstanding work. Leaving them on the list as "remaining" would have implied the dashboard
+is missing something it needs.
+
+**4.13 assumed routing would delete the effects.** The item deferred 21 eslint findings on
+the grounds that Goal 1 would replace much of that state with route params. Routing
+landed; the findings did not move. Worth naming, because the deferral was reasonable when
+written and would have quietly stayed reasonable-looking forever. Of the 17 that remain, 5
+are the fetch-on-mount pattern, which is the sanctioned use of an effect — those need a
+rule exception or a data-fetching library, not a rewrite, so the honest count of *debt* is
+12, not 17.
+
+**4.9's target moved away from it.** `server.py` was 2,549 lines when the item was
+written. Extracting 41 Pydantic models removed 297. It is now 3,184 lines across 38
+endpoints, because Phase D added tiers, auth, the judge endpoint and the deployment
+surface faster than extraction removed anything. "Partial" was true both before and after,
+which is exactly why the number needed writing down.
+
+Also corrected figures that had drifted: frontend tests 51 → 77, coverage 35% → 36%,
+`error_analysis` 5% → 9% (it was misreported), entry bundle 401 → 419 KB. The bundle
+growing back 18 KB is the kind of thing a budget in CI would catch and nothing currently
+does.
+
+Added a health check to the runbook for the alias table, since a short link that resolves
+to nothing is indistinguishable from a broken link to whoever was sent it.
+
+---
+
 ## 2026-08-25 — Short pipeline links (1.6), and a goal that had to be narrowed
 
 **The item as written could not be built.** 1.6 was "stable identifiers": a hash alias so

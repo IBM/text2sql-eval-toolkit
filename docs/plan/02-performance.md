@@ -123,6 +123,19 @@ a public site; make it conditional on the capability tier.
 *Acceptance:* initial JS under an agreed budget; no visible jank paging through 1,000+
 records; navigating away cancels in-flight requests.
 
+**Status — code splitting done, the rest deliberately not.** Route-level `React.lazy`
+across all eleven views took the entry bundle from 556 KB to 419 KB, and each view now
+loads on its own route. Render hygiene improved as a side effect of 4.13: three views had
+their selection logic moved from effects into derived values.
+
+The data-fetching library and list virtualisation were both *reassessed and dropped for
+now*, not forgotten. Both were sized against a backend that took 921 ms to serve a record
+detail. After Goal 2 the same request is 0.3 ms and a page of records is 3–11 ms, which is
+below the threshold where request deduplication or windowed rendering is perceptible.
+Adding TanStack Query would also be the natural fix for 5 of the 17 remaining eslint
+findings (4.13), so it is worth revisiting — but as a considered change with a measured
+justification, not as a leftover checkbox.
+
 ### 2.9 Async correctness on the server
 Several handlers are `def` (sync) and perform blocking file I/O, which occupies a
 threadpool worker per request; a few are `async def` doing genuinely async DB work. Make

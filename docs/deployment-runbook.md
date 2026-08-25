@@ -113,6 +113,11 @@ curl -s $DOMAIN/api/deployment | jq '{data_revision, data_provisioned_at}'
 # Deep links survive a refresh (SPA fallback).
 curl -s -o /dev/null -w '%{http_code}\n' $DOMAIN/b/spider_dev/errors
 # expect: 200
+
+# Short links resolve: the alias table is what makes a shared /pipeline/<alias>
+# link open the right pipeline, and it is empty if the summary file is missing.
+curl -s $DOMAIN/api/benchmarks/spider_dev/pipeline-aliases | jq '.aliases | length'
+# expect: the pipeline count for that benchmark, never 0
 ```
 
 ---
