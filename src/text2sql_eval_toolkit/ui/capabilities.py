@@ -35,7 +35,7 @@ Two rules keep this honest:
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Set, Tuple
 
 if TYPE_CHECKING:  # pragma: no cover
     from fastapi import FastAPI
@@ -102,6 +102,41 @@ def required_tier(method: str, path: str) -> Tier:
     return ROUTE_TIERS.get((method.upper(), path), Tier.FULL)
 
 
+def iter_routes(target: Any, _depth: int = 0) -> Iterator[Any]:
+    """
+    Every concrete route reachable from an app, router or mount.
+
+    A flat walk of ``app.routes`` is not enough.  Since Starlette 1.6,
+    ``include_router`` leaves a wrapper object in ``app.routes`` that holds the
+    real routes rather than splicing them in, so a flat walk sees a thing with
+    no ``path`` and no ``methods`` and skips right past it.
+
+    That is a security-relevant detail, not a cosmetic one: both callers of this
+    function decide authorization.  A route the walk cannot see is a route the
+    classification test cannot audit and the tier middleware cannot resolve a
+    template for.
+
+    Wrappers are unwrapped by attribute rather than by type, so this keeps
+    working if the private class is renamed again; the depth cap is a guard
+    against a self-referential mount rather than an expected case.
+    """
+    if _depth > 8:  # pragma: no cover - defensive
+        return
+    routes = getattr(target, "routes", None)
+    if routes is None:
+        inner = getattr(target, "original_router", None) or getattr(
+            target, "router", None
+        )
+        routes = getattr(inner, "routes", None) if inner is not None else None
+    if routes is None:
+        return
+    for route in routes:
+        if getattr(route, "path", None) is not None:
+            yield route
+        else:
+            yield from iter_routes(route, _depth + 1)
+
+
 def unclassified_routes(app: "FastAPI") -> List[Tuple[str, str]]:
     """
     Mutating routes with no entry in :data:`ROUTE_TIERS`.
@@ -111,7 +146,7 @@ def unclassified_routes(app: "FastAPI") -> List[Tuple[str, str]]:
     surfaces them instead.
     """
     missing: List[Tuple[str, str]] = []
-    for route in app.routes:
+    for route in iter_routes(app):
         path = getattr(route, "path", None)
         methods = getattr(route, "methods", None)
         if not path or not methods or not path.startswith("/api"):
