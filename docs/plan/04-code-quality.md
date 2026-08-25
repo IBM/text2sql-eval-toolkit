@@ -86,15 +86,24 @@ round-trip test that Goal 1 needs (navigate → copy URL → reopen → identica
 
 *Acceptance:* harness runs in CI; the URL round-trip test exists and passes.
 
-**Status — half done.** Vitest with Testing Library and jsdom, 77 tests across six files:
-the URL scheme, the alias layer, detail-pipeline resolution, metric clamping, and
-component tests that mount `ToolkitInsightsView` and `SessionBar` against stubbed APIs.
-Those component tests were written specifically as a net for 4.13 and have since paid for
-themselves twice.
+**Status — done.** Vitest with Testing Library and jsdom, 77 tests across six files: the
+URL scheme, the alias layer, detail-pipeline resolution, metric clamping, and component
+tests that mount real views against stubbed APIs.
 
-Playwright is not in. The round-trip it is meant to prove has been exercised by hand in a
-browser at each routing change — including alias expansion — but by hand is not the same
-as in CI, and this is the test that actually proves Goal 1.
+Playwright adds 9 end-to-end tests (`dashboard/e2e/`) against a real server, a real router
+and a real cold page load. They never navigate twice: each sets up a view, takes the
+address out of the browser, opens it in a **fresh context** — no storage, no history, no
+shared router — and compares what renders. The server runs against a synthetic data root
+(`scripts/ci/make_e2e_fixture.py`), deterministic on purpose, since a test that copies a
+link in one context and opens it in another needs the data behind it to hold still.
+
+They found three defects on the first run that every other layer had passed over: a link
+to an absent benchmark silently opened a different one, the back button did nothing at
+all, and a cold load applied a default filter to the address without applying it to the
+results. All three are in the project log.
+
+CI runs Chromium only — these are about routing and history, not cross-browser rendering —
+and with retries off, because a link that works on the second try has not proven anything.
 
 ## Phase E — Cleanup (after the structural work)
 

@@ -17,16 +17,16 @@ the live status.
 
 ## Where things stand
 
-Branch `dashboard-v2`, **not yet pushed**. 548 backend tests and 77 frontend tests pass;
+Branch `dashboard-v2`, **not yet pushed**. 548 backend, 77 frontend and 9 end-to-end tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
 | Goal | Done | Remaining |
 |---|---|---|
-| 1 — Shareable URLs | 7 / 7 | — |
+| 1 — Shareable URLs | 7 / 7 | — (E2E found three defects in it; all fixed) |
 | 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8), both deliberately deferred |
 | 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
-| 4 — Code quality | 11.5 / 13 | Playwright E2E, 2.0.0 |
+| 4 — Code quality | 12 / 13 | 2.0.0 |
 
 ### Goal 1 — Shareable URLs
 
@@ -34,11 +34,11 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 |---|---|---|
 | 1.1 Introduce routing | Done | `react-router-dom`, `lib/routes.ts` |
 | 1.2 Replace `activeView` with route state | Done | URL is the source of truth |
-| 1.3 Sync filter state to the query string | Done | Filters, page, page size, selected record |
+| 1.3 Sync filter state to the query string | Done | Filters, page, page size, selected record. Page turns and record opens push history; filter edits replace — back used to do nothing at all |
 | 1.4 Copy-link affordance | Done | Header control, with a clipboard fallback |
 | 1.5 Server-side SPA fallback | Done | `SPAStaticFiles`; `/api/*` still 404s properly |
 | 1.6 Short identifiers | Done | Ten-character aliases, derived server-side and expanded on arrival; **Copy short link** in the header. A 247-character comparison link becomes 158. Renamed from "stable": a hash of the id cannot survive a rename — see the note below |
-| 1.7 Not-found and permission states | Done | Explicit not-found; capability surfaced via `/api/me` |
+| 1.7 Not-found and permission states | Done | Explicit not-found; capability surfaced via `/api/me`. A benchmark the URL names but this server lacks now says so instead of silently opening a different one — found by E2E |
 
 ### Goal 2 — Performance
 
@@ -79,7 +79,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.2 Lint/type baseline | Done | 83 ruff findings → 0; 44 files reformatted. mypy scope widened to `indexing/` and `ui/aliases.py` |
 | 4.3 Test markers | Done | Default run is hermetic |
 | 4.4 CI | Done (unrun) | 6 jobs; `actionlint` clean |
-| 4.5 Frontend test harness | Partial | Vitest with Testing Library, 77 tests including component tests that mount real views against stubbed APIs. Playwright E2E still not done — the URL round-trip is proven by hand and in the browser |
+| 4.5 Frontend test harness | Done | Vitest (77 tests) plus **Playwright: 9 E2E tests** that copy a link and reopen it in a fresh browser context. They found three defects on first run — see the log |
 | 4.6 Registry single source of truth | Done | Checkout copy canonical; sync script, test, and CI check |
 | 4.7 One dependency source | Done | `requirements.txt` now generated from `uv.lock`; CI checks both it and lock freshness |
 | **4.8 Version hygiene → 2.0.0** | **Not started** | The final commit. Gated on a matching Hugging Face snapshot |
