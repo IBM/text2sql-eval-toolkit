@@ -12,7 +12,7 @@ Plan for four goals, written against the baseline recorded in
 
 ## Where things stand
 
-Branch `dashboard-v2`, **not yet pushed**. 444 backend tests and 34 frontend tests pass;
+Branch `dashboard-v2`, **not yet pushed**. 470 backend tests and 34 frontend tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
@@ -79,7 +79,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.7 One dependency source | Done | `requirements.txt` now generated from `uv.lock`; CI checks both it and lock freshness |
 | **4.8 Version hygiene → 2.0.0** | **Not started** | The final commit. Gated on a matching Hugging Face snapshot |
 | **4.9 Reduce the large modules** | **Not started** | `ui/server.py` is now ~3,100 lines |
-| **4.10 Coverage targets** | **Not started** | Currently **29%**. No floor enforced |
+| 4.10 Coverage targets | Partial | `evaluate_prediction` taken from 4% to 35% (26 tests), which found two defects. Overall 29% → 33%. No floor enforced yet; `report_tools` (0%) and `error_analysis` (5%) still untouched |
 | **4.11 Documentation refresh** | **Partial** | Runbook and benchmark docs done; `README.md` still predates all of this |
 | 4.12 Clear deferred Ruff findings | Done | All 4 rules re-enabled; only `F841` and `B008` remain ignored, both with stated reasons |
 | 4.13 Clear deferred frontend findings | Partial | **All 17 `tsc` errors fixed and the check is now blocking.** 21 eslint effect findings remain off with a stated reason: 5 are the fetch-on-mount pattern the rule cannot distinguish, 15 are real debt that needs component tests (4.5) before being rewritten |
@@ -97,8 +97,9 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
   execute locally. Their results still browse normally.
 - **15 Beaver questions cannot run**: `keystone`, `csail_stata_glance` and
   `csail_stata_cinder` have no published dumps.
-- **Coverage is 29%.** The suite is strong where it was written deliberately (indexing,
-  tiers, auth, judge) and thin elsewhere.
+- **Coverage is 33%.** The suite is strong where it was written deliberately (indexing,
+  tiers, auth, judge, evaluation) and thin elsewhere — `report_tools.py` is at 0% and
+  `error_analysis.py` at 5%.
 
 ---
 
