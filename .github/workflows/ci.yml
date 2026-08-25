@@ -39,6 +39,39 @@ jobs:
       - name: Black
         run: black --check --diff src tests scripts
 
+  consistency:
+    # Two files in this repo are generated from another; both have silently
+    # drifted before. Checking is cheaper than noticing later.
+    name: Generated files in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Packaged benchmark registries
+        # The checkout copy shadows the packaged one, so drift is invisible in
+        # development and only reaches pip-installed users.
+        run: python scripts/curation/sync_packaged_registry.py --check
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: uv.lock matches pyproject.toml
+        # An export can agree with a lockfile that has itself fallen behind the
+        # project's declared dependencies.
+        run: uv lock --check
+      - name: requirements.txt matches uv.lock
+        run: |
+          uv export --format requirements-txt --no-hashes --no-dev \
+            --no-emit-project -o /tmp/requirements.expected
+          # Compare package lines only: our header and uv's banner differ by
+          # design, and comments carry no dependency information.
+          grep -E '^[a-zA-Z0-9]' requirements.txt | sort > /tmp/have.txt
+          grep -E '^[a-zA-Z0-9]' /tmp/requirements.expected | sort > /tmp/want.txt
+          if ! diff -u /tmp/want.txt /tmp/have.txt; then
+            echo "::error::requirements.txt is stale. Regenerate it (see its header)."
+            exit 1
+          fi
+
   typecheck:
     name: Type check
     runs-on: ubuntu-latest

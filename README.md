@@ -348,7 +348,7 @@ text2sql-eval-toolkit
 │       └── profiling/          # SQL profiling module
 ├── pyproject.toml              # Build system and project metadata
 ├── README.md                   # Project documentation
-├── requirements.txt            # Python dependencies
+├── requirements.txt            # Pinned export of uv.lock (generated; see its header)
 └── LICENSE                     # License file
 
 ```

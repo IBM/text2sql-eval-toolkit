@@ -12,7 +12,7 @@ Plan for four goals, written against the baseline recorded in
 
 ## Where things stand
 
-Branch `dashboard-v2`, **not yet pushed**. 437 backend tests and 34 frontend tests pass;
+Branch `dashboard-v2`, **not yet pushed**. 444 backend tests and 34 frontend tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
@@ -21,7 +21,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 1 — Shareable URLs | 6 / 7 | Stable pipeline alias (1.6) |
 | 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8) |
 | 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
-| 4 — Code quality | 4.5 / 13 | Most of Phase E |
+| 4 — Code quality | 6.5 / 13 | Deferred lint findings, module size, coverage, 2.0.0 |
 
 ### Goal 1 — Shareable URLs
 
@@ -75,8 +75,8 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.3 Test markers | Done | Default run is hermetic |
 | 4.4 CI | Done (unrun) | 6 jobs; `actionlint` clean |
 | **4.5 Frontend test harness** | **Partial** | Vitest done (34 tests). Playwright E2E not done — the URL round-trip is currently proven by hand, not by a test |
-| **4.6 Registry single source of truth** | **Not started** | `data/benchmarks.json` and the packaged copy are still drifted |
-| **4.7 One dependency source** | **Not started** | `requirements.txt` still duplicates `pyproject.toml`. The sqlglot drift showed why this matters |
+| 4.6 Registry single source of truth | Done | Checkout copy canonical; sync script, test, and CI check |
+| 4.7 One dependency source | Done | `requirements.txt` now generated from `uv.lock`; CI checks both it and lock freshness |
 | **4.8 Version hygiene → 2.0.0** | **Not started** | The final commit. Gated on a matching Hugging Face snapshot |
 | **4.9 Reduce the large modules** | **Not started** | `ui/server.py` is now ~3,100 lines |
 | **4.10 Coverage targets** | **Not started** | Currently **29%**. No floor enforced |
