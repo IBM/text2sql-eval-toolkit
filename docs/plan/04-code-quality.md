@@ -116,9 +116,20 @@ Release checklist:
    metadata so the number lives in one place.
 3. CHANGELOG entry for 2.0.0 covering the URL scheme, capability tiers, artifact index,
    and deployment.
-4. **Publish a `v2.0.0` tag on the Hugging Face results repo.** `DEFAULT_REVISION` is
-   derived as `v{version}` (`results/_hub.py:39`), so without it every fetch falls back
-   to `main` with a warning and shared links stop being reproducible.
+4. **Publish a `v2.0.0` snapshot on the Hugging Face results repo — this is a hard
+   blocker, not a nicety.** Two separate mechanisms bite:
+   - `DEFAULT_REVISION` is derived as `v{version}` (`results/_hub.py:39`), so without a
+     `v2.0.0` tag every fetch falls back to `main` with a warning and shared links stop
+     being reproducible.
+   - `_validate_manifest()` **raises** when the installed version falls outside the
+     manifest's `toolkit_version_compat`. The currently published manifest declares
+     `>=1.1.0,<2.0.0`, so a 2.0.0 install will fail `results fetch` outright with
+     "The results snapshot requires toolkit >=1.1.0,<2.0.0".
+
+   The upload script derives the compat string from the toolkit version at upload time,
+   so re-uploading from a 2.0.0 install produces `>=2.0.0,<3.0.0` automatically. The
+   snapshot must therefore be regenerated *after* the version bump, and the regenerated
+   manifest also fixes the stale-benchmark-listing bug described in the project log.
 5. Tag `v2.0.0` in git — note only `v1.0.0` is currently tagged, so the tag history has
    its own gap.
 6. Add a CI check that version, changelog, and git tag agree, so this cannot recur.

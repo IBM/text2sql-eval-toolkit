@@ -31,11 +31,22 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional
 
 from text2sql_eval_toolkit.indexing.scanner import iter_record_spans
+from text2sql_eval_toolkit.logging import get_logger
+
+logger = get_logger(__name__)
 
 # Bump when the table layout changes; a mismatch forces a rebuild.
 SCHEMA_VERSION = 1
 
 INDEX_DIR_NAME = ".index"
+
+# Approximate bytes of pending rows to buffer before writing to SQLite. Bounds
+# peak memory during a build independently of how large individual records are.
+FLUSH_BYTES = 8 * 1024 * 1024
+
+# Records above this size dominate build memory; warn so an operator can
+# correlate a memory spike with the record responsible.
+LARGE_RECORD_WARN_BYTES = 64 * 1024 * 1024
 
 _SCHEMA = """
 CREATE TABLE meta (
@@ -208,6 +219,7 @@ def _populate(
     prediction_rows = []
     metric_rows = []
     count = 0
+    pending = 0
 
     def pipeline_ref(pipeline_id: str) -> int:
         ref = pipeline_refs.get(pipeline_id)
@@ -249,6 +261,17 @@ def _populate(
 
     with eval_path.open("rb") as fh:
         for ordinal, span in enumerate(iter_record_spans(fh)):
+            # Peak memory during a build is dominated by the largest single
+            # record, not by batching: Beaver contains one 108 MB record whose
+            # parsed form costs ~324 MB transiently. Provision indices before
+            # starting the server rather than letting a rebuild spike under load.
+            if len(span.raw) > LARGE_RECORD_WARN_BYTES:
+                logger.warning(
+                    "Record at byte {} is {:.0f} MB; parsing it transiently uses "
+                    "several times that in memory.",
+                    span.start,
+                    len(span.raw) / 1e6,
+                )
             record = json.loads(span.raw)
             record_id = _extract_record_id(record)
             if not record_id:
@@ -292,8 +315,15 @@ def _populate(
                         )
 
             count += 1
-            if count % 500 == 0:
+            # Flush on accumulated size, not record count. Record sizes vary by
+            # two orders of magnitude between benchmarks -- Beaver averages
+            # 4.2 MB per record against Archer's 0.14 MB -- so a fixed record
+            # interval either flushes constantly on small ones or holds hundreds
+            # of megabytes of pending rows on large ones.
+            pending += len(span.raw) // 8  # evaluation blocks are ~7-13% of a record
+            if pending >= FLUSH_BYTES:
                 flush()
+                pending = 0
                 if progress:
                     progress(count)
 
