@@ -50,9 +50,39 @@ crafted sign-in link cannot bounce a freshly authenticated user to another origi
    dangerous endpoints stay `full` — otherwise a relaxed tier would simply be rubber-
    stamped by the parametrised test.
 
-345 tests passing. Still outstanding in Phase D: the scoped judge endpoint (3.3), cost
-controls (3.4), hardening (3.5), the container and Compose stack (3.6), provisioning
-(3.7), operations (3.8), polish (3.9), and the database services (3.10–3.12).
+**Scoped judge endpoint and budget (3.3–3.4).** Landed together, because a personal
+watsonx key behind a public site without a ceiling is the failure mode the plan warns
+about.
+
+`POST /api/benchmarks/{id}/judge` judges one (record, pipeline) pair. The existing
+`/evaluate` endpoint was the wrong shape for a shared deployment: it re-evaluates a whole
+benchmark and rewrites the shared artifacts, so one user's re-run would change what every
+visitor sees. Verdicts now go to a separate store attributed to the caller, and a test
+asserts the canonical artifact's bytes are unchanged afterwards. Responses carry
+`source="on-demand"` so they are never confused with the snapshot's `llm_score`.
+
+Cost controls:
+
+- Metered from **reported tokens, not call count** — judge prompts embed both result
+  dataframes and vary by orders of magnitude.
+- Counters **persist to SQLite on the data volume**. In-memory counters reset on restart,
+  which is exactly how a monthly ceiling stops being one.
+- A semaphore serialises calls and the ceiling is re-checked *inside* it, since a burst
+  could otherwise each pass the check before any recorded spend.
+- Kill switch disables the tier without a redeploy; `/api/me` then reports
+  `can_run_judge=false` so the UI stops offering an action that would 503.
+- Remaining budget is on `/api/me`, so the ceiling is visible before it is met.
+
+Rates are configuration rather than source — the defaults are an estimate needing
+calibration against a real invoice, and a provider that reports no usage is logged as
+*unmetered* rather than silently counted as free.
+
+`llm_as_judge` now returns `token_usage`, handling both the legacy `generate` shape
+(`results[0].input_token_count`) and the Chat API shape (`usage.prompt_tokens`).
+
+366 tests passing. Still outstanding in Phase D: hardening (3.5), the container and
+Compose stack (3.6), provisioning (3.7), operations (3.8), polish (3.9), and the database
+services (3.10–3.12).
 
 ---
 
