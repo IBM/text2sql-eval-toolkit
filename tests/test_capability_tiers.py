@@ -288,3 +288,65 @@ def test_me_works_without_session_middleware_installed(client):
     resp = client.get("/api/me")
     assert resp.status_code == 200
     assert resp.json()["email"] is None
+
+
+# --- deployment info ------------------------------------------------------
+
+
+def test_deployment_reports_the_snapshot_on_screen(client, tmp_path):
+    """
+    A shared link may be opened months later by someone who has never seen the
+    tool, so the page has to be able to say which data it is showing.
+    """
+    (tmp_path / ".provisioned").write_text(
+        "revision=v1.1.0\nprovisioned_at=2026-08-25T16:15:14Z\n", encoding="utf-8"
+    )
+    server.set_mode(Tier.PUBLIC)
+    body = client.get("/api/deployment").json()
+
+    assert body["mode"] == "public"
+    assert body["data_revision"] == "v1.1.0"
+    assert body["data_provisioned_at"] == "2026-08-25T16:15:14Z"
+    assert body["results_are_precomputed"] is True
+    assert body["toolkit_version"]
+
+
+def test_deployment_info_is_readable_without_signing_in(client):
+    """The UI needs it before anyone authenticates."""
+    server.set_mode(Tier.PUBLIC)
+    assert client.get("/api/deployment").status_code == 200
+
+
+def test_deployment_copes_with_no_provisioning_marker(client, tmp_path):
+    marker = tmp_path / ".provisioned"
+    if marker.exists():
+        marker.unlink()
+    body = client.get("/api/deployment").json()
+    assert body["data_revision"] is None
+    assert body["data_provisioned_at"] is None
+
+
+def test_deployment_copes_with_a_malformed_marker(client, tmp_path):
+    (tmp_path / ".provisioned").write_text(
+        "this is not key=value\n\n", encoding="utf-8"
+    )
+    body = client.get("/api/deployment").json()
+    assert body["data_revision"] is None
+
+
+def test_judge_availability_follows_the_kill_switch(client, monkeypatch):
+    server.set_mode(Tier.JUDGE)
+    assert client.get("/api/deployment").json()["judge_available"] is True
+
+    monkeypatch.setenv("TEXT2SQL_JUDGE_DISABLED", "true")
+    assert client.get("/api/deployment").json()["judge_available"] is False
+
+
+def test_sign_in_availability_follows_configuration(client, monkeypatch):
+    monkeypatch.delenv("GOOGLE_CLIENT_ID", raising=False)
+    monkeypatch.delenv("GOOGLE_CLIENT_SECRET", raising=False)
+    assert client.get("/api/deployment").json()["sign_in_available"] is False
+
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "id")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret")
+    assert client.get("/api/deployment").json()["sign_in_available"] is True

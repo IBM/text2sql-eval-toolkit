@@ -53,6 +53,7 @@ from text2sql_eval_toolkit.evaluation.metric_definitions import (
     get_metric_definitions_payload,
 )
 from text2sql_eval_toolkit.indexing import is_stale as is_index_stale
+from text2sql_eval_toolkit import __version__
 from text2sql_eval_toolkit.ui import auth
 from text2sql_eval_toolkit.ui.judge_budget import (
     BudgetExceeded,
@@ -1441,6 +1442,54 @@ def get_session_info(request: Request) -> SessionInfo:
         can_run_judge=tier >= Tier.JUDGE and not judge_disabled(),
         can_mutate=tier >= Tier.FULL,
         judge_usage=judge_usage,
+    )
+
+
+class DeploymentInfo(BaseModel):
+    """What this server is serving, and how current it is."""
+
+    mode: str
+    toolkit_version: str
+    # Which Hugging Face snapshot the results came from. A link shared today is
+    # only interpretable months later if the reader can see which data it shows.
+    data_revision: Optional[str] = None
+    data_provisioned_at: Optional[str] = None
+    # Pre-computed results, not a live evaluation. Worth stating outright.
+    results_are_precomputed: bool = True
+    sign_in_available: bool = False
+    judge_available: bool = False
+
+
+def _read_provisioning_marker() -> Dict[str, str]:
+    """Parse the marker deploy/provision.sh leaves behind, if present."""
+    marker = get_data_root() / ".provisioned"
+    values: Dict[str, str] = {}
+    try:
+        for line in marker.read_text(encoding="utf-8").splitlines():
+            if "=" in line:
+                key, _, value = line.partition("=")
+                values[key.strip()] = value.strip()
+    except OSError:
+        pass
+    return values
+
+
+@app.get("/api/deployment", response_model=DeploymentInfo)
+def get_deployment_info() -> DeploymentInfo:
+    """
+    Describe the deployment itself, as opposed to the caller.
+
+    Separate from /api/me because it is the same for everyone and changes only
+    on redeploy, and because the UI needs it before anyone signs in.
+    """
+    marker = _read_provisioning_marker()
+    return DeploymentInfo(
+        mode=get_mode().name.lower(),
+        toolkit_version=__version__,
+        data_revision=marker.get("revision"),
+        data_provisioned_at=marker.get("provisioned_at"),
+        sign_in_available=auth.is_configured(),
+        judge_available=get_mode() >= Tier.JUDGE and not judge_disabled(),
     )
 
 

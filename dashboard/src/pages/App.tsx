@@ -55,6 +55,8 @@ const ProfileCompareView = lazy(() =>
 );
 import { FetchResultsBanner } from "../views/FetchResultsBanner";
 import { CopyLinkButton } from "../views/CopyLinkButton";
+import { DataStampBar, SessionBar } from "../views/SessionBar";
+import { AboutPanel } from "../views/AboutPanel";
 import {
   createBenchmark,
   fetchBenchmarkConfig,
@@ -405,6 +407,8 @@ export const App: React.FC = () => {
               onAddNew={openCreateBenchmarkModal}
             />
           </div>
+
+          <AboutPanel />
         </div>
       );
       }
@@ -596,6 +600,7 @@ export const App: React.FC = () => {
           Evaluation Dashboard
         </HeaderName>
         <div style={{ marginLeft: "auto", display: "flex", alignItems: "center" }}>
+          <SessionBar />
           <CopyLinkButton />
           <Button
             kind="ghost"
@@ -609,12 +614,14 @@ export const App: React.FC = () => {
           </Button>
         </div>
       </Header>
+      <div style={{ marginTop: "3rem" }}>
+        <DataStampBar />
+      </div>
       <div
         style={{
           display: "flex",
           flexDirection: "row",
           width: "100%",
-          marginTop: "3rem",
           minHeight: "calc(100vh - 3rem)",
           alignItems: "stretch",
         }}
