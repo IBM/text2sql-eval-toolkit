@@ -183,6 +183,19 @@ docker compose up -d app
 The image builds the frontend from source, so `dashboard/dist` in the repo is
 irrelevant to what gets served.
 
+**If the release changed the index schema, rebuild before serving.** A shared
+deployment refuses to build an index on demand — that is provisioning's job — so
+a server that starts against indices from an older schema answers 503 for every
+benchmark until they are rebuilt:
+
+```bash
+docker compose run --rm app text2sql-eval-toolkit index build --data-root /data
+docker compose run --rm app text2sql-eval-toolkit index status --data-root /data
+```
+
+`index status` naming anything `stale` means the rebuild did not finish. Budget
+roughly ten seconds per gigabyte of artifacts; Beaver's 880 MB takes about nine.
+
 ### Roll back
 
 ```bash

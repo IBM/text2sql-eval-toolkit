@@ -37,7 +37,11 @@ from text2sql_eval_toolkit.logging import get_logger
 logger = get_logger(__name__)
 
 # Bump when the table layout changes; a mismatch forces a rebuild.
-SCHEMA_VERSION = 1
+# Bumped when the schema changes shape.  `is_stale` compares it, so an index
+# built by an older toolkit is rebuilt rather than queried with columns it does
+# not have.
+#   2: added `categories` / `record_categories`, and `predictions.position`.
+SCHEMA_VERSION = 2
 
 INDEX_DIR_NAME = ".index"
 
@@ -68,6 +72,14 @@ CREATE TABLE metric_names (
     metric     TEXT NOT NULL UNIQUE
 );
 
+-- Profiling tags a record carries (`meta.categories`), interned like the other
+-- repeated strings.  Without these the by-category summary had to parse every
+-- record out of the source artifact to read seven short strings per record.
+CREATE TABLE categories (
+    category_ref INTEGER PRIMARY KEY,
+    category     TEXT NOT NULL UNIQUE
+);
+
 -- `ordinal` is the rowid and also the record's position in the source file, so
 -- ordering by it reproduces the file order the endpoints paginate in.
 CREATE TABLE records (
@@ -79,9 +91,15 @@ CREATE TABLE records (
     byte_end   INTEGER NOT NULL
 );
 
+-- `position` is the pipeline's index within the record's own `predictions`
+-- object.  Ordering by it reproduces the iteration order a full parse produced,
+-- which the by-category summary depends on: pipeline_ref is assigned globally on
+-- first appearance, so ordering by that instead reshuffles pipelines within a
+-- record whose prediction keys happen to be in a different order.
 CREATE TABLE predictions (
     ordinal         INTEGER NOT NULL,
     pipeline_ref    INTEGER NOT NULL,
+    position        INTEGER NOT NULL DEFAULT 0,
     evaluation_json TEXT NOT NULL DEFAULT '{}',
     PRIMARY KEY (ordinal, pipeline_ref)
 ) WITHOUT ROWID;
@@ -92,6 +110,12 @@ CREATE TABLE metrics (
     metric_ref   INTEGER NOT NULL,
     value        REAL NOT NULL,
     PRIMARY KEY (ordinal, pipeline_ref, metric_ref)
+) WITHOUT ROWID;
+
+CREATE TABLE record_categories (
+    ordinal      INTEGER NOT NULL,
+    category_ref INTEGER NOT NULL,
+    PRIMARY KEY (ordinal, category_ref)
 ) WITHOUT ROWID;
 
 -- Covering index for "records where pipeline P metric M <op> V".  The primary
@@ -224,7 +248,9 @@ def _populate(
 ) -> int:
     pipeline_refs: Dict[str, int] = {}
     metric_refs: Dict[str, int] = {}
+    category_refs: Dict[str, int] = {}
     record_rows: List[Tuple[Any, ...]] = []
+    category_rows: List[Tuple[Any, ...]] = []
     prediction_rows: List[Tuple[Any, ...]] = []
     metric_rows: List[Tuple[Any, ...]] = []
     count = 0
@@ -244,6 +270,13 @@ def _populate(
             metric_refs[metric] = ref
         return ref
 
+    def category_ref(category: str) -> int:
+        ref = category_refs.get(category)
+        if ref is None:
+            ref = len(category_refs) + 1
+            category_refs[category] = ref
+        return ref
+
     def flush() -> None:
         if record_rows:
             conn.executemany(
@@ -253,10 +286,18 @@ def _populate(
                 record_rows,
             )
             record_rows.clear()
+        if category_rows:
+            conn.executemany(
+                "INSERT OR REPLACE INTO record_categories "
+                "(ordinal, category_ref) VALUES (?, ?)",
+                category_rows,
+            )
+            category_rows.clear()
         if prediction_rows:
             conn.executemany(
                 "INSERT OR REPLACE INTO predictions "
-                "(ordinal, pipeline_ref, evaluation_json) VALUES (?, ?, ?)",
+                "(ordinal, pipeline_ref, position, evaluation_json) "
+                "VALUES (?, ?, ?, ?)",
                 prediction_rows,
             )
             prediction_rows.clear()
@@ -275,8 +316,12 @@ def _populate(
             # parsed form costs ~324 MB transiently. Provision indices before
             # starting the server rather than letting a rebuild spike under load.
             if len(span.raw) > LARGE_RECORD_WARN_BYTES:
+                # %-style, not braces: this module's logger is stdlib logging,
+                # where a brace template with positional args raises inside the
+                # handler and the warning is never printed -- which is what had
+                # been happening every time Beaver was indexed.
                 logger.warning(
-                    "Record at byte {} is {:.0f} MB; parsing it transiently uses "
+                    "Record at byte %d is %.0f MB; parsing it transiently uses "
                     "several times that in memory.",
                     span.start,
                     len(span.raw) / 1e6,
@@ -299,9 +344,15 @@ def _populate(
                 )
             )
 
+            meta = record.get("meta")
+            if isinstance(meta, dict):
+                for category in meta.get("categories") or []:
+                    if isinstance(category, str) and category:
+                        category_rows.append((ordinal, category_ref(category)))
+
             predictions = record.get("predictions")
             if isinstance(predictions, dict):
-                for pipeline_id, pred in predictions.items():
+                for position, (pipeline_id, pred) in enumerate(predictions.items()):
                     evaluation = (
                         pred.get("evaluation") if isinstance(pred, dict) else {}
                     )
@@ -309,7 +360,12 @@ def _populate(
                         evaluation = {}
                     p_ref = pipeline_ref(pipeline_id)
                     prediction_rows.append(
-                        (ordinal, p_ref, json.dumps(evaluation, ensure_ascii=False))
+                        (
+                            ordinal,
+                            p_ref,
+                            position,
+                            json.dumps(evaluation, ensure_ascii=False),
+                        )
                     )
                     for metric, value in evaluation.items():
                         # Mirror the endpoints' `isinstance(v, (int, float))`
@@ -340,6 +396,10 @@ def _populate(
     conn.executemany(
         "INSERT INTO pipelines (pipeline_ref, pipeline_id) VALUES (?, ?)",
         [(ref, pid) for pid, ref in pipeline_refs.items()],
+    )
+    conn.executemany(
+        "INSERT INTO categories (category_ref, category) VALUES (?, ?)",
+        [(ref, name) for name, ref in category_refs.items()],
     )
     conn.executemany(
         "INSERT INTO metric_names (metric_ref, metric) VALUES (?, ?)",

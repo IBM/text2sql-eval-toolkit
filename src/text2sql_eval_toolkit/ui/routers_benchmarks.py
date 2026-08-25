@@ -15,7 +15,7 @@ what separates them.
 import base64
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException
 
@@ -343,11 +343,20 @@ def get_pipeline_aliases(benchmark_id: str) -> PipelineAliasesResponse:
     )
 
 
-def _collect_category_summary(
+def _collect_metric_values(
     records: List[Dict[str, Any]],
-) -> Dict[str, Dict[str, Dict[str, float]]]:
+) -> Tuple[
+    Dict[str, Dict[str, List[float]]], Dict[str, Dict[str, Dict[str, List[float]]]]
+]:
     """
-    Aggregate numeric evaluation metrics overall and by category.
+    Gather every numeric metric value from parsed records, overall and per
+    category.
+
+    The dashboard does not call this -- it reads the same values out of the
+    index, which is orders of magnitude cheaper. It is kept as the reference
+    implementation the differential test compares against, because "the fast
+    path returns what the slow path returned" is the only claim worth making
+    about a rewrite like that.
     """
     from collections import defaultdict
 
@@ -371,6 +380,20 @@ def _collect_category_summary(
                         category_metrics[cat][pipeline][metric_name].append(
                             float(metric_value)
                         )
+
+    return overall_metrics, category_metrics
+
+
+def _summarize_metric_values(
+    overall_metrics: Dict[str, Dict[str, List[float]]],
+    category_metrics: Dict[str, Dict[str, Dict[str, List[float]]]],
+) -> Dict[str, Dict[str, Dict[str, float]]]:
+    """
+    Average, spread and 95% interval per pipeline and metric.
+
+    Split from the gathering above so both the index path and the reference
+    implementation run *this* code, rather than two copies that could drift.
+    """
 
     def to_avg(metrics_dict):
         from statistics import stdev
@@ -422,6 +445,13 @@ def _collect_category_summary(
     }
 
 
+def _collect_category_summary(
+    records: List[Dict[str, Any]],
+) -> Dict[str, Dict[str, Dict[str, float]]]:
+    """Reference implementation over parsed records. See ``_collect_metric_values``."""
+    return _summarize_metric_values(*_collect_metric_values(records))
+
+
 @router.get(
     "/api/benchmarks/{benchmark_id}/summary/by-category",
     response_model=BenchmarkCategorySummaryResponse,
@@ -468,9 +498,12 @@ def get_benchmark_summary_by_category(
             has_full_results=False,
         )
 
-    # Whole-corpus aggregation the index does not model.  Streamed one record at
-    # a time so memory stays bounded even on multi-hundred-megabyte artifacts.
-    agg = _collect_category_summary(get_index(benchmark_id).iter_records())
+    # Read from the index rather than by parsing the artifact. This used to
+    # stream every record -- bounded in memory, but not in time: it parsed 880 MB
+    # of Beaver JSON to collect a few tens of thousands of floats, and the page
+    # took 14 seconds to load. The index already holds those floats, and now
+    # holds the record categories too.
+    agg = _summarize_metric_values(*get_index(benchmark_id).metric_values_by_category())
 
     overall = [
         PipelineMetrics(name=name, metrics=metrics)
