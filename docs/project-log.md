@@ -12,6 +12,60 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — End-to-end tests, and three ways shared links were quietly broken (4.5)
+
+Nine Playwright tests, against a real server and a real cold page load. They never
+navigate twice: each sets up a view, takes the address out of the browser, opens it in a
+**fresh context** — no storage, no history, no shared router — and compares what renders.
+That is the recipient of a pasted link, and it is the only thing that actually tests Goal
+1.
+
+Three defects on the first run. Every one of them had passed unit tests, component tests,
+lint, type checking, and my own manual checking in a browser.
+
+**A link to a benchmark this server does not have opened a different one.** The redirect
+that gives benchmark-less views a default also fired when the URL *named* a benchmark that
+was absent, silently substituting the fallback. That is exactly the case shared links hit
+most often — the recipient's server has a different results snapshot — and the recipient
+was shown numbers for a benchmark they never asked about, with nothing to indicate the
+link had failed. Item 1.7 was written to cover precisely this and had been marked done.
+
+**The back button did nothing.** `ErrorAnalysis` read page, page size and the open record
+as *initial* values. Back changed the props; the view ignored them, re-emitted its own
+stale page, and pushed the address straight back where it came from — so from page 2, back
+was a no-op. Those three are now read from the URL, with the view reporting changes
+upward, which makes the address bar the single source of truth for them rather than merely
+its first writer. Page turns and opening a record push a history entry; filter edits still
+replace, because a search term would otherwise leave one entry per keystroke and back would
+become a way to delete characters.
+
+**A cold load filtered the address but not the results.** Fixing the back button surfaced
+this. On entry with no pipeline in the URL, the view picks a default, writes it into the
+address — and never refetched. So the table showed all 60 records while the address said
+it was filtered to 30. Copy that link, send it, and the recipient sees a different set of
+records than the sender was looking at. That is the precise failure the entire goal exists
+to prevent, and it had been shipping.
+
+Worth being blunt about what this says. I had verified shareable links in a browser
+several times across this branch, and reported them working. They were working for the
+cases I thought to try. The back button is not a case anyone thinks to try, and the
+filter/URL disagreement only shows up if you compare the number on screen against the
+number the address implies. A test that mechanically opens the link in a clean context
+does not have that blind spot.
+
+**The fixture is synthetic and deterministic** (`scripts/ci/make_e2e_fixture.py`) because
+the real snapshot is ~4 GB and lives on the Hub, and because a test that copies a link in
+one context and opens it in another needs the data behind it to hold still.
+
+CI runs Chromium only: these are about routing and history, not cross-browser rendering,
+and three engines would triple the download for no additional signal. Retries are off — a
+link that works on the second try has not proven anything. Verified stable across repeated
+local runs before committing.
+
+548 backend, 77 frontend and 9 end-to-end tests passing.
+
+---
+
 ## 2026-08-25 — Coverage floors, and two more defects in the reports nobody tests (4.10)
 
 `error_analysis.py` went 9% → 70%. It writes the per-pipeline failure reports that ship
