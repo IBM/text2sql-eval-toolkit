@@ -559,8 +559,11 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
     void loadPlaygroundForRecordId(effectiveRecordId);
   }, [loadPlaygroundForRecordId, effectiveRecordId]);
 
+  // Assigning a ref during render is not allowed; keep it in sync from an effect.
   const loadPlaygroundRef = useRef(loadPlaygroundForRecordId);
-  loadPlaygroundRef.current = loadPlaygroundForRecordId;
+  useEffect(() => {
+    loadPlaygroundRef.current = loadPlaygroundForRecordId;
+  }, [loadPlaygroundForRecordId]);
 
   useEffect(() => {
     const bid = selectedBenchmark?.benchmark_id;

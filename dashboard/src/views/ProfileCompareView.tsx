@@ -31,9 +31,7 @@ import {
   flattenMetricInsightsSelectNames,
 } from "../lib/metricInsightsSelect";
 import {
-  LARGE_BENCHMARK_WARNING,
   formatEvalResultsSize,
-  isLargeBenchmark,
 } from "../lib/largeBenchmark";
 
 interface Props {
@@ -169,14 +167,6 @@ export const ProfileCompareView: React.FC<Props> = ({
   const benchmarkById = useMemo(
     () => new Map(benchmarks.map((b) => [b.benchmark_id, b])),
     [benchmarks]
-  );
-
-  const selectedLargeBenchmarks = useMemo(
-    () =>
-      selectedBenchmarkIds
-        .map((id) => benchmarkById.get(id))
-        .filter((b): b is BenchmarkSummary => b != null && isLargeBenchmark(b)),
-    [selectedBenchmarkIds, benchmarkById]
   );
 
   useEffect(() => {
@@ -412,11 +402,8 @@ export const ProfileCompareView: React.FC<Props> = ({
           ) : (
             selectedBenchmarkIds.map((id) => {
               const meta = benchmarkById.get(id);
-              const large = meta != null && isLargeBenchmark(meta);
               const sizeLabel = formatEvalResultsSize(meta?.eval_results_bytes);
-              const largeTitle = large
-                ? `${LARGE_BENCHMARK_WARNING}${sizeLabel ? ` (${sizeLabel} on disk)` : ""}`
-                : undefined;
+              const largeTitle = sizeLabel ? `${sizeLabel} on disk` : undefined;
               return (
                 <span
                   key={id}
@@ -457,11 +444,6 @@ export const ProfileCompareView: React.FC<Props> = ({
               item ? (
                 <span style={{ display: "inline-flex", gap: "0.35rem", alignItems: "center" }}>
                   <span>{item.benchmark_id}</span>
-                  {isLargeBenchmark(item) ? (
-                    <Tag type="magenta" size="sm" title={LARGE_BENCHMARK_WARNING}>
-                      Large
-                    </Tag>
-                  ) : null}
                 </span>
               ) : null
             }
@@ -505,15 +487,6 @@ export const ProfileCompareView: React.FC<Props> = ({
           lowContrast
         />
       ) : null}
-
-      {selectedLargeBenchmarks.length > 0 && (
-        <InlineNotification
-          kind="warning"
-          title="Large benchmarks selected"
-          subtitle={`${selectedLargeBenchmarks.map((b) => b.benchmark_id).join(", ")} — ${LARGE_BENCHMARK_WARNING}`}
-          lowContrast
-        />
-      )}
 
       {metricDefinitionsError && (
         <InlineNotification
