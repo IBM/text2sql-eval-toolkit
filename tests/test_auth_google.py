@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 from text2sql_eval_toolkit.ui import auth, server  # noqa: E402
 from text2sql_eval_toolkit.ui.capabilities import Tier, resolve_tier  # noqa: E402
 
-ALLOWED = "oktieh@gmail.com"
+ALLOWED = "allowed@example.com"
 
 
 @pytest.fixture
@@ -84,7 +84,7 @@ def test_logs_carry_a_hash_not_the_address():
     digest = auth.hash_identity(ALLOWED)
     assert ALLOWED not in digest
     assert "@" not in digest
-    assert auth.hash_identity("OKTIEH@GMAIL.COM") == digest  # case-stable
+    assert auth.hash_identity(ALLOWED.upper()) == digest  # case-stable
 
 
 def test_hashes_differ_between_identities():

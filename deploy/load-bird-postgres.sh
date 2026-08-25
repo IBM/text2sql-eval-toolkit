@@ -18,7 +18,8 @@
 # Drops and recreates the target database, so a failed load can be re-run.
 set -euo pipefail
 
-DUMP="${BIRD_DUMP:-/Users/oktie/data/bird-minidev/MINIDEV_postgresql/BIRD_dev.sql}"
+# No default; see load-beaver.sh.
+DUMP="${BIRD_DUMP:?set BIRD_DUMP to the BIRD_dev.sql from MINIDEV_postgresql}"
 DB="${BIRD_DB:-bird}"
 PGHOST="${PGHOST:-127.0.0.1}"
 PGPORT="${PGPORT:-5432}"

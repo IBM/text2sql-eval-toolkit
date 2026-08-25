@@ -34,7 +34,9 @@
 # failed load can simply be re-run.
 set -euo pipefail
 
-DUMP_DIR="${BEAVER_DUMP_DIR:-/Users/oktie/data/beaver_db}"
+# No default: the dumps are downloaded separately and there is no location
+# every operator shares. Failing here beats failing later against the wrong path.
+DUMP_DIR="${BEAVER_DUMP_DIR:?set BEAVER_DUMP_DIR to the directory holding the Beaver .sql dumps}"
 MYSQL_HOST="${MYSQL_HOST:-127.0.0.1}"
 MYSQL_PORT="${MYSQL_PORT:-3306}"
 MYSQL_USER="${MYSQL_USER:-root}"
