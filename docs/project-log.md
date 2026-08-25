@@ -5,6 +5,26 @@ Plans for upcoming work live in [`docs/plan/`](plan/).
 
 ---
 
+## 2026-08-24 — Release strategy set: `dashboard-v2`, shipping as 2.0.0
+
+All remaining phases land on a single branch, `dashboard-v2`, branched from the Phase A
+work. Nothing is pushed until the whole programme is complete and comprehensively tested;
+CI therefore runs for the first time on a finished branch.
+
+The release is **2.0.0** — a major bump is the honest number given the URL scheme,
+capability tiers, artifact index, and deployment model, and it supersedes the 1.1.0 /
+1.2.0 skew rather than requiring it to be adjudicated. The version change is the *last*
+commit, after the test pass.
+
+One consequence to carry forward: `DEFAULT_REVISION` is derived as `v{version}`
+(`results/_hub.py:39`), so 2.0.0 will request a `v2.0.0` tag on the Hugging Face results
+repo and fall back to `main` with a warning if it does not exist. Publishing that Hub tag
+is on the release checklist (plan item 4.8).
+
+`phase-a-foundations` is kept as a local marker for where Phase A ended.
+
+---
+
 ## 2026-08-24 — Phase A started: tooling and CI foundations
 
 Branch `phase-a-foundations`. First implementation step of

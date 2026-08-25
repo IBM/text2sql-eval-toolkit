@@ -60,6 +60,31 @@ Phase A and the frontend half of Phase C can proceed in parallel with Phase B, s
 touch disjoint files. Phase D must come last: deploying before B means an OOM on first
 public traffic, and deploying before C means shipping a site where nothing is linkable.
 
+## Branch and release strategy
+
+**All phases land on one branch: `dashboard-v2`.** Nothing is pushed until the whole
+programme is complete and comprehensively tested, so CI runs for the first time on a
+finished branch rather than incrementally.
+
+**The release is `2.0.0`.** A major bump is the honest number: the URL scheme, the
+capability tiers, the artifact index, and the deployment model are all new or breaking.
+It also resolves the 1.1.0 / 1.2.0 skew recorded in the project log — rather than
+adjudicating whether 1.2.0 shipped, `2.0.0` supersedes both and the existing CHANGELOG
+entries stay as historical record.
+
+Consequences to handle at release time, not before:
+
+- **`DEFAULT_REVISION` follows the package version.** `results/_hub.py` derives it as
+  `v{version}`, so 2.0.0 will request a `v2.0.0` tag on the Hugging Face results repo and
+  silently fall back to `main` if it is missing. A matching Hub tag must be published as
+  part of the release, and the public deployment pins that tag explicitly.
+- **Push and CI are deferred to the end.** The tradeoff is accepted deliberately: CI is
+  validated statically (`actionlint`) and every check is run locally against the real
+  toolchain as each phase lands, so the branch is not flying blind — but no job is proven
+  green until the first push.
+- **Testing gate before the bump.** The version change is the last commit, after the
+  comprehensive test pass, not before it.
+
 ## Cross-cutting principles
 
 - **Backward compatibility of artifacts.** The on-disk JSON contract
