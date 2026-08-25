@@ -28,6 +28,7 @@ import {
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
+  clampToAvailable,
   flattenMetricInsightsSelectNames,
 } from "../lib/metricInsightsSelect";
 import {
@@ -147,8 +148,8 @@ export const ProfileCompareView: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
 
   const [selectedPipeline, setSelectedPipeline] = useState("");
-  const [metricA, setMetricA] = useState("execution_accuracy");
-  const [metricB, setMetricB] = useState("subset_non_empty_execution_accuracy");
+  const [rawMetricA, setMetricA] = useState("execution_accuracy");
+  const [rawMetricB, setMetricB] = useState("subset_non_empty_execution_accuracy");
   const [pipelineScope, setPipelineScope] = useState<"common" | "all">("common");
 
   const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinitionsResponse | null>(null);
@@ -199,15 +200,15 @@ export const ProfileCompareView: React.FC<Props> = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (!metricDefinitions?.metrics?.length) return;
-    const groups = buildMetricInsightsSelectGroups(metricDefinitions.metrics);
-    const names = flattenMetricInsightsSelectNames(groups);
-    if (names.length === 0) return;
-    const allowed = new Set(names);
-    setMetricA((a) => (allowed.has(a) ? a : names[0]));
-    setMetricB((b) => (allowed.has(b) ? b : names[1] ?? names[0]));
-  }, [metricDefinitions]);
+  const availableMetricNames = useMemo(
+    () => flattenMetricInsightsSelectNames(metricSelectGroups),
+    [metricSelectGroups]
+  );
+
+  // Derived rather than corrected from an effect: the selection is never
+  // briefly invalid, and no render uses a stale value to build a request.
+  const metricA = clampToAvailable(rawMetricA, availableMetricNames, 0);
+  const metricB = clampToAvailable(rawMetricB, availableMetricNames, 1);
 
   useEffect(() => {
     if (selectedBenchmarkIds.length === 0) {

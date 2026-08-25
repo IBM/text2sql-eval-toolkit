@@ -31,21 +31,21 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
-      "react-hooks/set-state-in-effect": "off", // 20x, see above
+      "react-hooks/set-state-in-effect": "off", // 16x, see above
       "react-hooks/preserve-manual-memoization": "off", // 1x, see above
 
-      // ---- Still off, with a reason ------------------------------------
-      // 21 findings. Re-assessed after routing landed (which was the original
-      // reason for deferring) and they did not go away: 5 are the
-      // fetch-on-mount pattern, where setState happens in an async callback --
-      // the sanctioned use of an effect, which this rule cannot distinguish --
-      // and 15 are genuinely synchronous "reset the selection when the options
-      // load".
+      // ---- Still off, and shrinking ------------------------------------
+      // 21 findings originally; 17 now. The metric- and pipeline-selection
+      // effects in ToolkitInsightsView, PipelineCompareView and
+      // ProfileCompareView have been converted to derived state, with the rule
+      // extracted to lib/metricInsightsSelect and unit-tested, so those three
+      // views no longer correct a selection after rendering an invalid one.
       //
-      // Those 15 are real debt and belong in derived state. They are not being
-      // rewritten blind: each decides which option a user ends up looking at,
-      // and there are no component tests to catch a change. Component coverage
-      // comes first (plan item 4.5), then these.
+      // What remains: 5 are the fetch-on-mount pattern, where setState happens
+      // in an async callback -- the sanctioned use of an effect, which this
+      // rule cannot distinguish. The rest are per-view state resets that need a
+      // component test each before being rewritten, since every one of them
+      // decides what a user ends up looking at.
       //
       // Tracked as item 4.13 in docs/plan/04-code-quality.md.
 

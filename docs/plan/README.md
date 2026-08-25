@@ -12,7 +12,7 @@ Plan for four goals, written against the baseline recorded in
 
 ## Where things stand
 
-Branch `dashboard-v2`, **not yet pushed**. 490 backend tests and 51 frontend tests pass;
+Branch `dashboard-v2`, **not yet pushed**. 490 backend tests and 57 frontend tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
@@ -82,7 +82,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.10 Coverage targets | Partial | `evaluate_prediction` 4% → 35% and `report_tools` 0% → 52%; both found defects. Overall 29% → 35%. No floor enforced yet; `error_analysis` (5%) still untouched |
 | 4.11 Documentation refresh | Done | README gains a documentation index and sections on shareable links, the query index, and shared deployment; the ~7 GB snapshot figure corrected to ~4 GB |
 | 4.12 Clear deferred Ruff findings | Done | All 4 rules re-enabled; only `F841` and `B008` remain ignored, both with stated reasons |
-| 4.13 Clear deferred frontend findings | Partial | **All 17 `tsc` errors fixed and the check is now blocking.** 21 eslint effect findings remain off; the component tests that were the prerequisite now exist and pin the selection-clamping *outcome*, so the 15 synchronous ones can be converted to derived state |
+| 4.13 Clear deferred frontend findings | Partial | **All 17 `tsc` errors fixed and the check is now blocking.** Effect findings 21 → 17: the metric- and pipeline-selection effects in three views are now derived state, with the rule in `lib/` and unit-tested. The rest need a component test each first |
 
 ### Known limitations, stated plainly
 

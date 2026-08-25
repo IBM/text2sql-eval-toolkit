@@ -53,3 +53,25 @@ export function flattenMetricInsightsSelectNames(
   }
   return names;
 }
+
+/**
+ * Clamp a chosen metric to the ones the server actually defines.
+ *
+ * Several views let the user pick a metric and then need that choice to remain
+ * valid when the available set changes. Doing it in an effect meant a render
+ * with an invalid selection before the correction landed -- and, in one case, an
+ * effect that depended on the value it also set. Deriving the effective value
+ * removes both, and putting the rule here means the three views cannot drift.
+ *
+ * Returns the choice unchanged when it is still available, or when nothing is
+ * available yet (so a slow definitions fetch does not reset the user's pick).
+ */
+export function clampToAvailable(
+  chosen: string,
+  available: string[],
+  fallbackIndex = 0
+): string {
+  if (available.length === 0) return chosen;
+  if (available.includes(chosen)) return chosen;
+  return available[fallbackIndex] ?? available[0];
+}
