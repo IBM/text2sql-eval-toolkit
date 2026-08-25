@@ -581,7 +581,7 @@ class ClaudeClientChatAPI:
                     error_type = error_json["error"].get("type", "unknown")
                     error_msg = error_json["error"].get("message", "")
                     error_detail = f" - {error_type}: {error_msg}"
-            except:
+            except Exception:
                 pass
 
             # Provide specific guidance for common errors
