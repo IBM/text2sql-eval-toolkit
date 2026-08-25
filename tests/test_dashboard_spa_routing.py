@@ -106,3 +106,52 @@ def test_api_routes_still_work_behind_the_fallback(spa_client):
     resp = spa_client.get("/api/benchmarks/demo/errors")
     assert resp.status_code == 200
     assert resp.json()["total"] == 1
+
+
+def test_static_assets_revalidate_with_an_etag(spa_client, tmp_path):
+    """Logos were sent with no-store, so every page view re-downloaded them."""
+    asset = tmp_path / "logo.png"
+    asset.write_bytes(b"\x89PNG-not-really")
+
+    first = spa_client.get("/api/static/logo.png")
+    assert first.status_code == 200
+    etag = first.headers.get("etag")
+    assert etag, "asset responses must carry an ETag"
+    assert "no-store" not in first.headers.get("cache-control", "")
+
+    second = spa_client.get("/api/static/logo.png", headers={"If-None-Match": etag})
+    assert second.status_code == 304
+    assert second.content == b""
+
+
+def test_changed_asset_gets_a_new_etag(spa_client, tmp_path):
+    asset = tmp_path / "logo2.png"
+    asset.write_bytes(b"one")
+    first_etag = spa_client.get("/api/static/logo2.png").headers["etag"]
+
+    # Force a distinct mtime so the fingerprint genuinely differs.
+    import os
+
+    os.utime(asset, (0, 0))
+    asset.write_bytes(b"two-different-length")
+    second = spa_client.get(
+        "/api/static/logo2.png", headers={"If-None-Match": first_etag}
+    )
+    assert second.status_code == 200, "an edited asset must not be served from cache"
+    assert second.headers["etag"] != first_etag
+
+
+@pytest.mark.parametrize(
+    "suffix",
+    [
+        # Plain "../" is normalised away by well-behaved clients before it is
+        # sent, so encoded forms are what actually reach the handler.
+        "%2e%2e%2f%2e%2e%2fetc%2fpasswd",
+        "..%2f..%2fetc%2fpasswd",
+        "%2e%2e/%2e%2e/etc/passwd",
+    ],
+)
+def test_encoded_asset_path_traversal_is_refused(spa_client, suffix):
+    resp = spa_client.get(f"/api/static/{suffix}")
+    assert resp.status_code in (403, 404), resp.status_code
+    assert b"root:" not in resp.content

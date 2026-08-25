@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Button,
@@ -12,14 +12,47 @@ import { DataTableSkeleton } from "@carbon/react";
 import { BenchmarkList } from "../views/BenchmarkList";
 import { BenchmarkTiles } from "../views/BenchmarkTiles";
 import { BenchmarkConfigModal } from "../views/BenchmarkConfigModal";
-import { BenchmarkDetail } from "../views/BenchmarkDetail";
-import { ErrorAnalysis } from "../views/ErrorAnalysis";
-import { PipelineDetailView } from "../views/PipelineDetailView";
-import { LLMJudgeConfigView } from "../views/LLMJudgeConfigView";
-import { RunEvaluationView } from "../views/RunEvaluationView";
-import { ToolkitInsightsView } from "../views/ToolkitInsightsView";
-import { PipelineCompareView } from "../views/PipelineCompareView";
-import { ProfileCompareView } from "../views/ProfileCompareView";
+
+// Heavy views load on demand. The initial bundle previously carried all eleven
+// views whether or not they were opened; error analysis and run-evaluation alone
+// are ~2.4k lines. Each is reachable only via its own route, so splitting on the
+// route boundary costs nothing in navigation terms.
+const BenchmarkDetail = lazy(() =>
+  import("../views/BenchmarkDetail").then((m) => ({ default: m.BenchmarkDetail }))
+);
+const ErrorAnalysis = lazy(() =>
+  import("../views/ErrorAnalysis").then((m) => ({ default: m.ErrorAnalysis }))
+);
+const PipelineDetailView = lazy(() =>
+  import("../views/PipelineDetailView").then((m) => ({
+    default: m.PipelineDetailView,
+  }))
+);
+const LLMJudgeConfigView = lazy(() =>
+  import("../views/LLMJudgeConfigView").then((m) => ({
+    default: m.LLMJudgeConfigView,
+  }))
+);
+const RunEvaluationView = lazy(() =>
+  import("../views/RunEvaluationView").then((m) => ({
+    default: m.RunEvaluationView,
+  }))
+);
+const ToolkitInsightsView = lazy(() =>
+  import("../views/ToolkitInsightsView").then((m) => ({
+    default: m.ToolkitInsightsView,
+  }))
+);
+const PipelineCompareView = lazy(() =>
+  import("../views/PipelineCompareView").then((m) => ({
+    default: m.PipelineCompareView,
+  }))
+);
+const ProfileCompareView = lazy(() =>
+  import("../views/ProfileCompareView").then((m) => ({
+    default: m.ProfileCompareView,
+  }))
+);
 import { FetchResultsBanner } from "../views/FetchResultsBanner";
 import { CopyLinkButton } from "../views/CopyLinkButton";
 import {
@@ -774,7 +807,9 @@ export const App: React.FC = () => {
                 onCloseButtonClick={() => setFeedback(null)}
               />
             ) : null}
-            {body()}
+            <Suspense fallback={<DataTableSkeleton role="progressbar" />}>
+              {body()}
+            </Suspense>
           </div>
           <footer
             style={{
