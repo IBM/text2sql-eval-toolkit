@@ -19,7 +19,6 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -91,11 +90,7 @@ def _cmd_list(args: argparse.Namespace) -> int:
 
     benchmarks = manifest.get("benchmarks", {})
     col_b, col_p, col_m = 30, 20, 60
-    header = (
-        f"{'Benchmark':<{col_b}}"
-        f"{'Pipeline':<{col_p}}"
-        f"{'Models':<{col_m}}"
-    )
+    header = f"{'Benchmark':<{col_b}}" f"{'Pipeline':<{col_p}}" f"{'Models':<{col_m}}"
     print(header)
     print("-" * (col_b + col_p + col_m))
     for b_name, b_info in benchmarks.items():
@@ -104,9 +99,7 @@ def _cmd_list(args: argparse.Namespace) -> int:
             # Wrap long model lists for readability.
             if len(models_str) > col_m:
                 models_str = models_str[: col_m - 3] + "..."
-            print(
-                f"{b_name:<{col_b}}{p_name:<{col_p}}{models_str:<{col_m}}"
-            )
+            print(f"{b_name:<{col_b}}{p_name:<{col_p}}{models_str:<{col_m}}")
     return 0
 
 
@@ -188,10 +181,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--data-root",
         default=None,
         metavar="PATH",
-        help=(
-            "Root data directory.  "
-            "Falls back to $TEXT2SQL_DATA_ROOT or ./data."
-        ),
+        help=("Root data directory.  " "Falls back to $TEXT2SQL_DATA_ROOT or ./data."),
     )
     fetch_p.add_argument(
         "--force",

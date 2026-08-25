@@ -19,7 +19,9 @@ def test_subset_numeric_normalization_ordered_rows():
         "ORDER BY SUM(T2.Consumption) DESC LIMIT 1"
     )
 
-    match, non_empty_match, subset_match = compare_result_dfs(gold_df, pred_df, gold_sql)
+    match, non_empty_match, subset_match = compare_result_dfs(
+        gold_df, pred_df, gold_sql
+    )
 
     assert match == 0
     assert non_empty_match == 0

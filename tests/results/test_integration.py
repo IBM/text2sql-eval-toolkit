@@ -78,9 +78,9 @@ def test_fetch_results_single_benchmark(tmp_path: Path) -> None:
     for f in non_empty:
         parts = f.relative_to(tmp_path).parts
         assert parts[0] == "results", f"Unexpected top-level dir: {parts[0]}"
-        assert parts[1] != "results", (
-            f"Double-nested results/results detected in path: {f}"
-        )
+        assert (
+            parts[1] != "results"
+        ), f"Double-nested results/results detected in path: {f}"
 
 
 @network

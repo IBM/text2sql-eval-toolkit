@@ -26,7 +26,6 @@ from text2sql_eval_toolkit.results._hub import (
     fetch_results,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -78,7 +77,9 @@ def test_resolve_data_root_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert _resolve_data_root(None) == tmp_path.resolve()
 
 
-def test_resolve_data_root_default(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_resolve_data_root_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     monkeypatch.delenv("TEXT2SQL_DATA_ROOT", raising=False)
     monkeypatch.chdir(tmp_path)
     result = _resolve_data_root(None)
@@ -117,7 +118,9 @@ def test_validate_manifest_incompatible_version() -> None:
         _validate_manifest(bad)
 
 
-def test_validate_manifest_bad_specifier_warns(caplog: pytest.LogCaptureFixture) -> None:
+def test_validate_manifest_bad_specifier_warns(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     bad = {**VALID_MANIFEST, "toolkit_version_compat": "INVALID"}
     # An unparseable specifier should either be silently ignored or raise a
     # ValueError — but must never crash with an unhandled exception.

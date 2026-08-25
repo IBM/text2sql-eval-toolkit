@@ -49,7 +49,6 @@ from text2sql_eval_toolkit.evaluation.metric_definitions import (
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.utils import get_gt_sqls, get_question
 
-
 logger = get_logger(__name__)
 
 app = FastAPI(title="Text2SQL Evaluation Dashboard API")
@@ -62,7 +61,11 @@ _ENABLE_FETCH_ENDPOINT: bool = False
 # Allow local dev frontends by default
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost", "http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=[
+        "http://localhost",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -257,8 +260,7 @@ def normalize_benchmark_config(benchmark_id: str, payload: Any) -> Dict[str, Any
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    "db_engine.connection_string_env_var is required "
-                    f"for {db_type}"
+                    "db_engine.connection_string_env_var is required " f"for {db_type}"
                 ),
             )
         normalized_engine["connection_string_env_var"] = env_var
@@ -594,7 +596,9 @@ def load_eval_records(benchmark_id: str) -> List[Dict[str, Any]]:
 
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
-        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
+        raise HTTPException(
+            status_code=404, detail=_eval_not_found_detail(benchmark_id)
+        )
 
     data = load_json(eval_path)
     if not isinstance(data, list):
@@ -713,7 +717,9 @@ def create_benchmark(req: CreateBenchmarkRequest) -> BenchmarkConfigResponse:
     return BenchmarkConfigResponse(benchmark_id=benchmark_id, config=config)
 
 
-@app.get("/api/benchmarks/{benchmark_id}/config", response_model=BenchmarkConfigResponse)
+@app.get(
+    "/api/benchmarks/{benchmark_id}/config", response_model=BenchmarkConfigResponse
+)
 def get_benchmark_config(benchmark_id: str) -> BenchmarkConfigResponse:
     normalized_id = normalize_benchmark_id(benchmark_id)
     registry_path = get_benchmark_registry_path()
@@ -807,7 +813,9 @@ def upload_benchmark_logo(req: BenchmarkLogoUploadRequest):
         with abs_path.open("wb") as f:
             f.write(raw)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to store image: {e}") from e
+        raise HTTPException(
+            status_code=500, detail=f"Failed to store image: {e}"
+        ) from e
 
     normalized_relative = relative_path.as_posix()
     version_token = str(int(time.time() * 1000))
@@ -818,7 +826,9 @@ def upload_benchmark_logo(req: BenchmarkLogoUploadRequest):
     }
 
 
-@app.get("/api/benchmarks/{benchmark_id}/summary", response_model=BenchmarkDetailResponse)
+@app.get(
+    "/api/benchmarks/{benchmark_id}/summary", response_model=BenchmarkDetailResponse
+)
 def get_benchmark_summary(benchmark_id: str) -> BenchmarkDetailResponse:
     """
     Return pipeline-level summary metrics for a benchmark
@@ -826,15 +836,15 @@ def get_benchmark_summary(benchmark_id: str) -> BenchmarkDetailResponse:
     """
     summary_path = get_results_dir() / f"{benchmark_id}-predictions_eval_summary.json"
     if not summary_path.exists():
-        raise HTTPException(status_code=404, detail=_summary_not_found_detail(benchmark_id))
+        raise HTTPException(
+            status_code=404, detail=_summary_not_found_detail(benchmark_id)
+        )
 
     raw = load_json(summary_path)
     llm_cfg = raw.pop("llm_judge_config", None)
     default_sort_metric = "subset_non_empty_execution_accuracy"
     if llm_cfg and isinstance(llm_cfg, dict):
-        default_sort_metric = (
-            llm_cfg.get("default_sort_metric", default_sort_metric)
-        )
+        default_sort_metric = llm_cfg.get("default_sort_metric", default_sort_metric)
 
     pipelines: List[PipelineMetrics] = []
     for name, metrics in raw.items():
@@ -847,7 +857,9 @@ def get_benchmark_summary(benchmark_id: str) -> BenchmarkDetailResponse:
     )
 
 
-def _collect_category_summary(records: List[Dict[str, Any]]) -> Dict[str, Dict[str, Dict[str, float]]]:
+def _collect_category_summary(
+    records: List[Dict[str, Any]],
+) -> Dict[str, Dict[str, Dict[str, float]]]:
     """
     Aggregate numeric evaluation metrics overall and by category.
     """
@@ -897,9 +909,7 @@ def _collect_category_summary(records: List[Dict[str, Any]]) -> Dict[str, Dict[s
                         center = (p + (z * z) / (2.0 * n)) / denom
                         margin = (
                             z
-                            * math.sqrt(
-                                (p * (1.0 - p) / n) + ((z * z) / (4.0 * n * n))
-                            )
+                            * math.sqrt((p * (1.0 - p) / n) + ((z * z) / (4.0 * n * n)))
                             / denom
                         )
                         ci95_low = max(0.0, center - margin)
@@ -920,14 +930,19 @@ def _collect_category_summary(records: List[Dict[str, Any]]) -> Dict[str, Dict[s
                     }
         return out
 
-    return {"overall": to_avg(overall_metrics), "categories": {k: to_avg(v) for k, v in category_metrics.items()}}
+    return {
+        "overall": to_avg(overall_metrics),
+        "categories": {k: to_avg(v) for k, v in category_metrics.items()},
+    }
 
 
 @app.get(
     "/api/benchmarks/{benchmark_id}/summary/by-category",
     response_model=BenchmarkCategorySummaryResponse,
 )
-def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySummaryResponse:
+def get_benchmark_summary_by_category(
+    benchmark_id: str,
+) -> BenchmarkCategorySummaryResponse:
     """
     Return summary metrics overall and broken down by categories.
     """
@@ -935,7 +950,9 @@ def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySum
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
 
     if not summary_path.exists():
-        raise HTTPException(status_code=404, detail=_summary_not_found_detail(benchmark_id))
+        raise HTTPException(
+            status_code=404, detail=_summary_not_found_detail(benchmark_id)
+        )
 
     summary_raw = load_json(summary_path)
     llm_cfg = summary_raw.pop("llm_judge_config", None)
@@ -988,9 +1005,7 @@ def get_benchmark_summary_by_category(benchmark_id: str) -> BenchmarkCategorySum
     )
 
 
-@app.get(
-    "/api/benchmarks/{benchmark_id}/errors", response_model=PaginatedErrorResponse
-)
+@app.get("/api/benchmarks/{benchmark_id}/errors", response_model=PaginatedErrorResponse)
 def list_errors(
     benchmark_id: str,
     page: int = Query(1, ge=1),
@@ -1031,7 +1046,9 @@ def list_errors(
     """
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
-        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
+        raise HTTPException(
+            status_code=404, detail=_eval_not_found_detail(benchmark_id)
+        )
 
     data = load_json(eval_path)
 
@@ -1041,9 +1058,7 @@ def list_errors(
         q_lower = q.lower()
         rid = str(rec.get("id") or rec.get("question_id") or "")
         question = (
-            rec.get("page_content")
-            or rec.get("question")
-            or rec.get("utterance", "")
+            rec.get("page_content") or rec.get("question") or rec.get("utterance", "")
         )
         return q_lower in rid.lower() or q_lower in str(question).lower()
 
@@ -1115,9 +1130,7 @@ def list_errors(
     for rec in page_items:
         rid = str(rec.get("id") or rec.get("question_id") or "")
         question = (
-            rec.get("page_content")
-            or rec.get("question")
-            or rec.get("utterance", "")
+            rec.get("page_content") or rec.get("question") or rec.get("utterance", "")
         )
         preds = rec.get("predictions", {})
 
@@ -1152,7 +1165,9 @@ def get_error_detail(benchmark_id: str, record_id: str):
     """
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
-        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
+        raise HTTPException(
+            status_code=404, detail=_eval_not_found_detail(benchmark_id)
+        )
 
     data = load_json(eval_path)
     for rec in data:
@@ -1177,7 +1192,9 @@ def get_error_detail_for_pipeline(
     """
     eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
     if not eval_path.exists():
-        raise HTTPException(status_code=404, detail=_eval_not_found_detail(benchmark_id))
+        raise HTTPException(
+            status_code=404, detail=_eval_not_found_detail(benchmark_id)
+        )
 
     data = load_json(eval_path)
     for rec in data:
@@ -1187,7 +1204,9 @@ def get_error_detail_for_pipeline(
 
         preds = rec.get("predictions", {})
         if pipeline not in preds:
-            raise HTTPException(status_code=404, detail=f"Pipeline '{pipeline}' not found in record")
+            raise HTTPException(
+                status_code=404, detail=f"Pipeline '{pipeline}' not found in record"
+            )
         pred = preds[pipeline]
         eval_metrics = pred.get("evaluation", {})
 
@@ -1202,7 +1221,10 @@ def get_error_detail_for_pipeline(
         return {
             "record_id": rid,
             "pipeline": pipeline,
-            "question": rec.get("question") or rec.get("utterance") or rec.get("page_content") or "",
+            "question": rec.get("question")
+            or rec.get("utterance")
+            or rec.get("page_content")
+            or "",
             "db_id": rec.get("db_id"),
             "ground_truth_sql": gt_sql,
             "predicted_sql": pred.get("predicted_sql"),
@@ -1310,9 +1332,7 @@ def _load_gold_benchmark_data_list(benchmark_id: str) -> List[Dict[str, Any]]:
     return data
 
 
-def _find_gold_record(
-    benchmark_id: str, record_id: str
-) -> Optional[Dict[str, Any]]:
+def _find_gold_record(benchmark_id: str, record_id: str) -> Optional[Dict[str, Any]]:
     data = _load_gold_benchmark_data_list(benchmark_id)
     for rec in data:
         rid = str(rec.get("id") or rec.get("question_id") or "")
@@ -1458,7 +1478,9 @@ async def _execute_sql_for_benchmark(
             server_settings={"search_path": schema_name},
         )
         try:
-            df = await run_sql_and_get_dataframe_async(pool, schema_name, fixed_sql, timeout_s)
+            df = await run_sql_and_get_dataframe_async(
+                pool, schema_name, fixed_sql, timeout_s
+            )
         finally:
             await pool.close()
         return df, db_type
@@ -1542,7 +1564,9 @@ async def _execute_sql_for_benchmark(
             finally:
                 conn.close()
 
-        df = await asyncio.wait_for(asyncio.to_thread(_run_presto_query), timeout=timeout_s)
+        df = await asyncio.wait_for(
+            asyncio.to_thread(_run_presto_query), timeout=timeout_s
+        )
         return df, db_type
 
     raise ValueError(f"Unsupported db_type '{db_type}'")
@@ -1561,7 +1585,9 @@ async def execute_sql_for_record(
 
     timeout_s = req.timeout_s or 90
     if timeout_s < 1 or timeout_s > 600:
-        raise HTTPException(status_code=400, detail="timeout_s must be between 1 and 600")
+        raise HTTPException(
+            status_code=400, detail="timeout_s must be between 1 and 600"
+        )
 
     db_id = _resolve_record_db_id(benchmark_id, req.record_id, req.db_id)
     started = time.perf_counter()
@@ -1637,7 +1663,9 @@ def add_ground_truth_sql(
             break
 
     if target_record is None:
-        raise HTTPException(status_code=404, detail="Record not found in benchmark data")
+        raise HTTPException(
+            status_code=404, detail="Record not found in benchmark data"
+        )
 
     sql_key = _get_ground_truth_sql_key(target_record)
     current_value = target_record.get(sql_key)
@@ -1704,11 +1732,7 @@ def list_benchmark_record_ids(benchmark_id: str) -> RecordIdsResponse:
         rid = str(rec.get("id") or rec.get("question_id") or "")
         if not rid.strip():
             continue
-        q = (
-            rec.get("page_content")
-            or rec.get("question")
-            or rec.get("utterance", "")
-        )
+        q = rec.get("page_content") or rec.get("question") or rec.get("utterance", "")
         items.append(RecordIdItem(record_id=rid, question=str(q)))
     return RecordIdsResponse(benchmark_id=benchmark_id, items=items)
 
@@ -1720,7 +1744,9 @@ def list_benchmark_record_ids(benchmark_id: str) -> RecordIdsResponse:
 def get_playground_init(benchmark_id: str, record_id: str) -> PlaygroundInitResponse:
     gold = _find_gold_record(benchmark_id, record_id)
     if gold is None:
-        raise HTTPException(status_code=404, detail="Record not found in benchmark data")
+        raise HTTPException(
+            status_code=404, detail="Record not found in benchmark data"
+        )
 
     rec_copy = deepcopy(gold)
     try:
@@ -1794,7 +1820,9 @@ async def playground_evaluate(
 ) -> PlaygroundEvaluateResponse:
     gold = _find_gold_record(benchmark_id, req.record_id)
     if gold is None:
-        raise HTTPException(status_code=404, detail="Record not found in benchmark data")
+        raise HTTPException(
+            status_code=404, detail="Record not found in benchmark data"
+        )
 
     sqls = [s.strip() for s in req.ground_truth_sqls if s and str(s).strip()]
     if not sqls:
@@ -1809,7 +1837,9 @@ async def playground_evaluate(
 
     timeout_s = req.timeout_s or 90
     if timeout_s < 1 or timeout_s > 600:
-        raise HTTPException(status_code=400, detail="timeout_s must be between 1 and 600")
+        raise HTTPException(
+            status_code=400, detail="timeout_s must be between 1 and 600"
+        )
 
     db_id = gold.get("db_id")
     record = deepcopy(gold)
@@ -1918,10 +1948,12 @@ def compare_summaries(
     right_path = results_dir / f"{right_id}-predictions_eval_summary.json"
     missing = [
         f"data/results/{left_id}-predictions_eval_summary.json"
-        for _ in [None] if not left_path.exists()
+        for _ in [None]
+        if not left_path.exists()
     ] + [
         f"data/results/{right_id}-predictions_eval_summary.json"
-        for _ in [None] if not right_path.exists()
+        for _ in [None]
+        if not right_path.exists()
     ]
     if missing:
         raise HTTPException(
@@ -2146,9 +2178,7 @@ def list_llm_judge_configs() -> LLMJudgeConfigListResponse:
     items: List[LLMJudgeConfigInfo] = []
     if base_dir.exists():
         for path in sorted(base_dir.glob("*.yaml")):
-            items.append(
-                LLMJudgeConfigInfo(name=path.stem, path=str(path.resolve()))
-            )
+            items.append(LLMJudgeConfigInfo(name=path.stem, path=str(path.resolve())))
     return LLMJudgeConfigListResponse(items=items)
 
 
@@ -2276,7 +2306,9 @@ class ResultsFetchRequest(BaseModel):
 
 
 @app.post("/api/results/fetch", response_model=FetchJobStatus)
-def start_results_fetch(req: ResultsFetchRequest = ResultsFetchRequest()) -> FetchJobStatus:
+def start_results_fetch(
+    req: ResultsFetchRequest = ResultsFetchRequest(),
+) -> FetchJobStatus:
     """
     Kick off a background download of results from the Hugging Face Hub.
 
@@ -2374,7 +2406,9 @@ def _ensure_dashboard_dist(dashboard_dir: Path) -> None:
         )
         return
     if not (dashboard_dir / "node_modules").is_dir():
-        logger.info("dashboard/node_modules missing; running `npm install` in %s", dashboard_dir)
+        logger.info(
+            "dashboard/node_modules missing; running `npm install` in %s", dashboard_dir
+        )
         install = subprocess.run(
             [npm, "install"],
             cwd=str(dashboard_dir),
@@ -2385,7 +2419,9 @@ def _ensure_dashboard_dist(dashboard_dir: Path) -> None:
                 install.returncode,
             )
             return
-    logger.info("No dashboard dist found; running one-time `npm run build` in %s", dashboard_dir)
+    logger.info(
+        "No dashboard dist found; running one-time `npm run build` in %s", dashboard_dir
+    )
     r = subprocess.run(
         [npm, "run", "build"],
         cwd=str(dashboard_dir),
@@ -2425,7 +2461,9 @@ def _spawn_dashboard_watch(dashboard_dir: Path) -> Optional[subprocess.Popen]:
         return None
 
 
-def _terminate_dashboard_watch(proc: Optional[subprocess.Popen], *, timeout: float = 12.0) -> None:
+def _terminate_dashboard_watch(
+    proc: Optional[subprocess.Popen], *, timeout: float = 12.0
+) -> None:
     if proc is None or proc.poll() is not None:
         return
     proc.terminate()
@@ -2505,8 +2543,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     if args.enable_fetch:
         _ENABLE_FETCH_ENDPOINT = True
         logger.info(
-            "Results fetch endpoint enabled.  "
-            "POST /api/results/fetch is active."
+            "Results fetch endpoint enabled.  " "POST /api/results/fetch is active."
         )
 
     # Check whether results are present; hint if not.
@@ -2546,4 +2583,3 @@ def main(argv: Optional[List[str]] = None) -> None:
 
 if __name__ == "__main__":
     main()
-

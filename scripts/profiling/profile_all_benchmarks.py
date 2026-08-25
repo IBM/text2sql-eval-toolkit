@@ -12,7 +12,6 @@ from text2sql_eval_toolkit.profiling.profiling_tools import (
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.utils import get_default_eval_filename
 
-
 logger = get_logger(__name__)
 
 
@@ -28,7 +27,7 @@ def main():
     args = parser.parse_args()
 
     benchmarks = get_benchmarks_info(is_test=args.test)
-    
+
     benchmark_type = "test benchmarks" if args.test else "benchmarks"
     logger.info(f"Starting profiling for all {benchmark_type}")
 

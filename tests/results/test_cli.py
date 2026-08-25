@@ -13,7 +13,6 @@ import pytest
 
 from text2sql_eval_toolkit.cli import _build_parser, _normalise_list, main
 
-
 # ---------------------------------------------------------------------------
 # _normalise_list
 # ---------------------------------------------------------------------------

@@ -112,26 +112,26 @@ def format_inference_error_example(record, pred, example_index, total_failed):
         or record.get("question")
         or record.get("utterance", "")
     )
-    
+
     md = []
     md.append(
         f"### ⚠️  Inference Failed - Question #{example_index} (of {total_failed} examples) - Question ID: `{question_id}`\n"
     )
     md.append(f"**Question**: {utterance}\n")
-    
+
     md.append("### ❌ Inference Error")
     md.append(f"```\n{pred.get('inference_error', 'Unknown error')}\n```")
-    
+
     # Show raw response if available
-    if pred.get('raw_response'):
+    if pred.get("raw_response"):
         md.append("### 📄 Raw Model Response")
         md.append(f"```\n{pred['raw_response']}\n```")
-    
+
     # Show prompt that was used
-    if pred.get('prompt'):
+    if pred.get("prompt"):
         md.append("### 📝 Prompt Used")
         md.append(f"```\n{safe_snippet(pred['prompt'], head=500, tail=500)}\n```")
-    
+
     md.append("---\n")
     return "\n".join(md)
 
@@ -142,7 +142,7 @@ def format_failed_example(record, pipeline_id, example_index, total_failed):
     except Exception as e:
         logger.error(f"Error reading prediction in record: {record}")
         return f"⚠️  Error reading prediction in record: {record}\n\n"
-    
+
     # Check for inference error
     if "inference_error" in pred:
         return format_inference_error_example(record, pred, example_index, total_failed)

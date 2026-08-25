@@ -71,9 +71,9 @@ async def evaluate_with_llm_judge(
                         llm_judge_config,
                     )
 
-                    prediction["llm_judge_evaluation"][llm_judge_config_name] = (
-                        llm_as_judge_response
-                    )
+                    prediction["llm_judge_evaluation"][
+                        llm_judge_config_name
+                    ] = llm_as_judge_response
                     prediction["evaluation"][llm_judge_config_name + "_score"] = (
                         llm_as_judge_response["score"]
                     )

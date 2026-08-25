@@ -48,7 +48,6 @@ from typing import List, Optional
 # Import only the version from the toolkit to avoid pulling in heavy deps.
 from text2sql_eval_toolkit import __version__ as _TOOLKIT_VERSION
 
-
 DEFAULT_REPO_ID = "text2sql-eval-toolkit/text2sql-eval-results"
 
 
@@ -163,9 +162,7 @@ def _generate_manifest(results_dir: Path) -> dict:
                 pipe_name = pipe_dir.name
                 models: List[str] = []
                 pipe_bytes = 0
-                for model_dir in sorted(
-                    m for m in pipe_dir.iterdir() if m.is_dir()
-                ):
+                for model_dir in sorted(m for m in pipe_dir.iterdir() if m.is_dir()):
                     raw = model_dir.name
                     model_id = raw.replace("__", "/", 1).replace("__", ":", 1)
                     models.append(model_id)
@@ -297,9 +294,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         encoding="utf-8",
     )
     n_benchmarks = len(manifest["benchmarks"])
-    n_pipelines = sum(
-        len(b["pipelines"]) for b in manifest["benchmarks"].values()
-    )
+    n_pipelines = sum(len(b["pipelines"]) for b in manifest["benchmarks"].values())
     print(
         f"Manifest written to {manifest_path}\n"
         f"  Benchmarks: {n_benchmarks}   Pipelines: {n_pipelines}   "
@@ -316,10 +311,7 @@ def main(argv: Optional[List[str]] = None) -> None:
             f"excluding logs and *.log files)"
         )
         if not args.no_tag:
-            print(
-                f"  create_tag  {args.revision_tag} on "
-                f"{args.repo_id} (dataset)"
-            )
+            print(f"  create_tag  {args.revision_tag} on " f"{args.repo_id} (dataset)")
         print()
         print("Re-run without --dry-run to perform the upload.")
         return

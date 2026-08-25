@@ -50,9 +50,9 @@ Workflow:
 import argparse
 import time
 
-from text2sql_eval_toolkit import env_loader  # noqa: F401  -- imported for side effect: loads .env on import
+# Side effect import: loading this module reads .env into the environment.
+from text2sql_eval_toolkit import env_loader  # noqa: F401
 from text2sql_eval_toolkit.execution.execution_tools import run_execution
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

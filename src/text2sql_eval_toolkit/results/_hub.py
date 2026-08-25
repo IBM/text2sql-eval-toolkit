@@ -359,9 +359,9 @@ def clear_cache(
         return
 
     if confirm and sys.stdin.isatty():
-        answer = input(
-            f"Delete {results_dir} and all its contents? [y/N] "
-        ).strip().lower()
+        answer = (
+            input(f"Delete {results_dir} and all its contents? [y/N] ").strip().lower()
+        )
         if answer not in ("y", "yes"):
             logger.info("Aborted.")
             return
