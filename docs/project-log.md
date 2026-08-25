@@ -84,7 +84,22 @@ throws. Five instances across four views, including
 took down the whole insights view with `TypeError: Cannot read properties of undefined`.
 Optional chaining looks like a guard, which is what makes it easy to miss.
 
-490 backend and 51 frontend tests passing.
+**Effects converted to derived state (4.13, continued).** With the outcome pinned, the
+metric- and pipeline-selection effects in `ToolkitInsightsView`, `PipelineCompareView` and
+`ProfileCompareView` are now derived values rather than corrections applied after the fact.
+Findings 21 → 17.
+
+The clamping rule moved to `lib/metricInsightsSelect.clampToAvailable` and is unit-tested,
+so the three views cannot drift apart — they had three copies of the same logic. One detail
+the rewrite fixed beyond the lint finding: the pipeline-selection effect depended on
+`selectedPipeline` *and* set it, so it re-ran on its own output; deriving removes that loop
+along with the render in which the selection was briefly invalid.
+
+Verified in a browser that the insights view is unchanged — same confusion matrix
+(62/0/1/41), same auto-selected pipeline and metrics — and that all three views load with
+no failing requests.
+
+490 backend and 57 frontend tests passing.
 
 ---
 
