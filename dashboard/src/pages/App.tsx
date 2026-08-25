@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Button,
   Content,
@@ -20,6 +21,7 @@ import { ToolkitInsightsView } from "../views/ToolkitInsightsView";
 import { PipelineCompareView } from "../views/PipelineCompareView";
 import { ProfileCompareView } from "../views/ProfileCompareView";
 import { FetchResultsBanner } from "../views/FetchResultsBanner";
+import { CopyLinkButton } from "../views/CopyLinkButton";
 import {
   createBenchmark,
   fetchBenchmarkConfig,
@@ -30,6 +32,7 @@ import {
 import toolkitLogo from "../assets/text2sql-eval-toolkit-logo.png";
 import githubLogo from "../assets/github.png";
 import type { BenchmarkConfigInput, BenchmarkSummary } from "../types/benchmark";
+import { parseLocation, parseQuery, routes } from "../lib/routes";
 
 type BenchmarkModalMode = "create" | "edit";
 const DEFAULT_BENCHMARK_ID = "bird_mini_dev_sqlite";
@@ -53,23 +56,52 @@ const HamburgerMenuIcon: React.FC = () => (
   </svg>
 );
 
+/** Shown when a shared link points at something this server does not have. */
+const NotFound: React.FC<{ message: string }> = ({ message }) => (
+  <InlineNotification
+    kind="info"
+    title="Not found"
+    subtitle={message}
+    lowContrast
+  />
+);
+
 export const App: React.FC = () => {
   const [benchmarks, setBenchmarks] = useState<BenchmarkSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
-  const [selectedBenchmark, setSelectedBenchmark] = useState<string | null>(null);
-  const [selectedPipeline, setSelectedPipeline] = useState<string | null>(null);
+  // The URL is the source of truth for navigation, so every view is linkable and
+  // survives a reload. `navigate` replaces what used to be setActiveView.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const match = useMemo(() => parseLocation(location.pathname), [location.pathname]);
+
+  const urlFilters = useMemo(
+    () => parseQuery(location.search.replace(/^\?/, "")),
+    [location.search]
+  );
+
+  // ErrorAnalysis takes non-null strings; the URL layer uses null for "absent".
+  const errorAnalysisFilters = useMemo(() => {
+    const out: Record<string, string | boolean> = {};
+    for (const [key, value] of Object.entries(urlFilters)) {
+      if (value == null || value === "") continue;
+      if (key === "page" || key === "pageSize" || key === "record") continue;
+      out[key] = typeof value === "boolean" ? value : String(value);
+    }
+    return out;
+  }, [urlFilters]);
+
+  const selectedBenchmark = match.benchmarkId;
+  const selectedPipeline = match.pipelineId;
+  const activeView = match.view;
   const [showBenchmarkPanel, setShowBenchmarkPanel] = useState(false);
   const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
   const [benchmarkModalMode, setBenchmarkModalMode] = useState<BenchmarkModalMode>("create");
   const [editingBenchmarkId, setEditingBenchmarkId] = useState<string | null>(null);
   const [editingBenchmarkConfig, setEditingBenchmarkConfig] = useState<BenchmarkConfigInput | null>(null);
   const [savingBenchmark, setSavingBenchmark] = useState(false);
-  const [activeView, setActiveView] = useState<
-    "home" | "benchmark" | "pipeline" | "toolkitInsights" | "pipelineCompare" | "profileCompare" | "errorAnalysis" | "llmJudge" | "runEvaluation"
-  >("home");
-  const [errorAnalysisInitialFilters, setErrorAnalysisInitialFilters] = useState<Record<string, any> | null>(null);
   const [showNavMenu, setShowNavMenu] = useState(false);
 
   const loadBenchmarks = async () => {
@@ -105,24 +137,26 @@ export const App: React.FC = () => {
     benchmarks[0]?.benchmark_id ??
     null;
 
+  // Views that need a benchmark redirect to one rather than rendering empty, so
+  // the address bar always reflects what is on screen.
   useEffect(() => {
+    if (!fallbackBenchmarkId || benchmarks.length === 0) return;
+    const needsBenchmark =
+      activeView === "toolkitInsights" ||
+      activeView === "pipelineCompare" ||
+      activeView === "profileCompare" ||
+      activeView === "errorAnalysis";
     if (!selectedBenchmark) {
-      if (
-        (activeView === "toolkitInsights" ||
-          activeView === "pipelineCompare" ||
-          activeView === "profileCompare" ||
-          activeView === "errorAnalysis") &&
-        fallbackBenchmarkId
-      ) {
-        setSelectedBenchmark(fallbackBenchmarkId);
+      if (needsBenchmark) {
+        navigate(routes.benchmark(fallbackBenchmarkId), { replace: true });
       }
       return;
     }
     const exists = benchmarks.some((b) => b.benchmark_id === selectedBenchmark);
-    if (!exists && fallbackBenchmarkId) {
-      setSelectedBenchmark(fallbackBenchmarkId);
+    if (!exists) {
+      navigate(routes.benchmark(fallbackBenchmarkId), { replace: true });
     }
-  }, [activeView, benchmarks, fallbackBenchmarkId, selectedBenchmark]);
+  }, [activeView, benchmarks, fallbackBenchmarkId, selectedBenchmark, navigate]);
 
   const resetBenchmarkModal = () => {
     setShowBenchmarkModal(false);
@@ -184,39 +218,27 @@ export const App: React.FC = () => {
     }
   };
 
-  const openToolkitInsights = () => {
-    setShowBenchmarkPanel(false);
-    setSelectedPipeline(null);
-    setActiveView("toolkitInsights");
-  };
+  const goto = useCallback(
+    (path: string) => {
+      setShowBenchmarkPanel(false);
+      navigate(path);
+    },
+    [navigate]
+  );
 
-  const openPipelineCompare = () => {
-    setShowBenchmarkPanel(false);
-    setSelectedPipeline(null);
-    setActiveView("pipelineCompare");
-  };
+  /** Target benchmark for views that require one, falling back when none is in the URL. */
+  const benchmarkForNav = selectedBenchmark ?? fallbackBenchmarkId;
 
-  const openProfileCompare = () => {
-    setShowBenchmarkPanel(false);
-    setSelectedPipeline(null);
-    setActiveView("profileCompare");
-  };
-
-  const openErrorAnalysis = () => {
-    setShowBenchmarkPanel(false);
-    setErrorAnalysisInitialFilters(null);
-    setActiveView("errorAnalysis");
-  };
-
-  const openLLMJudge = () => {
-    setShowBenchmarkPanel(false);
-    setActiveView("llmJudge");
-  };
-
-  const openRunEvaluation = () => {
-    setShowBenchmarkPanel(false);
-    setActiveView("runEvaluation");
-  };
+  const openToolkitInsights = () =>
+    benchmarkForNav && goto(routes.insights(benchmarkForNav));
+  const openPipelineCompare = () =>
+    benchmarkForNav && goto(routes.compare(benchmarkForNav));
+  const openProfileCompare = () =>
+    benchmarkForNav && goto(routes.profileCompare(benchmarkForNav));
+  const openErrorAnalysis = () =>
+    benchmarkForNav && goto(routes.errors(benchmarkForNav));
+  const openLLMJudge = () => goto(routes.llmJudge());
+  const openRunEvaluation = () => goto(routes.run());
 
   const body = () => {
     if (loading) {
@@ -230,6 +252,17 @@ export const App: React.FC = () => {
           subtitle={error}
           lowContrast
         />
+      );
+    }
+
+    if (match.notFound) {
+      return (
+        <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
+          <NotFound message={`No such page: ${location.pathname}`} />
+          <Button kind="tertiary" size="sm" onClick={() => navigate(routes.home())}>
+            Go to benchmarks
+          </Button>
+        </div>
       );
     }
 
@@ -306,9 +339,7 @@ export const App: React.FC = () => {
             <BenchmarkTiles
               items={benchmarks}
               onSelect={(benchmarkId) => {
-                setSelectedBenchmark(benchmarkId);
-                setSelectedPipeline(null);
-                setActiveView("benchmark");
+                navigate(routes.benchmark(benchmarkId));
               }}
               onEdit={(benchmarkId) => {
                 void openEditBenchmarkModal(benchmarkId);
@@ -320,58 +351,52 @@ export const App: React.FC = () => {
       );
       }
 
-      // If user came back to "home" but has a selected benchmark, re-enter its detail view.
-      return (
-        <InlineNotification
-          kind="info"
-          title="Resuming benchmark view"
-          subtitle="Showing the selected benchmark summary."
-          lowContrast
-        />
-      );
     }
 
     if (activeView === "benchmark") {
+      if (!selectedBenchmark) {
+        return <NotFound message="No benchmark in the URL." />;
+      }
       return (
         <BenchmarkDetail
           benchmarkId={selectedBenchmark}
-          onSelectPipeline={(pipeline) => {
-            setSelectedPipeline(pipeline);
-            setActiveView("pipeline");
-          }}
-          onOpenToolkitInsights={() => {
-            setSelectedPipeline(null);
-            setActiveView("toolkitInsights");
-          }}
-          onOpenPipelineCompare={() => {
-            setSelectedPipeline(null);
-            setActiveView("pipelineCompare");
-          }}
-          onOpenProfileCompare={() => {
-            setSelectedPipeline(null);
-            setActiveView("profileCompare");
-          }}
-          onOpenErrorAnalysis={() => {
-            setErrorAnalysisInitialFilters(null);
-            setActiveView("errorAnalysis");
-          }}
+          onSelectPipeline={(pipeline) =>
+            selectedBenchmark &&
+            navigate(routes.pipeline(selectedBenchmark, pipeline))
+          }
+          onOpenToolkitInsights={() =>
+            selectedBenchmark && navigate(routes.insights(selectedBenchmark))
+          }
+          onOpenPipelineCompare={() =>
+            selectedBenchmark && navigate(routes.compare(selectedBenchmark))
+          }
+          onOpenProfileCompare={() =>
+            selectedBenchmark && navigate(routes.profileCompare(selectedBenchmark))
+          }
+          onOpenErrorAnalysis={() =>
+            selectedBenchmark && navigate(routes.errors(selectedBenchmark))
+          }
         />
       );
     }
 
     if (activeView === "pipeline") {
+      if (!selectedBenchmark || !selectedPipeline) {
+        return (
+          <NotFound message="That pipeline link is missing a benchmark or pipeline id." />
+        );
+      }
       return (
         <PipelineDetailView
           benchmarkId={selectedBenchmark}
           pipelineName={selectedPipeline}
-          onBack={() => {
-            setSelectedPipeline(null);
-            setActiveView("benchmark");
-          }}
-          onOpenErrorAnalysis={(filters) => {
-            setErrorAnalysisInitialFilters(filters);
-            setActiveView("errorAnalysis");
-          }}
+          onBack={() =>
+            selectedBenchmark && navigate(routes.benchmark(selectedBenchmark))
+          }
+          onOpenErrorAnalysis={(filters) =>
+            selectedBenchmark &&
+            navigate(routes.errors(selectedBenchmark, filters))
+          }
         />
       );
     }
@@ -391,8 +416,8 @@ export const App: React.FC = () => {
       return (
         <ErrorAnalysis
           benchmarkId={effectiveBenchmarkId}
-          onBack={() => setActiveView(selectedPipeline ? "pipeline" : "benchmark")}
-          initialFilters={errorAnalysisInitialFilters ?? undefined}
+          onBack={() => navigate(routes.benchmark(effectiveBenchmarkId))}
+          initialFilters={errorAnalysisFilters}
         />
       );
     }
@@ -421,14 +446,10 @@ export const App: React.FC = () => {
         <ToolkitInsightsView
           benchmarks={benchmarks}
           benchmarkId={effectiveBenchmarkId}
-          onSelectBenchmark={(id) => {
-            setSelectedBenchmark(id);
-            setSelectedPipeline(null);
-          }}
-          onOpenErrorAnalysis={(filters) => {
-            setErrorAnalysisInitialFilters(filters);
-            setActiveView("errorAnalysis");
-          }}
+          onSelectBenchmark={(id) => navigate(routes.insights(id))}
+          onOpenErrorAnalysis={(filters) =>
+            navigate(routes.errors(effectiveBenchmarkId, filters))
+          }
         />
       );
     }
@@ -448,10 +469,9 @@ export const App: React.FC = () => {
       return (
         <PipelineCompareView
           benchmarkId={effectiveBenchmarkId}
-          onOpenErrorAnalysis={(filters) => {
-            setErrorAnalysisInitialFilters(filters);
-            setActiveView("errorAnalysis");
-          }}
+          onOpenErrorAnalysis={(filters) =>
+            navigate(routes.errors(effectiveBenchmarkId, filters))
+          }
         />
       );
     }
@@ -461,7 +481,7 @@ export const App: React.FC = () => {
         <ProfileCompareView
           benchmarks={benchmarks}
           benchmarkId={selectedBenchmark ?? fallbackBenchmarkId}
-          onSelectBenchmark={(id) => setSelectedBenchmark(id)}
+          onSelectBenchmark={(id) => navigate(routes.profileCompare(id))}
         />
       );
     }
@@ -497,11 +517,8 @@ export const App: React.FC = () => {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setSelectedBenchmark(null);
-            setSelectedPipeline(null);
-            setActiveView("home");
             setShowBenchmarkPanel(false);
-            setErrorAnalysisInitialFilters(null);
+            navigate(routes.home());
           }}
           style={{
             cursor: "pointer",
@@ -515,16 +532,19 @@ export const App: React.FC = () => {
         >
           Evaluation Dashboard
         </HeaderName>
-        <Button
-          kind="ghost"
-          size="sm"
-          onClick={() => {
-            setShowBenchmarkPanel(true);
-          }}
-          style={{ marginLeft: "auto", marginRight: "0.5rem" }}
-        >
-          Benchmarks
-        </Button>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center" }}>
+          <CopyLinkButton />
+          <Button
+            kind="ghost"
+            size="sm"
+            onClick={() => {
+              setShowBenchmarkPanel(true);
+            }}
+            style={{ marginRight: "0.5rem" }}
+          >
+            Benchmarks
+          </Button>
+        </div>
       </Header>
       <div
         style={{
@@ -683,9 +703,7 @@ export const App: React.FC = () => {
               items={benchmarks}
               selectedId={selectedBenchmark}
               onSelect={(benchmarkId) => {
-                setSelectedBenchmark(benchmarkId);
-                setSelectedPipeline(null);
-                setActiveView("benchmark");
+                navigate(routes.benchmark(benchmarkId));
                 setShowBenchmarkPanel(false);
               }}
             />

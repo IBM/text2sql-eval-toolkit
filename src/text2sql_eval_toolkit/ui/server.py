@@ -17,6 +17,7 @@ from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, ConfigDict, Field
 import uvicorn
 
@@ -2372,6 +2373,37 @@ def _terminate_dashboard_watch(
         proc.kill()
 
 
+class SPAStaticFiles(StaticFiles):
+    """
+    Static files with a single-page-app fallback.
+
+    The dashboard uses real paths (``/b/{benchmark}/errors``) so links can be
+    shared, but those paths exist only in the client router -- there is no such
+    file on disk.  Without a fallback, opening a shared link or refreshing any
+    view returns 404.  Unknown non-API paths therefore serve ``index.html`` and
+    let the client resolve them.
+
+    ``/api/*`` is deliberately excluded: an unknown API path must stay a real
+    404 rather than silently returning an HTML page, which would turn a typo
+    into a confusing parse error in the caller.
+    """
+
+    async def get_response(self, path: str, scope: Any) -> Any:
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as exc:
+            if exc.status_code != 404:
+                raise
+            request_path = scope.get("path", "")
+            if request_path.startswith("/api/"):
+                raise
+            # Anything that looks like a missing asset should stay a 404 rather
+            # than returning HTML with a JS or CSS content type.
+            if Path(path).suffix:
+                raise
+            return await super().get_response("index.html", scope)
+
+
 def mount_static(app: FastAPI) -> None:
     """
     Mount built frontend assets if available.
@@ -2389,7 +2421,7 @@ def mount_static(app: FastAPI) -> None:
         if static_dir.exists():
             app.mount(
                 "/",
-                StaticFiles(directory=str(static_dir), html=True),
+                SPAStaticFiles(directory=str(static_dir), html=True),
                 name="dashboard",
             )
             logger.info(f"Mounted dashboard static files from {static_dir}")

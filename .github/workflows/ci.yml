@@ -128,6 +128,8 @@ jobs:
         # docs/plan/04-code-quality.md; make this blocking once they are clear.
         continue-on-error: true
         run: npm run typecheck
+      - name: Unit tests
+        run: npm test
       - name: Build
         run: npm run build
       - name: Bundle size budget
