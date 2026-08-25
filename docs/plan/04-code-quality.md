@@ -162,19 +162,34 @@ version invalidates existing artifacts and shared links.
 *Acceptance:* no module over ~800 lines without justification; public API and pipeline ids
 unchanged.
 
-**Status — half done, and the target moved.** 41 Pydantic models are out in `ui/models.py`.
-But `server.py` was 2,549 lines when this was written and is now **3,184 across 38
-endpoints**: Phase D added tiers, auth, the judge endpoint and the deployment surface
-faster than extraction removed anything. The models split bought 297 lines and Phase D
-spent them.
+**Status — done for the server; the pipelines are deliberately not.** `server.py` was
+2,549 lines when this was written, grew to 3,184 as Phase D added tiers, auth and the
+deployment surface, and is now **343**. The `ui/` package is 18 modules, none over 800:
 
-The remaining half — splitting routes into routers by domain — is the part with real risk
-attached, because `enforce_capability_tier` walks `app.router.routes` and
-`unclassified_routes()` asserts over the same list. A router split that changes registered
-paths changes what the tier table matches, and the failure mode is a mutating endpoint
-silently falling through to the deny-by-default branch (harmless) or, worse, a path
-mismatch that stops the middleware matching at all. `agentic_pipeline.py` is untouched and
-should stay that way until someone confirms which of v0–v5 still have published results.
+| Layer | Modules |
+|---|---|
+| Runtime | `runtime` (mode, allowlist, identity), `middleware` (authz, rate limit, headers) |
+| Data | `paths`, `registry`, `indexes`, `jobs`, `aliases`, `models` |
+| Routes | `routers_auth`, `routers_judge`, `routers_judge_configs`, `routers_benchmarks`, `routers_errors`, `routers_execution`, `routers_compare`, `routers_jobs`, `routers_results`, `static_files` |
+
+Routes are grouped by **what they can do**, not by URL shape. `routers_execution` holds
+everything that runs caller-supplied SQL and `routers_judge` holds the one mutating
+capability a public visitor can reach; both are readable in one sitting, which is the
+point of the grouping.
+
+The split was as risky as the item predicted, and in exactly the predicted place. The
+first `include_router` call broke authorization: since Starlette 1.6, `include_router`
+leaves a wrapper object in `app.routes` holding the real routes rather than splicing them
+in, and both places that decide authorization walked `app.routes` flat. See the project
+log for what that did and how it is now tested.
+
+The route table is byte-identical before and after — 35 `/api` routes, same methods, same
+templates — and `tests/test_route_table.py` records that set, because a dropped
+`include_router` now deletes a whole group at once.
+
+`agentic_pipeline.py` (2,338 lines, v0–v5) is untouched and should stay that way until
+someone confirms which versions still have published results: the pipeline ids are in
+shared links and Hub snapshots.
 
 ### 4.10 Coverage targets
 Set a floor and ratchet it. Prioritize by risk: `evaluation/evaluation_tools.py` and
@@ -184,7 +199,7 @@ Set a floor and ratchet it. Prioritize by risk: `evaluation/evaluation_tools.py`
 *Acceptance:* an agreed floor enforced in CI; the four risk areas above meaningfully
 covered.
 
-**Status — partial; no floor yet.** Overall 29% → 36%. The index layer from Goal 2 is
+**Status — partial; no floor yet.** Overall 29% → 38%. The index layer from Goal 2 is
 covered (`scanner` 99%, `builder` 86%, `store` 82%), as are the tiers, auth, judge budget
 and aliases (100%). `evaluate_prediction` went 4% → 35% and `report_tools` 0% → 52%, and
 writing those tests found real defects in both.
