@@ -18,7 +18,7 @@ import asyncio
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, TypedDict, Annotated
+from typing import Any, List, Optional, TypedDict, Annotated
 from pathlib import Path
 import pandas as pd
 
@@ -28,7 +28,6 @@ import pandas as pd
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.inference.base_pipeline import BasePipeline
 from text2sql_eval_toolkit.inference.inference_tools import (
-    Text2SQLPrompt,
     WXAIClientChatAPI,
     VLLMClientChatAPI,
     ClaudeClientChatAPI,
@@ -42,16 +41,12 @@ from text2sql_eval_toolkit.utils import (
     get_utterance,
 )
 from text2sql_eval_toolkit.execution.execution_tools import (
-    run_sql_and_get_dataframe_async,
     run_sqlite_query_with_timeout,
     run_sql_and_get_dataframe_mysql_async,
     normalize_mysql_connection_string,
-    quote_mixed_case_columns,
     quote_mysql_identifiers,
 )
 import asyncpg
-import sqlite3
-from func_timeout import func_timeout, FunctionTimedOut
 
 logger = get_logger(__name__)
 
@@ -1070,7 +1065,7 @@ When you generate SQL:
             messages.append(
                 {
                     "role": "assistant",
-                    "content": f"Previous reasoning:\n" + "\n".join(state["reasoning"]),
+                    "content": "Previous reasoning:\n" + "\n".join(state["reasoning"]),
                 }
             )
 
@@ -1825,7 +1820,7 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                         messages.append(
                             {
                                 "role": "user",
-                                "content": f"Error: Your response must be valid JSON with 'thought', 'action', and 'action_input' fields. Please try again.",
+                                "content": "Error: Your response must be valid JSON with 'thought', 'action', and 'action_input' fields. Please try again.",
                             }
                         )
                     else:
@@ -1960,8 +1955,8 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                     ):
                         # LLM submitted different SQL than what was executed
                         logger.warning(
-                            f"LLM submitted different SQL in final_answer than what was executed. "
-                            f"Using the executed SQL and dataframe."
+                            "LLM submitted different SQL in final_answer than what was executed. "
+                            "Using the executed SQL and dataframe."
                         )
                         # Keep the existing final_sql and final_df from execution
                     elif not state.get("final_sql"):

@@ -88,7 +88,7 @@ def test_fetch_results_no_token_required(tmp_path: Path) -> None:
     """Ensure the fetch works without HF_TOKEN in the environment."""
     token = os.environ.pop("HF_TOKEN", None)
     try:
-        from text2sql_eval_toolkit.results import fetch_results, list_available_results
+        from text2sql_eval_toolkit.results import list_available_results
 
         # Fetching the manifest (lightest call) is sufficient to prove anonymity.
         manifest = list_available_results()

@@ -6,7 +6,7 @@
 import argparse
 import time
 from pathlib import Path
-from text2sql_eval_toolkit import env_loader  # Load .env file automatically
+from text2sql_eval_toolkit import env_loader  # noqa: F401  -- imported for side effect: loads .env on import
 from text2sql_eval_toolkit.utils import get_benchmarks_info
 from text2sql_eval_toolkit.inference.baseline_llm_pipeline import (
     LLMSQLGenerationPipeline,
@@ -369,10 +369,10 @@ def main():
     logger.info(
         f"✅ All summary and error analysis markdowns generated in: {output_folder}"
     )
-    logger.info(f"\n🎯 Experiment Configuration:")
+    logger.info("\n🎯 Experiment Configuration:")
     if args.run_all_baselines:
         logger.info(
-            f"   Pipelines: ALL baselines (standard + agentic-baseline0/1/2/3/4/5)"
+            "   Pipelines: ALL baselines (standard + agentic-baseline0/1/2/3/4/5)"
         )
         logger.info(f"   Max attempts (agentic): {args.max_attempts}")
     else:

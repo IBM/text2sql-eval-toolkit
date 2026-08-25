@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from huggingface_hub import HfApi, hf_hub_download, snapshot_download
-from huggingface_hub.utils import RepositoryNotFoundError, RevisionNotFoundError
+from huggingface_hub.utils import RevisionNotFoundError
 from loguru import logger
 
 try:

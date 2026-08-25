@@ -56,7 +56,6 @@ from tqdm.asyncio import tqdm_asyncio
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
     get_gt_sqls,
-    parse_dataframe,
     BENCHMARKS_FILE,
 )
 from text2sql_eval_toolkit.execution.replace_select_tool import (

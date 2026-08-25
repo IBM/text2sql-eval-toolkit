@@ -25,13 +25,12 @@ import argparse
 import os
 import subprocess
 import sys
-from pathlib import Path
 
 
 def check_vllm_installed():
     """Check if vLLM is installed."""
     try:
-        import vllm
+        import vllm  # noqa: F401  -- availability probe only
         return True
     except ImportError:
         return False
@@ -150,7 +149,7 @@ Recommended small models for CPU testing:
         print(f"\033[0;31mError: Port {args.port} is already in use.\033[0m")
         print()
         print("To use a different port, use the --port option:")
-        print(f"\033[1;33m  python scripts/inference/vllm/start_vllm_local.py --port 8001\033[0m")
+        print("\033[1;33m  python scripts/inference/vllm/start_vllm_local.py --port 8001\033[0m")
         print()
         sys.exit(1)
     
@@ -183,9 +182,9 @@ Recommended small models for CPU testing:
     print(f"  Port: {args.port}")
     print(f"  Max Model Length: {args.max_model_len}")
     if use_gpu:
-        print(f"  Device: \033[0;34mGPU\033[0m")
+        print("  Device: \033[0;34mGPU\033[0m")
     else:
-        print(f"  Device: \033[0;34mCPU\033[0m")
+        print("  Device: \033[0;34mCPU\033[0m")
     print()
     print(f"\033[0;32mAPI will be available at: http://{args.host}:{args.port}/v1\033[0m")
     print()

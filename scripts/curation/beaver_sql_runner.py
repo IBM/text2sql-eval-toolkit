@@ -342,7 +342,7 @@ async def run_sql_queries(
         logger.info(f"Results saved to {output_file}")
 
     # Print summary
-    logger.info(f"\nExecution Summary:")
+    logger.info("\nExecution Summary:")
     logger.info(f"Total records: {len(data)}")
     logger.info(f"Successful queries: {success_count}")
     logger.info(f"Failed queries: {error_count}")

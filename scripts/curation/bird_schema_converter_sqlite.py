@@ -7,7 +7,6 @@ import json
 import argparse
 import os
 import sqlite3
-import sys
 from collections import defaultdict
 
 

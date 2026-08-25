@@ -200,7 +200,7 @@ Examples:
             if args.in_place:
                 output_path = predictions
 
-        print(f"Re-running metrics only (no inference, no SQL execution)")
+        print("Re-running metrics only (no inference, no SQL execution)")
         print(f"  Target:     {label}")
         print(f"  Input:      {input_str}")
         print(f"  Output:     {output_path}")

@@ -50,7 +50,7 @@ Workflow:
 import argparse
 import time
 
-from text2sql_eval_toolkit import env_loader  # Load .env file automatically
+from text2sql_eval_toolkit import env_loader  # noqa: F401  -- imported for side effect: loads .env on import
 from text2sql_eval_toolkit.execution.execution_tools import run_execution
 
 

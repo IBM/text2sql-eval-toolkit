@@ -10,7 +10,6 @@ hf_hub_download are mocked so no network is required.
 """
 
 import json
-import os
 from pathlib import Path
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
@@ -25,7 +24,6 @@ from text2sql_eval_toolkit.results._hub import (
     _validate_manifest,
     clear_cache,
     fetch_results,
-    list_available_results,
 )
 
 
