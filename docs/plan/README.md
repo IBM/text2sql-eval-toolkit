@@ -10,6 +10,11 @@ Plan for four goals, written against the baseline recorded in
 | 3 | Public web deployment | [`03-public-deployment.md`](03-public-deployment.md) |
 | 4 | Clean, reliable, up-to-date codebase | [`04-code-quality.md`](04-code-quality.md) |
 
+Each goal document opens with a **Starting point** section describing v1.1.0 — the
+codebase the plan was written against, kept so the reasoning behind each item stays
+legible. Those sections are deliberately not updated as work lands. Everything below is
+the live status.
+
 ## Where things stand
 
 Branch `dashboard-v2`, **not yet pushed**. 514 backend tests and 77 frontend tests pass;
