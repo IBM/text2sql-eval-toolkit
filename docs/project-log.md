@@ -5,6 +5,69 @@ Plans for upcoming work live in [`docs/plan/`](plan/).
 
 ---
 
+## 2026-08-24 — Phase B: artifact index landed (plan items 2.1–2.2)
+
+The backend half of the performance work. Endpoints are not rewired yet; this entry
+covers the index itself, which everything else in Phase B depends on.
+
+**What was built**
+
+- `indexing/scanner.py` — streams an evaluation artifact and reports the exact byte range
+  of every top-level record, with bounded memory. Brace counting is only valid outside
+  string literals, so it tracks string state and backslash escapes including across read
+  boundaries. Measured at 144 MB/s.
+- `indexing/builder.py` — walks the artifact once and writes a SQLite index holding
+  per-record identity and byte range, the full `evaluation` block per (record, pipeline),
+  and numeric metrics in a tall indexed table. Atomic (temp file + rename), self-
+  invalidating on source size/mtime/schema change, and disposable.
+- `indexing/store.py` — the read API endpoints will use: filtered/paginated listing,
+  aggregates, cross-pipeline confusion, and single-record reads by byte range.
+- CLI: `text2sql-eval-toolkit index build` and `index status`.
+
+**Measured on a 415 MB artifact** (the real 15 MB file scaled ×30; the largest artifact
+available locally, since `data/results/` holds only one benchmark)
+
+| Operation | Before (full parse) | Index | Change |
+|---|---|---|---|
+| List, page 1 | 1,087 ms | 1.49 ms | 730× |
+| List, page 40 | 951 ms | 2.09 ms | 455× |
+| Record detail | 921 ms | 0.33 ms | 2,818× |
+| Peak RSS | **2,151 MB** | **170 MB** | independent of artifact size |
+| Index size | — | 57 MB | 14% of source |
+
+The memory column is the one that matters for deployment: parsing a 415 MB artifact once
+cost 2.1 GB of RSS, so the frontend's 100 MB "may crash the server" warning was
+well-founded. Index-backed serving is flat regardless of artifact size, which is what
+makes a 4 GB VM viable. Extrapolating 14% to the full ~7 GB result set gives roughly
+1 GB of indices — comfortable on the 40 GB Hetzner disk.
+
+Build cost is 4.6 s for 415 MB, so the whole published set indexes in a few minutes as a
+one-time provisioning step.
+
+**Correctness**
+
+125 new tests. The important ones are differential: `test_indexing_differential.py`
+reimplements the previous endpoint filtering verbatim and asserts the index returns
+identical record ids, ordering, totals, and evaluation payloads across 80+ filter
+combinations, plus pagination stability and confusion matrices. The scanner is tested
+against braces-in-strings, escaped quotes and backslashes, and non-ASCII input, each
+re-scanned at every chunk boundary from 1 byte upward.
+
+Two divergences were found and closed while writing those tests:
+
+- **Booleans.** The first builder excluded `bool` from numeric metrics, but the endpoints
+  test `isinstance(v, (int, float))`, which `bool` passes. A boolean metric would have
+  been silently dropped, making a filter return nothing where the old code returned
+  matches. Now indexed as 1.0/0.0.
+- **Index size.** The first schema stored 55-character pipeline ids and 19-character
+  metric names on every metric row: 8.5 MB of index for a 15 MB source (57%). Interning
+  both to integers cut it to 13%, which is what makes the 7 GB set tractable.
+
+**Not yet done in Phase B:** rewiring the endpoints (2.3–2.4), retiring the large-benchmark
+warning (2.5), listing cache (2.6), HTTP caching (2.7), and all frontend work (2.8).
+
+---
+
 ## 2026-08-24 — Release strategy set: `dashboard-v2`, shipping as 2.0.0
 
 All remaining phases land on a single branch, `dashboard-v2`, branched from the Phase A

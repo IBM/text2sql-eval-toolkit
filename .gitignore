@@ -209,3 +209,8 @@ data/results/logs
 data/results/*/
 # manifest.json downloaded alongside results
 data/manifest.json
+
+# Derived query indices for the dashboard. Rebuildable from the evaluation
+# artifacts with `text2sql-eval-toolkit index build`; never a source of truth.
+data/results/.index/
+**/.index/
