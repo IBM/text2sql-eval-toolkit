@@ -17,7 +17,7 @@ the live status.
 
 ## Where things stand
 
-Branch `dashboard-v2`, **not yet pushed**. 548 backend, 77 frontend and 9 end-to-end tests pass;
+Branch `dashboard-v2` at **1.3.0**, **not yet pushed**. 548 backend, 77 frontend and 9 end-to-end tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
@@ -26,7 +26,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 1 — Shareable URLs | 7 / 7 | — (E2E found three defects in it; all fixed) |
 | 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8), both deliberately deferred |
 | 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
-| 4 — Code quality | 12 / 13 | 2.0.0 |
+| 4 — Code quality | 13 / 13 | — (unpushed) |
 
 ### Goal 1 — Shareable URLs
 
@@ -82,7 +82,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.5 Frontend test harness | Done | Vitest (77 tests) plus **Playwright: 9 E2E tests** that copy a link and reopen it in a fresh browser context. They found three defects on first run — see the log |
 | 4.6 Registry single source of truth | Done | Checkout copy canonical; sync script, test, and CI check |
 | 4.7 One dependency source | Done | `requirements.txt` now generated from `uv.lock`; CI checks both it and lock freshness |
-| **4.8 Version hygiene → 2.0.0** | **Not started** | The final commit. Gated on a matching Hugging Face snapshot |
+| 4.8 Version hygiene → 1.3.0 | Done | **1.3.0, not 2.0.0** — the check for a breaking change found none. Version single-sourced from package metadata; `scripts/ci/check_version.py` enforces agreement. Not tagged and not pushed |
 | 4.9 Reduce the large modules | Done (server), open (pipelines) | `server.py` 3,446 → **343** lines across 18 `ui/` modules, none over 800. Route table byte-identical before and after, pinned by a snapshot test. The split exposed a real defect in the tier middleware — see the log. `agentic_pipeline.py` (2,338) untouched by design |
 | 4.10 Coverage targets | Done | 16 per-module floors enforced in CI (`scripts/ci/check_coverage.py`), grouped by what a regression costs. `error_analysis` 9% → 70%, and writing those tests found two defects. Overall 29% → 39% |
 | 4.11 Documentation refresh | Done | README gains a documentation index and sections on shareable links, the query index, and shared deployment; the ~7 GB snapshot figure corrected to ~4 GB |
