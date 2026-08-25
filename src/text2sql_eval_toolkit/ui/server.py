@@ -3,7 +3,6 @@ import asyncio
 import base64
 import json
 import os
-from contextlib import contextmanager
 from copy import deepcopy
 import re
 import shutil
@@ -25,7 +24,6 @@ import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, 
 from text2sql_eval_toolkit.utils import get_benchmarks_info
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
-    get_benchmarks_file_path,
     BENCHMARKS_FILE,
 )
 from text2sql_eval_toolkit.execution.execution_tools import (
@@ -49,7 +47,6 @@ from text2sql_eval_toolkit.evaluation.llm_as_judge import (
 from text2sql_eval_toolkit.evaluation.metric_definitions import (
     get_metric_definitions_payload,
 )
-from text2sql_eval_toolkit.indexing import is_stale as is_index_stale
 from text2sql_eval_toolkit import __version__
 from text2sql_eval_toolkit.ui import auth
 from text2sql_eval_toolkit.ui.aliases import alias_map
@@ -108,7 +105,6 @@ from text2sql_eval_toolkit.ui.capabilities import (
     parse_allowlist,
     resolve_tier,
 )
-from text2sql_eval_toolkit.indexing.store import EvalIndex
 
 # Runtime state (deployment ceiling, judge allowlist, request identity) and the
 # middleware stack live in their own modules.  Their names are re-exported here
@@ -116,6 +112,30 @@ from text2sql_eval_toolkit.indexing.store import EvalIndex
 # CLI and the tests already use -- and re-exporting is only safe because they are
 # accessors over module state rather than the state itself.
 from text2sql_eval_toolkit.ui import middleware as _middleware
+from text2sql_eval_toolkit.ui.indexes import (  # noqa: F401
+    EVAL_INDEX_CACHE,
+    get_index,
+    invalidate_index_cache,
+)
+from text2sql_eval_toolkit.ui.paths import (  # noqa: F401
+    _eval_not_found_detail,
+    _summary_not_found_detail,
+    count_records,
+    get_data_root,
+    get_results_dir,
+    load_json,
+)
+from text2sql_eval_toolkit.ui.registry import (  # noqa: F401
+    ALLOWED_DB_TYPES,
+    ALLOWED_LOGO_EXTENSIONS,
+    MAX_LOGO_UPLOAD_BYTES,
+    STATIC_ASSET_SUBDIR,
+    get_benchmark_registry_path,
+    load_benchmark_registry,
+    normalize_benchmark_config,
+    normalize_benchmark_id,
+    write_json_atomic,
+)
 from text2sql_eval_toolkit.ui.middleware import reset_rate_limits  # noqa: F401
 from text2sql_eval_toolkit.ui.runtime import (  # noqa: F401
     _cookie_secure,
@@ -145,272 +165,6 @@ def configure_cors(mode: Tier) -> None:
     _middleware.configure_cors(app, mode)
 
 
-def get_data_root() -> Path:
-    """
-    Resolve the data root directory.
-
-    Priority:
-    1. TEXT2SQL_DATA_ROOT env var
-    2. ./data relative to current working directory
-    """
-    env_root = os.getenv("TEXT2SQL_DATA_ROOT")
-    if env_root:
-        return Path(env_root).expanduser().resolve()
-    return Path.cwd() / "data"
-
-
-def get_results_dir() -> Path:
-    """
-    Directory that contains *-predictions_eval_summary.json and *-predictions_eval.json.
-    """
-    return get_data_root() / "results"
-
-
-def _eval_not_found_detail(benchmark_id: str) -> str:
-    """
-    404 detail for a missing predictions_eval.json.
-
-    Local operators want the exact path and the command that fixes it. A public
-    visitor can act on none of that, and it discloses the server's filesystem
-    layout and data root, so the shared deployment says only that the benchmark
-    is unavailable.
-    """
-    if get_mode() is not Tier.FULL:
-        return (
-            f"No evaluation results are available for '{benchmark_id}' on this "
-            "server."
-        )
-    rel = f"data/results/{benchmark_id}-predictions_eval.json"
-    return (
-        f"Evaluation results file not found: {rel}. "
-        "Download pre-computed results with: "
-        "`text2sql-eval-toolkit results fetch` "
-        "(or `text2sql-eval-toolkit results fetch "
-        f"--benchmarks {benchmark_id}` for this benchmark only). "
-        "Alternatively, generate the file locally by running the evaluation pipeline "
-        "(e.g. `uv run python scripts/evaluation/run_evaluation.py`), "
-        "or set TEXT2SQL_DATA_ROOT to a directory that already contains this file."
-    )
-
-
-def _summary_not_found_detail(benchmark_id: str) -> str:
-    """404 detail for a missing summary file. See _eval_not_found_detail."""
-    if get_mode() is not Tier.FULL:
-        return f"No summary is available for '{benchmark_id}' on this server."
-    rel = f"data/results/{benchmark_id}-predictions_eval_summary.json"
-    return (
-        f"Summary file not found: {rel}. "
-        "Download pre-computed results with: "
-        "`text2sql-eval-toolkit results fetch`, "
-        "or generate locally by running the evaluation pipeline."
-    )
-
-
-def load_json(path: Path) -> Any:
-    if not path.exists():
-        raise FileNotFoundError(f"File not found: {path}")
-    import json
-
-    with path.open("r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-# Record counts keyed by (path, size, mtime_ns).  The landing page asks for every
-# benchmark's count on each request, and these files are megabytes each; the
-# fingerprint means an edited file is recounted while an unchanged one is not.
-_RECORD_COUNT_CACHE: Dict[Tuple[str, int, int], int] = {}
-_RECORD_COUNT_LOCK = threading.Lock()
-
-
-def _count_records_uncached(data_path: Any) -> int:
-    import json
-
-    # importlib.resources Traversable paths expose open()
-    if hasattr(data_path, "open") and not isinstance(data_path, Path):
-        with data_path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-            return len(data) if isinstance(data, list) else 0
-
-    p = Path(str(data_path))
-    if not p.exists():
-        return 0
-    with p.open("r", encoding="utf-8") as f:
-        data = json.load(f)
-        return len(data) if isinstance(data, list) else 0
-
-
-def count_records(data_path: Any) -> int:
-    """
-    Count benchmark records from either a pathlib path or an
-    importlib.resources traversable path-like object.
-
-    Cached on the file's size and mtime so repeated listing requests do not
-    re-parse every benchmark data file.
-    """
-    if data_path is None:
-        return 0
-
-    key: Optional[Tuple[str, int, int]] = None
-    try:
-        p = Path(str(data_path))
-        st = p.stat()
-        key = (str(p), st.st_size, st.st_mtime_ns)
-    except (OSError, TypeError, ValueError):
-        # Traversable resources may not expose stat(); fall through uncached.
-        key = None
-
-    if key is not None:
-        with _RECORD_COUNT_LOCK:
-            hit = _RECORD_COUNT_CACHE.get(key)
-        if hit is not None:
-            return hit
-
-    count = _count_records_uncached(data_path)
-
-    if key is not None:
-        with _RECORD_COUNT_LOCK:
-            _RECORD_COUNT_CACHE[key] = count
-    return count
-
-
-ALLOWED_DB_TYPES = {"sqlite", "postgres", "mysql", "db2", "presto"}
-ALLOWED_LOGO_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
-
-# The only directory /api/static serves. Restricting to it keeps the rest of
-# the data root -- results, indices, and the judge spend store -- unreadable,
-# since that route is a GET and therefore runs at the public tier.
-STATIC_ASSET_SUBDIR = Path("benchmarks") / "logos"
-MAX_LOGO_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
-
-
-def get_benchmark_registry_path() -> Path:
-    """
-    Resolve the benchmark registry path used for dashboard CRUD.
-    """
-    path = get_benchmarks_file_path(is_test=False)
-    if path.exists():
-        return path
-
-    fallback = (get_data_root() / "benchmarks.json").resolve()
-    if fallback.parent.exists():
-        return fallback
-    return path
-
-
-def load_benchmark_registry(path: Path) -> Dict[str, Any]:
-    if not path.exists():
-        return {}
-    try:
-        with path.open("r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to read benchmark registry: {e}"
-        ) from e
-    if not isinstance(data, dict):
-        raise HTTPException(status_code=500, detail="Invalid benchmark registry format")
-    return data
-
-
-def write_json_atomic(path: Path, data: Dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_name(f".{path.name}.tmp")
-    try:
-        with temp_path.open("w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4, ensure_ascii=False)
-            f.write("\n")
-        os.replace(temp_path, path)
-    except Exception as e:
-        try:
-            if temp_path.exists():
-                temp_path.unlink()
-        except Exception:
-            pass
-        raise HTTPException(
-            status_code=500, detail=f"Failed to write benchmark registry: {e}"
-        ) from e
-
-
-def normalize_benchmark_id(raw: str) -> str:
-    benchmark_id = (raw or "").strip()
-    if not benchmark_id:
-        raise HTTPException(status_code=400, detail="benchmark_id is required")
-    if not re.fullmatch(r"[A-Za-z0-9_-]+", benchmark_id):
-        raise HTTPException(
-            status_code=400,
-            detail="benchmark_id must only contain letters, numbers, underscore, and dash",
-        )
-    return benchmark_id
-
-
-def normalize_benchmark_config(benchmark_id: str, payload: Any) -> Dict[str, Any]:
-    name = (payload.name or "").strip() or benchmark_id
-    description = (payload.description or "").strip()
-    data = (payload.data or "").strip()
-    schema = (payload.schema_path or "").strip()
-    predictions = (payload.predictions or "").strip()
-    db_engine = payload.db_engine or {}
-
-    if not data:
-        raise HTTPException(status_code=400, detail="data is required")
-    if not schema:
-        raise HTTPException(status_code=400, detail="schema is required")
-    if not predictions:
-        raise HTTPException(status_code=400, detail="predictions is required")
-    if not isinstance(db_engine, dict):
-        raise HTTPException(status_code=400, detail="db_engine must be an object")
-
-    db_type = str(db_engine.get("db_type") or "").strip().lower()
-    if db_type not in ALLOWED_DB_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"db_engine.db_type must be one of "
-                f"{', '.join(sorted(ALLOWED_DB_TYPES))}"
-            ),
-        )
-
-    normalized_engine = dict(db_engine)
-    normalized_engine["db_type"] = db_type
-    if db_type == "sqlite":
-        db_folder = str(normalized_engine.get("db_folder") or "").strip()
-        if not db_folder:
-            raise HTTPException(
-                status_code=400, detail="db_engine.db_folder is required for sqlite"
-            )
-        normalized_engine["db_folder"] = db_folder
-    elif db_type in {"postgres", "mysql", "db2", "presto"}:
-        env_var = str(normalized_engine.get("connection_string_env_var") or "").strip()
-        if not env_var:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "db_engine.connection_string_env_var is required " f"for {db_type}"
-                ),
-            )
-        normalized_engine["connection_string_env_var"] = env_var
-
-    config: Dict[str, Any] = {
-        "name": name,
-        "description": description,
-        "data": data,
-        "schema": schema,
-        "predictions": predictions,
-        "db_engine": normalized_engine,
-    }
-    # Backward compatibility: accept legacy logo_url but store only logo filename.
-    raw_logo = (getattr(payload, "logo", None) or "").strip()
-    raw_logo_url = (getattr(payload, "logo_url", None) or "").strip()
-    logo = ""
-    if raw_logo:
-        logo = Path(raw_logo).name
-    elif raw_logo_url:
-        logo = Path(raw_logo_url.split("?", 1)[0]).name
-    if logo:
-        config["logo"] = logo
-    return config
-
-
 class CreateBenchmarkRequest(BenchmarkConfigInput):
     benchmark_id: str
 
@@ -426,105 +180,10 @@ JOBS_LOCK = threading.Lock()
 FETCH_JOBS: Dict[str, FetchJobStatus] = {}
 FETCH_JOBS_LOCK = threading.Lock()
 
-# Open index handles, keyed by benchmark.  These hold a read-only SQLite
-# connection and a path, not parsed records, so this map stays small no matter how
-# large the artifacts are.
-EVAL_INDEX_CACHE: Dict[str, EvalIndex] = {}
-EVAL_INDEX_LOCK = threading.Lock()
-# Per-benchmark build locks, so a burst of requests for an unbuilt index results
-# in one build rather than one per request.
-_INDEX_BUILD_LOCKS: Dict[str, threading.Lock] = {}
-
 
 def _update_job(job: JobStatus) -> None:
     with JOBS_LOCK:
         JOBS[job.job_id] = job
-
-
-def get_index(benchmark_id: str) -> EvalIndex:
-    """
-    Return the query index for a benchmark, building it if missing or stale.
-
-    Replaces parsing the whole evaluation artifact per request.  Handles are
-    cached and reused; a source file that changed on disk invalidates its index,
-    so a re-run is picked up without restarting the server.
-    """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
-    if not eval_path.exists():
-        raise HTTPException(
-            status_code=404, detail=_eval_not_found_detail(benchmark_id)
-        )
-
-    with EVAL_INDEX_LOCK:
-        cached = EVAL_INDEX_CACHE.get(benchmark_id)
-        if cached is not None:
-            if not is_index_stale(eval_path):
-                return cached
-            cached.close()
-            EVAL_INDEX_CACHE.pop(benchmark_id, None)
-
-    # Building is expensive -- peak memory is driven by the largest single
-    # record -- and every GET is public tier, so an unbuilt index would let
-    # anonymous traffic trigger concurrent builds. Serialise per benchmark, and
-    # on a shared deployment refuse to build at all: provisioning is responsible
-    # for that (deploy/provision.sh).
-    with _index_build_lock(benchmark_id):
-        cached = EVAL_INDEX_CACHE.get(benchmark_id)
-        if cached is not None and not is_index_stale(eval_path):
-            return cached
-        if get_mode() is not Tier.FULL and is_index_stale(eval_path):
-            raise HTTPException(
-                status_code=503,
-                detail=(
-                    "This benchmark is not ready to serve yet. Its search index "
-                    "is still being prepared."
-                ),
-            )
-        return _open_index(benchmark_id)
-
-
-def _open_index(benchmark_id: str) -> EvalIndex:
-    try:
-        index = EvalIndex.for_benchmark(benchmark_id, get_results_dir())
-    except FileNotFoundError:
-        raise HTTPException(
-            status_code=404, detail=_eval_not_found_detail(benchmark_id)
-        ) from None
-    except Exception as e:
-        logger.exception("Failed to open evaluation index")
-        # The exception text embeds the absolute index path, which would
-        # disclose the data root -- the same leak the 404 messages were made
-        # tier-dependent to avoid.
-        detail = (
-            f"Failed to open evaluation index: {e}"
-            if get_mode() is Tier.FULL
-            else "This benchmark is temporarily unavailable."
-        )
-        raise HTTPException(status_code=500, detail=detail) from e
-
-    with EVAL_INDEX_LOCK:
-        EVAL_INDEX_CACHE[benchmark_id] = index
-    return index
-
-
-@contextmanager
-def _index_build_lock(benchmark_id: str):
-    """One build at a time per benchmark, so concurrent requests wait rather
-    than each starting their own."""
-    with EVAL_INDEX_LOCK:
-        lock = _INDEX_BUILD_LOCKS.setdefault(benchmark_id, threading.Lock())
-    with lock:
-        yield
-
-
-def invalidate_index_cache(benchmark_id: Optional[str] = None) -> None:
-    """Drop cached index handles, e.g. after an evaluation run rewrites results."""
-    with EVAL_INDEX_LOCK:
-        keys = [benchmark_id] if benchmark_id else list(EVAL_INDEX_CACHE)
-        for key in keys:
-            handle = EVAL_INDEX_CACHE.pop(key, None)
-            if handle is not None:
-                handle.close()
 
 
 # ---------------------------------------------------------------------------
