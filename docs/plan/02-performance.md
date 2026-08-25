@@ -3,9 +3,13 @@
 Make the dashboard fast and bounded in memory, so it stays responsive on large benchmarks
 and can survive on a modest public host.
 
-## Current state
+## Starting point (v1.1.0, before this work)
 
-**The backend re-parses whole evaluation files per request.** Two loading paths coexist in
+*Kept as the record of what this work was responding to: the codebase at `main` @
+`60dd451`, version 1.1.0. It is **not** a description of the branch today — for that, see
+[`README.md#where-things-stand`](README.md#where-things-stand).*
+
+**The backend re-parsed whole evaluation files per request.** Two loading paths coexisted in
 `ui/server.py`:
 
 - `load_eval_records()` (`:585`) — caches parsed records in a process-global dict. Used by

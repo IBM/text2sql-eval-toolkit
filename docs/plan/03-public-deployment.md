@@ -5,7 +5,7 @@ resolve for the recipient, with a small allowlist of signed-in users able to run
 LLM-as-judge against a server-held watsonx.ai key.
 
 > **Blocking prerequisite.** The server as written cannot be exposed to the internet. Read
-> "Why this cannot ship as-is" first. This goal depends on Goal 2 (bounded memory) and
+> "Why v1.1.0 could not ship as-is" first. This goal depends on Goal 2 (bounded memory) and
 > Goal 1 (links worth sharing).
 
 **The public app is an addition, not a replacement.** The local dashboard keeps every
@@ -19,11 +19,15 @@ to `full` for a loopback bind, so a developer running `text2sql-eval-dashboard` 
 changes sees exactly what they see today. A regression test asserting that is part of
 item 3.1.
 
-## Why this cannot ship as-is
+## Why v1.1.0 could not ship as-is
 
-Nine unauthenticated mutating endpoints exist today. The severe ones:
+*Kept as the record of what this work was responding to: the codebase at `main` @
+`60dd451`, version 1.1.0. It is **not** a description of the branch today — for that, see
+[`README.md#where-things-stand`](README.md#where-things-stand).*
 
-| Endpoint | Location | If exposed publicly |
+Nine unauthenticated mutating endpoints existed. The severe ones:
+
+| Endpoint | Location | If it had been exposed publicly |
 |---|---|---|
 | `POST /api/benchmarks/{id}/execute` | `:1555` | Runs **arbitrary caller-supplied SQL** against the server's configured DB credentials |
 | `POST /api/benchmarks/{id}/playground/evaluate` | `:1792` | Same, for multiple statements per call |
@@ -33,7 +37,9 @@ Nine unauthenticated mutating endpoints exist today. The severe ones:
 | `POST /api/benchmarks`, `PUT /api/benchmarks/{id}` | `:703`, `:728` | Rewrites the benchmark registry |
 | `POST /api/benchmarks/logo-upload` | `:744` | Unauthenticated file upload |
 
-No auth layer, no rate limiting, and no deployment artifact in the repo.
+There was no auth layer, no rate limiting, and no deployment artifact in the repo.
+All of the above is addressed by items 3.1-3.5; the line numbers are those of `60dd451`
+and no longer resolve.
 
 ## Capability tiers
 

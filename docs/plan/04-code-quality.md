@@ -3,11 +3,15 @@
 Get the codebase to a state where changes are safe to make, regressions are caught
 automatically, and there is one source of truth for each thing.
 
-This goal brackets the others: **Phase A** (foundations) comes first because the other
-refactors are large and currently unprotected; **Phase E** (cleanup) follows once the
+This goal brackets the others: **Phase A** (foundations) came first because the other
+refactors are large and were unprotected; **Phase E** (cleanup) follows once the
 structural work has settled.
 
-## Current state
+## Starting point (v1.1.0, before this work)
+
+*Kept as the record of what this work was responding to: the codebase at `main` @
+`60dd451`, version 1.1.0. It is **not** a description of the branch today — for that, see
+[`README.md#where-things-stand`](README.md#where-things-stand).*
 
 - **No CI.** `.github/` contains only `dco.yml` — no workflows. Nothing runs tests, lint,
   or type checks on push or PR.

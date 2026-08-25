@@ -3,15 +3,19 @@
 Make every artifact the dashboard can display reachable by a URL that can be pasted into
 Slack, a paper, or an issue, and that restores the exact same view.
 
-## Current state
+## Starting point (v1.1.0, before this work)
 
-The dashboard is a single-route app. All navigation is React state in
-`dashboard/src/pages/App.tsx:61-70`; there is no router dependency and no code anywhere
-under `dashboard/src/` that reads or writes `window.location`. Consequences:
+*Kept as the record of what this work was responding to: the codebase at `main` @
+`60dd451`, version 1.1.0. It is **not** a description of the branch today — for that, see
+[`README.md#where-things-stand`](README.md#where-things-stand).*
 
-- No view except the home page can be linked to.
-- Reload always returns to the benchmark list; deep state is lost.
-- The browser back button exits the app instead of stepping back a view.
+The dashboard was a single-route app. All navigation was React state in
+`dashboard/src/pages/App.tsx:61-70`; there was no router dependency and no code anywhere
+under `dashboard/src/` that read or wrote `window.location`. Consequences:
+
+- No view except the home page could be linked to.
+- Reload always returned to the benchmark list; deep state was lost.
+- The browser back button exited the app instead of stepping back a view.
 - `ErrorAnalysis.tsx` builds up ~15 filter/selection values that vanish on navigation —
   the most valuable state in the app to share, and the least recoverable.
 
