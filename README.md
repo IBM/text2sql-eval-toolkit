@@ -53,8 +53,8 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 - **Evaluation** ([`scripts/evaluation`](scripts/evaluation)/`src/evaluation.py`): Includes a script and library for evaluating text-to-SQL model outputs using various metrics. See [`scripts/evaluation/README.md`](scripts/evaluation/README.md) for details.
 - **Text-to-SQL Inference** ([`scripts/inference`](scripts/inference)): Provides a simple LLM inference pipeline for generating SQL queries from natural language inputs. Run `python scripts/inference/run_inference.py -h` for more information.
 - **SQL Execution** ([`scripts/execution`](scripts/execution)): Runs the ground truth and predicted SQLs for a given benchmark and saves the dataframes for evaluation and error analysis. Run `python scripts/execution/run_execution.py -h` for more information.
-- **Results and Error Analysis** ([`scripts/analysis`](`scripts/analysis`)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
-- **SQL Profiling** ([`scripts/profiling`](`scripts/profiling`)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
+- **Results and Error Analysis** ([`scripts/analysis`](scripts/analysis)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
+- **SQL Profiling** ([`scripts/profiling`](scripts/profiling)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
 - **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [dashboard/README.md](dashboard/README.md) for installation, data paths, development workflow, and build options.
 
 ## Setup
@@ -451,11 +451,16 @@ This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE
 If you use this toolkit in research, please cite:
 
 ```bibtex
-@unpublished{hassanzadeh2026text2sql,
-  title  = {{Text-to-SQL Evaluation Toolkit}},
-  author = {Hassanzadeh, Oktie and Perlitz, Yotam and Pham, Nhan and Kaple, Tanvi and Zrobek, Karolina and Vu, Long and Glass, Michael and Subramanian, Dharmashankar and Pourreza, Mohammadreza and Rafiei, Davood},
-  year   = {2026},
-  note   = {Under submission},
+@article{HassanzadehPPKZVGSPR26,
+  title   = {Text-to-{SQL} Evaluation Toolkit},
+  volume  = {19},
+  url     = {https://doi.org/10.14778/3827998.3828071},
+  doi     = {10.14778/3827998.3828071},
+  number  = {12},
+  journal = {Proc. VLDB Endow.},
+  author  = {Hassanzadeh, Oktie and Perlitz, Yotam and Pham, Nhan and Kaple, Tanvi and \.{Z}r\'{o}bek, Karolina and Vu, Long and Glass, Michael and Subramanian, Dharmashankar and Pourreza, Mohammadreza and Rafiei, Davood},
+  year    = {2026},
+  pages   = {4582--4585},
 }
 ```
 

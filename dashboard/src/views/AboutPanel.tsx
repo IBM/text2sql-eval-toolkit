@@ -8,13 +8,19 @@ const PYPI_URL = "https://pypi.org/project/text2sql-eval-toolkit/";
 const RESULTS_URL =
   "https://huggingface.co/datasets/text2sql-eval-toolkit/text2sql-eval-results";
 
-const CITATION = `@unpublished{hassanzadeh2026text2sql,
-  title  = {{Text-to-SQL Evaluation Toolkit}},
-  author = {Hassanzadeh, Oktie and Perlitz, Yotam and Pham, Nhan and
-            Kaple, Tanvi and Zrobek, Karolina and Vu, Long and Glass, Michael and
-            Subramanian, Dharmashankar and Pourreza, Mohammadreza and Rafiei, Davood},
-  year   = {2026},
-  note   = {Under submission},
+// Backslashes are doubled because this is a template literal: `\.` would be
+// read as an escape and the backslash dropped, so a reader copying the snippet
+// would paste BibTeX with the LaTeX accents silently stripped.
+const CITATION = `@article{HassanzadehPPKZVGSPR26,
+  title   = {Text-to-{SQL} Evaluation Toolkit},
+  volume  = {19},
+  url     = {https://doi.org/10.14778/3827998.3828071},
+  doi     = {10.14778/3827998.3828071},
+  number  = {12},
+  journal = {Proc. VLDB Endow.},
+  author  = {Hassanzadeh, Oktie and Perlitz, Yotam and Pham, Nhan and Kaple, Tanvi and \\.{Z}r\\'{o}bek, Karolina and Vu, Long and Glass, Michael and Subramanian, Dharmashankar and Pourreza, Mohammadreza and Rafiei, Davood},
+  year    = {2026},
+  pages   = {4582--4585},
 }`;
 
 /**
@@ -70,9 +76,11 @@ export const AboutPanel: React.FC = () => {
       </p>
 
       <p style={{ margin: 0, opacity: 0.9, lineHeight: 1.45, fontSize: "0.875rem" }}>
-        Every view is addressable — use <strong>Copy link</strong> in the header
-        to share the exact benchmark, pipeline, filter, or individual record you
-        are looking at.
+        Every view is addressable: the address bar always names the exact
+        benchmark, pipeline, filter, or individual record you are looking at, so
+        copying it shares precisely this view. Where the address names a
+        pipeline, <strong>Copy short link</strong> in the header gives a shorter
+        form of the same link.
       </p>
 
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", fontSize: "0.8125rem" }}>

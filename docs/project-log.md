@@ -582,7 +582,7 @@ identity service would add cost and a dependency for nothing.
 
 The load-bearing check is `email_verified`. Google returns an `email` claim for unverified
 addresses too, so matching the allowlist on `email` alone would make the allowlist
-meaningless: anyone could create an account claiming `oktieh@gmail.com`. Sessions carry the
+meaningless: anyone could create an account claiming `operator@example.com`. Sessions carry the
 verified address and nothing else, so there is no user database to secure, and logs carry a
 hash rather than the address.
 
