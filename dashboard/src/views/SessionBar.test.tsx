@@ -49,7 +49,7 @@ function stubApi(s: SessionInfo, d: DeploymentInfo) {
 }
 
 const inRouter = (ui: React.ReactElement) =>
-  render(<MemoryRouter initialEntries={["/b/demo/errors?page=2"]}>{ui}</MemoryRouter>);
+  render(<MemoryRouter initialEntries={["/benchmark/demo/errors?page=2"]}>{ui}</MemoryRouter>);
 
 beforeEach(() => {
   vi.unstubAllGlobals();
@@ -80,7 +80,7 @@ describe("SessionBar", () => {
     inRouter(<SessionBar />);
     const link = await screen.findByText("Sign in");
     const href = link.closest("a")?.getAttribute("href") ?? "";
-    expect(href).toContain(encodeURIComponent("/b/demo/errors?page=2"));
+    expect(href).toContain(encodeURIComponent("/benchmark/demo/errors?page=2"));
   });
 
   it("shows the signed-in address and a way out", async () => {

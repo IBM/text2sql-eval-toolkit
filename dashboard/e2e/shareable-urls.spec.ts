@@ -37,7 +37,7 @@ test.describe("a link reproduces the view", () => {
     page,
     browser,
   }) => {
-    await openFresh(page, `/b/${BENCHMARK}/errors`);
+    await openFresh(page, `/benchmark/${BENCHMARK}/errors`);
 
     // Move off page 1: the page number is the piece most easily lost, because
     // it is the one thing not implied by the rest of the state.
@@ -65,7 +65,7 @@ test.describe("a link reproduces the view", () => {
     page,
     browser,
   }) => {
-    const filtered = `/b/${BENCHMARK}/errors?pipeline=${encodeURIComponent(
+    const filtered = `/benchmark/${BENCHMARK}/errors?pipeline=${encodeURIComponent(
       PIPELINE
     )}&metric=execution_accuracy&value=0`;
     await openFresh(page, filtered);
@@ -78,7 +78,7 @@ test.describe("a link reproduces the view", () => {
     // applies a default pipeline when the address names none.
     await openFresh(
       page,
-      `/b/${BENCHMARK}/errors?pipeline=${encodeURIComponent(
+      `/benchmark/${BENCHMARK}/errors?pipeline=${encodeURIComponent(
         PIPELINE
       )}&metric=subset_non_empty_execution_accuracy&value=0`
     );
@@ -93,7 +93,7 @@ test.describe("a link reproduces the view", () => {
   });
 
   test("a pipeline detail page", async ({ page, browser }) => {
-    const url = `/b/${BENCHMARK}/pipeline/${encodeURIComponent(PIPELINE)}`;
+    const url = `/benchmark/${BENCHMARK}/pipeline/${encodeURIComponent(PIPELINE)}`;
     await openFresh(page, url);
     await expect(page.getByText(PIPELINE, { exact: false }).first()).toBeVisible();
     const expected = await page.locator("main, .cds--content").first().innerText();
@@ -108,31 +108,12 @@ test.describe("a link reproduces the view", () => {
   });
 });
 
-test.describe("the copy-link controls hand over a working address", () => {
-  test("copy link yields the address that is on screen", async ({
+test.describe("the short-link control hands over a working address", () => {
+  test("it yields a shorter address for the same view", async ({
     page,
     browser,
   }) => {
-    await openFresh(page, `/b/${BENCHMARK}/errors`);
-    await page.getByRole("button", { name: /next page/i }).click();
-    await expect.poll(() => page.url()).toContain("page=2");
-
-    await page.getByRole("button", { name: "Copy link" }).click();
-    const copied = await page.evaluate(() => navigator.clipboard.readText());
-    expect(copied).toBe(page.url());
-
-    const recipient = await browser.newContext();
-    const opened = await recipient.newPage();
-    await openFresh(opened, copied);
-    expect(await paginationLabel(opened)).toBe(await paginationLabel(page));
-    await recipient.close();
-  });
-
-  test("copy short link yields a shorter address for the same view", async ({
-    page,
-    browser,
-  }) => {
-    const url = `/b/${BENCHMARK}/pipeline/${encodeURIComponent(PIPELINE)}`;
+    const url = `/benchmark/${BENCHMARK}/pipeline/${encodeURIComponent(PIPELINE)}`;
     await openFresh(page, url);
 
     await page.getByRole("button", { name: "Copy short link" }).click();
@@ -153,18 +134,28 @@ test.describe("the copy-link controls hand over a working address", () => {
     ).toBe(expected);
     await recipient.close();
   });
+
+  test("it stays out of the way where it would change nothing", async ({ page }) => {
+    // No pipeline in the address means the short form is the address, and a
+    // button that copies what is already in the address bar earns nothing.
+    await openFresh(page, `/benchmark/${BENCHMARK}/insights`);
+    await expect(page.getByText(/Metrics Comparison/i).first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Copy short link" })
+    ).toHaveCount(0);
+  });
 });
 
 test.describe("links that do not resolve say so", () => {
   test("an unknown short link is a named not-found, not a blank page", async ({
     page,
   }) => {
-    await openFresh(page, `/b/${BENCHMARK}/pipeline/ffffffffff`);
+    await openFresh(page, `/benchmark/${BENCHMARK}/pipeline/ffffffffff`);
     await expect(page.getByText(/does not name a pipeline/i)).toBeVisible();
   });
 
   test("an unknown path is a not-found with a way back", async ({ page }) => {
-    await openFresh(page, "/b/nope/not-a-view");
+    await openFresh(page, "/benchmark/nope/not-a-view");
     await expect(page.getByRole("button", { name: /go to benchmarks/i })).toBeVisible();
   });
 });
@@ -173,7 +164,7 @@ test.describe("the browser's own navigation still works", () => {
   test("back returns to the previous view rather than leaving the app", async ({
     page,
   }) => {
-    await openFresh(page, `/b/${BENCHMARK}/errors`);
+    await openFresh(page, `/benchmark/${BENCHMARK}/errors`);
     const first = await paginationLabel(page);
 
     await page.getByRole("button", { name: /next page/i }).click();
@@ -188,7 +179,7 @@ test.describe("the browser's own navigation still works", () => {
   test("a reload keeps the view instead of dropping to the benchmark list", async ({
     page,
   }) => {
-    await openFresh(page, `/b/${BENCHMARK}/insights`);
+    await openFresh(page, `/benchmark/${BENCHMARK}/insights`);
     const before = page.url();
     await page.reload();
     await page.waitForLoadState("networkidle");
