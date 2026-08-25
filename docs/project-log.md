@@ -12,6 +12,66 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — Released as 1.3.0, not 2.0.0, plus two cosmetic decisions
+
+**The major bump was the wrong number, and the plan's argument for it did not survive
+being checked.** 4.8 claimed "the URL scheme, capability tiers, artifact index, and
+deployment model are all new or breaking". I wrote that before any of the work existed.
+Against the finished branch: the curated public API has no removals *or* additions, the
+CLI subcommands are identical, the artifact format is unchanged by design, and a loopback
+dashboard keeps every capability it had — enforced by a test. The URL scheme is *new*, not
+breaking; there were no URLs before, so no link broke. The one real churn is that
+`ui/server.py` lost ~85 module-level names to the router split, and CLAUDE.md states the
+public API is curated in `__init__.py`.
+
+So 1.3.0. It also follows 1.2.0 naturally, resolving the changelog skew by moving past it
+rather than adjudicating it — which was the plan's other argument for 2.0.0 and did not
+require 2.0.0 either.
+
+**It also dissolves the release blocker I had been treating as real.** The published
+snapshot's manifest declares `>=1.1.0,<2.0.0` and `_validate_manifest` *raises* outside
+that range, so a 2.0.0 install could not `results fetch` at all until a new snapshot was
+uploaded. 1.3.0 is inside the range. No token, no 4 GB re-upload, and no loosening a
+safety check under release pressure.
+
+What that dodges rather than fixes: the manifest carries `schema_version: 1` — the actual
+data-format contract — and **nothing in the codebase ever reads its value**, while the
+enforced gate is a toolkit-version range that `upload_results_to_hub.py` generates
+mechanically as `<{major+1}.0.0`. Nobody decided a 2.x toolkit cannot read this data; a
+script assumed it. The trap is still there for whenever a 2.0.0 happens, and it is
+recorded rather than quietly stepped over.
+
+**The version now lives in one place.** `pyproject.toml`, read back through `_version.py`
+from the installed distribution metadata, imported by both `__init__` and `results/_hub`.
+It was previously written out in three, which is exactly how the package came to report
+1.1.0 while the changelog documented a 1.2.0 release whose features were already in the
+code. `scripts/ci/check_version.py` now fails CI if pyproject, the package, the changelog
+and the tag disagree.
+
+**Not tagged, not pushed.** A tag pointing at a commit that may still change is worse than
+no tag, and the user has cosmetic review pending. Both wait.
+
+### Two cosmetic changes, both worth their reasoning
+
+**`/b/spider_dev` → `/benchmark/spider_dev`.** These addresses are meant to be pasted into
+issues and papers. `/benchmark/spider_dev` says what it points at; `/b/spider_dev` needs
+the reader to already know. Nothing is in circulation — the branch has never been pushed —
+so it is a clean break with no legacy alias to carry, and an old-style path renders the
+not-found state naming the path rather than a blank page.
+
+**The "Copy link" button is gone.** The address bar already holds the address and every
+browser already offers a way to copy it. A button that duplicates a browser affordance is
+chrome with a cost and no purpose, and I had added it without asking what it was for.
+
+"Copy short link" stays, because what it produces genuinely cannot be obtained from the
+address bar. It now renders *only* on an address that names a pipeline, so it is absent
+wherever it would change nothing — with an end-to-end test asserting that absence, since a
+control that quietly reappears everywhere is how this becomes chrome again.
+
+548 backend, 77 frontend and 9 end-to-end tests passing at 1.3.0.
+
+---
+
 ## 2026-08-25 — End-to-end tests, and three ways shared links were quietly broken (4.5)
 
 Nine Playwright tests, against a real server and a real cold page load. They never
