@@ -4,8 +4,11 @@
 #
 
 import logging
-from tqdm import tqdm
+import os
 from pathlib import Path
+from typing import Optional
+
+from tqdm import tqdm
 
 
 class TqdmLoggingHandler(logging.Handler):
@@ -33,22 +36,59 @@ def get_logger(
         console_handler.setFormatter(console_formatter)
         logger.addHandler(console_handler)
 
-        # Default log file path relative to the project root
-        if log_file is None:
-            project_root = (
-                Path(__file__).resolve().parents[2]
-            )  # Go up from src/text2sql_eval_toolkit
-            log_file = project_root / "data" / "results" / "bak" / "log.txt"
-
-        log_file = Path(log_file)
-        log_file.parent.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
-
-        # File handler
-        file_handler = logging.FileHandler(log_file, mode="w")
-        file_formatter = logging.Formatter(
-            "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-        )
-        file_handler.setFormatter(file_formatter)
-        logger.addHandler(file_handler)
+        resolved = Path(log_file) if log_file is not None else default_log_file()
+        if resolved is not None:
+            _attach_file_handler(logger, resolved)
 
     return logger
+
+
+def default_log_file() -> Optional[Path]:
+    """
+    Where to write a log by default, or ``None`` for console only.
+
+    Only a source checkout gets a file. The previous version derived the path as
+    ``Path(__file__).parents[2] / "data/results/bak/log.txt"``, which is the
+    repository root in a checkout but the *interpreter's library directory* once
+    the package is pip-installed. There it tried to create
+    ``/usr/local/lib/python3.13/data/results/bak`` -- raising at import time
+    wherever that directory is read-only, which is every container, and
+    littering it where it is not.
+
+    ``TEXT2SQL_LOG_FILE`` overrides, for anyone who wants a log from an
+    installed copy.
+    """
+    override = os.getenv("TEXT2SQL_LOG_FILE")
+    if override:
+        return Path(override).expanduser()
+
+    root = Path(__file__).resolve().parents[2]
+    # `pyproject.toml` marks the checkout root; site-packages has no such file.
+    # This is the same signal `get_writable_data_root()` uses.
+    if (root / "pyproject.toml").is_file():
+        return root / "data" / "results" / "bak" / "log.txt"
+    return None
+
+
+def _attach_file_handler(logger: logging.Logger, path: Path) -> None:
+    """
+    Add a file handler, or carry on without one.
+
+    Logging is a diagnostic aid; being unable to write it is not a reason to
+    stop the program, and `get_logger` is called at module scope across the
+    package -- so anything raised here happens during import and takes the whole
+    process down before it can report why.
+    """
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        handler = logging.FileHandler(path, mode="w")
+    except OSError as exc:
+        logger.warning("Logging to file is disabled (%s): %s", path, exc)
+        return
+
+    handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        )
+    )
+    logger.addHandler(handler)
