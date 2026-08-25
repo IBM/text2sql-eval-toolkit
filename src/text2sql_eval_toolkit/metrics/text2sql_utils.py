@@ -799,14 +799,18 @@ def compare_dfs_ignore_colnames_subset(
         return [row_to_multiset(row) for row in df.values]
 
     def sort_df(df):
-        sorted_df = df.copy()
-        for i in range(len(sorted_df.columns)):
-            sorted_df.iloc[:, i] = (
-                sorted_df.iloc[:, i]
-                .map(_canonical_scalar)
-                .sort_values(ignore_index=True)
-            )
-        return sorted_df
+        # Built rather than assigned into a copy. `_canonical_scalar` can return
+        # a type the original column cannot hold -- a string where the column is
+        # int64 -- and writing that back through `.iloc` asks pandas to coerce.
+        # It warned about that for several releases and now raises, so an
+        # installation with a newer pandas failed every execution-match metric
+        # with "Invalid value ... for dtype 'int64'".
+        return pd.DataFrame(
+            {
+                i: df.iloc[:, i].map(_canonical_scalar).sort_values(ignore_index=True)
+                for i in range(df.shape[1])
+            }
+        )
 
     if df1.empty or df2.empty or len(df1) != len(df2):
         return False
