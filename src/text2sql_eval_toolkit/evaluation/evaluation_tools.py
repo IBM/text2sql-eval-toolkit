@@ -178,9 +178,19 @@ def evaluate_prediction(
         if not isinstance(gold_dfs, list):
             gold_dfs = [gold_dfs]
 
-        # strict=False deliberately: 2 records in the published artifacts
-        # carry one ground-truth SQL and no dataframe, and truncating is
-        # the behaviour those results were produced under.
+        if gold_sqls and not gold_dfs:
+            # A ground-truth SQL with no executed dataframe cannot be compared
+            # against. Returning silently left the result as `{"df_error": 0}`
+            # with no metrics and no error flag, which then raised KeyError in
+            # compute_summary and took out the whole benchmark's summary.
+            raise ValueError(
+                "No ground-truth dataframe to evaluate against; run the "
+                "execution stage for this record first."
+            )
+
+        # strict=False deliberately: some records carry more ground-truth SQLs
+        # than dataframes, and truncating is the behaviour the published
+        # results were produced under.
         for gold_sql, gold_df_raw in zip(gold_sqls, gold_dfs, strict=False):
             gold_df = parse_dataframe(gold_df_raw)
 
@@ -399,13 +409,17 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
         # Count records with successful predictions (SQL was generated)
         num_predictions = num_records - num_inference_errors
         num_evaluated = num_records - num_eval_errors
+        # .get(..., 0) rather than subscripting: a record that could not be
+        # evaluated may be missing metrics entirely, and one such record used to
+        # raise KeyError here and abort the summary for the whole benchmark.
+        # Counting it as 0 matches the stated intent below.
         num_correct_non_empty_execution_accuracy = sum(
-            r["non_empty_execution_accuracy"]
+            r.get("non_empty_execution_accuracy", 0)
             for r in records
             if "eval_error_message" not in r
         )
         num_correct_subset_non_empty_execution_accuracy = sum(
-            r["subset_non_empty_execution_accuracy"]
+            r.get("subset_non_empty_execution_accuracy", 0)
             for r in records
             if "eval_error_message" not in r
         )
