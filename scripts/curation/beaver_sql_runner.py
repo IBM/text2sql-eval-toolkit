@@ -194,7 +194,7 @@ async def run_sql_and_get_dataframe_mysql_async(
             if result.returns_rows:
                 rows = result.fetchall()
                 columns = list(result.keys())
-                data = [dict(zip(columns, row)) for row in rows]
+                data = [dict(zip(columns, row, strict=True)) for row in rows]
             else:
                 columns = []
                 data = []

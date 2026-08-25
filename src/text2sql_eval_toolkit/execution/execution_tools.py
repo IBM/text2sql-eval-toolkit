@@ -270,7 +270,7 @@ async def run_sql_and_get_dataframe_mysql_async(
                 if result.returns_rows:
                     rows = result.fetchall()
                     columns = list(result.keys())
-                    data = [dict(zip(columns, row)) for row in rows]
+                    data = [dict(zip(columns, row, strict=True)) for row in rows]
                 else:
                     columns = []
                     data = []
@@ -770,7 +770,7 @@ def run_sqlite_query(db_path: str, sql: str) -> str:
         rows = cursor.fetchall()
         # description is None for statements that return no result set.
         columns = [col[0] for col in cursor.description or []]
-        data = [dict(zip(columns, row)) for row in rows]
+        data = [dict(zip(columns, row, strict=True)) for row in rows]
     finally:
         conn.close()
     return pd.DataFrame(data, columns=columns).to_json(orient="split")
