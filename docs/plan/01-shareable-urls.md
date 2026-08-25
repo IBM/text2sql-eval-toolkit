@@ -89,15 +89,26 @@ refresh. Do not blanket-catch `/api/*` — those must keep returning real 404s.
 *Acceptance:* `curl -I http://host/b/spider_dev/errors` returns 200 HTML; a bad API path
 still returns 404 JSON.
 
-### 1.6 Stable identifiers
-`pipelineId` embeds the model name, so results published under one name are unlinkable if
-the model string later changes. Add a short stable hash alias
-(`/p/:pipelineHash`) resolving server-side to the full id, and keep the readable form as
-the canonical URL. Worth doing now — retrofitting alias support after links are in
-circulation means broken links.
+### 1.6 Short identifiers — **done**, with the goal narrowed
+Originally written as "stable identifiers": add a hash alias so a link survives the model
+string changing. That reasoning does not hold. The alias is a hash *of* the id, so a
+rename changes the alias too and the old link breaks exactly as before. Surviving a
+rename needs a persisted mapping from a stable key to whatever the id is called today,
+and there is nowhere to put one — the artifacts are keyed by the id itself.
 
-*Acceptance:* both readable and hashed forms resolve to the same view; unknown ids render
-a clear "not found" state rather than a blank page.
+What was worth doing is the other half: length. `GET /api/benchmarks/{id}/pipeline-aliases`
+returns a derived `{alias: pipeline_id}` table; the dashboard accepts an alias in the
+`/pipeline/:ref` segment and in the `pipeline` / `pipeline2` parameters, expands it on
+arrival, and rewrites the address so the readable form stays canonical. **Copy short
+link** in the header produces the short form. A two-pipeline comparison link measured
+247 characters and becomes 158.
+
+Colliding aliases resolve to *neither* pipeline rather than to an arbitrary one: a link
+that says "not found" is recoverable and a link that quietly shows the wrong numbers is
+not.
+
+*Acceptance:* both forms resolve to the same view (verified in a browser); an unknown
+alias renders "not found" naming the likely cause, rather than a blank page.
 
 ### 1.7 Not-found and permission states
 Every route needs an explicit state for "benchmark/record/pipeline does not exist here"

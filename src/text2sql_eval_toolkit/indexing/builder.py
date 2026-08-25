@@ -29,7 +29,7 @@ import sqlite3
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from text2sql_eval_toolkit.indexing.scanner import iter_record_spans
 from text2sql_eval_toolkit.logging import get_logger
@@ -224,9 +224,9 @@ def _populate(
 ) -> int:
     pipeline_refs: Dict[str, int] = {}
     metric_refs: Dict[str, int] = {}
-    record_rows = []
-    prediction_rows = []
-    metric_rows = []
+    record_rows: List[Tuple[Any, ...]] = []
+    prediction_rows: List[Tuple[Any, ...]] = []
+    metric_rows: List[Tuple[Any, ...]] = []
     count = 0
     pending = 0
 

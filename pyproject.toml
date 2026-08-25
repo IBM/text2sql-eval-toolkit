@@ -161,6 +161,8 @@ markers = [
 # See docs/plan/04-code-quality.md item 4.2.
 files = [
     "src/text2sql_eval_toolkit/results",
+    "src/text2sql_eval_toolkit/indexing",
+    "src/text2sql_eval_toolkit/ui/aliases.py",
     "src/text2sql_eval_toolkit/utils.py",
     "src/text2sql_eval_toolkit/env_loader.py",
     "src/text2sql_eval_toolkit/config_args.py",

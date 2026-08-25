@@ -54,6 +54,7 @@ from text2sql_eval_toolkit.evaluation.metric_definitions import (
 from text2sql_eval_toolkit.indexing import is_stale as is_index_stale
 from text2sql_eval_toolkit import __version__
 from text2sql_eval_toolkit.ui import auth
+from text2sql_eval_toolkit.ui.aliases import alias_map
 from text2sql_eval_toolkit.ui.models import (
     AddGroundTruthSqlRequest,
     AddGroundTruthSqlResponse,
@@ -87,6 +88,7 @@ from text2sql_eval_toolkit.ui.models import (
     LLMJudgeConfigInfo,
     LLMJudgeConfigListResponse,
     PaginatedErrorResponse,
+    PipelineAliasesResponse,
     PipelineMetrics,
     PipelinePlaygroundInfo,
     PlaygroundEvaluateRequest,
@@ -1435,6 +1437,40 @@ def get_benchmark_summary(benchmark_id: str) -> BenchmarkDetailResponse:
         benchmark_id=benchmark_id,
         default_sort_metric=default_sort_metric,
         pipelines=pipelines,
+    )
+
+
+@app.get(
+    "/api/benchmarks/{benchmark_id}/pipeline-aliases",
+    response_model=PipelineAliasesResponse,
+)
+def get_pipeline_aliases(benchmark_id: str) -> PipelineAliasesResponse:
+    """
+    Short aliases for this benchmark's pipelines, in both directions.
+
+    A pipeline id is long enough that two of them in one URL make an address
+    that chat clients truncate, so the dashboard accepts a short alias wherever
+    it accepts an id.  The mapping is derived (see ``ui.aliases``), so this
+    endpoint is a lookup table rather than a registry -- nothing is stored, and
+    two servers reading the same artifacts return the same answer.
+
+    Read from the summary file, which is small and always written alongside the
+    evaluation artifact, so resolving a link never triggers an index build.
+    """
+    summary_path = get_results_dir() / f"{benchmark_id}-predictions_eval_summary.json"
+    if summary_path.exists():
+        raw = load_json(summary_path)
+        pipeline_ids = [k for k in raw.keys() if k != "llm_judge_config"]
+    else:
+        # No summary: fall back to the artifact itself rather than 404, so a
+        # benchmark that was evaluated but never summarised still has links.
+        pipeline_ids = get_index(benchmark_id).pipeline_ids()
+
+    aliases = alias_map(pipeline_ids)
+    return PipelineAliasesResponse(
+        benchmark_id=benchmark_id,
+        aliases=aliases,
+        by_pipeline={pipeline: alias for alias, pipeline in aliases.items()},
     )
 
 
