@@ -36,7 +36,7 @@ from text2sql_eval_toolkit.ui.capabilities import (  # noqa: E402
     unclassified_routes,
 )
 
-ALLOWED = "oktieh@gmail.com"
+ALLOWED = "allowed@example.com"
 
 
 @pytest.fixture
@@ -241,7 +241,7 @@ def test_anonymous_is_public():
 
 
 def test_allowlist_matching_is_case_insensitive():
-    assert resolve_tier(Tier.JUDGE, "Oktieh@Gmail.COM", {ALLOWED}) is Tier.JUDGE
+    assert resolve_tier(Tier.JUDGE, "Allowed@Example.COM", {ALLOWED}) is Tier.JUDGE
 
 
 def test_empty_allowlist_grants_nobody_judge():
