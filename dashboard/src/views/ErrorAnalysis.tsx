@@ -266,8 +266,17 @@ export const ErrorAnalysis: React.FC<Props> = ({
 }) => {
   const [items, setItems] = useState<ErrorRecordSummary[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(() => initialPage ?? 1);
-  const [pageSize, setPageSize] = useState(() => initialPageSize ?? 25);
+  // Page, page size and the open record live in the URL rather than in this
+  // component. They are the steps a reader walks through, so the browser's back
+  // button has to move them -- and a view that read them only at mount left back
+  // doing nothing at all: pressing it from page 2 re-emitted page 2 and the
+  // address went straight back where it came from.
+  //
+  // Reading them as props makes the address bar the single source of truth. The
+  // setters below report a change upwards and the new value arrives as a prop,
+  // which is also what makes a link opened in place behave like a fresh load.
+  const page = initialPage ?? 1;
+  const pageSize = initialPageSize ?? 25;
   const [search, setSearch] = useState("");
   const [pipeline, setPipeline] = useState(() => initialFilters?.pipeline ?? "");
   const [metric, setMetric] = useState(() => initialFilters?.metric ?? "execution_accuracy");
@@ -280,9 +289,7 @@ export const ErrorAnalysis: React.FC<Props> = ({
   const [disagree, setDisagree] = useState(() => initialFilters?.disagree ?? false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(
-    () => initialRecordId ?? null
-  );
+  const selectedRecordId = initialRecordId ?? null;
   const [selectedRecordPipeline, setSelectedRecordPipeline] = useState<string | null>(
     null
   );
@@ -301,8 +308,36 @@ export const ErrorAnalysis: React.FC<Props> = ({
     if (resolved) setSelectedRecordPipeline(resolved);
   }, [selectedRecordId, selectedRecordPipeline, items, detailPipelineFor]);
 
-  // Keep the address bar in step with the view. Reported from an effect rather
-  // than from each handler so no path can update state without updating the URL.
+  const filterState = useMemo(
+    () => ({ pipeline, metric, value, op, pipeline2, metric2, disagree }),
+    [pipeline, metric, value, op, pipeline2, metric2, disagree]
+  );
+
+  /** Report a new position to the URL owner; it comes back as props. */
+  const movePosition = useCallback(
+    (patch: { page?: number; pageSize?: number; record?: string | null }) => {
+      onStateChange?.({
+        filters: filterState,
+        page: patch.page ?? page,
+        pageSize: patch.pageSize ?? pageSize,
+        record: patch.record !== undefined ? patch.record : selectedRecordId,
+      });
+    },
+    [filterState, onStateChange, page, pageSize, selectedRecordId]
+  );
+
+  const setPage = useCallback(
+    (next: number) => movePosition({ page: next }),
+    [movePosition]
+  );
+  const setSelectedRecordId = useCallback(
+    (next: string | null) => movePosition({ record: next }),
+    [movePosition]
+  );
+
+  // Filters are still local -- they are edited before being applied -- so they
+  // are pushed to the address from an effect, rather than from each of the
+  // dozen handlers that can change one.
   useEffect(() => {
     onStateChange?.({
       filters: { pipeline, metric, value, op, pipeline2, metric2, disagree },
@@ -380,33 +415,6 @@ export const ErrorAnalysis: React.FC<Props> = ({
     setMetric2((m2) => (allowed.has(m2) ? m2 : names[1] ?? names[0]));
   }, [metricDefinitions]);
 
-  useEffect(() => {
-    const loadDefaultPipeline = async () => {
-      try {
-        const res = await fetch(
-          apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
-        );
-        if (!res.ok) return;
-        const json = (await res.json()) as {
-          overall?: { name: string; metrics: Record<string, any> }[];
-        };
-        const ranked = [...(json.overall ?? [])].sort((a, b) => {
-          const av = Number(a.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
-          const bv = Number(b.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
-          return bv - av;
-        });
-        setAvailablePipelines(ranked.map((p) => p.name));
-        const bestPipeline = ranked[0]?.name ?? "";
-        if (!bestPipeline) return;
-        setPipeline((p) => p || bestPipeline);
-        setPipeline2((p) => p || bestPipeline);
-      } catch {
-        // Keep UX resilient; defaults are best-effort.
-      }
-    };
-    void loadDefaultPipeline();
-  }, [benchmarkId]);
-
   const load = async (overrides?: LoadOverrides) => {
     const effectivePage = overrides?.page ?? page;
     const effectivePageSize = overrides?.pageSize ?? pageSize;
@@ -450,6 +458,49 @@ export const ErrorAnalysis: React.FC<Props> = ({
       setLoading(false);
     }
   };
+
+  // Whether the address named a pipeline when this view was opened. Read once:
+  // it distinguishes "the reader chose this" from "we picked a default".
+  const [pipelineOnEntry] = useState(() => initialFilters?.pipeline ?? "");
+
+  useEffect(() => {
+    const loadDefaultPipeline = async () => {
+      try {
+        const res = await fetch(
+          apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
+        );
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          overall?: { name: string; metrics: Record<string, any> }[];
+        };
+        const ranked = [...(json.overall ?? [])].sort((a, b) => {
+          const av = Number(a.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
+          const bv = Number(b.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
+          return bv - av;
+        });
+        setAvailablePipelines(ranked.map((p) => p.name));
+        const bestPipeline = ranked[0]?.name ?? "";
+        if (!bestPipeline) return;
+        setPipeline((p) => p || bestPipeline);
+        setPipeline2((p) => p || bestPipeline);
+
+        // The listing was fetched before this default existed, so it is showing
+        // every record while the address bar -- which the effect below keeps in
+        // step with the filters -- already says it is filtered. Without this
+        // refetch the two disagree, and a link copied from that state shows the
+        // recipient a different set of records than the sender was looking at.
+        if (!pipelineOnEntry) {
+          void load({ pipeline: bestPipeline });
+        }
+      } catch {
+        // Keep UX resilient; defaults are best-effort.
+      }
+    };
+    void loadDefaultPipeline();
+    // `load` is called once here, on entry, with the pipeline passed
+    // explicitly rather than read from state, so it does not belong in the deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [benchmarkId]);
 
   /** Same fetch as "Apply filters" — quick presets call `load({...})` with explicit params. */
   const applyFilters = () => {
@@ -936,10 +987,7 @@ export const ErrorAnalysis: React.FC<Props> = ({
         pageSize={pageSize}
         pageSizes={[10, 25, 50, 100]}
         totalItems={total}
-        onChange={({ page, pageSize }) => {
-          setPage(page);
-          setPageSize(pageSize);
-        }}
+        onChange={({ page, pageSize }) => movePosition({ page, pageSize })}
       />
         </>
       )}
