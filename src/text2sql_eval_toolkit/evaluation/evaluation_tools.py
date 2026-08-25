@@ -178,7 +178,10 @@ def evaluate_prediction(
         if not isinstance(gold_dfs, list):
             gold_dfs = [gold_dfs]
 
-        for gold_sql, gold_df_raw in zip(gold_sqls, gold_dfs):
+        # strict=False deliberately: 2 records in the published artifacts
+        # carry one ground-truth SQL and no dataframe, and truncating is
+        # the behaviour those results were produced under.
+        for gold_sql, gold_df_raw in zip(gold_sqls, gold_dfs, strict=False):
             gold_df = parse_dataframe(gold_df_raw)
 
             match, non_empty_match, subset_match = (

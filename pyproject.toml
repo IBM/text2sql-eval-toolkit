@@ -139,7 +139,6 @@ ignore = [
     # item 4.12 in docs/plan/04-code-quality.md -- remove these entries as each
     # is addressed.
     "B904",  # 19x: `raise ... from e` inside except -- loses exception chaining
-    "B905",  # 5x:  zip() without explicit strict=
     "E722",  # 4x:  bare `except:` also swallows KeyboardInterrupt/SystemExit
 ]
 

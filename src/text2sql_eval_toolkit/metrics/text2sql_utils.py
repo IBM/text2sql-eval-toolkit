@@ -822,7 +822,7 @@ def compare_dfs_ignore_colnames_subset(
     subset_rows = rows_to_multisets(subset_df)
     superset_rows = rows_to_multisets(superset_df)
 
-    for r1, r2 in zip(subset_rows, superset_rows):
+    for r1, r2 in zip(subset_rows, superset_rows, strict=True):
         if not all(r1[k] <= r2.get(k, 0) for k in r1):
             return False
     return True

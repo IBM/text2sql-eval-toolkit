@@ -38,7 +38,7 @@ def test_spans_round_trip_at_every_chunk_boundary(chunk_size):
     """Each span must decode back to exactly the object it came from."""
     spans, raw = _spans(ADVERSARIAL, chunk_size)
     assert len(spans) == len(ADVERSARIAL)
-    for span, expected in zip(spans, ADVERSARIAL):
+    for span, expected in zip(spans, ADVERSARIAL, strict=True):
         assert json.loads(span.raw) == expected
         # The reported offsets must independently slice the same bytes.
         assert raw[span.start : span.end] == span.raw
@@ -48,7 +48,9 @@ def test_spans_round_trip_at_every_chunk_boundary(chunk_size):
 def test_offsets_are_absolute_and_ordered(chunk_size):
     spans, _ = _spans(ADVERSARIAL, chunk_size)
     assert all(s.end > s.start for s in spans)
-    for a, b in zip(spans, spans[1:]):
+    # Adjacent pairs: the second sequence is deliberately one shorter, so
+    # strict=False is the correct choice here rather than an oversight.
+    for a, b in zip(spans, spans[1:], strict=False):
         assert b.start >= a.end
 
 
