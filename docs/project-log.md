@@ -12,6 +12,61 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — Splitting server.py found a hole in the authorization layer (4.9)
+
+`ui/server.py` is 3,184 lines down to **343**, across 18 modules with nothing over 800.
+The interesting part is not the arithmetic.
+
+**The first `include_router` call silently disabled half the authorization machinery.**
+Since Starlette 1.6, `include_router` does not splice a router's routes into
+`app.routes` — it leaves a wrapper object there that holds them. Both places that decide
+authorization walked `app.routes` flat, saw an object with no `path` and no `methods`, and
+skipped past every route inside it:
+
+- `unclassified_routes()` stopped auditing them, so a mutating route in a router could
+  never be reported as missing from `ROUTE_TIERS`. The test whose entire job is to catch
+  an unclassified endpoint would have passed while being blind to nine of them.
+- `_route_template()` could not resolve a template, so the gate fell back to the concrete
+  path. That still fails *closed* for mutating methods — no route became reachable that
+  should not be — but it means the `ROUTE_TIERS` entry is never consulted. A route
+  deliberately placed below `full`, which is exactly what the judge endpoint is, would
+  have become unreachable for the allowlisted user it exists for, with nothing saying so.
+
+`capabilities.iter_routes()` now descends into included routers and mounts, unwrapping by
+attribute rather than by type so it survives the private class being renamed again. Three
+tests cover it and all three fail if the walk is reverted.
+
+Worth stating plainly: this was found by the existing classification test failing on the
+first split, not by review. The test was written for a different reason — to catch an
+unclassified route — and caught a change in framework behaviour instead. That is the
+argument for having written it.
+
+**Grouping is by capability, not by URL.** `routers_execution` holds everything that runs
+caller-supplied SQL; `routers_judge` holds the one mutating capability a public visitor
+can reach. Both fit in one sitting, which is what makes "what can this deployment
+actually do?" answerable by reading rather than by grep.
+
+**Evidence the split changed nothing.** The route table is byte-identical before and
+after — 35 `/api` routes, same methods, same templates. `tests/test_route_table.py` now
+records that set, because routes are public API here (shared links resolve against them)
+and a dropped `include_router` deletes a whole group at once without any single endpoint
+test necessarily failing. Verified against a running server too, in both local and public
+mode: every router answers, the tier gate still returns 403 for router-hosted mutating
+routes, the sub-path bypass probe never reaches a handler, and the error listing pages
+104 records.
+
+**Two test-seam changes were forced and are improvements.** The rate-limit knobs and the
+judge's LLM call are now patched in the module that reads them. Patching
+`evaluate_sql_prediction_with_llm` on `server` would have silently stopped taking effect
+— meaning a test suite that starts calling watsonx for real. Separately, six fixtures were
+replacing `get_data_root` with a lambda, bypassing the resolver under test; they now set
+`TEXT2SQL_DATA_ROOT`, which is what a deployment does, and the seam was checked to be
+load-bearing rather than incidentally passing.
+
+521 backend and 77 frontend tests passing. Coverage 36% → 38%.
+
+---
+
 ## 2026-08-25 — Status audit: three plan items rested on premises that turned out false
 
 Went through every plan item against the code rather than against the previous status

@@ -17,7 +17,7 @@ the live status.
 
 ## Where things stand
 
-Branch `dashboard-v2`, **not yet pushed**. 514 backend tests and 77 frontend tests pass;
+Branch `dashboard-v2`, **not yet pushed**. 521 backend tests and 77 frontend tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
@@ -26,7 +26,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 1 — Shareable URLs | 7 / 7 | — |
 | 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8), both deliberately deferred |
 | 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
-| 4 — Code quality | 9.5 / 13 | Playwright E2E, router split, coverage floor, 2.0.0 |
+| 4 — Code quality | 10.5 / 13 | Playwright E2E, coverage floor, 2.0.0 |
 
 ### Goal 1 — Shareable URLs
 
@@ -83,8 +83,8 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.6 Registry single source of truth | Done | Checkout copy canonical; sync script, test, and CI check |
 | 4.7 One dependency source | Done | `requirements.txt` now generated from `uv.lock`; CI checks both it and lock freshness |
 | **4.8 Version hygiene → 2.0.0** | **Not started** | The final commit. Gated on a matching Hugging Face snapshot |
-| 4.9 Reduce the large modules | Partial | 41 Pydantic models extracted to `ui/models.py`; `server.py` 3,446 → 3,184 lines (it grew again with the alias endpoint). Splitting the 38 routes into routers is the remaining half, and interacts with the tier middleware |
-| 4.10 Coverage targets | Partial | `evaluate_prediction` 4% → 35% and `report_tools` 0% → 52%; both found defects. Overall 29% → 36%. No floor enforced yet; `error_analysis` (9%) still untouched |
+| 4.9 Reduce the large modules | Done (server), open (pipelines) | `server.py` 3,446 → **343** lines across 18 `ui/` modules, none over 800. Route table byte-identical before and after, pinned by a snapshot test. The split exposed a real defect in the tier middleware — see the log. `agentic_pipeline.py` (2,338) untouched by design |
+| 4.10 Coverage targets | Partial | `evaluate_prediction` 4% → 35% and `report_tools` 0% → 52%; both found defects. Overall 29% → 38%. No floor enforced yet; `error_analysis` (9%) still untouched |
 | 4.11 Documentation refresh | Done | README gains a documentation index and sections on shareable links, the query index, and shared deployment; the ~7 GB snapshot figure corrected to ~4 GB |
 | 4.12 Clear deferred Ruff findings | Done | All 4 rules re-enabled; only `F841` and `B008` remain ignored, both with stated reasons |
 | 4.13 Clear deferred frontend findings | Partial | **All 17 `tsc` errors fixed and the check is now blocking.** Effect findings 21 → 17: the metric- and pipeline-selection effects in three views are now derived state, with the rule in `lib/` and unit-tested. The rest need a component test each first |
@@ -108,7 +108,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
   can, since the artifacts are keyed by the id itself and there is nowhere to persist a
   mapping from a stable key to today's name. What shipped shortens links, which was the
   other half of the item; the rename half is not solved and is not pretended to be.
-- **Coverage is 36%.** The suite is strong where it was written deliberately (indexing,
+- **Coverage is 38%.** The suite is strong where it was written deliberately (indexing,
   tiers, auth, judge, aliases, evaluation, reporting) and thin elsewhere — `error_analysis.py`
   is at 9% and the inference pipelines are largely uncovered.
 
