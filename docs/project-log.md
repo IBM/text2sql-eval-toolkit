@@ -164,8 +164,47 @@ data root at public tier, and the judge spend store lives under it —
 `GET /api/static/judge/usage.sqlite` returned the full database to any visitor. Neither
 piece was a problem alone. Now scoped to `benchmarks/logos/` and image types.
 
-414 tests passing. Still outstanding in Phase D: the database services (3.10–3.12), of
-which Beaver/MySQL remains blocked on a load procedure.
+**Database services (3.10, 3.12).**
+
+*SQLite (3.10).* `run_sqlite_query()` opened databases read-write. Benchmark databases are
+immutable reference data and the execute endpoint runs arbitrary caller-supplied SQL, so a
+write should be refused by SQLite rather than by anything upstream. Now opened with a
+`mode=ro` URI, with `SQLITE_LIMIT_ATTACHED` set to 0. `ATTACH` was not exploitable through
+this function — each call opens a fresh connection and sqlite3 runs one statement per
+`execute` — but refusing it outright removes the dependency on that driver detail. Two
+incidental fixes: a result set with no rows raised `TypeError` because `cursor.description`
+is `None` for such statements, and the URI form needs the path percent-encoded or a
+directory containing a space would fail to open.
+
+*Beaver/MySQL (3.12).* The dumps arrived, and the databases are loaded and verified.
+
+The dumps are named after the source systems (`dw`, `nova`, `neutron`) but the benchmark
+addresses two of them by a prefixed name (`csail_stata_nova`, `csail_stata_neutron`),
+because `db_id` is substituted into the connection string per record. Loading the dumps
+unchanged produces databases the benchmark cannot find, so `deploy/load-beaver.sh` rewrites
+the `CREATE DATABASE` / `USE` statements as it streams — anchored to line starts and
+matched against the specific source names, with a table-count check afterwards as the
+actual proof that nothing was mangled.
+
+Loaded and verified against a real MySQL 8:
+
+| Database | Tables (schema / loaded) | Gold queries |
+|---|---|---|
+| `dw` | 97 / 97 | 121 / 121 pass |
+| `csail_stata_nova` | 109 / 110 | 43 / 43 pass |
+| `csail_stata_neutron` | 175 / 175 | 30 / 30 pass |
+
+**All 194 executable gold queries run successfully, in 9.5 s.** (`nova` has one table more
+than the schema records, which is harmless.)
+
+The remaining 15 questions reference `keystone` (8), `csail_stata_glance` (5), and
+`csail_stata_cinder` (2), for which **no dumps are published upstream**. They fail with a
+clear unknown-database error. That is a data gap rather than a configuration mistake, and
+it is now documented in `data/benchmarks/dbs/README.md` alongside the load procedure — which
+previously just pointed at the upstream project.
+
+430 tests passing. Phase D is complete apart from PostgreSQL (3.11), which needs the
+upstream BIRD dump.
 
 ---
 
