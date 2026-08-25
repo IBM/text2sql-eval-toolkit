@@ -17,7 +17,7 @@ the live status.
 
 ## Where things stand
 
-Branch `dashboard-v2` at **1.3.0**, **not yet pushed**. 556 backend, 77 frontend and 9 end-to-end tests pass;
+Branch `dashboard-v2` at **1.3.0**, **not yet pushed**. 580 backend, 77 frontend and 10 end-to-end tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
@@ -51,7 +51,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 2.5 Retire the large-benchmark warning | Done | Memory no longer scales with artifact size |
 | 2.6 Cache the benchmark listing | Done | Keyed on file size and mtime |
 | 2.7 HTTP-level efficiency | Done | ETag revalidation on data-root assets |
-| **2.8 Frontend responsiveness** | **Partial** | Code splitting done (entry 556 → 419 KB; it has grown back 18 KB as Phase D and the alias layer landed). Data-fetching library and list virtualisation reassessed and deliberately dropped — pages now serve in 3–11 ms, below where either is perceptible |
+| **2.8 Frontend responsiveness** | **Partial** | Code splitting done (entry 556 → 419 KB). Result tables are paginated and server-previewed: one record went from 854,563 DOM nodes and 858 MB of heap to 894 and 10 MB. A data-fetching library remains deliberately deferred |
 | 2.9 Async correctness | Done | Index builds moved off the event loop; structural test guards it |
 
 ### Goal 3 — Public deployment
