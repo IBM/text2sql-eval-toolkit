@@ -65,6 +65,9 @@ SAFE_METHODS: Set[str] = {"GET", "HEAD", "OPTIONS"}
 #: Minimum tier per mutating route.  Every mutating route must appear here --
 #: see ``unclassified_routes``.  Read routes need no entry: they are PUBLIC.
 ROUTE_TIERS: Dict[Tuple[str, str], Tier] = {
+    # Signing out must work at whatever tier you signed in at, and an anonymous
+    # sign-out is a harmless no-op.
+    ("POST", "/api/auth/logout"): Tier.PUBLIC,
     # Runs the LLM judge for a single record using the server's watsonx key.
     # Needs no database, so it is safe to expose to an allowlisted signed-in
     # user on a deployment that holds no DB credentials at all.

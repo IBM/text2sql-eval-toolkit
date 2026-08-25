@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Body, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, ConfigDict, Field
@@ -48,6 +48,7 @@ from text2sql_eval_toolkit.evaluation.metric_definitions import (
     get_metric_definitions_payload,
 )
 from text2sql_eval_toolkit.indexing import is_stale as is_index_stale
+from text2sql_eval_toolkit.ui import auth
 from text2sql_eval_toolkit.ui.capabilities import (
     Tier,
     parse_allowlist,
@@ -774,6 +775,83 @@ def invalidate_index_cache(benchmark_id: Optional[str] = None) -> None:
             handle = EVAL_INDEX_CACHE.pop(key, None)
             if handle is not None:
                 handle.close()
+
+
+# ---------------------------------------------------------------------------
+# Authentication (Google OIDC)
+# ---------------------------------------------------------------------------
+
+_OAUTH: Any = None
+
+
+def get_oauth() -> Any:
+    """Lazily built so importing the module never requires OAuth credentials."""
+    global _OAUTH
+    if _OAUTH is None:
+        _OAUTH = auth.build_oauth_client()
+    return _OAUTH
+
+
+@app.get("/api/auth/login")
+async def auth_login(request: Request, next: str = Query("/")):
+    """Start the Google sign-in redirect."""
+    if not auth.is_configured():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Google sign-in is not configured on this server "
+                "(GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are unset)."
+            ),
+        )
+    request.session["post_login_redirect"] = auth.safe_redirect_target(next)
+    redirect_uri = str(request.url_for("auth_callback"))
+    return await get_oauth().google.authorize_redirect(request, redirect_uri)
+
+
+@app.get("/api/auth/callback", name="auth_callback")
+async def auth_callback(request: Request):
+    """
+    Complete sign-in.
+
+    Authlib verifies the ID token signature, issuer, audience, and nonce, and
+    checks the PKCE and state values against the session. What is left for us is
+    the claim that actually matters: the address must be *verified*.
+    """
+    if not auth.is_configured():
+        raise HTTPException(status_code=503, detail="Google sign-in is not configured.")
+
+    try:
+        token = await get_oauth().google.authorize_access_token(request)
+    except Exception as e:
+        logger.warning("Sign-in failed during token exchange: %s", e)
+        raise HTTPException(status_code=401, detail="Sign-in failed.") from None
+
+    email = auth.extract_verified_email(token.get("userinfo") or {})
+    if not email:
+        raise HTTPException(
+            status_code=403,
+            detail=("Sign-in requires a Google account with a verified email address."),
+        )
+
+    request.session["email"] = email
+    tier = resolve_tier(get_mode(), email, get_judge_allowlist())
+    logger.info(
+        "Sign-in for identity %s granted tier %s",
+        auth.hash_identity(email),
+        tier.name.lower(),
+    )
+
+    target = request.session.pop("post_login_redirect", "/")
+    return RedirectResponse(url=target, status_code=303)
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request):
+    """Clear the session. The cookie is the whole of the state."""
+    session = request.scope.get("session")
+    if isinstance(session, dict):
+        session.clear()
+    return {"signed_out": True}
 
 
 class SessionInfo(BaseModel):
@@ -2659,6 +2737,29 @@ def main(argv: Optional[List[str]] = None) -> None:
         )
     set_mode(mode)
     set_judge_allowlist(parse_allowlist(os.getenv("TEXT2SQL_JUDGE_ALLOWLIST")))
+
+    if auth.is_configured():
+        from starlette.middleware.sessions import SessionMiddleware
+
+        # Lax rather than Strict: the OAuth callback is a cross-site redirect
+        # back to us, and Strict would withhold the cookie and break the state
+        # check. https_only is off for a loopback dev run and must be on behind
+        # TLS, which is what the deployment terminates at.
+        app.add_middleware(
+            SessionMiddleware,
+            secret_key=auth.session_secret(),
+            session_cookie="t2s_session",
+            max_age=auth.SESSION_MAX_AGE_SECONDS,
+            same_site="lax",
+            https_only=not loopback,
+        )
+        logger.info("Google sign-in enabled")
+    elif mode is not Tier.FULL:
+        logger.warning(
+            "Mode is '%s' but Google sign-in is not configured, so nobody can "
+            "reach the judge tier. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+            mode.name.lower(),
+        )
     logger.info(
         "Capability mode: %s (judge allowlist: %d entr%s)",
         mode.name.lower(),
