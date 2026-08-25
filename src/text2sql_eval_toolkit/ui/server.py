@@ -2752,7 +2752,7 @@ def compare_summaries(
     pipelines = sorted(set(left_raw.keys()) | set(right_raw.keys()))
     numeric_keys = set()
     for src in (left_raw, right_raw):
-        for pl, metrics in src.items():
+        for _pl, metrics in src.items():
             for k, v in metrics.items():
                 if isinstance(v, dict) and "average" in v:
                     numeric_keys.add(k)

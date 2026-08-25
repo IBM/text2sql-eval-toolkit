@@ -1132,7 +1132,7 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
         if not isinstance(schema.get("tables"), list) and isinstance(
             schema.get("tables"), dict
         ):
-            for table_name, table_obj in schema.get("tables").items():
+            for _table_name, table_obj in schema.get("tables").items():
                 tables.append(table_obj)
         else:
             tables = schema.get("tables", [])

@@ -52,7 +52,7 @@ async def evaluate_with_llm_judge(
             llm_judge_config_name = llm_judge_config_path.stem
             llm_judge_config = llm_judge_configs[llm_judge_config_name]
 
-            for pipeline_id, prediction in pipeline_predictions.items():
+            for _pipeline_id, prediction in pipeline_predictions.items():
                 if llm_judge_config_name not in prediction.setdefault(
                     "llm_judge_evaluation", {}
                 ):
