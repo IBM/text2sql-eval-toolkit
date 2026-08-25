@@ -1,0 +1,31 @@
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# The only component that publishes a port. Terminates TLS and proxies to the
+# app; the databases are never reachable from outside the Compose network.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DASHBOARD_DOMAIN} {
+	encode zstd gzip
+
+	# The app sets its own CSP, nosniff, framing and referrer headers, and they
+	# are tier-aware, so they are not duplicated here. HSTS belongs at the edge.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+
+	# Hashed bundle filenames make these safe to cache hard. index.html must not
+	# be, or a deploy would not be picked up.
+	@immutable path /assets/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	reverse_proxy app:8000 {
+		# The app rate-limits per client and reads the address from here.
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}

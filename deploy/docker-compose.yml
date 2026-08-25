@@ -1,0 +1,125 @@
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# Public dashboard stack for a single VM (see docs/plan/03-public-deployment.md).
+#
+# Only `caddy` publishes ports. Postgres and MySQL are reachable solely over the
+# internal Compose network -- no published port, no public hostname. For
+# immutable read-only reference databases that is a smaller attack surface than
+# a managed instance with a public endpoint, and the usual reason to pay for
+# managed databases (backups, PITR) does not apply to data that is rebuilt from
+# upstream dumps.
+#
+# Usage:
+#   cp deploy/env.deploy.example deploy/.env   # then fill it in
+#   docker compose -f deploy/docker-compose.yml up -d
+
+name: text2sql-dashboard
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      # Automatic Let's Encrypt issuance and renewal, which removes the main
+      # ongoing chore of self-managed hosting.
+      DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:?set DASHBOARD_DOMAIN in deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+    depends_on:
+      app:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    # No ports: reachable only through caddy.
+    environment:
+      # Capability ceiling. `full` is refused here anyway -- it would bind a
+      # non-loopback interface -- but state it explicitly.
+      TEXT2SQL_DASHBOARD_MODE: ${TEXT2SQL_DASHBOARD_MODE:-public}
+      TEXT2SQL_DATA_ROOT: /data
+
+      # Sign-in. Without these nobody can reach the judge tier.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      TEXT2SQL_SESSION_SECRET: ${TEXT2SQL_SESSION_SECRET:-}
+      TEXT2SQL_JUDGE_ALLOWLIST: ${TEXT2SQL_JUDGE_ALLOWLIST:-}
+
+      # Judge budget. Rates are an estimate until calibrated against a real
+      # invoice; keep an independent budget alert on the watsonx account too.
+      TEXT2SQL_JUDGE_MONTHLY_BUDGET_USD: ${TEXT2SQL_JUDGE_MONTHLY_BUDGET_USD:-50}
+      TEXT2SQL_JUDGE_DISABLED: ${TEXT2SQL_JUDGE_DISABLED:-false}
+      TEXT2SQL_JUDGE_RATES: ${TEXT2SQL_JUDGE_RATES:-}
+
+      # watsonx, used only by the judge path. The judge needs no database.
+      WATSONX_APIKEY: ${WATSONX_APIKEY:-}
+      WATSONX_API_BASE: ${WATSONX_API_BASE:-}
+      WATSONX_PROJECTID: ${WATSONX_PROJECTID:-}
+
+      # Read-only database access, internal hostnames only. Absent by default:
+      # a browse-only deployment holds no database credentials at all, so a
+      # tier-enforcement bug has nothing to reach.
+      POSTGRES_CONNECTION_STRING: ${POSTGRES_CONNECTION_STRING:-}
+      MYSQL_CONNECTION_STRING: ${MYSQL_CONNECTION_STRING:-}
+    volumes:
+      - data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/me"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
+  # --- Optional database services --------------------------------------------
+  # Enabled with:  docker compose --profile databases up -d
+  # Only worth starting once the corresponding data has been loaded; see
+  # deploy/provision.sh and docs/plan/03-public-deployment.md items 3.11-3.12.
+
+  postgres:
+    image: postgres:17-bookworm
+    profiles: ["databases"]
+    restart: unless-stopped
+    # Deliberately no `ports:` -- internal network only.
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set in deploy/.env}
+      POSTGRES_DB: bird
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bird"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mysql:
+    image: mysql:8.4
+    profiles: ["databases"]
+    restart: unless-stopped
+    # Deliberately no `ports:` -- internal network only.
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in deploy/.env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  data:
+  postgres_data:
+  mysql_data:
+  caddy_data:
+  caddy_config:

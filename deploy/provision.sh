@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# One-time data provisioning for the public dashboard (plan item 3.7).
+#
+#   fetch the pinned Hugging Face snapshot -> build the query indices -> mark done
+#
+# Idempotent: a completed run leaves a marker and subsequent runs exit early.
+# Run it BEFORE starting the app. Index building is memory-hungry -- peak is
+# driven by the largest single record, and Beaver contains one of 108 MB whose
+# parsed form costs several hundred more -- so doing it while the app and both
+# databases are serving is how a 4 GB box runs out of memory.
+#
+# Usage (inside the app image, or any environment with the toolkit installed):
+#   TEXT2SQL_DATA_ROOT=/data deploy/provision.sh
+set -euo pipefail
+
+DATA_ROOT="${TEXT2SQL_DATA_ROOT:-/data}"
+REVISION="${TEXT2SQL_RESULTS_REVISION:-}"
+MARKER="${DATA_ROOT}/.provisioned"
+
+log() { printf '[provision] %s\n' "$*"; }
+fail() { printf '[provision] ERROR: %s\n' "$*" >&2; exit 1; }
+
+if [ -f "$MARKER" ]; then
+  log "already provisioned:"
+  sed 's/^/[provision]   /' "$MARKER"
+  log "delete ${MARKER} to force a re-run."
+  exit 0
+fi
+
+command -v text2sql-eval-toolkit >/dev/null 2>&1 \
+  || fail "text2sql-eval-toolkit is not on PATH."
+
+if [ -z "$REVISION" ]; then
+  # DEFAULT_REVISION is derived from the installed toolkit version and silently
+  # falls back to `main` when that tag is absent. A floating `main` means the
+  # public dataset can change under shared links, which defeats citable URLs.
+  fail "TEXT2SQL_RESULTS_REVISION is unset. Pin the snapshot explicitly."
+fi
+
+mkdir -p "$DATA_ROOT"
+
+log "fetching results snapshot ${REVISION} into ${DATA_ROOT} (~4 GB)"
+# A partial fetch must fail loudly here rather than yielding a site that renders
+# empty benchmarks.
+text2sql-eval-toolkit results fetch \
+  --revision "$REVISION" \
+  --data-root "$DATA_ROOT" \
+  || fail "results fetch failed; not marking provisioned."
+
+log "building query indices"
+text2sql-eval-toolkit index build --data-root "$DATA_ROOT" \
+  || fail "index build failed; not marking provisioned."
+
+log "verifying every benchmark has a current index"
+text2sql-eval-toolkit index status --data-root "$DATA_ROOT" | tee /tmp/index-status.txt
+if grep -q 'stale' /tmp/index-status.txt; then
+  fail "some indices are still stale after building."
+fi
+
+{
+  echo "revision=${REVISION}"
+  echo "provisioned_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "toolkit_version=$(python -c 'import text2sql_eval_toolkit as t; print(t.__version__)' 2>/dev/null || echo unknown)"
+} > "$MARKER"
+
+log "done. Marker written to ${MARKER}"
+log "the revision recorded above is what the UI should show as its data stamp."
