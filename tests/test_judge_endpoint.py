@@ -71,7 +71,7 @@ def client(tmp_path, monkeypatch):
     artifact = results / "demo-predictions_eval.json"
     artifact.write_text(json.dumps(RECORDS), encoding="utf-8")
 
-    monkeypatch.setattr(server, "get_data_root", lambda: tmp_path)
+    monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
     monkeypatch.delenv("TEXT2SQL_JUDGE_DISABLED", raising=False)
     monkeypatch.delenv("TEXT2SQL_JUDGE_MONTHLY_BUDGET_USD", raising=False)
     server.invalidate_index_cache()

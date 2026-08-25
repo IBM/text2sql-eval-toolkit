@@ -142,7 +142,7 @@ from text2sql_eval_toolkit.ui import server  # noqa: E402
 
 
 @pytest.fixture
-def client(tmp_path):
+def client(tmp_path, monkeypatch):
     results = tmp_path / "results"
     results.mkdir()
     (results / "demo-predictions_eval_summary.json").write_text(
@@ -155,13 +155,12 @@ def client(tmp_path):
         ),
         encoding="utf-8",
     )
-    original = server.get_data_root
-    server.get_data_root = lambda: tmp_path  # type: ignore[assignment]
+    monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
     server.invalidate_index_cache()
     try:
         yield TestClient(server.app)
     finally:
-        server.get_data_root = original  # type: ignore[assignment]
+        server.invalidate_index_cache()
 
 
 def test_endpoint_returns_both_directions(client):

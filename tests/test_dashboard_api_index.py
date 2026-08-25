@@ -61,13 +61,15 @@ def client(tmp_path_factory):
         json.dumps(data), encoding="utf-8"
     )
 
-    original = server.get_data_root
-    server.get_data_root = lambda: root  # type: ignore[assignment]
-    server.invalidate_index_cache()
-    try:
-        yield TestClient(server.app), data
-    finally:
-        server.get_data_root = original  # type: ignore[assignment]
+    # Module-scoped, so `monkeypatch` (function-scoped) is unavailable; the
+    # env var is set and restored by hand for the same effect.
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("TEXT2SQL_DATA_ROOT", str(root))
+        server.invalidate_index_cache()
+        try:
+            yield TestClient(server.app), data
+        finally:
+            server.invalidate_index_cache()
         server.invalidate_index_cache()
 
 
