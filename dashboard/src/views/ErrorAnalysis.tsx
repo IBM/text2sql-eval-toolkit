@@ -173,7 +173,7 @@ function normalizeTableData(raw: any): { columns: string[]; rows: any[] } {
     const columns = value.columns.map((c: any) => String(c));
     const rows = value.data.map((row: any[], idx: number) => {
       const out: Record<string, any> = { id: `r-${idx}` };
-      columns.forEach((c, i) => {
+      columns.forEach((c: string, i: number) => {
         out[c] = row?.[i];
       });
       return out;
@@ -221,11 +221,17 @@ const ResultTableView: React.FC<{ title: string; rawData: any }> = ({ title, raw
                 <Table aria-label={title}>
                   <TableHead>
                     <TableRow>
-                      {headers.map((header) => (
-                        <TableHeader key={header.key} {...getHeaderProps({ header })}>
+                      {headers.map((header) => {
+                        // Carbon's prop getter returns its own `key`; spreading it
+                        // would override the explicit one, and React 18 warns on a
+                        // spread `key`. Take it out and pass it directly.
+                        const { key, ...headerProps } = getHeaderProps({ header });
+                        return (
+                          <TableHeader key={key} {...headerProps}>
                           {header.header}
-                        </TableHeader>
-                      ))}
+                          </TableHeader>
+                        );
+                      })}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -888,11 +894,17 @@ export const ErrorAnalysis: React.FC<Props> = ({
               <Table aria-label="Error records">
                 <TableHead>
                   <TableRow>
-                    {headers.map((header) => (
-                      <TableHeader key={header.key} {...getHeaderProps({ header })}>
+                    {headers.map((header) => {
+                      // Carbon's prop getter returns its own `key`; spreading it
+                      // would override the explicit one, and React 18 warns on a
+                      // spread `key`. Take it out and pass it directly.
+                      const { key, ...headerProps } = getHeaderProps({ header });
+                      return (
+                        <TableHeader key={key} {...headerProps}>
                         {header.header}
-                      </TableHeader>
-                    ))}
+                        </TableHeader>
+                      );
+                    })}
                   </TableRow>
                 </TableHead>
                 <TableBody>

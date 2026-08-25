@@ -417,11 +417,6 @@ export const ProfileCompareView: React.FC<Props> = ({
                   >
                     {id}
                   </Tag>
-                  {large ? (
-                    <Tag type="magenta" size="sm" title={largeTitle}>
-                      Large
-                    </Tag>
-                  ) : null}
                 </span>
               );
             })

@@ -31,15 +31,24 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      "react-hooks/set-state-in-effect": "off", // 20x, see above
+      "react-hooks/preserve-manual-memoization": "off", // 1x, see above
 
-      // ---- Deferred, not dismissed -------------------------------------
-      // 20 findings from the first lint run, all requiring effects to be
-      // restructured. The routing work replaces much of this state with route
-      // params and loaders, so fixing them now would be rewritten immediately.
-      // Tracked as item 4.13 in docs/plan/04-code-quality.md -- re-enable and
-      // clear these once routing lands.
-      "react-hooks/set-state-in-effect": "off", // 19x
-      "react-hooks/preserve-manual-memoization": "off", // 1x
+      // ---- Still off, with a reason ------------------------------------
+      // 21 findings. Re-assessed after routing landed (which was the original
+      // reason for deferring) and they did not go away: 5 are the
+      // fetch-on-mount pattern, where setState happens in an async callback --
+      // the sanctioned use of an effect, which this rule cannot distinguish --
+      // and 15 are genuinely synchronous "reset the selection when the options
+      // load".
+      //
+      // Those 15 are real debt and belong in derived state. They are not being
+      // rewritten blind: each decides which option a user ends up looking at,
+      // and there are no component tests to catch a change. Component coverage
+      // comes first (plan item 4.5), then these.
+      //
+      // Tracked as item 4.13 in docs/plan/04-code-quality.md.
+
     },
   }
 );

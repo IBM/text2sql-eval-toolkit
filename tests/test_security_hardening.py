@@ -135,6 +135,11 @@ def test_responses_carry_baseline_security_headers(client):
     assert "script-src 'self'" in csp
     assert "'unsafe-inline'" not in csp.split("script-src")[1].split(";")[0]
 
+    # Carbon loads IBM Plex from IBM's CDN; without an explicit font-src the
+    # policy blocks all 120 references and the UI drops to system fonts.
+    assert "font-src" in csp
+    assert "1.www.s81c.com" in csp.split("font-src")[1].split(";")[0]
+
 
 # --- rate limiting --------------------------------------------------------
 
