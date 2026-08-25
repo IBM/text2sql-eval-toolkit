@@ -104,6 +104,7 @@ from text2sql_eval_toolkit.ui.runtime import (  # noqa: F401
     set_mode,
 )
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.ui.dataframes import truncate_dataframe
 from text2sql_eval_toolkit.utils import get_gt_sqls, get_question
 
 logger = get_logger(__name__)
@@ -671,7 +672,9 @@ def get_playground_init(benchmark_id: str, record_id: str) -> PlaygroundInitResp
         ground_truth_sqls=list(gt_sqls),
         pipelines=pipelines,
         ground_truth_row_counts=gt_row_counts,
-        ground_truth_dfs=gt_dfs_list,
+        # Trimmed for display only; `ground_truth_row_counts` above still
+        # reports the real sizes.
+        ground_truth_dfs=[truncate_dataframe(df)[0] for df in gt_dfs_list],
     )
 
 
@@ -783,13 +786,17 @@ async def playground_evaluate(
 
     evaluation = await asyncio.to_thread(_run_eval)
 
+    # Trim only now, and only these copies. `gt_dfs_json` and `pred_df_json` are
+    # what `record["gt_df"]` and `prediction["predicted_df"]` were built from and
+    # what `evaluate_prediction` above compared -- truncating them any earlier
+    # would silently compute the metrics against a fraction of the result set.
     return PlaygroundEvaluateResponse(
         benchmark_id=benchmark_id,
         record_id=req.record_id,
         evaluation=evaluation,
         ground_truth_row_counts=gt_row_counts,
-        ground_truth_dfs=gt_dfs_json,
-        predicted_df=pred_df_json,
+        ground_truth_dfs=[truncate_dataframe(df)[0] for df in gt_dfs_json],
+        predicted_df=truncate_dataframe(pred_df_json)[0],
         prediction_error=pred_err,
         prediction_row_count=pred_rows,
         prediction_column_count=pred_cols,

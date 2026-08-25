@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Sequence, Tuple
 
@@ -53,10 +54,37 @@ class EvalIndex:
     def __init__(self, index_path: Path, source_path: Path) -> None:
         self._index_path = Path(index_path)
         self._source_path = Path(source_path)
-        self._conn = sqlite3.connect(
-            f"file:{self._index_path}?mode=ro", uri=True, check_same_thread=False
-        )
-        self._conn.row_factory = sqlite3.Row
+        # One connection per thread, not one shared connection.
+        #
+        # A single handle is cached per benchmark and the server runs sync
+        # endpoints in a threadpool, so several requests reach the same
+        # EvalIndex at once. `check_same_thread=False` only silences sqlite3's
+        # ownership check -- it does not make a connection safe to use
+        # concurrently, and doing so returned `InterfaceError: bad parameter or
+        # other API misuse` and, worse, rows read as None: wrong answers rather
+        # than errors.
+        #
+        # Read-only connections to the same file are cheap and SQLite allows any
+        # number of concurrent readers, so a connection per thread costs almost
+        # nothing and removes the sharing entirely.
+        self._local = threading.local()
+        self._open_connections: List[sqlite3.Connection] = []
+        self._connections_lock = threading.Lock()
+
+    @property
+    def _conn(self) -> sqlite3.Connection:
+        conn = getattr(self._local, "conn", None)
+        if conn is None:
+            conn = sqlite3.connect(
+                f"file:{self._index_path}?mode=ro", uri=True, check_same_thread=False
+            )
+            conn.row_factory = sqlite3.Row
+            self._local.conn = conn
+            # Tracked so close() can release them all; threadpool workers are
+            # long-lived, so this list stays as small as the pool.
+            with self._connections_lock:
+                self._open_connections.append(conn)
+        return conn
 
     @classmethod
     def for_benchmark(
@@ -71,7 +99,21 @@ class EvalIndex:
         return cls(path, source)
 
     def close(self) -> None:
-        self._conn.close()
+        """
+        Release every connection this index opened, from whichever thread calls.
+
+        ``check_same_thread=False`` is what makes closing another thread's
+        connection legal here; nothing is using them by the time a handle is
+        invalidated.
+        """
+        with self._connections_lock:
+            for conn in self._open_connections:
+                try:
+                    conn.close()
+                except sqlite3.Error:  # pragma: no cover - already closed
+                    pass
+            self._open_connections.clear()
+        self._local = threading.local()
 
     def __enter__(self) -> "EvalIndex":
         return self

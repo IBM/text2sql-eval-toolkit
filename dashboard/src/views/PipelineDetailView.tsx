@@ -16,6 +16,7 @@ import {
   TextArea,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { ResultTableView } from "./ResultTableView";
 
 interface Props {
   benchmarkId: string;
@@ -58,7 +59,9 @@ interface ErrorRecordDetail {
   predicted_sql?: string;
   evaluation_metrics: Record<string, any>;
   ground_truth_results: any[];
+  ground_truth_result_row_counts?: (number | null)[];
   predicted_result: any;
+  predicted_result_row_count?: number | null;
   prompt?: string;
   token_usage?: Record<string, any>;
   inference_time_ms?: number;
@@ -142,133 +145,6 @@ function highlightSql(sql: string): string {
   });
   return html;
 }
-
-function normalizeTableData(raw: any): { columns: string[]; rows: any[] } {
-  let value = raw;
-
-  if (typeof value === "string") {
-    try {
-      value = JSON.parse(value);
-    } catch {
-      return { columns: ["value"], rows: [{ value }] };
-    }
-  }
-
-  // pandas orient='split'
-  if (
-    value &&
-    typeof value === "object" &&
-    Array.isArray(value.columns) &&
-    Array.isArray(value.data)
-  ) {
-    const columns = value.columns.map((c: any) => String(c));
-    const rows = value.data.map((row: any[], idx: number) => {
-      const out: Record<string, any> = { id: `r-${idx}` };
-      columns.forEach((c: string, i: number) => {
-        out[c] = row?.[i];
-      });
-      return out;
-    });
-    return { columns, rows };
-  }
-
-  if (Array.isArray(value)) {
-    if (value.length === 0) return { columns: [], rows: [] };
-    if (typeof value[0] === "object" && value[0] !== null && !Array.isArray(value[0])) {
-      const columnSet = new Set<string>();
-      value.forEach((v) => Object.keys(v).forEach((k) => columnSet.add(k)));
-      const columns = Array.from(columnSet);
-      const rows = value.map((v, idx) => ({ id: `r-${idx}`, ...v }));
-      return { columns, rows };
-    }
-    const rows = value.map((v, idx) => ({ id: `r-${idx}`, value: v }));
-    return { columns: ["value"], rows };
-  }
-
-  if (value && typeof value === "object") {
-    return { columns: Object.keys(value), rows: [{ id: "r-0", ...value }] };
-  }
-
-  return { columns: ["value"], rows: [{ id: "r-0", value: String(value) }] };
-}
-
-const ResultTableView: React.FC<{ title: string; rawData: any }> = ({ title, rawData }) => {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const normalized = useMemo(() => normalizeTableData(rawData), [rawData]);
-  const headers: DataTableHeader[] = normalized.columns.map((c) => ({ key: c, header: c }));
-
-  const total = normalized.rows.length;
-  const start = (page - 1) * pageSize;
-  const end = start + pageSize;
-  const pageRows = normalized.rows.slice(start, end);
-
-  return (
-    <section
-      style={{
-        border: "1px solid rgba(15,98,254,0.2)",
-        borderRadius: "6px",
-        padding: "0.6rem",
-        background: "#ffffff",
-      }}
-    >
-      <h4 style={{ margin: "0 0 0.5rem 0", color: "#0f62fe" }}>{title}</h4>
-      {headers.length === 0 ? (
-        <div style={{ opacity: 0.8 }}>No rows</div>
-      ) : (
-        <>
-          <div style={{ maxHeight: "280px", overflow: "auto" }}>
-            <DataTable rows={pageRows} headers={headers} size="sm">
-              {({ rows, headers, getHeaderProps }) => (
-                <TableContainer>
-                  <Table aria-label={title}>
-                    <TableHead>
-                      <TableRow>
-                        {headers.map((header) => {
-                          // Carbon's prop getter returns its own `key`; spreading it
-                          // would override the explicit one, and React 18 warns on a
-                          // spread `key`. Take it out and pass it directly.
-                          const { key, ...headerProps } = getHeaderProps({ header });
-                          return (
-                            <TableHeader key={key} {...headerProps}>
-                            {header.header}
-                            </TableHeader>
-                          );
-                        })}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow key={row.id}>
-                          {row.cells.map((cell) => (
-                            <TableCell key={cell.id}>
-                              {cell.value == null ? "NULL" : String(cell.value)}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-            </DataTable>
-          </div>
-          <Pagination
-            page={page}
-            pageSize={pageSize}
-            pageSizes={[10, 25, 50]}
-            totalItems={total}
-            onChange={({ page, pageSize }) => {
-              setPage(page);
-              setPageSize(pageSize);
-            }}
-          />
-        </>
-      )}
-    </section>
-  );
-};
 
 export const PipelineDetailView: React.FC<Props> = ({
   benchmarkId,
@@ -1024,10 +900,15 @@ export const PipelineDetailView: React.FC<Props> = ({
                         key={`gt-result-table-${idx}`}
                         title={`Ground truth result ${idx + 1}`}
                         rawData={r}
+                        totalRows={detail.ground_truth_result_row_counts?.[idx]}
                       />
                     ))}
 
-                    <ResultTableView title="Predicted result" rawData={detail.predicted_result} />
+                    <ResultTableView
+                      title="Predicted result"
+                      rawData={detail.predicted_result}
+                      totalRows={detail.predicted_result_row_count}
+                    />
 
                     <section>
                       <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Prompt</h4>

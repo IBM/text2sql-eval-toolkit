@@ -27,9 +27,51 @@ async function paginationLabel(page: Page): Promise<string> {
   return (await label.innerText()).trim();
 }
 
+/**
+ * Wait until the view has stopped changing on its own.
+ *
+ * The error-analysis view picks a default pipeline *after* its first paint and
+ * writes it into the address, which triggers a refetch. Between those two
+ * moments the metric columns read "N/A" -- a state no recipient of a shared
+ * link ever sees, because their address already names the pipeline. Snapshotting
+ * during it makes these tests fail for a reason that has nothing to do with
+ * URLs.
+ */
+async function settled(page: Page) {
+  if (page.url().includes("/errors")) {
+    await page.waitForFunction(
+      () => window.location.search.includes("pipeline="),
+      { timeout: 15_000 }
+    );
+  }
+  await page.waitForLoadState("networkidle");
+
+  // `networkidle` is not "done": choosing the default pipeline triggers a
+  // second fetch, and the window between the two is real time during which the
+  // table shows different text. Rather than guess at how many round trips the
+  // view makes, wait for the rendered rows to stop changing -- which is the
+  // same thing a reader means by "it has loaded".
+  let previous = "";
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const current = (await page.locator("table tbody tr").allInnerTexts()).join("|");
+    if (current && current === previous) return;
+    previous = current;
+    await page.waitForTimeout(200);
+  }
+}
+
 async function openFresh(page: Page, url: string) {
   await page.goto(url);
   await page.waitForLoadState("networkidle");
+  await settled(page);
+}
+
+/** Turn the page and wait for the new rows to be the ones on screen. */
+async function nextPage(page: Page) {
+  await expect(page.locator("table tbody tr").first()).toBeVisible();
+  await page.getByRole("button", { name: /next page/i }).click();
+  await expect.poll(() => page.url()).toContain("page=2");
+  await settled(page);
 }
 
 test.describe("a link reproduces the view", () => {
@@ -38,13 +80,9 @@ test.describe("a link reproduces the view", () => {
     browser,
   }) => {
     await openFresh(page, `/benchmark/${BENCHMARK}/errors`);
-
     // Move off page 1: the page number is the piece most easily lost, because
     // it is the one thing not implied by the rest of the state.
-    await page.getByRole("button", { name: /next page/i }).click();
-    await expect
-      .poll(() => page.url())
-      .toContain("page=2");
+    await nextPage(page);
 
     const url = page.url();
     const expectedRows = await tableSnapshot(page);
@@ -165,10 +203,10 @@ test.describe("the browser's own navigation still works", () => {
     page,
   }) => {
     await openFresh(page, `/benchmark/${BENCHMARK}/errors`);
+    await expect(page.locator("table tbody tr").first()).toBeVisible();
     const first = await paginationLabel(page);
 
-    await page.getByRole("button", { name: /next page/i }).click();
-    await expect.poll(() => page.url()).toContain("page=2");
+    await nextPage(page);
     const second = await paginationLabel(page);
     expect(second).not.toBe(first);
 
@@ -185,5 +223,26 @@ test.describe("the browser's own navigation still works", () => {
     await page.waitForLoadState("networkidle");
     expect(page.url()).toBe(before);
     await expect(page.getByText(/Metrics Comparison/i).first()).toBeVisible();
+  });
+});
+
+test.describe("large results stay renderable", () => {
+  test("a huge query result is previewed, and says how much it is hiding", async ({
+    page,
+  }) => {
+    // The fixture's result frames are small, so this asserts the mechanism
+    // rather than a specific size: whatever arrives, the panel must not put an
+    // unbounded number of rows in the DOM. On real data one Beaver record
+    // answers with 86,502 rows, which built 854,563 nodes and 858 MB of heap
+    // before the result tables were paginated.
+    await openFresh(page, `/benchmark/${BENCHMARK}/errors`);
+    await expect(page.locator("table tbody tr").first()).toBeVisible();
+    await page.locator("table tbody tr").first().click();
+    await expect(page.getByText("Predicted result").first()).toBeVisible();
+
+    const nodes = await page.evaluate(
+      () => document.getElementsByTagName("*").length
+    );
+    expect(nodes).toBeLessThan(20_000);
   });
 });

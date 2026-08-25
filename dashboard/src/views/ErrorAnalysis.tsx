@@ -22,6 +22,7 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { ResultTableView } from "./ResultTableView";
 import { resolveDetailPipeline } from "../lib/detailPipeline";
 import {
   type MetricDefinitionsResponse,
@@ -86,7 +87,9 @@ interface ErrorRecordDetail {
   predicted_sql?: string;
   evaluation_metrics: Record<string, any>;
   ground_truth_results: any[];
+  ground_truth_result_row_counts?: (number | null)[];
   predicted_result: any;
+  predicted_result_row_count?: number | null;
   prompt?: string;
   llm_judge_score?: number;
   llm_judge_explanation?: string;
@@ -154,106 +157,6 @@ function highlightSql(sql: string): string {
   });
   return html;
 }
-
-function normalizeTableData(raw: any): { columns: string[]; rows: any[] } {
-  let value = raw;
-  if (typeof value === "string") {
-    try {
-      value = JSON.parse(value);
-    } catch {
-      return { columns: ["value"], rows: [{ value }] };
-    }
-  }
-  if (
-    value &&
-    typeof value === "object" &&
-    Array.isArray(value.columns) &&
-    Array.isArray(value.data)
-  ) {
-    const columns = value.columns.map((c: any) => String(c));
-    const rows = value.data.map((row: any[], idx: number) => {
-      const out: Record<string, any> = { id: `r-${idx}` };
-      columns.forEach((c: string, i: number) => {
-        out[c] = row?.[i];
-      });
-      return out;
-    });
-    return { columns, rows };
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return { columns: [], rows: [] };
-    if (typeof value[0] === "object" && value[0] !== null && !Array.isArray(value[0])) {
-      const columnSet = new Set<string>();
-      value.forEach((v) => Object.keys(v).forEach((k) => columnSet.add(k)));
-      const columns = Array.from(columnSet);
-      const rows = value.map((v, idx) => ({ id: `r-${idx}`, ...v }));
-      return { columns, rows };
-    }
-    const rows = value.map((v, idx) => ({ id: `r-${idx}`, value: v }));
-    return { columns: ["value"], rows };
-  }
-  if (value && typeof value === "object") {
-    return { columns: Object.keys(value), rows: [{ id: "r-0", ...value }] };
-  }
-  return { columns: ["value"], rows: [{ id: "r-0", value: String(value) }] };
-}
-
-const ResultTableView: React.FC<{ title: string; rawData: any }> = ({ title, rawData }) => {
-  const normalized = useMemo(() => normalizeTableData(rawData), [rawData]);
-  const headers: DataTableHeader[] = normalized.columns.map((c) => ({ key: c, header: c }));
-  return (
-    <section
-      style={{
-        border: "1px solid rgba(15,98,254,0.2)",
-        borderRadius: "6px",
-        padding: "0.6rem",
-        background: "#ffffff",
-      }}
-    >
-      <h4 style={{ margin: "0 0 0.5rem 0", color: "#0f62fe" }}>{title}</h4>
-      {headers.length === 0 ? (
-        <div style={{ opacity: 0.8 }}>No rows</div>
-      ) : (
-        <div style={{ maxHeight: "240px", overflow: "auto" }}>
-          <DataTable rows={normalized.rows} headers={headers} size="sm">
-            {({ rows, headers, getHeaderProps }) => (
-              <TableContainer>
-                <Table aria-label={title}>
-                  <TableHead>
-                    <TableRow>
-                      {headers.map((header) => {
-                        // Carbon's prop getter returns its own `key`; spreading it
-                        // would override the explicit one, and React 18 warns on a
-                        // spread `key`. Take it out and pass it directly.
-                        const { key, ...headerProps } = getHeaderProps({ header });
-                        return (
-                          <TableHeader key={key} {...headerProps}>
-                          {header.header}
-                          </TableHeader>
-                        );
-                      })}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.cells.map((cell) => (
-                          <TableCell key={cell.id}>
-                            {cell.value == null ? "NULL" : String(cell.value)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DataTable>
-        </div>
-      )}
-    </section>
-  );
-};
 
 export const ErrorAnalysis: React.FC<Props> = ({
   benchmarkId,
@@ -531,10 +434,18 @@ export const ErrorAnalysis: React.FC<Props> = ({
           id: item.record_id,
           record_id: item.record_id,
           question: item.question,
-          metric1_pipeline: pipeline || "N/A",
-          metric1_score: formatMetricValue(pipeline1Prediction?.[metric]),
-          metric2_pipeline: pipeline2 || "N/A",
-          metric2_score: formatMetricValue(pipeline2Prediction?.[metric2]),
+          // "N/A" where no pipeline has been chosen yet would say the record
+          // has no value for this metric, which is a different claim and not
+          // true. The view picks a default a moment after its first paint, so
+          // this is what the table shows in between.
+          metric1_pipeline: pipeline || "—",
+          metric1_score: pipeline
+            ? formatMetricValue(pipeline1Prediction?.[metric])
+            : "—",
+          metric2_pipeline: pipeline2 || "—",
+          metric2_score: pipeline2
+            ? formatMetricValue(pipeline2Prediction?.[metric2])
+            : "—",
         };
       }),
     [items, metric, metric2, pipeline, pipeline2]
@@ -1259,9 +1170,18 @@ export const ErrorAnalysis: React.FC<Props> = ({
                       </pre>
                     </section>
                     {(detail.ground_truth_results || []).map((r, idx) => (
-                      <ResultTableView key={`gt-result-table-${idx}`} title={`Ground truth result ${idx + 1}`} rawData={r} />
+                      <ResultTableView
+                        key={`gt-result-table-${idx}`}
+                        title={`Ground truth result ${idx + 1}`}
+                        rawData={r}
+                        totalRows={detail.ground_truth_result_row_counts?.[idx]}
+                      />
                     ))}
-                    <ResultTableView title="Predicted result" rawData={detail.predicted_result} />
+                    <ResultTableView
+                      title="Predicted result"
+                      rawData={detail.predicted_result}
+                      totalRows={detail.predicted_result_row_count}
+                    />
                     <section>
                       <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Prompt</h4>
                       <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>

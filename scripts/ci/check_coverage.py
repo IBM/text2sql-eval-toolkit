@@ -58,6 +58,8 @@ FLOORS: dict[str, int] = {
     "ui/judge_budget.py": 85,
     "ui/aliases.py": 95,
     # --- Data access -------------------------------------------------------
+    # What a browser is asked to render. A regression here is a frozen tab.
+    "ui/dataframes.py": 90,
     "ui/paths.py": 80,
     "ui/indexes.py": 80,
     "ui/routers_errors.py": 85,

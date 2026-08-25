@@ -62,6 +62,7 @@ from text2sql_eval_toolkit.ui.runtime import (  # noqa: F401
     set_mode,
 )
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.ui.dataframes import MAX_PREVIEW_ROWS, truncate_dataframe
 
 logger = get_logger(__name__)
 
@@ -199,6 +200,22 @@ def get_error_detail_for_pipeline(
     if not isinstance(gt_df, list):
         gt_df = [gt_df]
 
+    # Trimmed for display, with the true sizes alongside. One Beaver record
+    # holds an 86,502-row ground truth and a 55,817-row prediction; sending both
+    # built 854,563 DOM nodes to fill a 240-pixel scroll box.
+    gt_previews = []
+    gt_totals = []
+    gt_truncated = False
+    for frame in gt_df:
+        preview, total, was_cut = truncate_dataframe(frame)
+        gt_previews.append(preview)
+        gt_totals.append(total)
+        gt_truncated = gt_truncated or was_cut
+
+    pred_preview, pred_total, pred_truncated = truncate_dataframe(
+        pred.get("predicted_df")
+    )
+
     return {
         "record_id": record_id,
         "pipeline": pipeline,
@@ -210,8 +227,13 @@ def get_error_detail_for_pipeline(
         "ground_truth_sql": gt_sql,
         "predicted_sql": pred.get("predicted_sql"),
         "evaluation_metrics": eval_metrics,
-        "ground_truth_results": gt_df,
-        "predicted_result": pred.get("predicted_df"),
+        "ground_truth_results": gt_previews,
+        "ground_truth_result_row_counts": gt_totals,
+        "ground_truth_results_truncated": gt_truncated,
+        "predicted_result": pred_preview,
+        "predicted_result_row_count": pred_total,
+        "predicted_result_truncated": pred_truncated,
+        "preview_row_limit": MAX_PREVIEW_ROWS,
         "prompt": pred.get("prompt"),
         "token_usage": pred.get("token_usage"),
         "inference_time_ms": pred.get("inference_time_ms"),
