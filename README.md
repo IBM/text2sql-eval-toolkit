@@ -344,6 +344,19 @@ query, or an individual record can be linked to directly:
 
 The **Copy link** control in the header copies the current view's address.
 
+Pipeline ids embed the model name, so a comparison link can carry two of
+`wxai:openai/gpt-oss-120b-agentic-baseline1-3attempts` and end up long enough for a
+mail client to wrap it. **Copy short link** substitutes a ten-character alias for
+each one, which the dashboard expands on arrival:
+
+```
+/b/archer_en_dev/pipeline/ec64b733f4     the same view, 90 characters shorter
+```
+
+Aliases are derived from the id (`GET /api/benchmarks/{id}/pipeline-aliases`), not
+assigned, so any server reading the same results agrees on them. They shorten links;
+they do not survive a model being renamed, since the alias changes with the id.
+
 #### Query index
 
 Evaluation artifacts reach hundreds of megabytes, so the dashboard reads them

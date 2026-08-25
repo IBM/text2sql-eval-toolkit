@@ -12,16 +12,16 @@ Plan for four goals, written against the baseline recorded in
 
 ## Where things stand
 
-Branch `dashboard-v2`, **not yet pushed**. 490 backend tests and 57 frontend tests pass;
+Branch `dashboard-v2`, **not yet pushed**. 514 backend tests and 77 frontend tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
 | Goal | Done | Remaining |
 |---|---|---|
-| 1 — Shareable URLs | 6 / 7 | Stable pipeline alias (1.6) |
+| 1 — Shareable URLs | 7 / 7 | — |
 | 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8) |
 | 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
-| 4 — Code quality | 9.5 / 13 | Component tests, router split, coverage floor, 2.0.0 |
+| 4 — Code quality | 9.5 / 13 | Playwright E2E, router split, coverage floor, 2.0.0 |
 
 ### Goal 1 — Shareable URLs
 
@@ -32,7 +32,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 1.3 Sync filter state to the query string | Done | Filters, page, page size, selected record |
 | 1.4 Copy-link affordance | Done | Header control, with a clipboard fallback |
 | 1.5 Server-side SPA fallback | Done | `SPAStaticFiles`; `/api/*` still 404s properly |
-| **1.6 Stable identifiers** | **Not started** | Hash alias for pipeline ids. Retrofitting after links circulate means broken links, so this is the one Goal 1 item worth doing before launch |
+| 1.6 Short identifiers | Done | Ten-character aliases, derived server-side and expanded on arrival; **Copy short link** in the header. A 247-character comparison link becomes 158. Renamed from "stable": a hash of the id cannot survive a rename — see the note below |
 | 1.7 Not-found and permission states | Done | Explicit not-found; capability surfaced via `/api/me` |
 
 ### Goal 2 — Performance
@@ -71,7 +71,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | Item | Status | Note |
 |---|---|---|
 | 4.1 Tooling configuration | Done | All config in `pyproject.toml` |
-| 4.2 Lint/type baseline | Done | 83 ruff findings → 0; 44 files reformatted |
+| 4.2 Lint/type baseline | Done | 83 ruff findings → 0; 44 files reformatted. mypy scope widened to `indexing/` and `ui/aliases.py` |
 | 4.3 Test markers | Done | Default run is hermetic |
 | 4.4 CI | Done (unrun) | 6 jobs; `actionlint` clean |
 | 4.5 Frontend test harness | Partial | Vitest with Testing Library, 51 tests including component tests that mount real views against stubbed APIs. Playwright E2E still not done — the URL round-trip is proven by hand |
@@ -97,6 +97,12 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
   execute locally. Their results still browse normally.
 - **15 Beaver questions cannot run**: `keystone`, `csail_stata_glance` and
   `csail_stata_cinder` have no published dumps.
+- **A pipeline alias does not survive a rename.** Item 1.6 was written as "stable
+  identifiers", on the reasoning that a link should outlive a change to the model
+  string. A derived hash cannot do that — it changes with the id — and nothing cheap
+  can, since the artifacts are keyed by the id itself and there is nowhere to persist a
+  mapping from a stable key to today's name. What shipped shortens links, which was the
+  other half of the item; the rename half is not solved and is not pretended to be.
 - **Coverage is 35%.** The suite is strong where it was written deliberately (indexing,
   tiers, auth, judge, evaluation, reporting) and thin elsewhere — `error_analysis.py`
   is at 5% and the inference pipelines are largely uncovered.

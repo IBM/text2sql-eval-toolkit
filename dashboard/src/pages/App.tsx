@@ -68,6 +68,11 @@ import toolkitLogo from "../assets/text2sql-eval-toolkit-logo.png";
 import githubLogo from "../assets/github.png";
 import type { BenchmarkConfigInput, BenchmarkSummary } from "../types/benchmark";
 import { parseLocation, parseQuery, routes } from "../lib/routes";
+import {
+  expandUrl,
+  looksLikeAlias,
+  usePipelineAliases,
+} from "../lib/pipelineAlias";
 
 type BenchmarkModalMode = "create" | "edit";
 const DEFAULT_BENCHMARK_ID = "bird_mini_dev_sqlite";
@@ -116,6 +121,39 @@ export const App: React.FC = () => {
     () => parseQuery(location.search.replace(/^\?/, "")),
     [location.search]
   );
+
+  // A shared link may name a pipeline by its short alias rather than its full
+  // id. The readable form stays canonical, so an alias is expanded on arrival
+  // and the address rewritten -- which means every view below this point only
+  // ever sees full pipeline ids, and nothing else has to know aliases exist.
+  const aliasRefs = useMemo(
+    () =>
+      [match.pipelineId, urlFilters.pipeline, urlFilters.pipeline2].filter(
+        (ref): ref is string => !!ref && looksLikeAlias(ref)
+      ),
+    [match.pipelineId, urlFilters.pipeline, urlFilters.pipeline2]
+  );
+  const { table: aliasTable, ready: aliasesReady } = usePipelineAliases(
+    match.benchmarkId,
+    aliasRefs.length > 0
+  );
+  const unknownAlias =
+    aliasesReady && aliasRefs.some((ref) => !aliasTable.aliases[ref]);
+  const pendingAlias = aliasRefs.length > 0 && !unknownAlias;
+
+  useEffect(() => {
+    if (!pendingAlias || !aliasesReady) return;
+    const current = `${location.pathname}${location.search}`;
+    const expanded = expandUrl(current, aliasTable);
+    if (expanded !== current) navigate(expanded, { replace: true });
+  }, [
+    pendingAlias,
+    aliasesReady,
+    aliasTable,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
   // ErrorAnalysis takes non-null strings; the URL layer uses null for "absent".
   const errorAnalysisFilters = useMemo(() => {
@@ -313,6 +351,22 @@ export const App: React.FC = () => {
           lowContrast
         />
       );
+    }
+
+    // An alias in the address is resolved before anything renders: showing a
+    // view built from an unresolved alias would fetch under the wrong name.
+    if (unknownAlias) {
+      return (
+        <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
+          <NotFound message="That short link does not name a pipeline this server has. It may be from a different results snapshot." />
+          <Button kind="tertiary" size="sm" onClick={() => navigate(routes.home())}>
+            Go to benchmarks
+          </Button>
+        </div>
+      );
+    }
+    if (pendingAlias) {
+      return <DataTableSkeleton role="progressbar" />;
     }
 
     if (match.notFound) {

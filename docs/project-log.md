@@ -12,6 +12,52 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — Short pipeline links (1.6), and a goal that had to be narrowed
+
+**The item as written could not be built.** 1.6 was "stable identifiers": a hash alias so
+a link survives the model string changing. That does not follow. The alias is a hash *of*
+the id, so a rename changes the alias with it and the link breaks exactly as before.
+Nothing cheap fixes that — the artifacts are keyed by the id itself, so a rename-proof
+alias needs a persisted mapping from a stable key to whatever the id is called today, and
+there is nowhere to keep one. The rename half is not solved, and the plan now says so
+rather than claiming the feature covers it.
+
+**The half that was worth building is length.** Pipeline ids are derived from the model
+name, and the comparison views carry two of them. A real filtered comparison link measured
+247 characters; mail clients wrap at less. `GET /api/benchmarks/{id}/pipeline-aliases`
+returns a derived `{alias: pipeline_id}` table read from the summary file — small, always
+present, and never triggering an index build over a multi-GB artifact. The same link is
+now 158 characters.
+
+**One implementation of the hash, not two.** The frontend does not compute aliases; it
+fetches the table. Two implementations of a truncated SHA-256 would eventually disagree
+about one string, and the symptom would be a link that resolves on one machine and 404s on
+another. Fetching also means an unknown alias is genuinely unknown rather than a hashing
+disagreement.
+
+**A collision resolves to neither pipeline.** At forty bits and fewer than fifty pipelines
+per benchmark a collision is not going to happen, but the handling still matters: a link
+that says "not found" is recoverable by asking the sender, and a link that quietly opens
+the wrong pipeline shows the reader different numbers than the sender saw, with nothing to
+signal it. `alias_map` drops a colliding alias rather than letting the last writer win.
+
+**Only pipeline references are rewritten.** Shortening by string-replacing the id
+throughout the URL would also rewrite a search term containing a model name — silently
+changing what the shared link searches for. Both directions parse the URL and touch the
+`/pipeline/:ref` segment and the `pipeline` / `pipeline2` parameters only; a test pins it.
+
+**The readable form stays canonical.** An alias is expanded on arrival and the address
+rewritten in place, so nothing downstream of `App` knows aliases exist and there is one
+form in the address bar. Verified in a browser: `/b/archer_en_dev/pipeline/ec64b733f4`
+expands and renders the same view as the full id, an unknown alias renders "not found"
+naming the likely cause, and a two-alias error-analysis link restores both pipelines with
+`page=2` and `disagree` intact.
+
+Also widened the mypy scope to `indexing/` and `ui/aliases.py` (three missing container
+annotations in the builder). 514 backend and 77 frontend tests passing.
+
+---
+
 ## 2026-08-25 — Phase E: coverage on the published numbers, docs, and module size
 
 **Coverage where a bug is silent (4.10, partial).** Two modules produce artifacts that get

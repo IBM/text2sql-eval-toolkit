@@ -70,6 +70,14 @@ class BenchmarkDetailResponse(BaseModel):
     pipelines: List[PipelineMetrics]
 
 
+class PipelineAliasesResponse(BaseModel):
+    """``{alias: pipeline_id}`` for one benchmark, plus its inverse."""
+
+    benchmark_id: str
+    aliases: Dict[str, str]
+    by_pipeline: Dict[str, str]
+
+
 class BenchmarkCategorySummaryResponse(BaseModel):
     benchmark_id: str
     default_sort_metric: str
