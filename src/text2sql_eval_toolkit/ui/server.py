@@ -3,6 +3,7 @@ import asyncio
 import base64
 import json
 import os
+from contextlib import contextmanager
 from copy import deepcopy
 import re
 import shutil
@@ -17,6 +18,7 @@ from fastapi import Body, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.routing import get_route_path
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel, ConfigDict, Field
 import uvicorn
@@ -77,10 +79,44 @@ app = FastAPI(title="Text2SQL Evaluation Dashboard API")
 # safe without any configuration.
 _ENABLE_FETCH_ENDPOINT: bool = False
 
-# Deployment ceiling, set at startup. FULL is the local-operator default so a
-# plain `text2sql-eval-dashboard` keeps every capability it has today; a public
+
+def _cookie_secure(mode: Tier) -> bool:
+    """Whether the session cookie carries `Secure`. Secure unless explicitly
+    opted out for a local HTTP run."""
+    raw = os.getenv("TEXT2SQL_COOKIE_SECURE")
+    if raw is not None:
+        return raw.strip().lower() in {"1", "true", "yes"}
+    return mode is not Tier.FULL
+
+
+def _mode_from_env() -> Tier:
+    """
+    Deployment ceiling from the environment.
+
+    Resolved at import, not only inside main(), because the ASGI app is also
+    served directly (``uvicorn text2sql_eval_toolkit.ui.server:app``). Reading it
+    only in main() meant such a deployment silently ran at FULL -- every
+    endpoint, including SQL execution, open to anonymous callers -- while the
+    operator believed TEXT2SQL_DASHBOARD_MODE had taken effect.
+    """
+    raw = os.getenv("TEXT2SQL_DASHBOARD_MODE")
+    if not raw:
+        return Tier.FULL
+    try:
+        return Tier.parse(raw)
+    except ValueError:
+        logger.warning(
+            "TEXT2SQL_DASHBOARD_MODE=%r is not a valid mode; refusing to guess "
+            "and falling back to the most restrictive setting.",
+            raw,
+        )
+        return Tier.PUBLIC
+
+
+# Deployment ceiling. FULL is the local-operator default so a plain
+# `text2sql-eval-dashboard` keeps every capability it has today; a public
 # deployment lowers it and no sign-in can raise it back.
-_MODE: Tier = Tier.FULL
+_MODE: Tier = _mode_from_env()
 
 # Emails allowed to reach the judge tier, from TEXT2SQL_JUDGE_ALLOWLIST.
 _JUDGE_ALLOWLIST: set = parse_allowlist(os.getenv("TEXT2SQL_JUDGE_ALLOWLIST"))
@@ -149,7 +185,12 @@ async def enforce_capability_tier(request: Request, call_next):
     covered whether or not its author remembered. Undeclared mutating routes
     require FULL, so the failure mode is a locked door rather than an open one.
     """
-    path = request.scope.get("path", "")
+    # Starlette routes on get_route_path(), which strips scope["root_path"].
+    # Gating on the raw scope path instead meant that under a non-empty
+    # root_path -- an app mounted at a sub-path, or uvicorn --root-path -- this
+    # check returned early while the router still dispatched the handler,
+    # skipping authorization entirely.
+    path = get_route_path(request.scope)
     if not path.startswith("/api/"):
         return await call_next(request)
 
@@ -217,7 +258,12 @@ def configure_cors(mode: "Tier") -> None:
         else:
             kwargs["allow_origins"] = []
             kwargs["allow_credentials"] = False
-    app.middleware_stack = app.build_middleware_stack()
+    # Clear rather than rebuild: Starlette refuses add_middleware() once the
+    # stack exists, and eagerly rebuilding here made a later
+    # add_middleware(SessionMiddleware) raise -- which crashed startup for every
+    # deployment that configured Google sign-in. None lets it rebuild on demand
+    # and keeps the ordering decision with whoever adds middleware last.
+    app.middleware_stack = None
 
 
 # In-process token buckets, keyed by client address. Adequate for a
@@ -235,14 +281,32 @@ AUTH_RATE_LIMIT_RPS = float(os.getenv("TEXT2SQL_AUTH_RATE_LIMIT_RPS", "1"))
 AUTH_RATE_LIMIT_BURST = float(os.getenv("TEXT2SQL_AUTH_RATE_LIMIT_BURST", "10"))
 
 
+#: Peer addresses whose X-Forwarded-For header is believed. Empty by default:
+#: a proxy *appends* to that header, so its leftmost value is whatever the
+#: client sent. Honouring it unconditionally let anyone rotate the header to
+#: get a fresh bucket per request, defeating the limit entirely and growing the
+#: bucket map without bound.
+TRUSTED_PROXIES = {
+    addr.strip()
+    for addr in os.getenv("TEXT2SQL_TRUSTED_PROXIES", "").split(",")
+    if addr.strip()
+}
+
+#: Ceiling on tracked buckets, so the key space cannot grow without limit.
+MAX_RATE_BUCKETS = 10_000
+
+
 def _client_key(request: Request) -> str:
-    # Behind the deployment's reverse proxy the real address arrives in
-    # X-Forwarded-For; fall back to the socket for a direct connection.
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
     client = request.client
-    return client.host if client else "unknown"
+    peer = client.host if client else "unknown"
+
+    if peer in TRUSTED_PROXIES:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            # Rightmost hop, which the trusted proxy appended itself; the
+            # leftmost is client-supplied and therefore forgeable.
+            return forwarded.split(",")[-1].strip() or peer
+    return peer
 
 
 def _take_token(key: str, rps: float, burst: float) -> bool:
@@ -251,6 +315,21 @@ def _take_token(key: str, rps: float, burst: float) -> bool:
         return True
     now = time.monotonic()
     with _RATE_LOCK:
+        if key not in _RATE_BUCKETS and len(_RATE_BUCKETS) >= MAX_RATE_BUCKETS:
+            # First drop buckets that have refilled completely: they are
+            # indistinguishable from a fresh one, so forgetting them costs
+            # nothing.
+            for stale, (t, ts) in list(_RATE_BUCKETS.items()):
+                if min(burst, t + (now - ts) * rps) >= burst:
+                    del _RATE_BUCKETS[stale]
+            # If that was not enough, evict least-recently-seen until under the
+            # cap. Sweeping alone is only a soft bound, and the key space is
+            # attacker-influenced, so a hard ceiling is what is needed.
+            if len(_RATE_BUCKETS) >= MAX_RATE_BUCKETS:
+                for stale, _ in sorted(_RATE_BUCKETS.items(), key=lambda kv: kv[1][1])[
+                    : len(_RATE_BUCKETS) - MAX_RATE_BUCKETS + 1
+                ]:
+                    del _RATE_BUCKETS[stale]
         tokens, last = _RATE_BUCKETS.get(key, (burst, now))
         tokens = min(burst, tokens + (now - last) * rps)
         if tokens < 1.0:
@@ -273,7 +352,9 @@ async def rate_limit(request: Request, call_next):
     Local mode is exempt: it is one operator on loopback, and throttling an
     interactive tool would be a regression for no benefit.
     """
-    path = request.scope.get("path", "")
+    # Same root_path correction as the tier gate above: throttling must not
+    # silently switch off on a sub-path deployment.
+    path = get_route_path(request.scope)
     if get_mode() is Tier.FULL or not path.startswith("/api/"):
         return await call_next(request)
 
@@ -878,6 +959,9 @@ FETCH_JOBS_LOCK = threading.Lock()
 # large the artifacts are.
 EVAL_INDEX_CACHE: Dict[str, EvalIndex] = {}
 EVAL_INDEX_LOCK = threading.Lock()
+# Per-benchmark build locks, so a burst of requests for an unbuilt index results
+# in one build rather than one per request.
+_INDEX_BUILD_LOCKS: Dict[str, threading.Lock] = {}
 
 
 def _update_job(job: JobStatus) -> None:
@@ -907,6 +991,27 @@ def get_index(benchmark_id: str) -> EvalIndex:
             cached.close()
             EVAL_INDEX_CACHE.pop(benchmark_id, None)
 
+    # Building is expensive -- peak memory is driven by the largest single
+    # record -- and every GET is public tier, so an unbuilt index would let
+    # anonymous traffic trigger concurrent builds. Serialise per benchmark, and
+    # on a shared deployment refuse to build at all: provisioning is responsible
+    # for that (deploy/provision.sh).
+    with _index_build_lock(benchmark_id):
+        cached = EVAL_INDEX_CACHE.get(benchmark_id)
+        if cached is not None and not is_index_stale(eval_path):
+            return cached
+        if get_mode() is not Tier.FULL and is_index_stale(eval_path):
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "This benchmark is not ready to serve yet. Its search index "
+                    "is still being prepared."
+                ),
+            )
+        return _open_index(benchmark_id)
+
+
+def _open_index(benchmark_id: str) -> EvalIndex:
     try:
         index = EvalIndex.for_benchmark(benchmark_id, get_results_dir())
     except FileNotFoundError:
@@ -915,13 +1020,29 @@ def get_index(benchmark_id: str) -> EvalIndex:
         ) from None
     except Exception as e:
         logger.exception("Failed to open evaluation index")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to open evaluation index: {e}"
-        ) from e
+        # The exception text embeds the absolute index path, which would
+        # disclose the data root -- the same leak the 404 messages were made
+        # tier-dependent to avoid.
+        detail = (
+            f"Failed to open evaluation index: {e}"
+            if get_mode() is Tier.FULL
+            else "This benchmark is temporarily unavailable."
+        )
+        raise HTTPException(status_code=500, detail=detail) from e
 
     with EVAL_INDEX_LOCK:
         EVAL_INDEX_CACHE[benchmark_id] = index
     return index
+
+
+@contextmanager
+def _index_build_lock(benchmark_id: str):
+    """One build at a time per benchmark, so concurrent requests wait rather
+    than each starting their own."""
+    with EVAL_INDEX_LOCK:
+        lock = _INDEX_BUILD_LOCKS.setdefault(benchmark_id, threading.Lock())
+    with lock:
+        yield
 
 
 def invalidate_index_cache(benchmark_id: Optional[str] = None) -> None:
@@ -3201,7 +3322,11 @@ def main(argv: Optional[List[str]] = None) -> None:
             session_cookie="t2s_session",
             max_age=auth.SESSION_MAX_AGE_SECONDS,
             same_site="lax",
-            https_only=not loopback,
+            # Driven by the deployment mode, not the bind address: behind a
+            # TLS-terminating proxy the app binds an internal address, which
+            # would have silently dropped Secure on exactly the deployment that
+            # needs it. Override only for a local HTTP experiment.
+            https_only=_cookie_secure(mode),
         )
         logger.info("Google sign-in enabled")
     elif mode is not Tier.FULL:

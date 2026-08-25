@@ -114,8 +114,20 @@ def test_building_a_client_without_credentials_raises(monkeypatch):
 
 
 def test_session_secret_prefers_the_configured_value(monkeypatch):
-    monkeypatch.setenv("TEXT2SQL_SESSION_SECRET", "from-env")
-    assert auth.session_secret() == "from-env"
+    configured = "x" * auth.MIN_SESSION_SECRET_LENGTH
+    monkeypatch.setenv("TEXT2SQL_SESSION_SECRET", configured)
+    assert auth.session_secret() == configured
+
+
+@pytest.mark.parametrize("weak", ["x", "short", "a" * 31])
+def test_a_weak_session_secret_is_refused(monkeypatch, weak):
+    """
+    Forging a session cookie of {"email": "<allowlisted>"} against a guessable
+    key grants the judge tier outright, so a short key is not merely untidy.
+    """
+    monkeypatch.setenv("TEXT2SQL_SESSION_SECRET", weak)
+    with pytest.raises(ValueError, match="at least"):
+        auth.session_secret()
 
 
 def test_session_secret_falls_back_to_an_ephemeral_key(monkeypatch):

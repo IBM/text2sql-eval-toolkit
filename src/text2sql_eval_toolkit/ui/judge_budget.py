@@ -150,7 +150,13 @@ def verdict_cache_key(
     Changing the judge model or its prompt config must produce a new verdict
     rather than reusing one produced under different conditions.
     """
-    payload = " ".join([benchmark_id, record_id, pipeline_id, config_name, model])
+    # JSON-encoded rather than space-joined: joining is not injective, so
+    # (record="r1", pipeline="p1") and (record="r1 p1", pipeline="") collided
+    # and could serve one record's verdict for another.
+    payload = json.dumps(
+        [benchmark_id, record_id, pipeline_id, config_name, model],
+        separators=(",", ":"),
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 

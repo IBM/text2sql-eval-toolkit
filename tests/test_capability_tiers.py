@@ -155,8 +155,45 @@ def test_at_least_the_dangerous_endpoints_are_privileged():
 def test_public_mode_still_serves_reads(client):
     server.set_mode(Tier.PUBLIC)
     assert client.get("/api/benchmarks").status_code == 200
-    assert client.get("/api/benchmarks/demo/errors").status_code == 200
     assert client.get("/api/evaluation-metric-definitions").status_code == 200
+    # Indices are built by provisioning, not by request traffic; with one
+    # present, reads work normally.
+    from text2sql_eval_toolkit.indexing import build_index
+
+    build_index(server.get_results_dir() / "demo-predictions_eval.json")
+    server.invalidate_index_cache()
+    assert client.get("/api/benchmarks/demo/errors").status_code == 200
+
+
+def test_shared_mode_refuses_to_build_an_index_on_demand(client):
+    """
+    Every GET is public tier, and building peaks on the largest single record,
+    so anonymous traffic must not be able to trigger builds. Provisioning owns
+    that step; an unprovisioned benchmark says so instead.
+    """
+    server.set_mode(Tier.PUBLIC)
+    server.invalidate_index_cache()
+    index_dir = server.get_results_dir() / ".index"
+    for stale in index_dir.glob("*.sqlite"):
+        stale.unlink()
+
+    resp = client.get("/api/benchmarks/demo/errors")
+    assert resp.status_code == 503
+    assert "not ready" in resp.json()["detail"].lower()
+    # ...and nothing was built as a side effect of asking.
+    assert not list(index_dir.glob("*.sqlite")) if index_dir.exists() else True
+
+
+def test_local_mode_still_builds_on_demand(client):
+    """The local tool must keep working against freshly generated results."""
+    server.set_mode(Tier.FULL)
+    server.invalidate_index_cache()
+    index_dir = server.get_results_dir() / ".index"
+    if index_dir.exists():
+        for stale in index_dir.glob("*.sqlite"):
+            stale.unlink()
+
+    assert client.get("/api/benchmarks/demo/errors").status_code == 200
 
 
 def test_full_mode_reaches_the_handlers(client):

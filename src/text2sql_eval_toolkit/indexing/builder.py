@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import tempfile
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Optional
@@ -174,8 +175,16 @@ def build_index(
         return index_path
 
     index_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = index_path.with_name(f".{index_path.name}.building")
-    tmp_path.unlink(missing_ok=True)
+    # A per-process temp name, not a shared one. Two concurrent builds of the
+    # same artifact previously wrote through the same ".building" file and each
+    # unlinked it on entry, so an os.replace could promote a half-written
+    # database that would then be served as authoritative results.
+    handle, tmp_name = tempfile.mkstemp(
+        prefix=f".{index_path.stem}.", suffix=".building", dir=index_path.parent
+    )
+    os.close(handle)
+    tmp_path = Path(tmp_name)
+    tmp_path.unlink(missing_ok=True)  # sqlite wants to create it itself
 
     conn = sqlite3.connect(tmp_path)
     ok = False

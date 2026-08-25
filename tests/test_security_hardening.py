@@ -198,6 +198,9 @@ def test_clients_are_bucketed_separately(client, monkeypatch):
     server.set_mode(Tier.PUBLIC)
     monkeypatch.setattr(server, "RATE_LIMIT_RPS", 0.001)
     monkeypatch.setattr(server, "RATE_LIMIT_BURST", 2.0)
+    # TestClient connects from "testclient"; trust it so the forwarded header
+    # is honoured, as a real deployment trusts its own proxy.
+    monkeypatch.setattr(server, "TRUSTED_PROXIES", {"testclient"})
     server.reset_rate_limits()
 
     a = {"X-Forwarded-For": "203.0.113.10"}
@@ -211,6 +214,48 @@ def test_clients_are_bucketed_separately(client, monkeypatch):
     assert (
         client.get("/api/evaluation-metric-definitions", headers=b).status_code == 200
     ), "one noisy client must not throttle everyone else"
+
+
+def test_forwarded_header_is_ignored_from_an_untrusted_peer(client, monkeypatch):
+    """
+    A proxy *appends* to X-Forwarded-For, so its leftmost value is whatever the
+    client sent. Honouring it unconditionally let anyone rotate the header for a
+    fresh bucket per request and never be throttled.
+    """
+    server.set_mode(Tier.PUBLIC)
+    monkeypatch.setattr(server, "RATE_LIMIT_RPS", 0.001)
+    monkeypatch.setattr(server, "RATE_LIMIT_BURST", 3.0)
+    monkeypatch.setattr(server, "TRUSTED_PROXIES", set())  # no proxy trusted
+    server.reset_rate_limits()
+
+    codes = [
+        client.get(
+            "/api/evaluation-metric-definitions",
+            headers={"X-Forwarded-For": f"10.0.0.{i}"},
+        ).status_code
+        for i in range(12)
+    ]
+    assert 429 in codes, "rotating a spoofed header must not evade the limit"
+
+
+def test_trusted_proxy_uses_the_hop_it_appended(client, monkeypatch):
+    """The rightmost entry is the one the trusted proxy wrote; earlier ones are
+    client-supplied and forgeable."""
+    monkeypatch.setattr(server, "TRUSTED_PROXIES", {"testclient"})
+
+    class _Req:
+        client = type("C", (), {"host": "testclient"})()
+        headers = {"x-forwarded-for": "1.1.1.1, 203.0.113.7"}
+
+    assert server._client_key(_Req()) == "203.0.113.7"
+
+
+def test_bucket_map_does_not_grow_without_bound(monkeypatch):
+    monkeypatch.setattr(server, "MAX_RATE_BUCKETS", 50)
+    server.reset_rate_limits()
+    for i in range(500):
+        server._take_token(f"key-{i}", rps=1000.0, burst=1000.0)
+    assert len(server._RATE_BUCKETS) <= 50 + 1
 
 
 # --- error detail ---------------------------------------------------------
