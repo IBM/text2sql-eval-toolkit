@@ -135,7 +135,10 @@ export const PipelineCompareView: React.FC<Props> = ({
   const [confusionA, setConfusionA] = useState<CrossPipelineConfusionResponse | null>(null);
   const [confusionB, setConfusionB] = useState<CrossPipelineConfusionResponse | null>(null);
 
-  const pipelines = useMemo(() => summary?.overall.map((p) => p.name) ?? [], [summary]);
+  const pipelines = useMemo(
+    () => summary?.overall?.map((p) => p.name) ?? [],
+    [summary]
+  );
 
   const pipelineCompareMetricGroups = useMemo(
     () => buildMetricInsightsSelectGroups(metricDefinitions?.metrics ?? []),

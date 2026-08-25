@@ -67,7 +67,24 @@ reports. 41 Pydantic models moved out of `server.py` into `ui/models.py`, taking
 3,446 to 3,149 lines. Splitting the 37 routes into routers is the remaining half and
 interacts with the tier middleware, which walks `app.router.routes`.
 
-490 tests passing.
+**Component tests (4.5, partial).** Vitest gains Testing Library, a setup file (jsdom
+implements neither `matchMedia` nor `ResizeObserver`, and Carbon reaches for both), and
+component tests that mount real views against stubbed APIs. 34 → 51 frontend tests.
+
+The point of these was to unblock 4.13: the 15 synchronous selection-reset effects each
+decide which option a user ends up looking at, so rewriting them needed a test asserting
+the *outcome* rather than the mechanism. `ToolkitInsightsView.test.tsx` now pins exactly
+that — whatever the implementation, the selection must settle on a metric that exists, and
+must move off one the server no longer defines.
+
+Mounting the views immediately found a bug class none of the type or lint checks catch:
+`a?.b.c()` guards only `a`. If `a` is present but `a.b` is undefined, the call still
+throws. Five instances across four views, including
+`summary?.overall.map(...)` — so a `/summary/by-category` response missing `overall`
+took down the whole insights view with `TypeError: Cannot read properties of undefined`.
+Optional chaining looks like a guard, which is what makes it easy to miss.
+
+490 backend and 51 frontend tests passing.
 
 ---
 
