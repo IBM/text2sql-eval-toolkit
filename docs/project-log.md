@@ -63,8 +63,44 @@ Two divergences were found and closed while writing those tests:
   metric names on every metric row: 8.5 MB of index for a 15 MB source (57%). Interning
   both to integers cut it to 13%, which is what makes the 7 GB set tractable.
 
-**Not yet done in Phase B:** rewiring the endpoints (2.3–2.4), retiring the large-benchmark
-warning (2.5), listing cache (2.6), HTTP caching (2.7), and all frontend work (2.8).
+**Then (plan items 2.3–2.6)** — endpoints rewired onto the index:
+
+- `list_errors` filters, counts, and paginates in SQL.
+- `get_error_detail`, `get_error_detail_for_pipeline`, `_resolve_record_db_id`, and
+  `_find_eval_record_optional` read one record by stored byte range.
+- Both insight confusion endpoints aggregate in SQL.
+- `get_benchmark_summary_by_category` still needs a whole-corpus pass but now streams one
+  record at a time instead of materialising the artifact.
+- `EVAL_RECORDS_CACHE` (unbounded, never invalidated) is gone; index handles are cached
+  instead and a changed source file invalidates its handle, so an evaluation re-run is
+  picked up without a restart.
+- `count_records` is cached on file size and mtime — the landing page was re-parsing every
+  benchmark data file on every request.
+- The large-benchmark OOM warning is retired: `isLargeBenchmark`, the "Large" tag, and the
+  banner are gone, since memory no longer scales with artifact size.
+
+**Three toolchain defects surfaced by actually running things**
+
+The Phase A CI workflow would have failed on its first run, which is worth recording since
+the branch has still never been pushed:
+
+1. **`npm ci` failed** — `package-lock.json` was out of sync with `package.json`. Regenerated.
+2. **`npm run lint` was declared but ESLint was never a dependency**, so the script errored.
+   Added ESLint with a conservative flat config.
+3. **`vite build` does not type-check**, so the ~7.2k lines of TypeScript had never been
+   checked. Added a `typecheck` script; it currently reports 18 pre-existing errors,
+   including 7 duplicate-`key` warnings where a Carbon `getHeaderProps()` spread overwrites
+   an explicit `key`.
+
+Two real frontend defects were fixed along the way: a ref assigned during render in
+`RunEvaluationView`, and an unused catch binding in `api.ts`.
+
+**Deferred with documented switches** (plan item 4.13): 20 ESLint findings and the 18 type
+errors. All need effects restructured, which the routing work will largely redo — fixing
+them now would be immediately rewritten.
+
+**Not yet done in Phase B:** HTTP-level caching (2.7), frontend data-fetching/code-splitting
+/virtualisation (2.8), and the async-handler audit (2.9).
 
 ---
 

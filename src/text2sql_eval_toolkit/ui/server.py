@@ -130,29 +130,62 @@ def load_json(path: Path) -> Any:
         return json.load(f)
 
 
-def count_records(data_path: Any) -> int:
-    """
-    Count benchmark records from either a pathlib path or an
-    importlib.resources traversable path-like object.
-    """
+# Record counts keyed by (path, size, mtime_ns).  The landing page asks for every
+# benchmark's count on each request, and these files are megabytes each; the
+# fingerprint means an edited file is recounted while an unchanged one is not.
+_RECORD_COUNT_CACHE: Dict[Tuple[str, int, int], int] = {}
+_RECORD_COUNT_LOCK = threading.Lock()
+
+
+def _count_records_uncached(data_path: Any) -> int:
     import json
 
-    if data_path is None:
-        return 0
-
     # importlib.resources Traversable paths expose open()
-    if hasattr(data_path, "open"):
+    if hasattr(data_path, "open") and not isinstance(data_path, Path):
         with data_path.open("r", encoding="utf-8") as f:
             data = json.load(f)
             return len(data) if isinstance(data, list) else 0
 
-    # Fallback to regular filesystem path
     p = Path(str(data_path))
     if not p.exists():
         return 0
     with p.open("r", encoding="utf-8") as f:
         data = json.load(f)
         return len(data) if isinstance(data, list) else 0
+
+
+def count_records(data_path: Any) -> int:
+    """
+    Count benchmark records from either a pathlib path or an
+    importlib.resources traversable path-like object.
+
+    Cached on the file's size and mtime so repeated listing requests do not
+    re-parse every benchmark data file.
+    """
+    if data_path is None:
+        return 0
+
+    key: Optional[Tuple[str, int, int]] = None
+    try:
+        p = Path(str(data_path))
+        st = p.stat()
+        key = (str(p), st.st_size, st.st_mtime_ns)
+    except (OSError, TypeError, ValueError):
+        # Traversable resources may not expose stat(); fall through uncached.
+        key = None
+
+    if key is not None:
+        with _RECORD_COUNT_LOCK:
+            hit = _RECORD_COUNT_CACHE.get(key)
+        if hit is not None:
+            return hit
+
+    count = _count_records_uncached(data_path)
+
+    if key is not None:
+        with _RECORD_COUNT_LOCK:
+            _RECORD_COUNT_CACHE[key] = count
+    return count
 
 
 ALLOWED_DB_TYPES = {"sqlite", "postgres", "mysql", "db2", "presto"}

@@ -300,3 +300,25 @@ def test_cross_pipeline_confusion_matches_reference(client):
         expected[f"left{_binary(left)}right{_binary(right)}"] += 1
 
     assert resp.json()["counts"] == expected
+
+
+def test_record_count_cache_recounts_after_a_file_change(tmp_path):
+    """Caching must key on content, not just path, or edits go unnoticed."""
+    import json as _json
+
+    from text2sql_eval_toolkit.ui import server as srv
+
+    path = tmp_path / "bench.json"
+    path.write_text(_json.dumps([{"id": 1}, {"id": 2}]))
+    assert srv.count_records(path) == 2
+    assert srv.count_records(path) == 2  # served from cache
+
+    path.write_text(_json.dumps([{"id": 1}, {"id": 2}, {"id": 3}]))
+    assert srv.count_records(path) == 3, "an edited file must be recounted"
+
+
+def test_record_count_handles_missing_and_none(tmp_path):
+    from text2sql_eval_toolkit.ui import server as srv
+
+    assert srv.count_records(None) == 0
+    assert srv.count_records(tmp_path / "absent.json") == 0
