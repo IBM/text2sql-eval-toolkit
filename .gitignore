@@ -217,3 +217,6 @@ data/results/.index/
 
 # Local editor/agent launch config
 .claude/
+
+# Provisioning marker written by deploy/provision.sh
+data/.provisioned
