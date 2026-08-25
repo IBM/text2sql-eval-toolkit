@@ -110,9 +110,62 @@ Verified end-to-end in public mode against the real 3.6 GB corpus: reads work (i
 the 880 MB Beaver benchmark), `/execute`, `/evaluate`, `/judge` and the static store are
 all 403, and 404s disclose nothing.
 
-400 tests passing. Still outstanding in Phase D: the container and Compose stack (3.6),
-provisioning (3.7), operations (3.8), public-facing polish including a sign-in affordance
-and a read-only indication (3.9), and the database services (3.10–3.12).
+**Deployment stack, operations, and polish (3.6–3.9).**
+
+- `deploy/Dockerfile` builds the frontend from source rather than trusting the committed
+  `dashboard/dist`, pins an exact interpreter, runs non-root, and bakes in no credentials.
+- `deploy/docker-compose.yml`: caddy, app, postgres, mysql. Only caddy publishes a port;
+  the databases sit behind a profile so a browse-only deployment never starts them.
+- Read-only database roles, with Postgres also getting `default_transaction_read_only`, a
+  statement timeout, and revoked `CREATE` — a write is refused by the database, not by
+  application logic.
+- `deploy/provision.sh` fetches the pinned snapshot, indexes, verifies, and marks. It
+  refuses to run without an explicit revision, since the default falls back to `main` and
+  a floating revision would let the public dataset change under shared links.
+- `docs/deployment-runbook.md` — first deploy, health checks (each corresponding to
+  something that actually went wrong), routine operations, troubleshooting, and an honest
+  list of what is *not* covered.
+- `/api/deployment` plus a header strip and About panel: a "read-only" tag, a sign-in
+  control that appears only when OAuth is configured, and a full-width stamp naming the
+  snapshot on screen. A link shared today is only interpretable months later if the
+  recipient can see which data it shows and that nothing is evaluated live.
+
+Docker is unavailable in this environment, so a CI job now builds the image, validates the
+compose config, and smoke-tests the running container — asserting `/api/me` reports the
+public tier and `/execute` is refused — rather than the VM being the first thing to try it.
+
+**The security review found three HIGH defects, all of which I had introduced.** Each was
+confirmed by driving the real ASGI app before and after the fix:
+
+1. **Authorization skipped entirely under a non-empty `root_path`.** The tier middleware
+   gated on `scope["path"]`, but Starlette routes on `get_route_path()`, which strips
+   `root_path`. Served under a sub-path, the middleware returned early while the router
+   still dispatched — anonymous arbitrary SQL against the configured database credentials.
+   Rate limiting was disabled by the same bug, on exactly those deployments. My earlier
+   bypass probes all used an empty `root_path`, so a clean run there proved less than it
+   appeared to.
+2. **`TEXT2SQL_DASHBOARD_MODE` was only read inside `main()`**, so serving the ASGI app
+   directly left the ceiling at `FULL` while the operator believed it was public. The
+   allowlist *was* read at import, which made the configuration look like it worked.
+3. **Enabling Google sign-in crashed startup.** `configure_cors()` eagerly rebuilt the
+   middleware stack, after which Starlette refuses `add_middleware`. The entire auth path
+   was unreachable as shipped — and therefore never exercised end to end, which is why the
+   middleware ordering in (1) went unnoticed.
+
+Also fixed from the same review: concurrent index builds shared one temp filename and
+could promote a half-written database as authoritative results; `X-Forwarded-For` was
+trusted from any peer using its forgeable leftmost value; the session cookie's `Secure`
+flag came from the bind address and so dropped behind a TLS proxy; a 500 re-leaked the
+absolute index path; session secrets had no length floor; and the verdict cache key was a
+non-injective space-join.
+
+Separately found while reviewing the composed surface: `/api/static` served the entire
+data root at public tier, and the judge spend store lives under it —
+`GET /api/static/judge/usage.sqlite` returned the full database to any visitor. Neither
+piece was a problem alone. Now scoped to `benchmarks/logos/` and image types.
+
+414 tests passing. Still outstanding in Phase D: the database services (3.10–3.12), of
+which Beaver/MySQL remains blocked on a load procedure.
 
 ---
 
