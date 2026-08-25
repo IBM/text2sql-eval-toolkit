@@ -199,14 +199,32 @@ Set a floor and ratchet it. Prioritize by risk: `evaluation/evaluation_tools.py`
 *Acceptance:* an agreed floor enforced in CI; the four risk areas above meaningfully
 covered.
 
-**Status — partial; no floor yet.** Overall 29% → 38%. The index layer from Goal 2 is
-covered (`scanner` 99%, `builder` 86%, `store` 82%), as are the tiers, auth, judge budget
-and aliases (100%). `evaluate_prediction` went 4% → 35% and `report_tools` 0% → 52%, and
-writing those tests found real defects in both.
+**Status — done.** Overall 29% → 39%, but the project-wide number is the wrong thing to
+watch: it is carried by the modules written with tests, and would sit flat while the ones
+that decide published metrics lost coverage. So the enforced floors are **per module**,
+in `scripts/ci/check_coverage.py`, grouped by what a regression would cost:
 
-Untouched: `error_analysis.py` at 9%, `execution_tools.py`'s five backends, and the
-inference pipelines. No floor is enforced, which means the number can slide back without
-anything failing — the floor is the point of the item and it is the part not done.
+| Group | Modules | Why |
+|---|---|---|
+| Published numbers | `evaluation_tools`, `text2sql_utils`, `report_tools`, `error_analysis` | A bug produces a plausible wrong score that gets committed, cited, and uploaded |
+| Artifact index | `scanner`, `builder`, `store` | Every dashboard read goes through it; a disagreeing index is a confident wrong answer |
+| Authorization | `capabilities`, `middleware`, `auth`, `judge_budget`, `aliases` | What stands between a public deployment and arbitrary SQL execution |
+| Data access | `paths`, `indexes`, `routers_errors`, `routers_judge` | |
+
+Floors sit a few points under what is reached, leaving room for the small differences
+branch coverage shows across the 3.11/3.12/3.13 matrix. The checker also fails on a module
+named in the table that the report has never heard of — a typo or a rename would otherwise
+enforce nothing, silently, which is the failure the file exists to prevent — and reports
+when a module has drifted 10 points clear of its floor, since a ratchet nobody tightens
+stops ratcheting.
+
+`fail_under = 38` in `pyproject.toml` is a backstop for everything not in the table. It is
+low deliberately: the rest is inference and execution code needing live LLM and DB
+endpoints, and raising it would mean either weak tests or a suite that cannot run offline.
+
+Coverage written along the way found defects every time: `evaluate_prediction` (4% → 35%),
+`report_tools` (0% → 52%), and `error_analysis` (9% → 70%, two defects — see the project
+log).
 
 ### 4.11 Documentation refresh
 `README.md` is comprehensive but predates several features. Reconcile it with the CLI,
