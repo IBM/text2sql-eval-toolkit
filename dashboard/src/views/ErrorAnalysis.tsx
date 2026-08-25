@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   ComboBox,
@@ -22,6 +22,7 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { resolveDetailPipeline } from "../lib/detailPipeline";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
@@ -32,6 +33,21 @@ interface Props {
   benchmarkId: string;
   onBack?: () => void;
   initialFilters?: Partial<ErrorAnalysisFilters>;
+  /** Page, page size, and selected record, restored from the URL. */
+  initialPage?: number;
+  initialPageSize?: number;
+  initialRecordId?: string | null;
+  /**
+   * Called whenever the view's shareable state changes, so the address bar can
+   * follow. Without this a shared link would reproduce the filters but not the
+   * page or the open record.
+   */
+  onStateChange?: (state: {
+    filters: Partial<ErrorAnalysisFilters>;
+    page: number;
+    pageSize: number;
+    record: string | null;
+  }) => void;
 }
 
 interface ErrorRecordSummary {
@@ -233,11 +249,19 @@ const ResultTableView: React.FC<{ title: string; rawData: any }> = ({ title, raw
   );
 };
 
-export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFilters }) => {
+export const ErrorAnalysis: React.FC<Props> = ({
+  benchmarkId,
+  onBack,
+  initialFilters,
+  initialPage,
+  initialPageSize,
+  initialRecordId,
+  onStateChange,
+}) => {
   const [items, setItems] = useState<ErrorRecordSummary[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(() => initialPage ?? 1);
+  const [pageSize, setPageSize] = useState(() => initialPageSize ?? 25);
   const [search, setSearch] = useState("");
   const [pipeline, setPipeline] = useState(() => initialFilters?.pipeline ?? "");
   const [metric, setMetric] = useState(() => initialFilters?.metric ?? "execution_accuracy");
@@ -250,8 +274,49 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
   const [disagree, setDisagree] = useState(() => initialFilters?.disagree ?? false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  const [selectedRecordPipeline, setSelectedRecordPipeline] = useState<string | null>(null);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(
+    () => initialRecordId ?? null
+  );
+  const [selectedRecordPipeline, setSelectedRecordPipeline] = useState<string | null>(
+    null
+  );
+
+  const detailPipelineFor = useCallback(
+    (recordId: string, source: ErrorRecordSummary[]): string | null =>
+      resolveDetailPipeline(recordId, source, pipeline),
+    [pipeline]
+  );
+
+  // A record restored from a shared link has no pipeline yet; resolve it once
+  // the page of records arrives, or the detail panel opens empty.
+  useEffect(() => {
+    if (!selectedRecordId || selectedRecordPipeline || items.length === 0) return;
+    const resolved = detailPipelineFor(selectedRecordId, items);
+    if (resolved) setSelectedRecordPipeline(resolved);
+  }, [selectedRecordId, selectedRecordPipeline, items, detailPipelineFor]);
+
+  // Keep the address bar in step with the view. Reported from an effect rather
+  // than from each handler so no path can update state without updating the URL.
+  useEffect(() => {
+    onStateChange?.({
+      filters: { pipeline, metric, value, op, pipeline2, metric2, disagree },
+      page,
+      pageSize,
+      record: selectedRecordId,
+    });
+  }, [
+    onStateChange,
+    pipeline,
+    metric,
+    value,
+    op,
+    pipeline2,
+    metric2,
+    disagree,
+    page,
+    pageSize,
+    selectedRecordId,
+  ]);
   const [detail, setDetail] = useState<ErrorRecordDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -837,12 +902,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
                       style={{ cursor: "pointer" }}
                       onClick={() => {
                         const recordId = String(row.id);
-                        const source = items.find((x) => x.record_id === recordId);
-                        const availablePipelines = Object.keys(source?.predictions ?? {});
-                        const detailPipeline =
-                          (pipeline && availablePipelines.includes(pipeline) ? pipeline : null) ||
-                          availablePipelines[0] ||
-                          null;
+                        const detailPipeline = detailPipelineFor(recordId, items);
                         if (!detailPipeline) return;
                         setSelectedRecordId(recordId);
                         setSelectedRecordPipeline(detailPipeline);
