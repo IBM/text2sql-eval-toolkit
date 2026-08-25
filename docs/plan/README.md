@@ -21,7 +21,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 1 — Shareable URLs | 6 / 7 | Stable pipeline alias (1.6) |
 | 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8) |
 | 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
-| 4 — Code quality | 8 / 13 | Effect findings, module size, coverage, 2.0.0 |
+| 4 — Code quality | 9.5 / 13 | Component tests, router split, coverage floor, 2.0.0 |
 
 ### Goal 1 — Shareable URLs
 
@@ -78,9 +78,9 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.6 Registry single source of truth | Done | Checkout copy canonical; sync script, test, and CI check |
 | 4.7 One dependency source | Done | `requirements.txt` now generated from `uv.lock`; CI checks both it and lock freshness |
 | **4.8 Version hygiene → 2.0.0** | **Not started** | The final commit. Gated on a matching Hugging Face snapshot |
-| **4.9 Reduce the large modules** | **Not started** | `ui/server.py` is now ~3,100 lines |
+| 4.9 Reduce the large modules | Partial | 41 Pydantic models extracted to `ui/models.py`; `server.py` 3,446 → 3,149 lines. Splitting the 37 routes into routers is the remaining half, and interacts with the tier middleware |
 | 4.10 Coverage targets | Partial | `evaluate_prediction` 4% → 35% and `report_tools` 0% → 52%; both found defects. Overall 29% → 35%. No floor enforced yet; `error_analysis` (5%) still untouched |
-| **4.11 Documentation refresh** | **Partial** | Runbook and benchmark docs done; `README.md` still predates all of this |
+| 4.11 Documentation refresh | Done | README gains a documentation index and sections on shareable links, the query index, and shared deployment; the ~7 GB snapshot figure corrected to ~4 GB |
 | 4.12 Clear deferred Ruff findings | Done | All 4 rules re-enabled; only `F841` and `B008` remain ignored, both with stated reasons |
 | 4.13 Clear deferred frontend findings | Partial | **All 17 `tsc` errors fixed and the check is now blocking.** 21 eslint effect findings remain off with a stated reason: 5 are the fetch-on-mount pattern the rule cannot distinguish, 15 are real debt that needs component tests (4.5) before being rewritten |
 

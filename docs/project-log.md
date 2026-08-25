@@ -12,6 +12,65 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — Phase E: coverage on the published numbers, docs, and module size
+
+**Coverage where a bug is silent (4.10, partial).** Two modules produce artifacts that get
+committed, uploaded, and cited, and both were effectively untested.
+
+`evaluate_prediction` (4% → 35%, 26 tests) produces every metric the toolkit publishes.
+Testing it found a defect with a wide blast radius: a record whose ground-truth SQL had no
+dataframe returned `{"df_error": 0}` — no metrics, no error flag — and `compute_summary`
+then subscripted a missing key and **aborted the summary for the entire benchmark**. One
+bad record took out 500 good ones, failing far from its cause. Now flagged as an evaluation
+error, and the summary counts missing metrics as 0, which is what the comment already there
+said it did. Verified against the published artifacts: recomputing all 11 `archer_en_dev`
+pipeline summaries reproduces the shipped numbers exactly.
+
+`report_tools` (0% → 52%, 20 tests) writes `data/results/README.md`. Same shape of
+fragility: both the table and the chart read metrics as `.get(key, {}).get("average")`,
+which raises `AttributeError` if a metric is a bare number instead of the
+`{average, stddev}` shape — aborting the whole report. Both paths now share a tolerant
+reader.
+
+Overall coverage 29% → 35%. `error_analysis.py` (5%) and the inference pipelines remain
+the thin spots, and no floor is enforced yet.
+
+**Deferred lint findings cleared (4.12).** All four Ruff rule groups, one commit each.
+`B905` was the one that could not be swept: `strict=True` changes behaviour, so each of
+seven sites was decided separately — and checking the artifacts first showed that 2 of
+2,855 records would have made `strict=True` raise. `E722` mattered more than it looked:
+a bare `except:` was swallowing Ctrl-C during long agentic runs. Ruff now runs with only
+`F841` and `B008` ignored, both with stated reasons.
+
+**Frontend types (4.13, partial).** All 17 `tsc` errors fixed and the check made blocking.
+Two were mine: `ProfileCompareView` still referenced a variable I had deleted, so that view
+threw `ReferenceError` on render — it built cleanly, and I had not opened that view. Eight
+were duplicate-`key` errors where a Carbon prop getter spreads its own `key` over the
+explicit one. The browser console also showed my CSP had no `font-src`, so all 120 IBM Plex
+references were blocked and the UI had silently dropped to system fonts.
+
+The 21 react-hooks effect findings stay off, with an honest reason rather than the stale
+one: 5 are the fetch-on-mount pattern the rule cannot distinguish, and 15 are real debt
+that decides which option a user sees — not worth rewriting blind without component tests.
+
+**One source of truth (4.6, 4.7).** The packaged benchmark registry had lost every
+benchmark's `logo`, invisible in development because the checkout copy shadows it.
+`requirements.txt` was worse than redundant: 55 of its 73 entries were not project
+dependencies while `openai`, which is one, was missing. Both are now generated and checked
+in CI, along with `uv lock --check` — an export can agree with a lockfile that has itself
+fallen behind.
+
+**Documentation (4.11) and module size (4.9, partial).** README gains a documentation
+index and sections on shareable links, the query index, and running the dashboard for other
+people; the snapshot size is corrected from ~7 GB to the ~4 GB the manifest actually
+reports. 41 Pydantic models moved out of `server.py` into `ui/models.py`, taking it from
+3,446 to 3,149 lines. Splitting the 37 routes into routers is the remaining half and
+interacts with the tier middleware, which walks `app.router.routes`.
+
+490 tests passing.
+
+---
+
 ## 2026-08-25 — Known trap: `make_summary_report.py` clobbers a hand-written file
 
 `scripts/analysis/make_summary_report.py` writes the generated benchmark dashboard to

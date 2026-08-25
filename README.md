@@ -32,6 +32,18 @@ Assessing the correctness and utility of generated SQL queries requires more tha
 
 Whether you're building new models, comparing existing ones, or diagnosing performance bottlenecks, this toolkit provides the resources needed to evaluate text-to-SQL systems with rigor and clarity.
 
+## Documentation
+
+| Where | What |
+|---|---|
+| [docs/plan/README.md](docs/plan/README.md) | Current status of the v2 work, item by item |
+| [docs/project-log.md](docs/project-log.md) | What changed and why, newest first |
+| [docs/deployment-runbook.md](docs/deployment-runbook.md) | Deploying and operating the shared dashboard |
+| [data/benchmarks/README.md](data/benchmarks/README.md) | Benchmark definitions and configuration |
+| [data/benchmarks/dbs/README.md](data/benchmarks/dbs/README.md) | Database setup for each benchmark |
+| [dashboard/README.md](dashboard/README.md) | Dashboard development |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Toolchain, tests, and coding standards |
+
 ## Components
 
 <p align="center">
@@ -71,7 +83,7 @@ brew install uv
 
 Zero-shot and agentic baseline results for all packaged benchmarks are
 hosted on the [Hugging Face Hub](https://huggingface.co/datasets/text2sql-eval-toolkit/text2sql-eval-results).
-To download them (~7 GB) into `${TEXT2SQL_DATA_ROOT:-./data}/results/`:
+To download them (~4 GB) into `${TEXT2SQL_DATA_ROOT:-./data}/results/`:
 
 ```bash
 text2sql-eval-toolkit results fetch
@@ -318,10 +330,51 @@ The pre-built frontend assets (`dashboard/dist/`) are committed to the repositor
 
 See [dashboard/README.md](dashboard/README.md) for full details (development with Vite, manual builds, and troubleshooting).
 
+#### Shareable links
+
+Every view has its own URL, so a benchmark, a pipeline, a filtered error-analysis
+query, or an individual record can be linked to directly:
+
+```
+/b/bird_mini_dev_sqlite                             benchmark summary
+/b/bird_mini_dev_sqlite/pipeline/{pipeline_id}      pipeline detail
+/b/bird_mini_dev_sqlite/errors?pipeline=…&value=0   filtered error analysis
+/b/bird_mini_dev_sqlite/errors?…&record={id}        one record, open
+```
+
+The **Copy link** control in the header copies the current view's address.
+
+#### Query index
+
+Evaluation artifacts reach hundreds of megabytes, so the dashboard reads them
+through a SQLite index built alongside each file rather than parsing JSON per
+request:
+
+```bash
+text2sql-eval-toolkit index build     # build or refresh
+text2sql-eval-toolkit index status    # show what is current
+```
+
+The index is derived and disposable -- deleting it costs a rebuild, never data --
+and is rebuilt automatically when an artifact changes. It is roughly 6% of the
+size of the artifacts it indexes.
+
+#### Running it for other people
+
+The dashboard defaults to a local, single-operator tool with every capability
+enabled. Serving it to others uses capability tiers, Google sign-in, and a
+container stack; see [docs/deployment-runbook.md](docs/deployment-runbook.md) and
+[docs/plan/03-public-deployment.md](docs/plan/03-public-deployment.md).
+
+`--mode full` refuses to bind a non-loopback interface, because it exposes SQL
+execution against whatever database credentials the server holds.
+
 ## Project Structure
 
 ```
 text2sql-eval-toolkit
+├── docs/                       # Project log, refactor plans, deployment runbook
+├── deploy/                     # Container, Compose stack, and data provisioning
 ├── notebooks/                  # Jupyter notebooks showcasing the use of the toolkit functions
 ├── data/                       # Benchmark datasets and evaluation results
 │   ├── benchmarks/             # Benchmark data and schema files
