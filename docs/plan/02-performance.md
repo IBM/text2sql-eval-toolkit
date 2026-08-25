@@ -140,6 +140,15 @@ Adding TanStack Query would also be the natural fix for 5 of the 17 remaining es
 findings (4.13), so it is worth revisiting — but as a considered change with a measured
 justification, not as a leftover checkbox.
 
+### 2.3 addendum — streaming bounded memory, not time
+`by-category` was converted from `json.load` to `iter_records()` and marked done. Memory
+became independent of artifact size, which is what a public host needs, but the endpoint
+still read every byte: 880 MB of Beaver to collect 36,839 floats, taking 14 seconds. It
+now reads from the index (which stores `meta.categories` as of schema 2), at 0.05s.
+
+The lesson for anything still marked "streamed": bounded memory and bounded time are
+different claims, and only one of them was measured.
+
 ### 2.9 Async correctness on the server
 Several handlers are `def` (sync) and perform blocking file I/O, which occupies a
 threadpool worker per request; a few are `async def` doing genuinely async DB work. Make

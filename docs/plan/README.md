@@ -17,7 +17,7 @@ the live status.
 
 ## Where things stand
 
-Branch `dashboard-v2` at **1.3.0**, **not yet pushed**. 548 backend, 77 frontend and 9 end-to-end tests pass;
+Branch `dashboard-v2` at **1.3.0**, **not yet pushed**. 556 backend, 77 frontend and 9 end-to-end tests pass;
 ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
 **never executed** — the first push is when it runs.
 
@@ -46,7 +46,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 |---|---|---|
 | 2.1 Measurement harness | Done | Baselines recorded in the project log |
 | 2.2 Index builder | Done | 1,915 MB of artifacts → 117 MB of indices (6%) |
-| 2.3 Serve endpoints from the index | Done | 8 full-parse call sites removed |
+| 2.3 Serve endpoints from the index | Done | 9 full-parse call sites removed. The by-category summary was the last, and was only found by a user reporting a slow page — streaming had bounded its memory but not its time |
 | 2.4 Range-read record detail | Done | 921 ms → 0.3 ms |
 | 2.5 Retire the large-benchmark warning | Done | Memory no longer scales with artifact size |
 | 2.6 Cache the benchmark listing | Done | Keyed on file size and mtime |

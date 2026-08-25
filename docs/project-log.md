@@ -12,6 +12,66 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-25 — The Beaver page took 14 seconds; one endpoint was doing all of it
+
+Reported as "the beaver page loads slowly". Timing every request the page makes found
+one:
+
+```
+/api/benchmarks/beaver/summary               0.003s
+/api/benchmarks/beaver/pipeline-aliases      0.090s
+/api/benchmarks/beaver/summary/by-category  13.904s   <-- cold; 8.3s warm
+```
+
+**Goal 2 fixed memory here and left time alone.** `by-category` was converted from
+`json.load` to streaming `iter_records()`, which made peak memory independent of artifact
+size — and that is genuinely what a public host needs. But it still reads every byte.
+Beaver is 880 MB across **209 records**: 4.2 MB each, nearly all of it serialized result
+dataframes. The endpoint parsed all of it to collect 36,839 floats.
+
+The index already held those floats. What it lacked was `meta.categories` — seven short
+strings per record. So the fix was to index the categories and read the summary from the
+index:
+
+| benchmark | before | after |
+|---|---|---|
+| archer_en_dev | 0.18s | 0.03s |
+| spider_realistic | 1.34s | 0.05s |
+| **beaver** | **8.32s** | **0.05s** |
+| spider_dev | 2.17s | 0.10s |
+| bird_mini_dev_sqlite | 2.22s | 0.12s |
+
+**The aggregation is untouched.** It was split into "gather the values" and "summarize
+them"; the index path substitutes for the first and both paths run the same second, so
+there are not two copies of a statistics routine to drift apart.
+
+**Where this nearly went wrong.** My first version read from the interned `metrics` table
+and the differential test passed — the summaries compared equal. Then the live responses
+differed by 6 bytes out of 216,298. Dict equality ignores key order, and ordering by
+`metric_ref` sorts metrics by *global* first-appearance rather than by each record's own
+key order, so the metric keys in the JSON response were shuffled. Fixed by reading each
+prediction's stored evaluation block (which preserves the record's key order) and by
+storing each prediction's position within its record (which preserves the pipeline order).
+The test now compares serialized output, not just parsed values.
+
+Worth naming the near-miss: a passing differential test convinced me the rewrite was
+equivalent when it was not. What caught it was diffing the running servers, old code
+against new, on all five real benchmarks — they are byte-identical now.
+
+**Schema version bumped**, so indices rebuild: automatically on a local run, and via
+provisioning on a shared one. The runbook now says to rebuild *before* serving after such
+a release, because a shared deployment refuses on-demand builds and would otherwise answer
+503 for every benchmark. Rebuilds cost roughly ten seconds per gigabyte.
+
+**One bug found in passing.** The large-record warning in the index builder used
+loguru-style `{}` placeholders with a stdlib logger, so it raised inside the logging
+handler and had never printed — not once, including every time Beaver's 108 MB record was
+indexed. An AST sweep confirmed it was the only such call in the codebase. It prints now.
+
+556 backend, 77 frontend and 9 end-to-end tests passing.
+
+---
+
 ## 2026-08-25 — Released as 1.3.0, not 2.0.0, plus two cosmetic decisions
 
 **The major bump was the wrong number, and the plan's argument for it did not survive
