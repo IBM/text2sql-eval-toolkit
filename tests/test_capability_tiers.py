@@ -22,7 +22,7 @@ import pytest
 pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
-from text2sql_eval_toolkit.ui import server  # noqa: E402
+from text2sql_eval_toolkit.ui import runtime, server  # noqa: E402
 from text2sql_eval_toolkit.ui.capabilities import (  # noqa: E402
     ROUTE_TIERS,
     SAFE_METHODS,
@@ -208,7 +208,7 @@ def test_mode_is_a_ceiling_that_signing_in_cannot_raise(client, monkeypatch):
     """A public deployment must not become full because someone signed in."""
     server.set_mode(Tier.PUBLIC)
     server.set_judge_allowlist({ALLOWED})
-    monkeypatch.setattr(server, "current_user_email", lambda request: ALLOWED)
+    monkeypatch.setattr(runtime, "current_user_email", lambda request: ALLOWED)
 
     resp = client.post("/api/benchmarks/demo/execute", json={"sql": "SELECT 1"})
     assert resp.status_code == 403

@@ -20,7 +20,7 @@ pytest.importorskip("fastapi")
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from text2sql_eval_toolkit.ui import server  # noqa: E402
+from text2sql_eval_toolkit.ui import middleware, server  # noqa: E402
 from text2sql_eval_toolkit.ui.capabilities import Tier  # noqa: E402
 
 
@@ -156,8 +156,8 @@ def test_local_mode_is_not_rate_limited(client):
 
 def test_public_mode_throttles_a_burst(client, monkeypatch):
     server.set_mode(Tier.PUBLIC)
-    monkeypatch.setattr(server, "RATE_LIMIT_RPS", 1.0)
-    monkeypatch.setattr(server, "RATE_LIMIT_BURST", 5.0)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_RPS", 1.0)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_BURST", 5.0)
     server.reset_rate_limits()
 
     codes = [
@@ -169,8 +169,8 @@ def test_public_mode_throttles_a_burst(client, monkeypatch):
 
 def test_throttled_response_tells_the_client_to_retry(client, monkeypatch):
     server.set_mode(Tier.PUBLIC)
-    monkeypatch.setattr(server, "RATE_LIMIT_RPS", 0.001)
-    monkeypatch.setattr(server, "RATE_LIMIT_BURST", 1.0)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_RPS", 0.001)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_BURST", 1.0)
     server.reset_rate_limits()
 
     client.get("/api/evaluation-metric-definitions")
@@ -183,10 +183,10 @@ def test_throttled_response_tells_the_client_to_retry(client, monkeypatch):
 def test_auth_endpoints_get_their_own_tighter_bucket(client, monkeypatch):
     """Sign-in is cheaper to abuse than to serve."""
     server.set_mode(Tier.PUBLIC)
-    monkeypatch.setattr(server, "AUTH_RATE_LIMIT_RPS", 0.001)
-    monkeypatch.setattr(server, "AUTH_RATE_LIMIT_BURST", 2.0)
-    monkeypatch.setattr(server, "RATE_LIMIT_RPS", 1000.0)
-    monkeypatch.setattr(server, "RATE_LIMIT_BURST", 1000.0)
+    monkeypatch.setattr(middleware, "AUTH_RATE_LIMIT_RPS", 0.001)
+    monkeypatch.setattr(middleware, "AUTH_RATE_LIMIT_BURST", 2.0)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_RPS", 1000.0)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_BURST", 1000.0)
     server.reset_rate_limits()
 
     auth_codes = [
@@ -201,11 +201,11 @@ def test_auth_endpoints_get_their_own_tighter_bucket(client, monkeypatch):
 
 def test_clients_are_bucketed_separately(client, monkeypatch):
     server.set_mode(Tier.PUBLIC)
-    monkeypatch.setattr(server, "RATE_LIMIT_RPS", 0.001)
-    monkeypatch.setattr(server, "RATE_LIMIT_BURST", 2.0)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_RPS", 0.001)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_BURST", 2.0)
     # TestClient connects from "testclient"; trust it so the forwarded header
     # is honoured, as a real deployment trusts its own proxy.
-    monkeypatch.setattr(server, "TRUSTED_PROXIES", {"testclient"})
+    monkeypatch.setattr(middleware, "TRUSTED_PROXIES", {"testclient"})
     server.reset_rate_limits()
 
     a = {"X-Forwarded-For": "203.0.113.10"}
@@ -228,9 +228,9 @@ def test_forwarded_header_is_ignored_from_an_untrusted_peer(client, monkeypatch)
     fresh bucket per request and never be throttled.
     """
     server.set_mode(Tier.PUBLIC)
-    monkeypatch.setattr(server, "RATE_LIMIT_RPS", 0.001)
-    monkeypatch.setattr(server, "RATE_LIMIT_BURST", 3.0)
-    monkeypatch.setattr(server, "TRUSTED_PROXIES", set())  # no proxy trusted
+    monkeypatch.setattr(middleware, "RATE_LIMIT_RPS", 0.001)
+    monkeypatch.setattr(middleware, "RATE_LIMIT_BURST", 3.0)
+    monkeypatch.setattr(middleware, "TRUSTED_PROXIES", set())  # no proxy trusted
     server.reset_rate_limits()
 
     codes = [
@@ -246,21 +246,21 @@ def test_forwarded_header_is_ignored_from_an_untrusted_peer(client, monkeypatch)
 def test_trusted_proxy_uses_the_hop_it_appended(client, monkeypatch):
     """The rightmost entry is the one the trusted proxy wrote; earlier ones are
     client-supplied and forgeable."""
-    monkeypatch.setattr(server, "TRUSTED_PROXIES", {"testclient"})
+    monkeypatch.setattr(middleware, "TRUSTED_PROXIES", {"testclient"})
 
     class _Req:
         client = type("C", (), {"host": "testclient"})()
         headers = {"x-forwarded-for": "1.1.1.1, 203.0.113.7"}
 
-    assert server._client_key(_Req()) == "203.0.113.7"
+    assert middleware._client_key(_Req()) == "203.0.113.7"
 
 
 def test_bucket_map_does_not_grow_without_bound(monkeypatch):
-    monkeypatch.setattr(server, "MAX_RATE_BUCKETS", 50)
+    monkeypatch.setattr(middleware, "MAX_RATE_BUCKETS", 50)
     server.reset_rate_limits()
     for i in range(500):
-        server._take_token(f"key-{i}", rps=1000.0, burst=1000.0)
-    assert len(server._RATE_BUCKETS) <= 50 + 1
+        middleware._take_token(f"key-{i}", rps=1000.0, burst=1000.0)
+    assert len(middleware._RATE_BUCKETS) <= 50 + 1
 
 
 # --- error detail ---------------------------------------------------------
@@ -292,3 +292,47 @@ def test_missing_benchmark_over_http_leaks_nothing_in_public_mode(client):
     resp = client.get("/api/benchmarks/not-a-benchmark/errors")
     assert resp.status_code == 404
     assert "data/results/" not in resp.text
+
+
+# --- the stack itself -----------------------------------------------------
+
+
+def _stack_order():
+    """Middleware in execution order (outermost first)."""
+    names = []
+    for entry in server.app.user_middleware:
+        dispatch = getattr(entry, "kwargs", {}).get("dispatch")
+        names.append(getattr(dispatch, "__name__", entry.cls.__name__))
+    return names
+
+
+def test_middleware_runs_in_the_order_the_security_model_assumes():
+    """
+    The three middlewares are ordered with respect to each other and the
+    ordering carries meaning, so it is pinned rather than left to the order the
+    registrations happen to appear in -- which now lives in a different module
+    from the app.
+
+    Authorization innermost: a CORS preflight is answered without a tier check,
+    which is right (it carries no credentials and has no side effects), and the
+    security headers wrap every response including the 403s and 429s the other
+    two generate.
+    """
+    assert _stack_order() == [
+        "add_security_headers",
+        "rate_limit",
+        "CORSMiddleware",
+        "enforce_capability_tier",
+    ]
+
+
+def test_security_headers_are_present_on_a_refusal_not_only_a_success(client):
+    """
+    They wrap the whole stack, so a 403 from the tier gate is hardened too.
+    If the order inverted, refusals would go out bare.
+    """
+    server.set_mode(Tier.PUBLIC)
+    resp = client.post("/api/benchmarks/demo/execute", json={"sql": "SELECT 1"})
+    assert resp.status_code == 403
+    assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+    assert "Content-Security-Policy" in resp.headers
