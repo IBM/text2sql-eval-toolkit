@@ -155,7 +155,7 @@ def main():
     gold_queries = load_gold_sql(args.gold)
     print(f"   Loaded {len(gold_queries)} gold queries")
     
-    print(f"🔄 Converting to toolkit format...")
+    print("🔄 Converting to toolkit format...")
     converted_data = convert_spider_to_toolkit_format(
         spider_data,
         gold_queries,
@@ -175,10 +175,10 @@ def main():
         db_id = entry["db_id"]
         db_counts[db_id] = db_counts.get(db_id, 0) + 1
     
-    print(f"\n📊 Statistics:")
+    print("\n📊 Statistics:")
     print(f"   Total entries: {len(converted_data)}")
     print(f"   Unique databases: {len(db_counts)}")
-    print(f"   Top 5 databases by question count:")
+    print("   Top 5 databases by question count:")
     for db_id, count in sorted(db_counts.items(), key=lambda x: x[1], reverse=True)[:5]:
         print(f"      {db_id}: {count} questions")
 

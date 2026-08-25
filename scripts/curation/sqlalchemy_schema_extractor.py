@@ -100,7 +100,7 @@ def get_database_engine(connection_string: str) -> Engine:
 
         # Debug: Print parsed URL components
         url = engine.url
-        print(f"Parsed URL components:")
+        print("Parsed URL components:")
         print(f"  Database type: {url.drivername}")
         print(f"  Username: {url.username}")
         print(f"  Password: {'*' * len(url.password) if url.password else 'None'}")
@@ -373,7 +373,7 @@ Supported databases: MySQL, PostgreSQL, SQLite, SQL Server, Oracle
 
     args = parser.parse_args()
 
-    print(f"Connecting to database server...")
+    print("Connecting to database server...")
     engine = get_database_engine(args.connection_string)
 
     # If requested, list databases and exit

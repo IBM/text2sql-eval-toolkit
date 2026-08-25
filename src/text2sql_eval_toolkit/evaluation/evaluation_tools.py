@@ -571,7 +571,7 @@ def print_summary(summary, use_llm):
         
         # Print token usage metrics if available
         if "sum_total_tokens" in metrics:
-            print(f"  Token Usage Metrics:")
+            print("  Token Usage Metrics:")
             print(f"    Total Tokens                 : {metrics.get('sum_total_tokens', 0):,}")
             total_tokens_stats = metrics.get('total_tokens', {})
             if isinstance(total_tokens_stats, dict):
@@ -584,7 +584,7 @@ def print_summary(summary, use_llm):
         
         # Print timing metrics if available
         if "sum_inference_time_ms" in metrics or "sum_execution_time_ms" in metrics:
-            print(f"  Performance Metrics:")
+            print("  Performance Metrics:")
             if "sum_inference_time_ms" in metrics:
                 inference_stats = metrics.get('inference_time_ms', {})
                 if isinstance(inference_stats, dict):

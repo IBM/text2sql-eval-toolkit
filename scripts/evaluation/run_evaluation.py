@@ -5,7 +5,7 @@
 
 import argparse
 from text2sql_eval_toolkit.evaluation.evaluation_tools import evaluate_predictions
-from text2sql_eval_toolkit import env_loader  # Load .env file automatically
+from text2sql_eval_toolkit import env_loader  # noqa: F401  -- imported for side effect: loads .env on import
 
 
 def main():

@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-import json
 import pandas as pd
 from pathlib import Path
 from text2sql_eval_toolkit.utils import parse_dataframe
@@ -96,10 +95,10 @@ def chat_prompt_to_html(prompt):
         escaped_content = html_module.escape(content)
 
         # Add message with visual separator
-        html_output += f"<div style='margin-bottom: 15px;'>\n"
+        html_output += "<div style='margin-bottom: 15px;'>\n"
         html_output += f"<strong>{role} Message {i + 1}:</strong>\n"
         html_output += f"<pre style='margin: 5px 0; padding: 10px; background-color: #ffffff; border-left: 3px solid #007acc; white-space: pre-wrap; word-wrap: break-word;'>{escaped_content}</pre>\n"
-        html_output += f"</div>\n"
+        html_output += "</div>\n"
 
     html_output += "</div>\n"
     return html_output

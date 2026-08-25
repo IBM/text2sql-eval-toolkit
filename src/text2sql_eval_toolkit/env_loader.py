@@ -9,7 +9,6 @@ Environment variable loader for text2sql-eval-toolkit.
 Automatically loads environment variables from .env file in project root.
 """
 
-import os
 from pathlib import Path
 from dotenv import load_dotenv
 

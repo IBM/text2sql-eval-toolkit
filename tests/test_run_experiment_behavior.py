@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-import pytest
 from unittest.mock import patch, MagicMock
 
 
