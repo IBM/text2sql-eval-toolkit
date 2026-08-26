@@ -88,6 +88,29 @@ def get_oauth() -> Any:
     return _OAUTH
 
 
+def _require_session(request: Request) -> None:
+    """
+    Refuse clearly when sign-in is configured but the session is not.
+
+    SessionMiddleware is installed by ``main()``, so serving the ASGI app
+    directly -- ``uvicorn text2sql_eval_toolkit.ui.server:app`` -- with Google
+    credentials in the environment gives a server that advertises sign-in and
+    then raises an AssertionError deep in Starlette on the first attempt. A 500
+    with no explanation is the worst possible answer to a misconfiguration that
+    has an exact fix.
+    """
+    if "session" not in request.scope:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Google sign-in is configured but no session middleware is "
+                "installed, so the OAuth state cannot be stored. Start the "
+                "dashboard through `text2sql-eval-dashboard` rather than "
+                "serving the ASGI app directly."
+            ),
+        )
+
+
 @router.get("/api/auth/login")
 async def auth_login(request: Request, next: str = Query("/")):
     """Start the Google sign-in redirect."""
@@ -99,6 +122,7 @@ async def auth_login(request: Request, next: str = Query("/")):
                 "(GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are unset)."
             ),
         )
+    _require_session(request)
     request.session["post_login_redirect"] = auth.safe_redirect_target(next)
     redirect_uri = str(request.url_for("auth_callback"))
     return await get_oauth().google.authorize_redirect(request, redirect_uri)
@@ -115,6 +139,7 @@ async def auth_callback(request: Request):
     """
     if not auth.is_configured():
         raise HTTPException(status_code=503, detail="Google sign-in is not configured.")
+    _require_session(request)
 
     try:
         token = await get_oauth().google.authorize_access_token(request)
