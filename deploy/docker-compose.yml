@@ -48,6 +48,14 @@ services:
       TEXT2SQL_DASHBOARD_MODE: ${TEXT2SQL_DASHBOARD_MODE:-public}
       TEXT2SQL_DATA_ROOT: /data
 
+      # Believe X-Forwarded-* from caddy. Without this the app sees every
+      # request as plain http -- so sign-in builds an http redirect_uri that
+      # Google rejects, and the rate limiter keys every visitor on caddy's
+      # address instead of their own. Private ranges rather than '*': this
+      # service publishes no ports, so nothing outside the compose network can
+      # reach it, but the bound is worth stating.
+      TEXT2SQL_FORWARDED_ALLOW_IPS: ${TEXT2SQL_FORWARDED_ALLOW_IPS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+
       # Sign-in. Without these nobody can reach the judge tier.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}

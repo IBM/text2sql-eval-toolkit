@@ -47,10 +47,15 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
      back to `main`, and the public dataset would change under shared links.
    - `TEXT2SQL_SESSION_SECRET` — at least 32 characters, or startup refuses it.
      Generate with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
-   - `TEXT2SQL_TRUSTED_PROXIES` — the Caddy container's address on the Compose
-     network. Left empty, `X-Forwarded-For` is ignored and every client shares
-     one rate-limit bucket. Find it with
-     `docker compose exec app getent hosts caddy`.
+   - `TEXT2SQL_JUDGE_ALLOWLIST` — the addresses allowed to spend LLM budget.
+     Everyone else is read-only, signed in or not.
+
+   Leave `TEXT2SQL_TRUSTED_PROXIES` **empty**. It was once needed to name the
+   Caddy container so `X-Forwarded-For` was believed; the app now trusts the
+   proxy at the ASGI layer instead (`TEXT2SQL_FORWARDED_ALLOW_IPS`, already set
+   by the compose file), so the client address is corrected before any handler
+   sees it. Setting both means the second one re-reads a header that has already
+   been applied.
 
 3. **Register the Google OAuth client.** Authorised redirect URI must be exactly
    `https://<domain>/api/auth/callback`. Without `GOOGLE_CLIENT_ID` and
@@ -106,6 +111,12 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
 # Internal files are not served.
 curl -s -o /dev/null -w '%{http_code}\n' $DOMAIN/api/static/judge/usage.sqlite
 # expect: 403
+
+# Sign-in builds an https redirect_uri. If the app cannot see that the request
+# arrived over TLS it sends Google an http one, and Google refuses the whole
+# flow with redirect_uri_mismatch -- so this fails before anyone can sign in.
+curl -s -o /dev/null -w '%{redirect_url}\n' "$DOMAIN/api/auth/login"
+# expect: an accounts.google.com URL whose redirect_uri= parameter is https://
 
 # The data stamp matches the revision you pinned.
 curl -s $DOMAIN/api/deployment | jq '{data_revision, data_provisioned_at}'
@@ -247,6 +258,8 @@ six Beaver databases are covered once created.
 | `results fetch` fails with a version error | Snapshot's `toolkit_version_compat` excludes the installed version. Publish a snapshot from the matching checkout. |
 | Everyone shares one rate-limit bucket | `TEXT2SQL_TRUSTED_PROXIES` unset, so `X-Forwarded-For` is ignored (deliberately — the header is forgeable from untrusted peers). |
 | Sign-in loops or fails on callback | Redirect URI mismatch, or the session cookie was dropped. Check `TEXT2SQL_COOKIE_SECURE` and that the domain is served over TLS. |
+| Google says `redirect_uri_mismatch` | The app is building an `http://` redirect because it cannot see that TLS terminated at the proxy. `TEXT2SQL_FORWARDED_ALLOW_IPS` must include the proxy's address; uvicorn believes `X-Forwarded-*` only from `127.0.0.1` by default, and the proxy is a different container. |
+| Rate limiting throttles everyone at once | Same cause: without `TEXT2SQL_FORWARDED_ALLOW_IPS`, every request is attributed to the proxy, so all visitors share one bucket. |
 | Sign-in rejected for a valid account | Google reports `email_verified=false`. Verify the address with Google; the allowlist deliberately does not match unverified addresses. |
 | Startup fails: session secret | Shorter than 32 characters. Regenerate. |
 | Startup fails: `--mode full` refuses to bind | Correct behaviour on a non-loopback interface. Use `--mode public` or `judge`. |
