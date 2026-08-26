@@ -24,44 +24,7 @@ from text2sql_eval_toolkit.ui.models import (
     ResultsFetchRequest,
 )
 
-# Runtime state (deployment ceiling, judge allowlist, request identity) and the
-# middleware stack live in their own modules.  Their names are re-exported here
-# because ``server.set_mode`` / ``server.reset_rate_limits`` are the surface the
-# CLI and the tests already use -- and re-exporting is only safe because they are
-# accessors over module state rather than the state itself.
-from text2sql_eval_toolkit.ui.indexes import (  # noqa: F401
-    EVAL_INDEX_CACHE,
-    get_index,
-    invalidate_index_cache,
-)
-from text2sql_eval_toolkit.ui.paths import (  # noqa: F401
-    _eval_not_found_detail,
-    _summary_not_found_detail,
-    count_records,
-    get_data_root,
-    get_results_dir,
-    load_json,
-)
-from text2sql_eval_toolkit.ui.registry import (  # noqa: F401
-    ALLOWED_DB_TYPES,
-    ALLOWED_LOGO_EXTENSIONS,
-    MAX_LOGO_UPLOAD_BYTES,
-    STATIC_ASSET_SUBDIR,
-    get_benchmark_registry_path,
-    load_benchmark_registry,
-    normalize_benchmark_config,
-    normalize_benchmark_id,
-    write_json_atomic,
-)
-from text2sql_eval_toolkit.ui.middleware import reset_rate_limits  # noqa: F401
-from text2sql_eval_toolkit.ui.runtime import (  # noqa: F401
-    _cookie_secure,
-    current_user_email,
-    get_judge_allowlist,
-    get_mode,
-    set_judge_allowlist,
-    set_mode,
-)
+from text2sql_eval_toolkit.ui.paths import get_data_root
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.ui import runtime
 from text2sql_eval_toolkit.ui.jobs import FETCH_JOBS, FETCH_JOBS_LOCK
