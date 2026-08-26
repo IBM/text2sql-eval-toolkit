@@ -55,6 +55,14 @@ RUN pip install --no-cache-dir ".[dashboard]"
 # The build output from stage 1 -- never the committed dist.
 COPY --from=frontend /build/dist ./dashboard/dist
 
+# Provisioning runs inside this image, so the script has to be in it. Installed
+# on PATH as a command rather than left at deploy/provision.sh: the entrypoint
+# has to be overridden to run it either way, and a bare path invites
+# `docker compose run app deploy/provision.sh`, which appends the path to the
+# dashboard's argv instead of executing it.
+COPY deploy/provision.sh /usr/local/bin/text2sql-provision
+RUN chmod +x /usr/local/bin/text2sql-provision
+
 RUN mkdir -p /data && chown -R app:app /data /app
 USER app
 

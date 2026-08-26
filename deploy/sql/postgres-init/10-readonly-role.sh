@@ -11,10 +11,12 @@
 set -euo pipefail
 
 if [ -z "${POSTGRES_READONLY_PASSWORD:-}" ]; then
-  echo "[init] POSTGRES_READONLY_PASSWORD is unset; skipping read-only role." >&2
-  echo "[init] The app would then need superuser credentials. Set it and" >&2
-  echo "[init] recreate the volume before exposing this deployment." >&2
-  exit 0
+  # Refuse rather than skip: see the MySQL init script for the reasoning. A
+  # skipped read-only role means the app connects as superuser to run
+  # caller-supplied SQL, which is exactly what this file exists to prevent.
+  echo "[init] POSTGRES_READONLY_PASSWORD is unset. Set it in deploy/.env and" >&2
+  echo "[init] recreate this volume; refusing to initialise with superuser only." >&2
+  exit 1
 fi
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-SQL
