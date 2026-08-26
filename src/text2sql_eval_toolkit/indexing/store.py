@@ -37,6 +37,24 @@ OPERATORS: Dict[str, str] = {
 }
 
 
+def _casefold(text: Any) -> Any:
+    """Case-fold for search. Passes NULL through so SQLite semantics are kept."""
+    if text is None:
+        return None
+    return str(text).casefold()
+
+
+def _escape_like(text: str) -> str:
+    """
+    Escape the LIKE metacharacters so a search term is taken literally.
+
+    Backslash first, or it would escape the escapes added after it.
+    """
+    for ch in ("\\", "%", "_"):
+        text = text.replace(ch, "\\" + ch)
+    return text
+
+
 class RecordSummary(NamedTuple):
     record_id: str
     question: str
@@ -79,6 +97,10 @@ class EvalIndex:
                 f"file:{self._index_path}?mode=ro", uri=True, check_same_thread=False
             )
             conn.row_factory = sqlite3.Row
+            # SQLite's own LOWER() is ASCII-only, so without this a question
+            # containing "Elève" would not be found by searching "elève" --
+            # search used to be Python's str.lower() and matched it.
+            conn.create_function("py_casefold", 1, _casefold, deterministic=True)
             self._local.conn = conn
             # Tracked so close() can release them all; threadpool workers are
             # long-lived, so this list stays as small as the pool.
@@ -103,8 +125,13 @@ class EvalIndex:
         Release every connection this index opened, from whichever thread calls.
 
         ``check_same_thread=False`` is what makes closing another thread's
-        connection legal here; nothing is using them by the time a handle is
-        invalidated.
+        connection legal here.
+
+        Only call this when nothing else can be holding the handle -- at
+        shutdown, or via the context manager on an index this caller owns.
+        Invalidating a *cached* handle must drop the reference instead: another
+        request may be mid-query on it, and closing its connection from this
+        thread would fail that read. See ui/indexes.py.
         """
         with self._connections_lock:
             for conn in self._open_connections:
@@ -204,8 +231,17 @@ class EvalIndex:
         if q:
             # Substring match on id or question, matching the previous
             # `q.lower() in text.lower()` behaviour rather than tokenised search.
-            like = f"%{q.lower()}%"
-            clauses.append("(LOWER(r.record_id) LIKE ? OR LOWER(r.question) LIKE ?)")
+            #
+            # Two things are needed to actually match it. `%` and `_` are LIKE
+            # wildcards, so an unescaped search for "50%" matched every record
+            # rather than the ones mentioning a percentage. And case folding has
+            # to happen in Python on both sides: SQLite's LOWER() leaves every
+            # non-ASCII letter alone.
+            like = f"%{_escape_like(_casefold(q))}%"
+            clauses.append(
+                "(py_casefold(r.record_id) LIKE ? ESCAPE '\\'"
+                " OR py_casefold(r.question) LIKE ? ESCAPE '\\')"
+            )
             params += [like, like]
 
         def metric_clause(pipeline_id: str, metric_name: str, sql_op: str) -> str:

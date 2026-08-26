@@ -23,6 +23,8 @@ from fastapi import (
 
 import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
 
+from text2sql_eval_toolkit.ui import runtime
+from text2sql_eval_toolkit.ui.capabilities import Tier
 from text2sql_eval_toolkit.ui.models import (
     LLMJudgeConfigInfo,
     LLMJudgeConfigListResponse,
@@ -50,9 +52,18 @@ def list_llm_judge_configs() -> LLMJudgeConfigListResponse:
 
     base_dir = Path(llm_as_judge.__file__).parent / "llm_judge_config"
     items: List[LLMJudgeConfigInfo] = []
+    # Clients address a config by name; only the full-mode editor has any use for
+    # a filesystem path, and it is a path *inside the installed package*, which
+    # is exactly the layout detail shared modes withhold everywhere else.
+    reveal_path = runtime.get_mode() is Tier.FULL
     if base_dir.exists():
         for path in sorted(base_dir.glob("*.yaml")):
-            items.append(LLMJudgeConfigInfo(name=path.stem, path=str(path.resolve())))
+            items.append(
+                LLMJudgeConfigInfo(
+                    name=path.stem,
+                    path=str(path.resolve()) if reveal_path else "",
+                )
+            )
     return LLMJudgeConfigListResponse(items=items)
 
 

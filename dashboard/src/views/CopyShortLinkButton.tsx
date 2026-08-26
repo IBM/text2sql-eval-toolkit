@@ -33,8 +33,11 @@ async function copyText(text: string): Promise<void> {
   field.style.opacity = "0";
   document.body.appendChild(field);
   field.select();
-  document.execCommand("copy");
+  // The return value is the only signal this path gives: a rejected copy is
+  // silent otherwise, and the button would claim success having copied nothing.
+  const copied = document.execCommand("copy");
   document.body.removeChild(field);
+  if (!copied) throw new Error("copy was rejected by the browser");
 }
 
 /** True when this address carries a pipeline reference worth shortening. */
@@ -52,7 +55,7 @@ export const CopyShortLinkButton: React.FC = () => {
   const benchmarkId = parseLocation(location.pathname).benchmarkId;
   // Fetched only where the control is actually offered, so an ordinary page
   // view costs no extra request.
-  const { table } = usePipelineAliases(benchmarkId, shortenable);
+  const { table, ready } = usePipelineAliases(benchmarkId, shortenable);
 
   useEffect(() => {
     if (state === "idle") return;
@@ -76,6 +79,10 @@ export const CopyShortLinkButton: React.FC = () => {
     <Button
       kind="ghost"
       size="sm"
+      // Disabled until the alias table arrives. Clicking sooner shortened
+      // against an empty table, which silently copies the original long URL
+      // and still reports success -- the outcome this button exists to prevent.
+      disabled={!ready}
       onClick={() => void copy()}
       title="Copy a shorter link to this view, using pipeline aliases"
       aria-live="polite"
@@ -84,7 +91,9 @@ export const CopyShortLinkButton: React.FC = () => {
         ? "Short link copied"
         : state === "failed"
           ? "Copy failed"
-          : "Copy short link"}
+          : ready
+            ? "Copy short link"
+            : "Preparing short link…"}
     </Button>
   );
 };

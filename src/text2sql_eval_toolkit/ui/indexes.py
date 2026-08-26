@@ -59,7 +59,12 @@ def get_index(benchmark_id: str) -> EvalIndex:
         if cached is not None:
             if not is_index_stale(eval_path):
                 return cached
-            cached.close()
+            # Dropped, not closed. get_index() hands back a bare EvalIndex and
+            # the caller queries it with no lock held, so a request can still be
+            # mid-query on this handle right now -- and close() releases every
+            # connection the index opened, from any thread. Letting the last
+            # reference go means the in-flight request keeps its handle alive and
+            # the connections close when nothing is using them.
             EVAL_INDEX_CACHE.pop(benchmark_id, None)
 
     # Building is expensive -- peak memory is driven by the largest single

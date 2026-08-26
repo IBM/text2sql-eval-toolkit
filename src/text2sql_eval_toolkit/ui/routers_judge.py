@@ -170,7 +170,7 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
     model = str((judge_config.get("model") or {}).get("id", "unknown"))
 
     cache_key = verdict_cache_key(
-        benchmark_id, req.record_id, req.pipeline, config_name, model
+        benchmark_id, req.record_id, req.pipeline, config_name, model, judge_config
     )
     cached = store.get_verdict(cache_key)
     if cached:
