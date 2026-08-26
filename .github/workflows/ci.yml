@@ -2,7 +2,7 @@
 # Copyright IBM Corp. 2025 - 2026
 # SPDX-License-Identifier: Apache-2.0
 #
-# Phase A of the refactor plan (docs/plan/04-code-quality.md, item 4.4).
+# Introduced by the v2 refactor (docs/attic/plan/04-code-quality.md, item 4.4).
 # Before this workflow existed, nothing ran tests or linting on a PR.
 
 name: CI
@@ -91,7 +91,7 @@ jobs:
           pip install -e ".[dev,dashboard]"
       - name: Mypy
         # Scope is narrow by design and widens module by module; see
-        # docs/plan/04-code-quality.md item 4.2.
+        # docs/attic/plan/04-code-quality.md item 4.2.
         run: mypy
 
   test:
@@ -359,7 +359,7 @@ jobs:
         # Budgets the *entry* chunk, not the sum of all JS: route views are
         # code-split and load on demand, so summing every chunk would hide the
         # thing this guards. Baseline after splitting: ~401 KB entry, ~826 KB CSS.
-        # See docs/plan/02-performance.md item 2.8.
+        # See docs/dashboard/development.md.
         run: |
           budget_entry=460
           budget_css=900
@@ -381,7 +381,7 @@ jobs:
       - name: Verify committed dist is current
         # dashboard/dist is committed and served by text2sql-eval-dashboard, so a
         # stale build silently ships different UI than the source. See
-        # docs/plan/03-public-deployment.md item 3.6.
+        # docs/dashboard/deployment.md.
         run: |
           # Content-hashed filenames mean any real change shows as deleted+untracked,
           # so check porcelain status rather than `git diff` alone.

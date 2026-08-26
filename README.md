@@ -36,13 +36,11 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 
 | Where | What |
 |---|---|
-| [docs/plan/README.md](docs/plan/README.md) | Current status of the v2 work, item by item |
-| [docs/project-log.md](docs/project-log.md) | What changed and why, newest first |
-| [docs/deployment-runbook.md](docs/deployment-runbook.md) | Deploying and operating the shared dashboard |
+| [docs/dashboard/](docs/dashboard/) | The evaluation dashboard: links, index, tiers, deployment |
 | [data/benchmarks/README.md](data/benchmarks/README.md) | Benchmark definitions and configuration |
 | [data/benchmarks/dbs/README.md](data/benchmarks/dbs/README.md) | Database setup for each benchmark |
-| [dashboard/README.md](dashboard/README.md) | Dashboard development |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Toolchain, tests, and coding standards |
+| [docs/attic/](docs/attic/) | Development history — why things are the way they are |
 
 ## Components
 
@@ -310,90 +308,18 @@ The output will be written to [data/results/README.md](data/results/README.md).
 
 ### Evaluation dashboard
 
-Install the optional UI with the `dashboard` extra:
+A web UI for browsing results, comparing pipelines and doing error analysis:
 
 ```bash
 uv pip install -e ".[dashboard]"
-# or: pip install -e ".[dashboard]"
+text2sql-eval-dashboard --open-browser
 ```
 
-Start the server:
+Every view has a shareable URL. A public read-only instance runs at
+**<https://text2sql-eval-toolkit.oktie.com>**.
 
-```bash
-uv run text2sql-eval-dashboard --open-browser
-# or: text2sql-eval-dashboard --open-browser
-```
-
-By default the server listens on `http://127.0.0.1:8000`. Set `TEXT2SQL_DATA_ROOT` to the directory that contains `results/` (defaults to `./data` if unset).
-
-The pre-built frontend assets (`dashboard/dist/`) are committed to the repository, so no Node.js is required to run the dashboard. From a source checkout, the CLI will automatically rebuild `dashboard/dist` via Vite when sources change if Node.js/npm are available (run `npm install` in `dashboard/` once to enable this). Use `--no-watch-dashboard` to serve the committed build only.
-
-See [dashboard/README.md](dashboard/README.md) for full details (development with Vite, manual builds, and troubleshooting).
-
-#### The public dashboard
-
-A read-only deployment browsing the published results snapshot:
-**<https://text2sql-eval-toolkit.oktie.com>**
-
-Every view there is addressable, so a link reproduces the exact benchmark, pipeline,
-filtered query, or individual record. It runs no inference and executes no SQL — it reads
-a pinned Hugging Face snapshot, so the numbers behind a shared link do not move.
-
-#### Shareable links
-
-Every view has its own URL, so a benchmark, a pipeline, a filtered error-analysis
-query, or an individual record can be linked to directly:
-
-```
-/benchmark/bird_mini_dev_sqlite                             benchmark summary
-/benchmark/bird_mini_dev_sqlite/pipeline/{pipeline_id}      pipeline detail
-/benchmark/bird_mini_dev_sqlite/errors?pipeline=…&value=0   filtered error analysis
-/benchmark/bird_mini_dev_sqlite/errors?…&record={id}        one record, open
-/benchmark/{id}/pipeline/{pipeline_id}/record/{record_id}   one record, in a pipeline
-```
-
-The address bar is the link — there is no "copy this URL" button, since it would
-duplicate what the browser already offers.
-
-There is one case the address bar cannot cover. Pipeline ids embed the model name, so
-a comparison link can carry two of
-`wxai:openai/gpt-oss-120b-agentic-baseline1-3attempts` and end up long enough for a
-mail client to wrap it. **Copy short link** — which appears in the header only on an
-address that names a pipeline — substitutes a ten-character alias for each one, which
-the dashboard expands on arrival:
-
-```
-/benchmark/archer_en_dev/pipeline/ec64b733f4     the same view, 90 characters shorter
-```
-
-Aliases are derived from the id (`GET /api/benchmarks/{id}/pipeline-aliases`), not
-assigned, so any server reading the same results agrees on them. They shorten links;
-they do not survive a model being renamed, since the alias changes with the id.
-
-#### Query index
-
-Evaluation artifacts reach hundreds of megabytes, so the dashboard reads them
-through a SQLite index built alongside each file rather than parsing JSON per
-request:
-
-```bash
-text2sql-eval-toolkit index build     # build or refresh
-text2sql-eval-toolkit index status    # show what is current
-```
-
-The index is derived and disposable -- deleting it costs a rebuild, never data --
-and is rebuilt automatically when an artifact changes. It is roughly 6% of the
-size of the artifacts it indexes.
-
-#### Running it for other people
-
-The dashboard defaults to a local, single-operator tool with every capability
-enabled. Serving it to others uses capability tiers, Google sign-in, and a
-container stack; see [docs/deployment-runbook.md](docs/deployment-runbook.md) and
-[docs/plan/03-public-deployment.md](docs/plan/03-public-deployment.md).
-
-`--mode full` refuses to bind a non-loopback interface, because it exposes SQL
-execution against whatever database credentials the server holds.
+See **[docs/dashboard/](docs/dashboard/)** for features, the URL scheme, the
+query index, capability tiers, and deploying it for other people.
 
 ## Project Structure
 
