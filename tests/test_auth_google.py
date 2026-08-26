@@ -180,3 +180,40 @@ def test_offsite_redirect_targets_fall_back_to_root(target):
 )
 def test_same_site_paths_are_preserved(target):
     assert auth.safe_redirect_target(target) == target
+
+
+def test_login_refuses_clearly_when_no_session_middleware_is_installed(monkeypatch):
+    """
+    SessionMiddleware is installed by `main()`, so serving the ASGI app directly
+    with Google credentials set produces a server that advertises sign-in and
+    then raises deep inside Starlette. That surfaced as a 500 with no
+    explanation for a misconfiguration that has an exact fix.
+    """
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "id")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret")
+
+    from fastapi.testclient import TestClient
+
+    from text2sql_eval_toolkit.ui import server
+
+    client = TestClient(server.app, raise_server_exceptions=False)
+    resp = client.get("/api/auth/login", follow_redirects=False)
+
+    assert resp.status_code == 503
+    assert "session middleware" in resp.text.lower()
+    assert "text2sql-eval-dashboard" in resp.text
+
+
+def test_callback_refuses_the_same_way(monkeypatch):
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "id")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "secret")
+
+    from fastapi.testclient import TestClient
+
+    from text2sql_eval_toolkit.ui import server
+
+    client = TestClient(server.app, raise_server_exceptions=False)
+    resp = client.get("/api/auth/callback?code=x&state=y", follow_redirects=False)
+
+    assert resp.status_code == 503
+    assert "session middleware" in resp.text.lower()
