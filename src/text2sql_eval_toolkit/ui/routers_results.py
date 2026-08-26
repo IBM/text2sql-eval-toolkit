@@ -27,6 +27,7 @@ from text2sql_eval_toolkit.ui.models import (
 from text2sql_eval_toolkit.ui.paths import get_data_root
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.ui import runtime
+from text2sql_eval_toolkit.ui.capabilities import Tier
 from text2sql_eval_toolkit.ui.jobs import FETCH_JOBS, FETCH_JOBS_LOCK
 
 logger = get_logger(__name__)
@@ -49,12 +50,23 @@ def get_results_status() -> Dict[str, Any]:
     """
     data_root = get_data_root()
     results_dir = data_root / "results"
-    has_results = results_dir.is_dir() and any(results_dir.iterdir())
-    return {
+    # An evaluation artifact, not merely "something is in the directory". The
+    # derived .index/ directory, logs/ and bak/ all live here, so any of them
+    # left behind after the artifacts were removed would report results the
+    # dashboard cannot actually serve, and suppress the banner offering to fetch.
+    has_results = results_dir.is_dir() and any(
+        results_dir.glob("*-predictions_eval.json")
+    )
+    status: Dict[str, Any] = {
         "fetch_enabled": runtime.fetch_endpoint_enabled(),
         "has_results": has_results,
-        "results_path": str(results_dir),
     }
+    # The absolute path is operator guidance -- it tells you where to put the
+    # files -- and it is also filesystem layout, which a public visitor can do
+    # nothing with. Shared modes redact it, as they already do for 404 detail.
+    if runtime.get_mode() is Tier.FULL:
+        status["results_path"] = str(results_dir)
+    return status
 
 
 @router.post("/api/results/fetch", response_model=FetchJobStatus)

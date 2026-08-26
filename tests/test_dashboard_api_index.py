@@ -20,6 +20,8 @@ fastapi = pytest.importorskip("fastapi")
 from fastapi.testclient import TestClient  # noqa: E402
 
 from text2sql_eval_toolkit.ui import server  # noqa: E402
+from text2sql_eval_toolkit.ui import runtime  # noqa: E402
+from text2sql_eval_toolkit.ui.capabilities import Tier  # noqa: E402
 
 PIPE_A = "modelA-greedy-zero-shot-chatapi"
 PIPE_B = "modelB-agentic-baseline1-3attempts"
@@ -65,6 +67,8 @@ def client(tmp_path_factory):
     # env var is set and restored by hand for the same effect.
     with pytest.MonkeyPatch.context() as mp:
         mp.setenv("TEXT2SQL_DATA_ROOT", str(root))
+        # These fixtures serve indices built on demand, which is the local operator path; a shared deployment refuses that and answers 503.
+        runtime.set_mode(Tier.FULL)
         server.invalidate_index_cache()
         try:
             yield TestClient(server.app), data
@@ -420,6 +424,7 @@ def test_benchmark_listing_counts_records_without_the_benchmark_data_file(
         json.dumps(records), encoding="utf-8"
     )
     monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
+    runtime.set_mode(Tier.FULL)
     server.invalidate_index_cache()
     try:
         items = TestClient(server.app).get("/api/benchmarks").json()["items"]

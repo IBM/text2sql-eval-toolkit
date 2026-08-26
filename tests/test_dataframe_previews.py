@@ -17,6 +17,8 @@ import json
 import pytest
 
 from text2sql_eval_toolkit.ui.dataframes import MAX_PREVIEW_ROWS, truncate_dataframe
+from text2sql_eval_toolkit.ui import runtime
+from text2sql_eval_toolkit.ui.capabilities import Tier
 
 PIPE = "modelA-greedy-zero-shot-chatapi"
 
@@ -139,6 +141,8 @@ def client(tmp_path, monkeypatch):
         json.dumps(records), encoding="utf-8"
     )
     monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
+    # These fixtures serve indices built on demand, which is the local operator path; a shared deployment refuses that and answers 503.
+    runtime.set_mode(Tier.FULL)
     server.invalidate_index_cache()
     try:
         yield TestClient(server.app)

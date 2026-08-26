@@ -20,6 +20,8 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from text2sql_eval_toolkit.ui import server  # noqa: E402
+from text2sql_eval_toolkit.ui import runtime
+from text2sql_eval_toolkit.ui.capabilities import Tier
 
 
 @pytest.fixture
@@ -39,6 +41,8 @@ def spa_client(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
+    # These fixtures serve indices built on demand, which is the local operator path; a shared deployment refuses that and answers 503.
+    runtime.set_mode(Tier.FULL)
 
     # Mount onto a fresh app so the test does not depend on import order.
     app = FastAPI()

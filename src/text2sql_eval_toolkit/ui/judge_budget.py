@@ -143,18 +143,33 @@ def verdict_cache_key(
     pipeline_id: str,
     config_name: str,
     model: str,
+    config: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
     Identify a verdict by everything that determines it.
 
     Changing the judge model or its prompt config must produce a new verdict
     rather than reusing one produced under different conditions.
+
+    That is why `config` is the loaded YAML and not just its name. The prompts
+    are editable from the UI and keep their filename across an edit, so keying on
+    the name alone served the verdict from the *previous* prompt -- the one case
+    where a stale answer is least acceptable, since editing the prompt is how you
+    ask a different question.
     """
     # JSON-encoded rather than space-joined: joining is not injective, so
     # (record="r1", pipeline="p1") and (record="r1 p1", pipeline="") collided
     # and could serve one record's verdict for another.
+    config_digest = ""
+    if config is not None:
+        # sort_keys so an unrelated reordering of the YAML does not invalidate
+        # every cached verdict; default=str so an unexpected value cannot make
+        # the key un-computable and take the whole endpoint down with it.
+        config_digest = hashlib.sha256(
+            json.dumps(config, sort_keys=True, default=str).encode("utf-8")
+        ).hexdigest()
     payload = json.dumps(
-        [benchmark_id, record_id, pipeline_id, config_name, model],
+        [benchmark_id, record_id, pipeline_id, config_name, model, config_digest],
         separators=(",", ":"),
     )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()

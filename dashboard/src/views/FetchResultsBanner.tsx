@@ -5,7 +5,7 @@ import { apiFetch } from "../lib/api";
 interface ResultsStatus {
   fetch_enabled: boolean;
   has_results: boolean;
-  results_path: string;
+  results_path?: string;
 }
 
 interface FetchJob {
@@ -94,6 +94,9 @@ export const FetchResultsBanner: React.FC<{
   if (!status || status.has_results || dismissed) return null;
 
   const isRunning = job && (job.state === "queued" || job.state === "running");
+  // Shared deployments withhold the absolute path, so the sentence has to
+  // read correctly without it.
+  const whereClause = status.results_path ? ` (${status.results_path})` : "";
   const isFailed = job && job.state === "failed";
 
   if (isFailed) {
@@ -130,8 +133,8 @@ export const FetchResultsBanner: React.FC<{
       subtitle={
         (status.fetch_enabled ? (
           <span>
-            Results directory is empty ({status.results_path}). Download
-            pre-computed results from the Hugging Face Hub:
+            Results directory is empty{whereClause}. Download pre-computed
+            results from the Hugging Face Hub:
             {isRunning ? (
               <InlineLoading
                 description="Downloading results…"
@@ -150,7 +153,7 @@ export const FetchResultsBanner: React.FC<{
           </span>
         ) : (
           <span>
-            Results directory is empty ({status.results_path}). Run:{" "}
+            Results directory is empty{whereClause}. Run:{" "}
             <code>text2sql-eval-toolkit results fetch</code>
           </span>
         )) as unknown as string

@@ -49,10 +49,18 @@ def _mode_from_env() -> Tier:
     only in main() meant such a deployment silently ran at FULL -- every
     endpoint, including SQL execution, open to anonymous callers -- while the
     operator believed TEXT2SQL_DASHBOARD_MODE had taken effect.
+
+    Unset means PUBLIC here, and that asymmetry with the CLI is the point. The
+    "full is loopback-only" guarantee is enforced in main(), which refuses a
+    non-loopback bind without --allow-remote-full. Serving the ASGI app directly
+    skips that check, so defaulting *this* path to FULL would hand anonymous SQL
+    execution to `uvicorn ... --host 0.0.0.0`, with the one guard that would have
+    stopped it bypassed. main() sets the mode explicitly from its own --mode
+    default of full, so the local operator tool is unaffected.
     """
     raw = os.getenv("TEXT2SQL_DASHBOARD_MODE")
     if not raw:
-        return Tier.FULL
+        return Tier.PUBLIC
     try:
         return Tier.parse(raw)
     except ValueError:
@@ -64,9 +72,9 @@ def _mode_from_env() -> Tier:
         return Tier.PUBLIC
 
 
-# Deployment ceiling. FULL is the local-operator default so a plain
-# `text2sql-eval-dashboard` keeps every capability it has today; a public
-# deployment lowers it and no sign-in can raise it back.
+# Deployment ceiling. `text2sql-eval-dashboard` keeps every capability it has
+# today -- main() sets FULL explicitly, behind the loopback guard. A public
+# deployment lowers the ceiling and no sign-in can raise it back.
 _MODE: Tier = _mode_from_env()
 
 # Emails allowed to reach the judge tier, from TEXT2SQL_JUDGE_ALLOWLIST.

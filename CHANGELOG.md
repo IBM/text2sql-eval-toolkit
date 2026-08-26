@@ -65,7 +65,7 @@ which is enforced by a test rather than by intention.
   rather than being repeated in `pyproject.toml` and `__init__.py`.
 
 ### Fixed
-- Ranking window functions (`RANK`, `DENSE_ROW_NUMBER`, …) were counted as
+- Ranking window functions (`RANK`, `DENSE_RANK`, `ROW_NUMBER`) were counted as
   aggregations under sqlglot ≥ 28, corrupting profiling categories.
 - `compute_summary` aborted a whole benchmark's summary on one record whose
   metrics were incomplete.
