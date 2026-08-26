@@ -34,13 +34,13 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 
 ## Documentation
 
-| Where | What |
-|---|---|
-| [docs/dashboard/](docs/dashboard/) | The evaluation dashboard: links, index, tiers, deployment |
-| [data/benchmarks/README.md](data/benchmarks/README.md) | Benchmark definitions and configuration |
-| [data/benchmarks/dbs/README.md](data/benchmarks/dbs/README.md) | Database setup for each benchmark |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Toolchain, tests, and coding standards |
-| [docs/attic/](docs/attic/) | Development history — why things are the way they are |
+- **[docs/dashboard/](docs/dashboard/)** — the evaluation dashboard: features,
+  shareable links, the query index, capability tiers, and deployment.
+- **[data/benchmarks/README.md](data/benchmarks/README.md)** — benchmark
+  definitions and configuration.
+- **[data/benchmarks/dbs/README.md](data/benchmarks/dbs/README.md)** — database
+  setup for each benchmark.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — toolchain, tests, and coding standards.
 
 ## Components
 
@@ -315,11 +315,13 @@ uv pip install -e ".[dashboard]"
 text2sql-eval-dashboard --open-browser
 ```
 
-Every view has a shareable URL. A public read-only instance runs at
-**<https://text2sql-eval-toolkit.oktie.com>**.
+Every view has its own URL, so a benchmark, pipeline, filtered query or
+individual record can be linked to directly.
 
-See **[docs/dashboard/](docs/dashboard/)** for features, the URL scheme, the
-query index, capability tiers, and deploying it for other people.
+The dashboard runs as a local tool with every capability enabled, or as a
+shared read-only site with optional sign-in for a small allowlist. See
+**[docs/dashboard/](docs/dashboard/)** for features, the URL scheme, the query
+index, capability tiers, and deployment.
 
 ## Project Structure
 

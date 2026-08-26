@@ -1,8 +1,10 @@
-# Deployment Runbook
+# Deployment
 
-Operating the public dashboard. Companion to
-[`plan/03-public-deployment.md`](../attic/plan/03-public-deployment.md), which explains
-*why* the design is what it is; this file is what you follow when something
+Running the dashboard for other people, and operating it once it is running.
+
+[Capability tiers](capability-tiers.md) explains *why* the design is what it is —
+what each tier can do, and why a public host can offer the LLM judge while
+holding no database credentials. This document is what you follow when something
 needs doing.
 
 **Topology.** One VM running Docker Compose: `caddy`, `app`, and optionally
@@ -318,7 +320,7 @@ Auth logs carry a truncated hash of the identity, never the address.
 
 A Hetzner CX22 (2 vCPU / 4 GB / 38 GB), browse-only:
 
-| | |
+| Step | Cost |
 |---|---|
 | First image build | ~12 min (no cache; npm install, then ~90 Python packages) |
 | Provisioning | ~2 min — 3.7 GB fetched, six indices built |

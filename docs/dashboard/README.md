@@ -10,12 +10,9 @@ Two ways it gets used, and they are configured differently:
 - **A shared read-only site** — browsing published results, with optional Google
   sign-in for a small allowlist. See [deployment](deployment.md).
 
-A public instance runs at
-**<https://text2sql-eval-toolkit.oktie.com>**.
-
-| | |
+| Guide | Covers |
 |---|---|
-| [Shareable links](shareable-links.md) | The URL scheme, short pipeline aliases, what happens when a link does not resolve |
+| [Shareable links](shareable-links.md) | The URL scheme, short pipeline aliases, and what happens when a link does not resolve |
 | [Query index](query-index.md) | How GB-scale artifacts are served in milliseconds, and how to build the index |
 | [Capability tiers](capability-tiers.md) | `public` / `judge` / `full`, sign-in, and why the judge tier needs no database |
 | [Deployment](deployment.md) | Running it for other people: container stack, TLS, provisioning, health checks |

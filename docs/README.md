@@ -1,11 +1,9 @@
 # Documentation
 
-| | |
-|---|---|
-| [`dashboard/`](dashboard/) | The evaluation dashboard — features, shareable links, the query index, capability tiers, deployment, development |
-| [`attic/`](attic/) | Development history: the project log and the plans the v2 work was executed against. Kept for the record, not for use |
+- **[dashboard/](dashboard/)** — the evaluation dashboard: features, shareable
+  links, the query index, capability tiers, deployment, and development.
+- **[attic/](attic/)** — development history, kept for the record.
 
-The toolkit's own setup and usage — installation, the library API, running
-experiments and individual pipeline stages — is in the
-[top-level README](../README.md). Contributor conventions are in
+Installing the toolkit, the library API, and running experiments are covered in
+the [top-level README](../README.md). Contributor conventions are in
 [CONTRIBUTING.md](../CONTRIBUTING.md).
