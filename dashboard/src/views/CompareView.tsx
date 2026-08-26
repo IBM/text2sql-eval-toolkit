@@ -75,7 +75,7 @@ export const CompareView: React.FC<Props> = ({ benchmarkId }) => {
 
   const rows = useMemo(
     () =>
-      data?.rows.map((r, idx) => ({
+      data?.rows?.map((r, idx) => ({
         id: `${r.pipeline}-${r.metric}-${idx}`,
         pipeline: r.pipeline,
         metric: r.metric,
@@ -129,11 +129,17 @@ export const CompareView: React.FC<Props> = ({ benchmarkId }) => {
               <Table aria-label="Comparison table">
                 <TableHead>
                   <TableRow>
-                    {headers.map((header) => (
-                      <TableHeader key={header.key} {...getHeaderProps({ header })}>
+                    {headers.map((header) => {
+                      // Carbon's prop getter returns its own `key`; spreading it
+                      // would override the explicit one, and React 18 warns on a
+                      // spread `key`. Take it out and pass it directly.
+                      const { key, ...headerProps } = getHeaderProps({ header });
+                      return (
+                        <TableHeader key={key} {...headerProps}>
                         {header.header}
-                      </TableHeader>
-                    ))}
+                        </TableHeader>
+                      );
+                    })}
                   </TableRow>
                 </TableHead>
                 <TableBody>

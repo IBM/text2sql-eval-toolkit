@@ -5,6 +5,83 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-26
+
+A dashboard release: every view is now addressable by URL, reads are served from
+a derived index instead of by re-parsing artifacts, and the server can be run as
+a read-only public deployment.
+
+The library's public API is unchanged, the CLI is unchanged, and the on-disk
+artifact format is unchanged — hence a minor bump rather than a major one. A
+default `text2sql-eval-dashboard` on loopback keeps every capability it had,
+which is enforced by a test rather than by intention.
+
+### Packaging
+
+- The wheel now contains the LLM-judge prompt configs. Every release to date
+  shipped the judge code without them, so `load_llm_judge_config()` raised
+  `FileNotFoundError` on any pip install.
+- The wheel now contains the dashboard frontend, so `pip install
+  "text2sql-eval-toolkit[dashboard]"` serves the UI instead of returning 404 at
+  `/`. The Vite build is copied into the package at build time by `setup.py`.
+
+### Added
+- **Shareable URLs.** Every view has its own address — benchmark, pipeline
+  detail, filtered error analysis, an individual record, and a record within a
+  pipeline (`/benchmark/{id}/pipeline/{pipeline}/record/{record}`) — and
+  reopening one restores the same view.
+- **Short pipeline links.** `GET /api/benchmarks/{id}/pipeline-aliases` returns
+  a derived alias per pipeline; the dashboard accepts an alias anywhere it
+  accepts an id and expands it on arrival. A two-pipeline comparison link goes
+  from 247 characters to 158. Aliases shorten links; they do not survive a model
+  being renamed.
+- **Query index.** A SQLite index built alongside each evaluation artifact
+  (`text2sql-eval-toolkit index build` / `index status`). 1,915 MB of artifacts
+  become 117 MB of indices; a record detail goes from 921 ms to 0.3 ms and peak
+  memory from 2,151 MB to 170 MB.
+- **Capability tiers** (`public` / `judge` / `full`), resolved per request from
+  the deployment mode and the caller's identity and enforced centrally, so a new
+  endpoint is safe by default. `full` is the default for a loopback bind.
+- **Google sign-in** and a **scoped LLM-as-judge endpoint** for allowlisted
+  users, metered against a monthly budget that persists across restarts.
+- **Deployment artifacts**: container image, compose file with internal-only
+  database networking, provisioning script, and an operations runbook
+  (`docs/dashboard/deployment.md`).
+- **CI**: lint, format, type check, tests across Python 3.11–3.13, frontend
+  build and lint, per-module coverage floors, and end-to-end tests.
+- **Tests**: 619 backend, 82 frontend, and 13 Playwright end-to-end tests that
+  copy a link and reopen it in a fresh browser context.
+
+### Changed
+- Dashboard reads are served from the index rather than by parsing whole
+  evaluation files per request.
+- SQLite execution opens the database read-only with `ATTACH` disabled.
+- Security headers, per-client rate limiting, and CORS narrowed outside `full`
+  mode.
+- `data/benchmarks.json` in the checkout is now canonical; the packaged copy is
+  generated from it and CI fails on divergence.
+- `requirements.txt` is generated from `uv.lock`.
+- The version is resolved in one place from the installed package metadata,
+  rather than being repeated in `pyproject.toml` and `__init__.py`.
+
+### Fixed
+- Ranking window functions (`RANK`, `DENSE_RANK`, `ROW_NUMBER`) were counted as
+  aggregations under sqlglot ≥ 28, corrupting profiling categories.
+- `compute_summary` aborted a whole benchmark's summary on one record whose
+  metrics were incomplete.
+- `report_tools` aborted a whole report on a metric stored as a bare number.
+- A ground-truth SQL with no executed dataframe silently produced a record with
+  no metrics and no error flag.
+- `sqlite_run_execution_async` resolved database paths against the packaged
+  registry, so the documented SQLite setup could not work from a checkout.
+- Error-analysis reports counted a record the pipeline never answered but could
+  not say which one, and inlined an entire record — dataframes included — into
+  the error note.
+- The dashboard's back button did nothing in error analysis; a link to a
+  benchmark the server does not have silently opened a different one; and a cold
+  load wrote a default filter into the address without applying it to the
+  results.
+
 ## [1.2.0] - 2026-05-13
 
 ### Added
@@ -56,5 +133,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Re-exported low-level SQL comparison and parsing helpers (`compare_result_dfs`, `sql_exact_match`, etc.) from toolkit-owned metrics utilities.
 - Library-focused README examples showing record-level, file-level, and benchmark-level usage.
 
+[1.3.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.3.0
 [1.1.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.1.0
 [1.0.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.0.0

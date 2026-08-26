@@ -19,6 +19,7 @@ import { apiFetch, apiUrl } from "../lib/api";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
+  clampToAvailable,
   flattenMetricInsightsSelectNames,
 } from "../lib/metricInsightsSelect";
 
@@ -126,8 +127,8 @@ export const PipelineCompareView: React.FC<Props> = ({
   const [leftPipeline, setLeftPipeline] = useState<string>("");
   const [rightPipeline, setRightPipeline] = useState<string>("");
 
-  const [metricA, setMetricA] = useState<string>("execution_accuracy");
-  const [metricB, setMetricB] = useState<string>("subset_non_empty_execution_accuracy");
+  const [rawMetricA, setMetricA] = useState<string>("execution_accuracy");
+  const [rawMetricB, setMetricB] = useState<string>("subset_non_empty_execution_accuracy");
 
   const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinitionsResponse | null>(null);
   const [metricDefinitionsError, setMetricDefinitionsError] = useState<string | null>(null);
@@ -135,7 +136,10 @@ export const PipelineCompareView: React.FC<Props> = ({
   const [confusionA, setConfusionA] = useState<CrossPipelineConfusionResponse | null>(null);
   const [confusionB, setConfusionB] = useState<CrossPipelineConfusionResponse | null>(null);
 
-  const pipelines = useMemo(() => summary?.overall.map((p) => p.name) ?? [], [summary]);
+  const pipelines = useMemo(
+    () => summary?.overall?.map((p) => p.name) ?? [],
+    [summary]
+  );
 
   const pipelineCompareMetricGroups = useMemo(
     () => buildMetricInsightsSelectGroups(metricDefinitions?.metrics ?? []),
@@ -163,15 +167,15 @@ export const PipelineCompareView: React.FC<Props> = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (!metricDefinitions?.metrics?.length) return;
-    const groups = buildMetricInsightsSelectGroups(metricDefinitions.metrics);
-    const names = flattenMetricInsightsSelectNames(groups);
-    if (names.length === 0) return;
-    const allowed = new Set(names);
-    setMetricA((a) => (allowed.has(a) ? a : names[0]));
-    setMetricB((b) => (allowed.has(b) ? b : names[1] ?? names[0]));
-  }, [metricDefinitions]);
+  const availableMetricNames = useMemo(
+    () => flattenMetricInsightsSelectNames(pipelineCompareMetricGroups),
+    [pipelineCompareMetricGroups]
+  );
+
+  // Derived rather than corrected from an effect: the selection is never
+  // briefly invalid, and no render uses a stale value to build a request.
+  const metricA = clampToAvailable(rawMetricA, availableMetricNames, 0);
+  const metricB = clampToAvailable(rawMetricB, availableMetricNames, 1);
 
   useEffect(() => {
     if (!benchmarkId) return;

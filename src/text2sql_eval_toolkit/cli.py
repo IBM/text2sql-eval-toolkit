@@ -12,13 +12,14 @@ Subcommands
 results fetch   Download pre-computed results from the Hugging Face Hub.
 results list    Print the available results manifest as a table.
 results clear   Remove previously downloaded results.
+index build     Build the query index used by the dashboard.
+index status    Show whether each benchmark's index is current.
 """
 
 import argparse
 import sys
 from pathlib import Path
 from typing import List, Optional
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -90,12 +91,29 @@ def _cmd_list(args: argparse.Namespace) -> int:
     print()
 
     benchmarks = manifest.get("benchmarks", {})
+
+    # A manifest generated before the flat-layout fix lists the results/
+    # sub-directories (bak, logs, charts) as if they were benchmarks. Presenting
+    # those as available data is worse than saying nothing, so call it out.
+    stale_markers = {"bak", "logs", "charts"}
+    looks_stale = bool(benchmarks) and set(benchmarks).issubset(stale_markers)
+    if looks_stale:
+        print(
+            "WARNING: this manifest lists no benchmarks -- only the results/ "
+            "sub-directories below. It predates the manifest-generation fix and "
+            "needs regenerating with scripts/curation/upload_results_to_hub.py.",
+            file=sys.stderr,
+        )
+        print(
+            "         Downloads still work: `results fetch` ignores the manifest "
+            "when no filters are given, and falls back to direct paths when they "
+            "are.",
+            file=sys.stderr,
+        )
+        print(file=sys.stderr)
+
     col_b, col_p, col_m = 30, 20, 60
-    header = (
-        f"{'Benchmark':<{col_b}}"
-        f"{'Pipeline':<{col_p}}"
-        f"{'Models':<{col_m}}"
-    )
+    header = f"{'Benchmark':<{col_b}}" f"{'Pipeline':<{col_p}}" f"{'Models':<{col_m}}"
     print(header)
     print("-" * (col_b + col_p + col_m))
     for b_name, b_info in benchmarks.items():
@@ -104,9 +122,7 @@ def _cmd_list(args: argparse.Namespace) -> int:
             # Wrap long model lists for readability.
             if len(models_str) > col_m:
                 models_str = models_str[: col_m - 3] + "..."
-            print(
-                f"{b_name:<{col_b}}{p_name:<{col_p}}{models_str:<{col_m}}"
-            )
+            print(f"{b_name:<{col_b}}{p_name:<{col_p}}{models_str:<{col_m}}")
     return 0
 
 
@@ -122,6 +138,79 @@ def _cmd_clear(args: argparse.Namespace) -> int:
     except Exception as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
+
+
+def _results_dir(args: argparse.Namespace) -> Path:
+    import os
+
+    if getattr(args, "data_root", None):
+        root = Path(args.data_root)
+    else:
+        env = os.getenv("TEXT2SQL_DATA_ROOT")
+        root = Path(env) if env else Path.cwd() / "data"
+    return root.expanduser().resolve() / "results"
+
+
+def _cmd_index_build(args: argparse.Namespace) -> int:
+    from text2sql_eval_toolkit.indexing import build_all
+
+    results_dir = _results_dir(args)
+    if not results_dir.is_dir():
+        print(f"Error: results directory not found: {results_dir}", file=sys.stderr)
+        print(
+            "Download results first with: text2sql-eval-toolkit results fetch",
+            file=sys.stderr,
+        )
+        return 1
+
+    benchmarks = _normalise_list(args.benchmarks)
+    try:
+        built = build_all(results_dir, benchmarks=benchmarks, force=args.force)
+    except Exception as exc:
+        print(f"Error building index: {exc}", file=sys.stderr)
+        return 1
+
+    if not built:
+        print(f"No evaluation artifacts found in {results_dir}")
+        return 1
+    for benchmark_id, path in sorted(built.items()):
+        size = path.stat().st_size / 1e6
+        print(f"{benchmark_id:35} {size:8.1f} MB  {path}")
+    return 0
+
+
+def _cmd_index_status(args: argparse.Namespace) -> int:
+    from text2sql_eval_toolkit.indexing import index_path_for, is_stale
+
+    results_dir = _results_dir(args)
+    if not results_dir.is_dir():
+        print(f"Error: results directory not found: {results_dir}", file=sys.stderr)
+        return 1
+
+    artifacts = sorted(results_dir.glob("*-predictions_eval.json"))
+    if not artifacts:
+        print(f"No evaluation artifacts found in {results_dir}")
+        return 1
+
+    stale_count = 0
+    print(f"{'Benchmark':35}{'Index':12}{'Size':>10}")
+    print("-" * 57)
+    for artifact in artifacts:
+        benchmark_id = artifact.name[: -len("-predictions_eval.json")]
+        path = index_path_for(artifact)
+        if is_stale(artifact, path):
+            stale_count += 1
+            state, size = "stale", "-"
+        else:
+            state = "current"
+            size = f"{path.stat().st_size / 1e6:.1f} MB"
+        print(f"{benchmark_id:35}{state:12}{size:>10}")
+    if stale_count:
+        print(
+            f"\n{stale_count} index(es) need building: "
+            "text2sql-eval-toolkit index build"
+        )
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -188,10 +277,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--data-root",
         default=None,
         metavar="PATH",
-        help=(
-            "Root data directory.  "
-            "Falls back to $TEXT2SQL_DATA_ROOT or ./data."
-        ),
+        help=("Root data directory.  " "Falls back to $TEXT2SQL_DATA_ROOT or ./data."),
     )
     fetch_p.add_argument(
         "--force",
@@ -224,6 +310,37 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     clear_p.add_argument("--data-root", default=None, metavar="PATH")
 
+    # ── index ────────────────────────────────────────────────────────────────
+    index_parser = sub.add_parser(
+        "index",
+        help="Build and inspect the dashboard's query index.",
+    )
+    index_sub = index_parser.add_subparsers(dest="index_command", metavar="ACTION")
+
+    build_p = index_sub.add_parser(
+        "build",
+        help="Build the query index for downloaded evaluation results.",
+    )
+    build_p.add_argument(
+        "--benchmarks",
+        action="append",
+        default=[],
+        metavar="BENCHMARK",
+        help="Benchmark(s) to index (repeated or comma-separated). Omit for all.",
+    )
+    build_p.add_argument(
+        "--force",
+        action="store_true",
+        help="Rebuild even when the existing index is current.",
+    )
+    build_p.add_argument("--data-root", default=None, metavar="PATH")
+
+    status_p = index_sub.add_parser(
+        "status",
+        help="Report whether each benchmark's index is current.",
+    )
+    status_p.add_argument("--data-root", default=None, metavar="PATH")
+
     return parser
 
 
@@ -235,6 +352,15 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[List[str]] = None) -> None:
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    if args.command == "index":
+        if args.index_command == "build":
+            sys.exit(_cmd_index_build(args))
+        elif args.index_command == "status":
+            sys.exit(_cmd_index_status(args))
+        else:
+            parser.parse_args(["index", "--help"])
+            sys.exit(1)
 
     if args.command == "results":
         if args.results_command == "fetch":

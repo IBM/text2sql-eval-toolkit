@@ -376,11 +376,17 @@ export const BenchmarkDetail: React.FC<Props> = ({
               <Table aria-label="Pipeline summary">
                 <TableHead>
                   <TableRow>
-                    {headers.map((header) => (
-                      <TableHeader key={header.key} {...getHeaderProps({ header })}>
+                    {headers.map((header) => {
+                      // Carbon's prop getter returns its own `key`; spreading it
+                      // would override the explicit one, and React 18 warns on a
+                      // spread `key`. Take it out and pass it directly.
+                      const { key, ...headerProps } = getHeaderProps({ header });
+                      return (
+                        <TableHeader key={key} {...headerProps}>
                         {header.header}
-                      </TableHeader>
-                    ))}
+                        </TableHeader>
+                      );
+                    })}
                   </TableRow>
                 </TableHead>
                 <TableBody>

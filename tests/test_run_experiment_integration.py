@@ -17,6 +17,7 @@ from text2sql_eval_toolkit.analysis.error_analysis import (
 )
 
 
+@pytest.mark.integration
 def test_run_experiment_end_to_end():
     benchmark_id = "bird_sqlite_test_benchmark"
     model_name = "wxai:meta-llama/llama-3-3-70b-instruct"
@@ -58,15 +59,15 @@ def test_run_experiment_end_to_end():
 
     # Assertions and error export
     assert output_file.exists(), f"Expected output file not found: {output_file}"
-    assert eval_results_path.exists(), (
-        f"Expected output file not found: {eval_results_path}"
-    )
+    assert (
+        eval_results_path.exists()
+    ), f"Expected output file not found: {eval_results_path}"
 
     with eval_results_path.open("r", encoding="utf-8") as eval_results_file:
         records = json.load(eval_results_file)
         errors_path = eval_results_path.with_name(eval_results_path.stem + "_errors.md")
         export_failed_examples_to_markdown(records, errors_path)
 
-    assert eval_results_md_path.exists(), (
-        f"Expected output file not found: {eval_results_md_path}"
-    )
+    assert (
+        eval_results_md_path.exists()
+    ), f"Expected output file not found: {eval_results_md_path}"

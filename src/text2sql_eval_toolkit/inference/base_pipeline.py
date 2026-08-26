@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+
 class BasePipeline:
     def run_pipeline(self, input_data):
         raise NotImplementedError("Subclasses should implement this method.")

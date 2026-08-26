@@ -218,6 +218,7 @@ class Cache:
         if CACHE_LOCATION:
             try:
                 import diskcache
+
                 os.makedirs(CACHE_LOCATION, exist_ok=True)
                 self.cache = diskcache.Cache(CACHE_LOCATION, size_limit=MAX_CACHE_SIZE)
                 logger.info(f"Caching enabled at {CACHE_LOCATION}")
@@ -424,7 +425,9 @@ class RemoteDatabaseConnector(DatabaseConnector):
 
     def __init__(self, db_config: SQLDatabase):
         super().__init__(db_config)
-        assert db_config["db_id"], "db_id must be in db_config for RemoteDatabaseConnector"
+        assert db_config[
+            "db_id"
+        ], "db_id must be in db_config for RemoteDatabaseConnector"
         self.api_url, self.database_id = (
             db_config["db_id"].split(",")[0],
             db_config["db_id"].split("db_id=")[-1].split(",")[0],
@@ -543,11 +546,17 @@ def is_sqlparse_parsable(sql: str) -> bool:
         return False
 
 
-def sqlglot_optimized_equivalence(expected: str, generated: str, dialect: str = "") -> int:
+def sqlglot_optimized_equivalence(
+    expected: str, generated: str, dialect: str = ""
+) -> int:
     from sqlglot import parse_one
     from sqlglot.optimizer import optimize
+
     try:
-        return int(optimize(parse_one(expected, read=dialect)) == optimize(parse_one(generated, read=dialect)))
+        return int(
+            optimize(parse_one(expected, read=dialect))
+            == optimize(parse_one(generated, read=dialect))
+        )
     except Exception as e:
         logger.debug(f"Error parsing SQL for comparison: {e}")
         return 0
@@ -660,7 +669,10 @@ def sqlparse_queries_equivalent(sql1: str, sql2: str) -> bool:
         if info1["columns"] != info2["columns"]:
             return False
         for k in ["from", "where", "group", "having", "order"]:
-            if info1[k].replace(" ", "").replace("\n", "").upper() != info2[k].replace(" ", "").replace("\n", "").upper():
+            if (
+                info1[k].replace(" ", "").replace("\n", "").upper()
+                != info2[k].replace(" ", "").replace("\n", "").upper()
+            ):
                 return False
         return True
     except Exception as e:
@@ -787,12 +799,18 @@ def compare_dfs_ignore_colnames_subset(
         return [row_to_multiset(row) for row in df.values]
 
     def sort_df(df):
-        sorted_df = df.copy()
-        for i in range(len(sorted_df.columns)):
-            sorted_df.iloc[:, i] = (
-                sorted_df.iloc[:, i].map(_canonical_scalar).sort_values(ignore_index=True)
-            )
-        return sorted_df
+        # Built rather than assigned into a copy. `_canonical_scalar` can return
+        # a type the original column cannot hold -- a string where the column is
+        # int64 -- and writing that back through `.iloc` asks pandas to coerce.
+        # It warned about that for several releases and now raises, so an
+        # installation with a newer pandas failed every execution-match metric
+        # with "Invalid value ... for dtype 'int64'".
+        return pd.DataFrame(
+            {
+                i: df.iloc[:, i].map(_canonical_scalar).sort_values(ignore_index=True)
+                for i in range(df.shape[1])
+            }
+        )
 
     if df1.empty or df2.empty or len(df1) != len(df2):
         return False
@@ -808,7 +826,7 @@ def compare_dfs_ignore_colnames_subset(
     subset_rows = rows_to_multisets(subset_df)
     superset_rows = rows_to_multisets(superset_df)
 
-    for r1, r2 in zip(subset_rows, superset_rows):
+    for r1, r2 in zip(subset_rows, superset_rows, strict=True):
         if not all(r1[k] <= r2.get(k, 0) for k in r1):
             return False
     return True
@@ -850,7 +868,9 @@ def compare_result_dfs(
     return match, non_empty_match, subset_match
 
 
-def run_query(sql: str, connector, sql_timeout: float) -> Tuple[Optional[pd.DataFrame], float, str]:
+def run_query(
+    sql: str, connector, sql_timeout: float
+) -> Tuple[Optional[pd.DataFrame], float, str]:
     from func_timeout import func_timeout
     from func_timeout.exceptions import FunctionTimedOut
 
@@ -936,7 +956,9 @@ def get_sql_execution_results(
     except Exception as e:
         logger.info(f"Could not check SQL equivalence: {e}")
 
-    pred_df, pred_runtime, pred_error_msg = run_query(predicted_sql, connector, sql_timeout)
+    pred_df, pred_runtime, pred_error_msg = run_query(
+        predicted_sql, connector, sql_timeout
+    )
     pred_error = 1 if pred_error_msg else 0
 
     if pred_df is None:
@@ -948,7 +970,9 @@ def get_sql_execution_results(
             non_empty_gold_df=non_empty_gold_df,
             gold_sql_runtime=gold_runtime,
             predicted_sql_runtime=pred_runtime,
-            pred_to_gold_runtime_ratio=(pred_runtime / gold_runtime) if gold_runtime > 0 else 0,
+            pred_to_gold_runtime_ratio=(
+                (pred_runtime / gold_runtime) if gold_runtime > 0 else 0
+            ),
             gold_error=0,
             predicted_error=pred_error,
             gold_df_json=gold_df.to_json(),
@@ -956,7 +980,9 @@ def get_sql_execution_results(
             error_message=pred_error_msg,
         )
 
-    match, non_empty_match, subset_match = compare_result_dfs(gold_df, pred_df, gold_sql)
+    match, non_empty_match, subset_match = compare_result_dfs(
+        gold_df, pred_df, gold_sql
+    )
     bird_match = compare_dfs_bird_eval_logic(gold_df, pred_df)
 
     return SQLExecutionResult(
@@ -967,7 +993,9 @@ def get_sql_execution_results(
         non_empty_gold_df=non_empty_gold_df,
         gold_sql_runtime=gold_runtime,
         predicted_sql_runtime=pred_runtime,
-        pred_to_gold_runtime_ratio=(pred_runtime / gold_runtime) if gold_runtime > 0 else 0,
+        pred_to_gold_runtime_ratio=(
+            (pred_runtime / gold_runtime) if gold_runtime > 0 else 0
+        ),
         gold_error=0,
         predicted_error=0,
         gold_df_json=gold_df.to_json(),

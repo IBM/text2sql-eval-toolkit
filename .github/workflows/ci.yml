@@ -1,0 +1,455 @@
+#
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# Before this workflow existed, nothing ran tests or linting on a PR.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep every job hermetic: no .env discovery, no credential-dependent paths.
+  TEXT2SQL_DATA_ROOT: ${{ github.workspace }}/data
+
+jobs:
+  lint:
+    name: Lint and format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install tooling
+        # Lint tools only -- no project dependencies needed, so this job stays fast.
+        run: python -m pip install --upgrade pip ruff black
+      - name: Ruff
+        run: ruff check src tests scripts --output-format=github
+      - name: Black
+        run: black --check --diff src tests scripts
+      - name: Version agreement
+        # pyproject, the installed package, the changelog and the tag. This
+        # drifted once already and nothing noticed for months.
+        run: python scripts/ci/check_version.py
+
+  consistency:
+    # Two files in this repo are generated from another; both have silently
+    # drifted before. Checking is cheaper than noticing later.
+    name: Generated files in sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Packaged benchmark registries
+        # The checkout copy shadows the packaged one, so drift is invisible in
+        # development and only reaches pip-installed users.
+        run: python scripts/curation/sync_packaged_registry.py --check
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: uv.lock matches pyproject.toml
+        # An export can agree with a lockfile that has itself fallen behind the
+        # project's declared dependencies.
+        run: uv lock --check
+      - name: requirements.txt matches uv.lock
+        run: |
+          uv export --format requirements-txt --no-hashes --no-dev \
+            --no-emit-project -o /tmp/requirements.expected
+          # Compare package lines only: our header and uv's banner differ by
+          # design, and comments carry no dependency information.
+          grep -E '^[a-zA-Z0-9]' requirements.txt | sort > /tmp/have.txt
+          grep -E '^[a-zA-Z0-9]' /tmp/requirements.expected | sort > /tmp/want.txt
+          if ! diff -u /tmp/want.txt /tmp/have.txt; then
+            echo "::error::requirements.txt is stale. Regenerate it (see its header)."
+            exit 1
+          fi
+
+  typecheck:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,dashboard]"
+      - name: Mypy
+        # Scope is deliberately narrow and widens module by module; the file list
+        # is `[tool.mypy] files` in pyproject.toml.
+        run: mypy
+
+  test:
+    name: Tests (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,dashboard]"
+      - name: Pytest
+        # pyproject's addopts excludes `integration`, so this needs no
+        # credentials, no database, and no network.
+        run: pytest --cov --cov-report=xml --cov-report=json --cov-report=term-missing
+      - name: Coverage floors
+        # Per-module minimums for the code where being wrong is expensive:
+        # published metrics, the artifact index, and authorization. The
+        # project-wide fail_under in pyproject is only a backstop.
+        run: python scripts/ci/check_coverage.py
+      - name: Upload coverage
+        if: matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
+
+  e2e:
+    name: End-to-end (shareable links)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install the toolkit
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dashboard]"
+      - name: Install frontend dependencies
+        working-directory: dashboard
+        run: npm ci
+      - name: Install Chromium
+        working-directory: dashboard
+        # Only the one browser: these tests are about routing and history, not
+        # cross-browser rendering, and three engines would triple the download
+        # for no additional signal.
+        run: npx playwright install --with-deps chromium
+      - name: Build the dashboard
+        # The tests run against dashboard/dist, so this must be the build under
+        # test rather than the committed one.
+        working-directory: dashboard
+        run: npm run build
+      - name: Playwright
+        working-directory: dashboard
+        run: npx playwright test
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: dashboard/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  test-next:
+    # Non-blocking early warning for the next interpreter. Promote into `test`
+    # once dependency wheels (psycopg2-binary, ibm_watsonx_ai) are confirmed.
+    name: Tests (py3.14, advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,dashboard]"
+      - name: Pytest
+        run: pytest
+
+  container:
+    # The deployment image is unverified until something builds it. Compose
+    # config is validated too, so a typo there fails here rather than on the VM.
+    name: Container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Validate compose configuration
+        run: |
+          docker compose -f deploy/docker-compose.yml --profile databases config \
+            --quiet
+        env:
+          DASHBOARD_DOMAIN: example.org
+          ACME_EMAIL: ci@example.org
+          POSTGRES_SUPERUSER_PASSWORD: ci
+          MYSQL_ROOT_PASSWORD: ci
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: false
+          load: true
+          tags: text2sql-dashboard:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test the image
+        # Public mode needs no credentials and no data, so this checks the image
+        # actually starts and serves rather than merely compiles.
+        run: |
+          docker run -d --name dash -p 8000:8000 \
+            -e TEXT2SQL_DASHBOARD_MODE=public \
+            text2sql-dashboard:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/api/me > /tmp/me.json; then break; fi
+            sleep 2
+          done
+          cat /tmp/me.json
+          grep -q '"tier":"public"' /tmp/me.json
+          # A privileged endpoint must be refused in the deployed configuration.
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' -d '{"sql":"SELECT 1"}' \
+            http://127.0.0.1:8000/api/benchmarks/demo/execute)
+          echo "execute -> $code"
+          [ "$code" = "403" ]
+      - name: Provisioning is reachable inside the image
+        # The documented first deployment step runs this. It failed three ways
+        # at once and nothing noticed: the script was not in the image, the
+        # entrypoint swallowed it as an argument, and the pinned revision never
+        # reached the container. Exercised here without network by checking it
+        # gets far enough to complain about the one thing it should.
+        run: |
+          out=$(docker run --rm --entrypoint text2sql-provision \
+            text2sql-dashboard:ci 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -q "TEXT2SQL_RESULTS_REVISION is unset" \
+            || { echo "::error::provisioning did not run; see output above"; exit 1; }
+
+      - name: Default logos ship in the image and seed the data root
+        # The snapshot ships `results/` only, so a deployment's data root has no
+        # logos and every benchmark tile rendered blank -- including the
+        # generic.png the UI falls back to.
+        run: |
+          docker run --rm --entrypoint sh text2sql-dashboard:ci -c \
+            'ls /opt/text2sql/default-logos/generic.png' >/dev/null \
+            || { echo "::error::default logos are not in the image"; exit 1; }
+          out=$(docker run --rm -e TEXT2SQL_DATA_ROOT=/tmp/seed \
+            --entrypoint text2sql-provision text2sql-dashboard:ci 2>&1 || true)
+          echo "$out" | grep -qE "seeded [1-9][0-9]* default logo" \
+            || { echo "$out"; echo "::error::provisioning did not seed logos"; exit 1; }
+
+      - name: Compose wires the database read-only passwords
+        # These reach the init scripts, which refuse to initialise without them
+        # rather than leaving a server whose only account is superuser. They
+        # were absent entirely, so the read-only roles were never created.
+        run: |
+          cfg=$(docker compose -f deploy/docker-compose.yml --profile databases config)
+          echo "$cfg" | grep -q "POSTGRES_READONLY_PASSWORD" \
+            || { echo "::error::postgres init cannot see its password"; exit 1; }
+          echo "$cfg" | grep -q "MYSQL_READONLY_PASSWORD" \
+            || { echo "::error::mysql init cannot see its password"; exit 1; }
+        env:
+          DASHBOARD_DOMAIN: example.org
+          ACME_EMAIL: ci@example.org
+          POSTGRES_SUPERUSER_PASSWORD: ci
+          MYSQL_ROOT_PASSWORD: ci
+
+      - name: Compose bounds memory and does not gate the edge on app health
+        # Both are about what a failure looks like on the box: unbounded
+        # containers take the host down with them, and gating caddy on app
+        # health takes the domain down -- including the ACME endpoint -- while
+        # the app is broken.
+        # `--format json` + stdlib python: no yq, no PyYAML, nothing to assume
+        # about what the runner image ships.
+        run: |
+          docker compose -f deploy/docker-compose.yml --profile databases \
+            config --format json > /tmp/compose.json
+          python3 - <<'CHECK'
+          import json, sys
+          cfg = json.load(open("/tmp/compose.json"))
+          problems = []
+          for svc in ("app", "postgres", "mysql", "caddy"):
+              if not cfg["services"][svc].get("mem_limit"):
+                  problems.append(f"{svc} has no memory limit")
+          cond = (
+              cfg["services"]["caddy"]
+              .get("depends_on", {})
+              .get("app", {})
+              .get("condition")
+          )
+          if cond != "service_started":
+              problems.append(f"caddy waits on app with {cond!r}, not service_started")
+          for p in problems:
+              print(f"::error::{p}")
+          sys.exit(1 if problems else 0)
+          CHECK
+        env:
+          DASHBOARD_DOMAIN: example.org
+          ACME_EMAIL: ci@example.org
+          POSTGRES_SUPERUSER_PASSWORD: ci
+          MYSQL_ROOT_PASSWORD: ci
+
+      - name: Compose passes the pinned revision to the app
+        run: |
+          docker compose -f deploy/docker-compose.yml config \
+            | grep -q "TEXT2SQL_RESULTS_REVISION" \
+            || { echo "::error::the revision never reaches the container"; exit 1; }
+        env:
+          DASHBOARD_DOMAIN: example.org
+          ACME_EMAIL: ci@example.org
+          POSTGRES_SUPERUSER_PASSWORD: ci
+          MYSQL_ROOT_PASSWORD: ci
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs dash || true
+
+  frontend:
+    name: Dashboard build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Type check
+        # Blocking. `vite build` does not type-check, so without this an
+        # undefined identifier in JSX ships and only fails when that view is
+        # opened -- which is exactly what happened once on this branch.
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Bundle size budget
+        # Budgets the *entry* chunk, not the sum of all JS: route views are
+        # code-split and load on demand, so summing every chunk would hide the
+        # thing this guards. Baseline after splitting: ~401 KB entry, ~826 KB CSS.
+        # See docs/dashboard/development.md.
+        run: |
+          budget_entry=460
+          budget_css=900
+          entry=$(du -k dist/assets/index-*.js | sort -rn | head -1 | cut -f1)
+          css=$(du -ck dist/assets/*.css | tail -1 | cut -f1)
+          lazy=$(find dist/assets -name "*.js" | wc -l | tr -d ' ')
+          echo "entry ${entry} KB (budget ${budget_entry} KB) across ${lazy} JS chunks"
+          echo "CSS ${css} KB (budget ${budget_css} KB)"
+          fail=0
+          if [ "$entry" -gt "$budget_entry" ]; then
+            echo "::error::entry chunk ${entry} KB exceeds budget ${budget_entry} KB"
+            fail=1
+          fi
+          if [ "$css" -gt "$budget_css" ]; then
+            echo "::error::CSS ${css} KB exceeds budget ${budget_css} KB"
+            fail=1
+          fi
+          exit $fail
+      - name: Verify committed dist is current
+        # dashboard/dist is committed and served by text2sql-eval-dashboard, so a
+        # stale build silently ships different UI than the source. See
+        # docs/dashboard/deployment.md.
+        run: |
+          # Content-hashed filenames mean any real change shows as deleted+untracked,
+          # so check porcelain status rather than `git diff` alone.
+          changed=$(git status --porcelain -- dist)
+          if [ -n "$changed" ]; then
+            echo "::warning::dashboard/dist differs from a fresh build of dashboard/src."
+            echo "Run 'cd dashboard && npm run build' and commit the result."
+            echo "$changed"
+          fi
+
+  packaging:
+    name: Wheel contents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Build distributions
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+      - name: The wheel must contain what the runtime reads at import time
+        # Neither of these is covered by the test suite, which always runs from a
+        # source checkout where both resolve from the repository instead. Both
+        # have shipped broken: the judge YAML was absent from every release to
+        # date, and the frontend was absent until it was packaged deliberately.
+        run: |
+          python - <<'PY'
+          import sys, zipfile, glob
+          whl = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(whl).namelist()
+          checks = {
+              "judge prompts": "text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_default_config.yaml",
+              "benchmark registry": "text2sql_eval_toolkit/data/benchmarks.json",
+              "dashboard entry point": "text2sql_eval_toolkit/ui/static/index.html",
+          }
+          failed = False
+          for label, path in checks.items():
+              ok = path in names
+              print(f"{'ok  ' if ok else 'MISS'} {label}: {path}")
+              if not ok:
+                  print(f"::error::{label} missing from the wheel ({path})")
+                  failed = True
+          assets = [n for n in names if n.startswith("text2sql_eval_toolkit/ui/static/assets/")]
+          print(f"{'ok  ' if assets else 'MISS'} dashboard assets: {len(assets)} file(s)")
+          if not assets:
+              print("::error::the wheel carries index.html but no assets")
+              failed = True
+          sys.exit(1 if failed else 0)
+          PY
+      - name: A clean install must serve the UI, not a bare 404
+        run: |
+          python -m venv /tmp/probe
+          /tmp/probe/bin/pip install -q "$(ls dist/*.whl)[dashboard]"
+          cd /tmp   # outside the checkout, so nothing resolves from the repo
+          /tmp/probe/bin/text2sql-eval-dashboard --port 8123 > /tmp/probe.log 2>&1 &
+          for _ in $(seq 1 30); do
+            sleep 2
+            curl -sf -o /tmp/index.html http://127.0.0.1:8123/ && break
+          done
+          code=$(curl -s -o /tmp/index.html -w '%{http_code}' http://127.0.0.1:8123/)
+          echo "GET / -> $code"
+          cat /tmp/probe.log
+          if [ "$code" != "200" ]; then
+            echo "::error::a pip install serves $code at / -- the frontend is not packaged"
+            exit 1
+          fi
+          grep -q "<div id=\"root\"" /tmp/index.html || {
+            echo "::error::/ returned 200 but not the dashboard document"; exit 1; }
+          echo "a pip install serves the dashboard"

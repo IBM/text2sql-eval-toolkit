@@ -49,7 +49,6 @@ from text2sql_eval_toolkit.inference.agentic_pipeline import (
     AgenticSQLGenerationPipeline,
 )
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser = add_common_arguments(parser)
@@ -99,7 +98,9 @@ if __name__ == "__main__":
     if args.pipeline_type == "agentic" and args.agentic_models:
         # Use specified agentic models
         models_to_run = args.agentic_models
-        print(f"Using {len(models_to_run)} specified agentic model(s): {', '.join(models_to_run)}")
+        print(
+            f"Using {len(models_to_run)} specified agentic model(s): {', '.join(models_to_run)}"
+        )
     else:
         # Use all models from --model_names
         models_to_run = args.model_names

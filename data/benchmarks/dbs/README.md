@@ -43,6 +43,17 @@ The following databases are required for the benchmarks:
    data/benchmarks/dbs/bird/dev_databases/
    ```
 
+   A symlink works too, if you keep the download elsewhere:
+
+   ```bash
+   mkdir -p data/benchmarks/dbs/bird
+   ln -s /path/to/MINIDEV/dev_databases data/benchmarks/dbs/bird/dev_databases
+   ```
+
+   `db_folder` resolves against the registry actually in use — `$TEXT2SQL_DATA_ROOT`
+   or the repository's `data/` — so this location is what the toolkit reads.
+   All 500 gold queries have been verified to run from here.
+
 ---
 
 ## BIRD Mini-Dev (PostgreSQL)
@@ -102,6 +113,28 @@ Set environment variable for connection:
 export POSTGRES_CONNECTION_STRING="postgresql://${USER}@localhost:5432/bird"
 ```
 
+### Option 3: Scripted load (recommended)
+
+```bash
+BIRD_DUMP=/path/to/MINIDEV_postgresql/BIRD_dev.sql \
+PGUSER=$(whoami) BIRD_DB=bird ./deploy/load-bird-postgres.sh
+```
+
+The script drops and recreates the database, loads with `ON_ERROR_STOP` so a
+partial load fails loudly, verifies the table count, and optionally creates the
+`SELECT`-only role the dashboard should connect as
+(set `POSTGRES_READONLY_PASSWORD`).
+
+It also creates any role the dump names in `OWNER TO` but which does not exist
+locally, as `NOLOGIN`. The published dump references its author's role, and
+`psql` aborts on an unknown role; creating a login-less role is safer than
+rewriting a gigabyte of SQL to strip ownership.
+
+**Note the shape of this benchmark.** Unlike the SQLite variant, the Postgres
+dump merges all eleven BIRD databases into a single `public` schema (75 tables),
+which is why execution sets `search_path` once rather than switching per record.
+All 500 gold queries have been verified against a loaded server.
+
 ---
 
 ## Spider 1.0
@@ -150,17 +183,60 @@ export POSTGRES_CONNECTION_STRING="postgresql://${USER}@localhost:5432/bird"
 
 **Used by:** `beaver`, `beaver_test_10`
 
-Beaver requires a MySQL server. You need to:
+Beaver needs a MySQL server holding several databases; `db_id` is substituted
+into the connection string per record, so the database named in
+`MYSQL_CONNECTION_STRING` is only a default.
 
-1. Set up a MySQL server (local or remote)
-2. Import the Beaver database schema and data
-3. Set the `MYSQL_CONNECTION_STRING` environment variable
+### Steps
 
-```bash
-export MYSQL_CONNECTION_STRING="mysql://username:password@localhost:3306/beaver"
-```
+1. **Obtain the dumps** from the Beaver project:
+   https://peterbaile.github.io/beaver/ — currently `dw.sql`, `nova.sql`, and
+   `neutron.sql` (~2.1 GB in total).
 
-Refer to the Beaver benchmark documentation for database setup details: https://peterbaile.github.io/beaver/
+2. **Start a MySQL server** (8.x). Locally:
+   ```bash
+   brew install mysql && brew services start mysql
+   ```
+   Or use the `mysql` service in `deploy/docker-compose.yml`.
+
+3. **Load them**, which also renames two databases to the names the questions
+   use:
+   ```bash
+   BEAVER_DUMP_DIR=/path/to/beaver_db MYSQL_USER=root ./deploy/load-beaver.sh
+   ```
+
+4. **Point the toolkit at the server:**
+   ```bash
+   export MYSQL_CONNECTION_STRING="mysql://user:password@127.0.0.1:3306/dw"
+   ```
+
+### Why the loader renames things
+
+The dumps are named after the source systems, but the benchmark addresses two of
+them by a prefixed name. Loading the dumps unchanged produces databases the
+benchmark cannot find:
+
+| Dump | Database it creates | Name the benchmark uses |
+|---|---|---|
+| `dw.sql` | `dw` | `dw` |
+| `nova.sql` | `nova` | **`csail_stata_nova`** |
+| `neutron.sql` | `neutron` | **`csail_stata_neutron`** |
+
+### Coverage
+
+| Database | Questions | Status |
+|---|---|---|
+| `dw` | 121 | Loadable |
+| `csail_stata_nova` | 43 | Loadable |
+| `csail_stata_neutron` | 30 | Loadable |
+| `keystone` | 8 | **No dump published** |
+| `csail_stata_glance` | 5 | **No dump published** |
+| `csail_stata_cinder` | 2 | **No dump published** |
+
+**194 of 209 questions (93%) are executable** with the dumps currently
+available; all 194 gold queries have been verified to run against a loaded
+server. The remaining 15 fail with an unknown-database error until upstream
+publishes those three dumps — a data gap, not a configuration mistake.
 
 ---
 

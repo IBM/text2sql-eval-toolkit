@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-import json
 import pandas as pd
 from pathlib import Path
 from text2sql_eval_toolkit.utils import parse_dataframe
@@ -19,11 +18,24 @@ def get_pipeline_ids(records):
 
 
 def get_failed_records(records, pipeline_id, metric="execution_accuracy"):
+    """
+    Records where ``pipeline_id`` failed: it scored zero on ``metric``, or it
+    produced no prediction at all.
+
+    A record with no prediction used to be appended as the bare string
+    "No predictions for {pipeline}".  It still counted towards the failure
+    total -- correctly, a pipeline that answered nothing did fail -- but the
+    record itself was gone, so the report could not say which question it was,
+    and the formatter, handed a string where it expected a mapping, rendered an
+    error note instead of an example.
+    """
     failed_records = []
     for r in records:
-        if pipeline_id not in r["predictions"]:
-            failed_records.append(f"No predictions for {pipeline_id}")
-        elif r["predictions"][pipeline_id]["evaluation"].get(metric) == 0:
+        predictions = r.get("predictions") or {}
+        prediction = predictions.get(pipeline_id)
+        if prediction is None:
+            failed_records.append(r)
+        elif (prediction.get("evaluation") or {}).get(metric) == 0:
             failed_records.append(r)
     return failed_records
 
@@ -96,10 +108,10 @@ def chat_prompt_to_html(prompt):
         escaped_content = html_module.escape(content)
 
         # Add message with visual separator
-        html_output += f"<div style='margin-bottom: 15px;'>\n"
+        html_output += "<div style='margin-bottom: 15px;'>\n"
         html_output += f"<strong>{role} Message {i + 1}:</strong>\n"
         html_output += f"<pre style='margin: 5px 0; padding: 10px; background-color: #ffffff; border-left: 3px solid #007acc; white-space: pre-wrap; word-wrap: break-word;'>{escaped_content}</pre>\n"
-        html_output += f"</div>\n"
+        html_output += "</div>\n"
 
     html_output += "</div>\n"
     return html_output
@@ -113,37 +125,76 @@ def format_inference_error_example(record, pred, example_index, total_failed):
         or record.get("question")
         or record.get("utterance", "")
     )
-    
+
     md = []
     md.append(
         f"### ⚠️  Inference Failed - Question #{example_index} (of {total_failed} examples) - Question ID: `{question_id}`\n"
     )
     md.append(f"**Question**: {utterance}\n")
-    
+
     md.append("### ❌ Inference Error")
     md.append(f"```\n{pred.get('inference_error', 'Unknown error')}\n```")
-    
+
     # Show raw response if available
-    if pred.get('raw_response'):
+    if pred.get("raw_response"):
         md.append("### 📄 Raw Model Response")
         md.append(f"```\n{pred['raw_response']}\n```")
-    
+
     # Show prompt that was used
-    if pred.get('prompt'):
+    if pred.get("prompt"):
         md.append("### 📝 Prompt Used")
         md.append(f"```\n{safe_snippet(pred['prompt'], head=500, tail=500)}\n```")
-    
+
     md.append("---\n")
     return "\n".join(md)
 
 
+def _record_label(record, example_index):
+    """
+    Something to name a record by in a report.
+
+    Never the record itself: it carries serialized result dataframes, so
+    interpolating it puts hundreds of kilobytes into a published markdown file
+    and the same again into the log.
+    """
+    if isinstance(record, dict):
+        return record.get("id", record.get("_id", f"example_{example_index}"))
+    return f"example_{example_index}"
+
+
+def format_missing_prediction_example(record, pipeline_id, example_index, total_failed):
+    """Format a failed example where the pipeline produced no prediction."""
+    question_id = _record_label(record, example_index)
+    utterance = (
+        record.get("page_content")
+        or record.get("question")
+        or record.get("utterance", "")
+    )
+    return "\n".join(
+        [
+            f"### ⚠️  No Prediction - Question #{example_index} "
+            f"(of {total_failed} examples) - Question ID: `{question_id}`\n",
+            f"**Question**: {utterance}\n",
+            f"This pipeline produced no prediction for this question, so there is "
+            f"nothing to compare against `{pipeline_id}`.\n",
+            "---\n",
+        ]
+    )
+
+
 def format_failed_example(record, pipeline_id, example_index, total_failed):
-    try:
-        pred = record["predictions"][pipeline_id]
-    except Exception as e:
-        logger.error(f"Error reading prediction in record: {record}")
-        return f"⚠️  Error reading prediction in record: {record}\n\n"
-    
+    predictions = record.get("predictions") if isinstance(record, dict) else None
+    if not isinstance(predictions, dict):
+        label = _record_label(record, example_index)
+        logger.error("Error reading prediction in record %s", label)
+        return f"⚠️  Error reading prediction in record `{label}`\n\n"
+
+    pred = predictions.get(pipeline_id)
+    if pred is None:
+        return format_missing_prediction_example(
+            record, pipeline_id, example_index, total_failed
+        )
+
     # Check for inference error
     if "inference_error" in pred:
         return format_inference_error_example(record, pred, example_index, total_failed)

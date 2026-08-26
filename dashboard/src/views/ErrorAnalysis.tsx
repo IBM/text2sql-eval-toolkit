@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   ComboBox,
@@ -22,6 +22,9 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { highlightSql } from "../lib/sql";
+import { ResultTableView } from "./ResultTableView";
+import { resolveDetailPipeline } from "../lib/detailPipeline";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
@@ -32,6 +35,21 @@ interface Props {
   benchmarkId: string;
   onBack?: () => void;
   initialFilters?: Partial<ErrorAnalysisFilters>;
+  /** Page, page size, and selected record, restored from the URL. */
+  initialPage?: number;
+  initialPageSize?: number;
+  initialRecordId?: string | null;
+  /**
+   * Called whenever the view's shareable state changes, so the address bar can
+   * follow. Without this a shared link would reproduce the filters but not the
+   * page or the open record.
+   */
+  onStateChange?: (state: {
+    filters: Partial<ErrorAnalysisFilters>;
+    page: number;
+    pageSize: number;
+    record: string | null;
+  }) => void;
 }
 
 interface ErrorRecordSummary {
@@ -70,7 +88,9 @@ interface ErrorRecordDetail {
   predicted_sql?: string;
   evaluation_metrics: Record<string, any>;
   ground_truth_results: any[];
+  ground_truth_result_row_counts?: (number | null)[];
   predicted_result: any;
+  predicted_result_row_count?: number | null;
   prompt?: string;
   llm_judge_score?: number;
   llm_judge_explanation?: string;
@@ -115,129 +135,29 @@ function formatMetricHeader(metricName: string, fallback: string): string {
   return trimmed.replaceAll("_", " ");
 }
 
-function escapeHtml(text: string): string {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
 
-function highlightSql(sql: string): string {
-  const escaped = escapeHtml(sql);
-  const keywords = [
-    "SELECT","FROM","WHERE","GROUP BY","ORDER BY","HAVING","LIMIT","JOIN","LEFT JOIN",
-    "RIGHT JOIN","INNER JOIN","OUTER JOIN","ON","AS","AND","OR","NOT","IN","EXISTS",
-    "COUNT","SUM","AVG","MIN","MAX","DISTINCT","CASE","WHEN","THEN","ELSE","END",
-  ];
-  const sorted = keywords.sort((a, b) => b.length - a.length);
-  let html = escaped;
-  sorted.forEach((kw) => {
-    const token = kw.replace(/\s+/g, "\\s+");
-    const re = new RegExp(`\\b${token}\\b`, "gi");
-    html = html.replace(
-      re,
-      (m) => `<span style="color:#0f62fe;font-weight:600;">${m.toUpperCase()}</span>`
-    );
-  });
-  return html;
-}
-
-function normalizeTableData(raw: any): { columns: string[]; rows: any[] } {
-  let value = raw;
-  if (typeof value === "string") {
-    try {
-      value = JSON.parse(value);
-    } catch {
-      return { columns: ["value"], rows: [{ value }] };
-    }
-  }
-  if (
-    value &&
-    typeof value === "object" &&
-    Array.isArray(value.columns) &&
-    Array.isArray(value.data)
-  ) {
-    const columns = value.columns.map((c: any) => String(c));
-    const rows = value.data.map((row: any[], idx: number) => {
-      const out: Record<string, any> = { id: `r-${idx}` };
-      columns.forEach((c, i) => {
-        out[c] = row?.[i];
-      });
-      return out;
-    });
-    return { columns, rows };
-  }
-  if (Array.isArray(value)) {
-    if (value.length === 0) return { columns: [], rows: [] };
-    if (typeof value[0] === "object" && value[0] !== null && !Array.isArray(value[0])) {
-      const columnSet = new Set<string>();
-      value.forEach((v) => Object.keys(v).forEach((k) => columnSet.add(k)));
-      const columns = Array.from(columnSet);
-      const rows = value.map((v, idx) => ({ id: `r-${idx}`, ...v }));
-      return { columns, rows };
-    }
-    const rows = value.map((v, idx) => ({ id: `r-${idx}`, value: v }));
-    return { columns: ["value"], rows };
-  }
-  if (value && typeof value === "object") {
-    return { columns: Object.keys(value), rows: [{ id: "r-0", ...value }] };
-  }
-  return { columns: ["value"], rows: [{ id: "r-0", value: String(value) }] };
-}
-
-const ResultTableView: React.FC<{ title: string; rawData: any }> = ({ title, rawData }) => {
-  const normalized = useMemo(() => normalizeTableData(rawData), [rawData]);
-  const headers: DataTableHeader[] = normalized.columns.map((c) => ({ key: c, header: c }));
-  return (
-    <section
-      style={{
-        border: "1px solid rgba(15,98,254,0.2)",
-        borderRadius: "6px",
-        padding: "0.6rem",
-        background: "#ffffff",
-      }}
-    >
-      <h4 style={{ margin: "0 0 0.5rem 0", color: "#0f62fe" }}>{title}</h4>
-      {headers.length === 0 ? (
-        <div style={{ opacity: 0.8 }}>No rows</div>
-      ) : (
-        <div style={{ maxHeight: "240px", overflow: "auto" }}>
-          <DataTable rows={normalized.rows} headers={headers} size="sm">
-            {({ rows, headers, getHeaderProps }) => (
-              <TableContainer>
-                <Table aria-label={title}>
-                  <TableHead>
-                    <TableRow>
-                      {headers.map((header) => (
-                        <TableHeader key={header.key} {...getHeaderProps({ header })}>
-                          {header.header}
-                        </TableHeader>
-                      ))}
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {rows.map((row) => (
-                      <TableRow key={row.id}>
-                        {row.cells.map((cell) => (
-                          <TableCell key={cell.id}>
-                            {cell.value == null ? "NULL" : String(cell.value)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </DataTable>
-        </div>
-      )}
-    </section>
-  );
-};
-
-export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFilters }) => {
+export const ErrorAnalysis: React.FC<Props> = ({
+  benchmarkId,
+  onBack,
+  initialFilters,
+  initialPage,
+  initialPageSize,
+  initialRecordId,
+  onStateChange,
+}) => {
   const [items, setItems] = useState<ErrorRecordSummary[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  // Page, page size and the open record live in the URL rather than in this
+  // component. They are the steps a reader walks through, so the browser's back
+  // button has to move them -- and a view that read them only at mount left back
+  // doing nothing at all: pressing it from page 2 re-emitted page 2 and the
+  // address went straight back where it came from.
+  //
+  // Reading them as props makes the address bar the single source of truth. The
+  // setters below report a change upwards and the new value arrives as a prop,
+  // which is also what makes a link opened in place behave like a fresh load.
+  const page = initialPage ?? 1;
+  const pageSize = initialPageSize ?? 25;
   const [search, setSearch] = useState("");
   const [pipeline, setPipeline] = useState(() => initialFilters?.pipeline ?? "");
   const [metric, setMetric] = useState(() => initialFilters?.metric ?? "execution_accuracy");
@@ -250,8 +170,75 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
   const [disagree, setDisagree] = useState(() => initialFilters?.disagree ?? false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  const [selectedRecordPipeline, setSelectedRecordPipeline] = useState<string | null>(null);
+  const selectedRecordId = initialRecordId ?? null;
+  const [selectedRecordPipeline, setSelectedRecordPipeline] = useState<string | null>(
+    null
+  );
+
+  const detailPipelineFor = useCallback(
+    (recordId: string, source: ErrorRecordSummary[]): string | null =>
+      resolveDetailPipeline(recordId, source, pipeline),
+    [pipeline]
+  );
+
+  // A record restored from a shared link has no pipeline yet; resolve it once
+  // the page of records arrives, or the detail panel opens empty.
+  useEffect(() => {
+    if (!selectedRecordId || selectedRecordPipeline || items.length === 0) return;
+    const resolved = detailPipelineFor(selectedRecordId, items);
+    if (resolved) setSelectedRecordPipeline(resolved);
+  }, [selectedRecordId, selectedRecordPipeline, items, detailPipelineFor]);
+
+  const filterState = useMemo(
+    () => ({ pipeline, metric, value, op, pipeline2, metric2, disagree }),
+    [pipeline, metric, value, op, pipeline2, metric2, disagree]
+  );
+
+  /** Report a new position to the URL owner; it comes back as props. */
+  const movePosition = useCallback(
+    (patch: { page?: number; pageSize?: number; record?: string | null }) => {
+      onStateChange?.({
+        filters: filterState,
+        page: patch.page ?? page,
+        pageSize: patch.pageSize ?? pageSize,
+        record: patch.record !== undefined ? patch.record : selectedRecordId,
+      });
+    },
+    [filterState, onStateChange, page, pageSize, selectedRecordId]
+  );
+
+  const setPage = useCallback(
+    (next: number) => movePosition({ page: next }),
+    [movePosition]
+  );
+  const setSelectedRecordId = useCallback(
+    (next: string | null) => movePosition({ record: next }),
+    [movePosition]
+  );
+
+  // Filters are still local -- they are edited before being applied -- so they
+  // are pushed to the address from an effect, rather than from each of the
+  // dozen handlers that can change one.
+  useEffect(() => {
+    onStateChange?.({
+      filters: { pipeline, metric, value, op, pipeline2, metric2, disagree },
+      page,
+      pageSize,
+      record: selectedRecordId,
+    });
+  }, [
+    onStateChange,
+    pipeline,
+    metric,
+    value,
+    op,
+    pipeline2,
+    metric2,
+    disagree,
+    page,
+    pageSize,
+    selectedRecordId,
+  ]);
   const [detail, setDetail] = useState<ErrorRecordDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -309,33 +296,6 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
     setMetric2((m2) => (allowed.has(m2) ? m2 : names[1] ?? names[0]));
   }, [metricDefinitions]);
 
-  useEffect(() => {
-    const loadDefaultPipeline = async () => {
-      try {
-        const res = await fetch(
-          apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
-        );
-        if (!res.ok) return;
-        const json = (await res.json()) as {
-          overall?: { name: string; metrics: Record<string, any> }[];
-        };
-        const ranked = [...(json.overall ?? [])].sort((a, b) => {
-          const av = Number(a.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
-          const bv = Number(b.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
-          return bv - av;
-        });
-        setAvailablePipelines(ranked.map((p) => p.name));
-        const bestPipeline = ranked[0]?.name ?? "";
-        if (!bestPipeline) return;
-        setPipeline((p) => p || bestPipeline);
-        setPipeline2((p) => p || bestPipeline);
-      } catch {
-        // Keep UX resilient; defaults are best-effort.
-      }
-    };
-    void loadDefaultPipeline();
-  }, [benchmarkId]);
-
   const load = async (overrides?: LoadOverrides) => {
     const effectivePage = overrides?.page ?? page;
     const effectivePageSize = overrides?.pageSize ?? pageSize;
@@ -380,6 +340,49 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
     }
   };
 
+  // Whether the address named a pipeline when this view was opened. Read once:
+  // it distinguishes "the reader chose this" from "we picked a default".
+  const [pipelineOnEntry] = useState(() => initialFilters?.pipeline ?? "");
+
+  useEffect(() => {
+    const loadDefaultPipeline = async () => {
+      try {
+        const res = await fetch(
+          apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
+        );
+        if (!res.ok) return;
+        const json = (await res.json()) as {
+          overall?: { name: string; metrics: Record<string, any> }[];
+        };
+        const ranked = [...(json.overall ?? [])].sort((a, b) => {
+          const av = Number(a.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
+          const bv = Number(b.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
+          return bv - av;
+        });
+        setAvailablePipelines(ranked.map((p) => p.name));
+        const bestPipeline = ranked[0]?.name ?? "";
+        if (!bestPipeline) return;
+        setPipeline((p) => p || bestPipeline);
+        setPipeline2((p) => p || bestPipeline);
+
+        // The listing was fetched before this default existed, so it is showing
+        // every record while the address bar -- which the effect below keeps in
+        // step with the filters -- already says it is filtered. Without this
+        // refetch the two disagree, and a link copied from that state shows the
+        // recipient a different set of records than the sender was looking at.
+        if (!pipelineOnEntry) {
+          void load({ pipeline: bestPipeline });
+        }
+      } catch {
+        // Keep UX resilient; defaults are best-effort.
+      }
+    };
+    void loadDefaultPipeline();
+    // `load` is called once here, on entry, with the pipeline passed
+    // explicitly rather than read from state, so it does not belong in the deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [benchmarkId]);
+
   /** Same fetch as "Apply filters" — quick presets call `load({...})` with explicit params. */
   const applyFilters = () => {
     setPage(1);
@@ -409,10 +412,18 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
           id: item.record_id,
           record_id: item.record_id,
           question: item.question,
-          metric1_pipeline: pipeline || "N/A",
-          metric1_score: formatMetricValue(pipeline1Prediction?.[metric]),
-          metric2_pipeline: pipeline2 || "N/A",
-          metric2_score: formatMetricValue(pipeline2Prediction?.[metric2]),
+          // "N/A" where no pipeline has been chosen yet would say the record
+          // has no value for this metric, which is a different claim and not
+          // true. The view picks a default a moment after its first paint, so
+          // this is what the table shows in between.
+          metric1_pipeline: pipeline || "—",
+          metric1_score: pipeline
+            ? formatMetricValue(pipeline1Prediction?.[metric])
+            : "—",
+          metric2_pipeline: pipeline2 || "—",
+          metric2_score: pipeline2
+            ? formatMetricValue(pipeline2Prediction?.[metric2])
+            : "—",
         };
       }),
     [items, metric, metric2, pipeline, pipeline2]
@@ -823,11 +834,17 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
               <Table aria-label="Error records">
                 <TableHead>
                   <TableRow>
-                    {headers.map((header) => (
-                      <TableHeader key={header.key} {...getHeaderProps({ header })}>
+                    {headers.map((header) => {
+                      // Carbon's prop getter returns its own `key`; spreading it
+                      // would override the explicit one, and React 18 warns on a
+                      // spread `key`. Take it out and pass it directly.
+                      const { key, ...headerProps } = getHeaderProps({ header });
+                      return (
+                        <TableHeader key={key} {...headerProps}>
                         {header.header}
-                      </TableHeader>
-                    ))}
+                        </TableHeader>
+                      );
+                    })}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -837,12 +854,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
                       style={{ cursor: "pointer" }}
                       onClick={() => {
                         const recordId = String(row.id);
-                        const source = items.find((x) => x.record_id === recordId);
-                        const availablePipelines = Object.keys(source?.predictions ?? {});
-                        const detailPipeline =
-                          (pipeline && availablePipelines.includes(pipeline) ? pipeline : null) ||
-                          availablePipelines[0] ||
-                          null;
+                        const detailPipeline = detailPipelineFor(recordId, items);
                         if (!detailPipeline) return;
                         setSelectedRecordId(recordId);
                         setSelectedRecordPipeline(detailPipeline);
@@ -864,10 +876,7 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
         pageSize={pageSize}
         pageSizes={[10, 25, 50, 100]}
         totalItems={total}
-        onChange={({ page, pageSize }) => {
-          setPage(page);
-          setPageSize(pageSize);
-        }}
+        onChange={({ page, pageSize }) => movePosition({ page, pageSize })}
       />
         </>
       )}
@@ -1139,9 +1148,18 @@ export const ErrorAnalysis: React.FC<Props> = ({ benchmarkId, onBack, initialFil
                       </pre>
                     </section>
                     {(detail.ground_truth_results || []).map((r, idx) => (
-                      <ResultTableView key={`gt-result-table-${idx}`} title={`Ground truth result ${idx + 1}`} rawData={r} />
+                      <ResultTableView
+                        key={`gt-result-table-${idx}`}
+                        title={`Ground truth result ${idx + 1}`}
+                        rawData={r}
+                        totalRows={detail.ground_truth_result_row_counts?.[idx]}
+                      />
                     ))}
-                    <ResultTableView title="Predicted result" rawData={detail.predicted_result} />
+                    <ResultTableView
+                      title="Predicted result"
+                      rawData={detail.predicted_result}
+                      totalRows={detail.predicted_result_row_count}
+                    />
                     <section>
                       <h4 style={{ margin: "0.25rem 0", color: "#0f62fe" }}>Prompt</h4>
                       <pre style={{ margin: "0.3rem 0", padding: "0.6rem", background: "#f4f4f4", borderRadius: "4px", whiteSpace: "pre-wrap", color: "#161616" }}>

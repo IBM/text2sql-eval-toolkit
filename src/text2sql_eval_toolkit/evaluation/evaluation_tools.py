@@ -34,11 +34,12 @@ from text2sql_eval_toolkit.evaluation.llm_as_judge import (
 )
 from text2sql_eval_toolkit.logging import get_logger
 
-
 logger = get_logger(__name__)
 
 
-def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_llm_judge=False):
+def evaluate_prediction(
+    record, prediction, llm_judge_config=None, force_rerun_llm_judge=False
+):
     """
     Evaluates a predicted SQL query against one or more ground truth SQL queries and their corresponding result dataframes.
 
@@ -139,7 +140,7 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
       force_rerun_llm_judge is True. This significantly improves performance when re-evaluating the same data.
     """
     result = {}
-    
+
     # Check for inference error - skip evaluation if inference failed
     if "inference_error" in prediction:
         return {
@@ -159,7 +160,7 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
             "df_error_message": f"Inference failed: {prediction['inference_error']}",
             "eval_error": 0,
         }
-    
+
     pred_df = None
     predicted_sql = prediction["predicted_sql"]
 
@@ -177,7 +178,20 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
         if not isinstance(gold_dfs, list):
             gold_dfs = [gold_dfs]
 
-        for gold_sql, gold_df_raw in zip(gold_sqls, gold_dfs):
+        if gold_sqls and not gold_dfs:
+            # A ground-truth SQL with no executed dataframe cannot be compared
+            # against. Returning silently left the result as `{"df_error": 0}`
+            # with no metrics and no error flag, which then raised KeyError in
+            # compute_summary and took out the whole benchmark's summary.
+            raise ValueError(
+                "No ground-truth dataframe to evaluate against; run the "
+                "execution stage for this record first."
+            )
+
+        # strict=False deliberately: some records carry more ground-truth SQLs
+        # than dataframes, and truncating is the behaviour the published
+        # results were produced under.
+        for gold_sql, gold_df_raw in zip(gold_sqls, gold_dfs, strict=False):
             gold_df = parse_dataframe(gold_df_raw)
 
             match, non_empty_match, subset_match = (
@@ -249,14 +263,14 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
                 }
             )
             result["df_error"] = result.pop("df_error")
-            
+
             # Add token usage metrics from prediction to evaluation result
             token_usage = prediction.get("token_usage")
             if token_usage:
                 result["prompt_tokens"] = token_usage.get("prompt_tokens", 0)
                 result["completion_tokens"] = token_usage.get("completion_tokens", 0)
                 result["total_tokens"] = token_usage.get("total_tokens", 0)
-            
+
             # Add timing metrics from prediction to evaluation result
             inference_time = prediction.get("inference_time_ms")
             if inference_time is not None:
@@ -269,7 +283,7 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
                 try:
                     llm_score = None
                     llm_explanation = None
-                    
+
                     # Check if we can reuse existing LLM judge results
                     use_cached_results = False
                     if not force_rerun_llm_judge:
@@ -292,16 +306,16 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
                                 logger.warning(
                                     "Invalid cached llm_score, will re-run LLM judge"
                                 )
-                    
+
                     if not use_cached_results:
                         if pred_df is None:
                             llm_score = 0.0
-                            llm_explanation = (
-                                "N/A (did not use LLM due to missing prediction dataframe)"
-                            )
+                            llm_explanation = "N/A (did not use LLM due to missing prediction dataframe)"
                         elif subset_match:
                             llm_score = 1.0
-                            llm_explanation = "N/A (did not use LLM due to subset match)"
+                            llm_explanation = (
+                                "N/A (did not use LLM due to subset match)"
+                            )
                         else:
                             question = get_question(record)
                             ground_truth_sql = gold_sql
@@ -312,16 +326,17 @@ def evaluate_prediction(record, prediction, llm_judge_config=None, force_rerun_l
                             # Get context for LLM judge
                             # For agentic pipelines: use agent_trace (full conversation history)
                             # For standard baseline: use prompt
-                            if "agent_trace" in prediction and prediction["agent_trace"]:
+                            if (
+                                "agent_trace" in prediction
+                                and prediction["agent_trace"]
+                            ):
                                 # Agentic pipeline - use full trace as context
                                 trace = prediction["agent_trace"]
                                 trace_text = "Agent Interaction Trace:\n\n"
                                 for i, interaction in enumerate(trace, 1):
                                     if interaction is None:
                                         continue
-                                    trace_text += (
-                                        f"Step {i}: {interaction.get('step', 'unknown')}\n"
-                                    )
+                                    trace_text += f"Step {i}: {interaction.get('step', 'unknown')}\n"
                                     if "messages" in interaction:
                                         for msg in interaction["messages"]:
                                             role = msg.get("role", "unknown")
@@ -386,19 +401,25 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
         num_df_errors = sum(1 for r in records if "df_error_message" in r)
         # Count records with inference errors (failed to generate SQL)
         num_inference_errors = sum(
-            1 for r in records
-            if "df_error_message" in r and "Inference failed" in (r.get("df_error_message") or "")
+            1
+            for r in records
+            if "df_error_message" in r
+            and "Inference failed" in (r.get("df_error_message") or "")
         )
         # Count records with successful predictions (SQL was generated)
         num_predictions = num_records - num_inference_errors
         num_evaluated = num_records - num_eval_errors
+        # .get(..., 0) rather than subscripting: a record that could not be
+        # evaluated may be missing metrics entirely, and one such record used to
+        # raise KeyError here and abort the summary for the whole benchmark.
+        # Counting it as 0 matches the stated intent below.
         num_correct_non_empty_execution_accuracy = sum(
-            r["non_empty_execution_accuracy"]
+            r.get("non_empty_execution_accuracy", 0)
             for r in records
             if "eval_error_message" not in r
         )
         num_correct_subset_non_empty_execution_accuracy = sum(
-            r["subset_non_empty_execution_accuracy"]
+            r.get("subset_non_empty_execution_accuracy", 0)
             for r in records
             if "eval_error_message" not in r
         )
@@ -422,23 +443,30 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
                     # This penalizes pipelines that fail to generate predictions
                     metric_sum = df[metric].sum()
                     metric_stats[metric] = {
-                        "average": metric_sum / num_records,  # Changed from df[metric].mean()
-                        "stddev": df[metric].std()
+                        "average": metric_sum
+                        / num_records,  # Changed from df[metric].mean()
+                        "stddev": df[metric].std(),
                     }
-            
+
             # Token metrics are automatically calculated by pandas from the evaluation records
             # The statistics (average, stddev) are already in metric_stats from lines above
             # We just need to add the total sums as separate count metrics
             if "total_tokens" in df.columns:
                 metric_stats["sum_total_tokens"] = int(df["total_tokens"].sum())
                 metric_stats["sum_prompt_tokens"] = int(df["prompt_tokens"].sum())
-                metric_stats["sum_completion_tokens"] = int(df["completion_tokens"].sum())
-            
+                metric_stats["sum_completion_tokens"] = int(
+                    df["completion_tokens"].sum()
+                )
+
             # Timing metrics - add total sums
             if "inference_time_ms" in df.columns:
-                metric_stats["sum_inference_time_ms"] = round(df["inference_time_ms"].sum(), 2)
+                metric_stats["sum_inference_time_ms"] = round(
+                    df["inference_time_ms"].sum(), 2
+                )
             if "execution_time_ms" in df.columns:
-                metric_stats["sum_execution_time_ms"] = round(df["execution_time_ms"].sum(), 2)
+                metric_stats["sum_execution_time_ms"] = round(
+                    df["execution_time_ms"].sum(), 2
+                )
         else:
             metric_stats = {}
 
@@ -454,7 +482,7 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
         metric_stats["num_correct_subset_non_empty_execution_accuracy"] = (
             num_correct_subset_non_empty_execution_accuracy
         )
-        
+
         if llm_judge_config:
             metric_stats["num_correct_llm"] = sum(
                 1
@@ -568,41 +596,51 @@ def print_summary(summary, use_llm):
             )
         print(f"  Evaluation Errors              : {num_eval_errors}")
         print(f"  Dataframe Errors              : {num_df_errors}")
-        
+
         # Print token usage metrics if available
         if "sum_total_tokens" in metrics:
-            print(f"  Token Usage Metrics:")
-            print(f"    Total Tokens                 : {metrics.get('sum_total_tokens', 0):,}")
-            total_tokens_stats = metrics.get('total_tokens', {})
+            print("  Token Usage Metrics:")
+            print(
+                f"    Total Tokens                 : {metrics.get('sum_total_tokens', 0):,}"
+            )
+            total_tokens_stats = metrics.get("total_tokens", {})
             if isinstance(total_tokens_stats, dict):
-                avg_val = total_tokens_stats.get('average', 0)
+                avg_val = total_tokens_stats.get("average", 0)
             else:
                 avg_val = 0
             print(f"    Avg Tokens per Question      : {avg_val:.2f}")
-            print(f"    Total Prompt Tokens          : {metrics.get('sum_prompt_tokens', 0):,}")
-            print(f"    Total Completion Tokens      : {metrics.get('sum_completion_tokens', 0):,}")
-        
+            print(
+                f"    Total Prompt Tokens          : {metrics.get('sum_prompt_tokens', 0):,}"
+            )
+            print(
+                f"    Total Completion Tokens      : {metrics.get('sum_completion_tokens', 0):,}"
+            )
+
         # Print timing metrics if available
         if "sum_inference_time_ms" in metrics or "sum_execution_time_ms" in metrics:
-            print(f"  Performance Metrics:")
+            print("  Performance Metrics:")
             if "sum_inference_time_ms" in metrics:
-                inference_stats = metrics.get('inference_time_ms', {})
+                inference_stats = metrics.get("inference_time_ms", {})
                 if isinstance(inference_stats, dict):
-                    avg_inference = inference_stats.get('average', 0)
+                    avg_inference = inference_stats.get("average", 0)
                 else:
                     avg_inference = 0
-                print(f"    Total Inference Time         : {metrics.get('sum_inference_time_ms', 0):,.2f} ms")
+                print(
+                    f"    Total Inference Time         : {metrics.get('sum_inference_time_ms', 0):,.2f} ms"
+                )
                 print(f"    Avg Inference Time per Query : {avg_inference:.2f} ms")
-            
+
             if "sum_execution_time_ms" in metrics:
-                execution_stats = metrics.get('execution_time_ms', {})
+                execution_stats = metrics.get("execution_time_ms", {})
                 if isinstance(execution_stats, dict):
-                    avg_execution = execution_stats.get('average', 0)
+                    avg_execution = execution_stats.get("average", 0)
                 else:
                     avg_execution = 0
-                print(f"    Total Execution Time         : {metrics.get('sum_execution_time_ms', 0):,.2f} ms")
+                print(
+                    f"    Total Execution Time         : {metrics.get('sum_execution_time_ms', 0):,.2f} ms"
+                )
                 print(f"    Avg Execution Time per Query : {avg_execution:.2f} ms")
-        
+
         for metric, stats in metrics.items():
             if metric in {
                 "num_records",
@@ -648,12 +686,16 @@ async def async_evaluate_predictions(
     async def worker(record, prediction, llm_judge_config, force_rerun_llm_judge):
         async with semaphore:
             return await asyncio.to_thread(
-                evaluate_prediction, record, prediction, llm_judge_config, force_rerun_llm_judge
+                evaluate_prediction,
+                record,
+                prediction,
+                llm_judge_config,
+                force_rerun_llm_judge,
             )
 
     with open(input_file, "r") as f:
         data = json.load(f)
-    
+
     # Load existing evaluations from output file if it exists (for caching)
     existing_evaluations = {}
     if not force_rerun and Path(output_file).exists():
@@ -665,7 +707,9 @@ async def async_evaluate_predictions(
                     if record_id:
                         existing_evaluations[record_id] = record.get("predictions", {})
         except Exception as e:
-            logger.warning(f"Could not load existing evaluations from {output_file}: {e}")
+            logger.warning(
+                f"Could not load existing evaluations from {output_file}: {e}"
+            )
 
     # Copy existing evaluations to predictions for caching
     if not force_rerun:
@@ -675,7 +719,9 @@ async def async_evaluate_predictions(
                 predictions = record.get("predictions", {})
                 for model_name, prediction in predictions.items():
                     if model_name in existing_evaluations[record_id]:
-                        existing_eval = existing_evaluations[record_id][model_name].get("evaluation", {})
+                        existing_eval = existing_evaluations[record_id][model_name].get(
+                            "evaluation", {}
+                        )
                         if existing_eval:
                             prediction["evaluation"] = existing_eval
 
@@ -702,7 +748,7 @@ async def async_evaluate_predictions(
             metrics_by_model[model_name] = []
             token_usage_by_model[model_name] = []
         metrics_by_model[model_name].append(evaluation)
-        
+
         # Collect token usage from prediction
         token_usage = prediction.get("token_usage")
         if token_usage:
@@ -738,22 +784,31 @@ def evaluate_predictions(
         llm_judge_config = load_llm_judge_config(llm_judge_config_path)
     return asyncio.run(
         async_evaluate_predictions(
-            input_file, output_file, summary_file, csv_summary_file, llm_judge_config,
+            input_file,
+            output_file,
+            summary_file,
+            csv_summary_file,
+            llm_judge_config,
             force_rerun_llm_judge=force_rerun_llm_judge,
-            force_rerun=force_rerun
+            force_rerun=force_rerun,
         )
     )
 
 
 # For running from script
 def run_evaluation(
-    benchmark_id: str, use_llm: bool = False, llm_judge_config_path: str = None,
-    force_rerun_llm_judge: bool = False, force_rerun: bool = False
+    benchmark_id: str,
+    use_llm: bool = False,
+    llm_judge_config_path: str = None,
+    force_rerun_llm_judge: bool = False,
+    force_rerun: bool = False,
 ):
     benchmark_info = get_benchmark_info(benchmark_id)
     predictions_path = str(Path(benchmark_info["predictions_path"]))
     return evaluate_predictions(
-        predictions_path, use_llm=use_llm, llm_judge_config_path=llm_judge_config_path,
+        predictions_path,
+        use_llm=use_llm,
+        llm_judge_config_path=llm_judge_config_path,
         force_rerun_llm_judge=force_rerun_llm_judge or force_rerun,
-        force_rerun=force_rerun
+        force_rerun=force_rerun,
     )

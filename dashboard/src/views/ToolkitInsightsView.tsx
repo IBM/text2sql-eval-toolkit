@@ -17,6 +17,7 @@ import { apiFetch, apiUrl } from "../lib/api";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
+  clampToAvailable,
   flattenMetricInsightsSelectNames,
 } from "../lib/metricInsightsSelect";
 
@@ -87,16 +88,22 @@ export const ToolkitInsightsView: React.FC<Props> = ({
   const [confusionError, setConfusionError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [metricAKey, setMetricAKey] = useState<string>("execution_accuracy");
-  const [metricBKey, setMetricBKey] = useState<string>(
+  // Raw selections. The value actually used is derived below and clamped to the
+  // metrics the server defines, rather than being corrected from an effect --
+  // which produced a render with an invalid selection before the correction
+  // landed, and flagged react-hooks/set-state-in-effect.
+  const [rawMetricAKey, setMetricAKey] = useState<string>("execution_accuracy");
+  const [rawMetricBKey, setMetricBKey] = useState<string>(
     "subset_non_empty_execution_accuracy"
   );
-  const [llmMetricAKey, setLlmMetricAKey] = useState<string>("execution_accuracy");
+  const [rawLlmMetricAKey, setLlmMetricAKey] = useState<string>("execution_accuracy");
 
   const [execVsSubset, setExecVsSubset] = useState<ConfusionByPipelineResponse | null>(null);
   const [execVsLLM, setExecVsLLM] = useState<ConfusionByPipelineResponse | null>(null);
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
-  const [selectedPipeline, setSelectedPipeline] = useState<string>("");
+  // Raw selection; the effective value is derived below and falls back to the
+  // best-scoring pipeline when unset or no longer present.
+  const [rawSelectedPipeline, setSelectedPipeline] = useState<string>("");
 
   const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinitionsResponse | null>(null);
   const [metricDefinitionsError, setMetricDefinitionsError] = useState<string | null>(null);
@@ -127,16 +134,16 @@ export const ToolkitInsightsView: React.FC<Props> = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (!metricDefinitions?.metrics?.length) return;
-    const groups = buildMetricInsightsSelectGroups(metricDefinitions.metrics);
-    const names = flattenMetricInsightsSelectNames(groups);
-    if (names.length === 0) return;
-    const allowed = new Set(names);
-    setMetricAKey((a) => (allowed.has(a) ? a : names[0]));
-    setMetricBKey((b) => (allowed.has(b) ? b : names[1] ?? names[0]));
-    setLlmMetricAKey((x) => (allowed.has(x) ? x : names[0]));
-  }, [metricDefinitions]);
+  const availableMetricNames = useMemo(
+    () => flattenMetricInsightsSelectNames(metricInsightsGroups),
+    [metricInsightsGroups]
+  );
+
+  // Derived rather than corrected from an effect; the rule lives in lib/ so the
+  // three views that need it cannot drift apart.
+  const metricAKey = clampToAvailable(rawMetricAKey, availableMetricNames, 0);
+  const metricBKey = clampToAvailable(rawMetricBKey, availableMetricNames, 1);
+  const llmMetricAKey = clampToAvailable(rawLlmMetricAKey, availableMetricNames, 0);
 
   useEffect(() => {
     if (!benchmarkId) return;
@@ -202,25 +209,31 @@ export const ToolkitInsightsView: React.FC<Props> = ({
     void load();
   }, [benchmarkId, metricAKey, metricBKey, llmMetricAKey]);
 
-  useEffect(() => {
-    if (!summary?.overall?.length) {
-      setSelectedPipeline("");
-      return;
+  /**
+   * Which pipeline the view is showing.
+   *
+   * Derived rather than reset from an effect. The effect version depended on
+   * `selectedPipeline` and also set it, so it re-ran on its own output; deriving
+   * removes that loop as well as the invalid intermediate render.
+   */
+  const selectedPipeline = useMemo(() => {
+    const pipelines = summary?.overall ?? [];
+    if (pipelines.length === 0) return "";
+    if (rawSelectedPipeline && pipelines.some((p) => p.name === rawSelectedPipeline)) {
+      return rawSelectedPipeline;
     }
-    const bySubset = [...summary.overall].sort((a, b) => {
+    const best = [...pipelines].sort((a, b) => {
       const av = Number(a.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
       const bv = Number(b.metrics?.subset_non_empty_execution_accuracy?.average ?? -1);
       return bv - av;
-    });
-    const bestPipeline = bySubset[0]?.name ?? "";
-    const exists = summary.overall.some((p) => p.name === selectedPipeline);
-    if (!selectedPipeline || !exists) {
-      setSelectedPipeline(bestPipeline);
-    }
-  }, [summary, selectedPipeline]);
+    })[0];
+    return best?.name ?? "";
+  }, [summary, rawSelectedPipeline]);
 
   const pipelineDeltaRows = useMemo(() => {
-    if (!summary) return [];
+    // `!summary` alone is not enough: a response missing `overall` is truthy and
+    // then throws on .map, taking the whole view down.
+    if (!summary?.overall?.length) return [];
     const rows = summary.overall
       .map((p) => {
         const delta = metricDelta(p, "execution_accuracy", "subset_non_empty_execution_accuracy");
@@ -232,17 +245,20 @@ export const ToolkitInsightsView: React.FC<Props> = ({
   }, [summary]);
 
   const availablePipelines = useMemo(
-    () => summary?.overall.map((p) => p.name) ?? [],
+    () => summary?.overall?.map((p) => p.name) ?? [],
     [summary]
   );
 
   const selectedExecVsSubset = useMemo(
-    () => execVsSubset?.per_pipeline.find((p) => p.pipeline === selectedPipeline) ?? null,
+    () =>
+      execVsSubset?.per_pipeline?.find((p) => p.pipeline === selectedPipeline) ??
+      null,
     [execVsSubset, selectedPipeline]
   );
 
   const selectedExecVsLLM = useMemo(
-    () => execVsLLM?.per_pipeline.find((p) => p.pipeline === selectedPipeline) ?? null,
+    () =>
+      execVsLLM?.per_pipeline?.find((p) => p.pipeline === selectedPipeline) ?? null,
     [execVsLLM, selectedPipeline]
   );
 

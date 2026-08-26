@@ -47,16 +47,18 @@ import json
 import pandas as pd
 import re
 import sqlite3
+import urllib.parse
 import time
 from func_timeout import func_timeout, FunctionTimedOut
 from io import StringIO
 from pathlib import Path
+from typing import Optional
 from sqlglot import parse_one, exp
 from tqdm.asyncio import tqdm_asyncio
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
+    get_benchmarks_file_path,
     get_gt_sqls,
-    parse_dataframe,
     BENCHMARKS_FILE,
 )
 from text2sql_eval_toolkit.execution.replace_select_tool import (
@@ -64,7 +66,6 @@ from text2sql_eval_toolkit.execution.replace_select_tool import (
 )
 from text2sql_eval_toolkit.logging import get_logger
 from urllib.parse import urlparse, parse_qs, unquote
-
 
 _ibm_db_mod = None
 _sqlalchemy_mod = None
@@ -214,21 +215,25 @@ def quote_mysql_identifiers(sql: str) -> str:
 
 
 async def run_sql_and_get_dataframe_mysql_async(
-    normalized_conn_str: str, connect_args: dict, db_id: str, sql: str, timeout: int = 90
+    normalized_conn_str: str,
+    connect_args: dict,
+    db_id: str,
+    sql: str,
+    timeout: int = 90,
 ) -> pd.DataFrame:
     """
     Execute SQL query on MySQL using SQLAlchemy async engine with timeout.
-    
+
     Args:
         normalized_conn_str: MySQL connection string
         connect_args: Connection arguments
         db_id: Database ID to connect to
         sql: SQL query to execute
         timeout: Query timeout in seconds (default: 90)
-        
+
     Returns:
         pd.DataFrame: Query results
-        
+
     Raises:
         asyncio.TimeoutError: If query execution exceeds timeout
     """
@@ -265,14 +270,16 @@ async def run_sql_and_get_dataframe_mysql_async(
                 if result.returns_rows:
                     rows = result.fetchall()
                     columns = list(result.keys())
-                    data = [dict(zip(columns, row)) for row in rows]
+                    data = [dict(zip(columns, row, strict=True)) for row in rows]
                 else:
                     columns = []
                     data = []
-                
+
                 elapsed = time.perf_counter() - start_time
-                logger.debug(f"Query completed in {elapsed:.2f}s, returned {len(data)} rows")
-                
+                logger.debug(
+                    f"Query completed in {elapsed:.2f}s, returned {len(data)} rows"
+                )
+
                 return await asyncio.to_thread(pd.DataFrame, data, columns=columns)
     except asyncio.TimeoutError:
         elapsed = time.perf_counter() - start_time
@@ -287,7 +294,7 @@ async def mysql_run_execution_async(
     predictions_path: Path | str,
     max_concurrent_tasks: int = 16,
     per_query_timeout_s: int = 90,
-    force_rerun: bool = False
+    force_rerun: bool = False,
 ):
     """
     Execute SQL queries against MySQL database asynchronously.
@@ -443,7 +450,7 @@ async def mysql_run_execution_async(
                     model_predictions[execution_time_key] = None
                     logger.debug(f"SQL error: {e}")
 
-            for model_name, model_predictions in obj.get("predictions", {}).items():
+            for _model_name, model_predictions in obj.get("predictions", {}).items():
                 await _run_and_store_df(
                     sql_key="predicted_sql",
                     df_key="predicted_df",
@@ -529,19 +536,20 @@ async def run_sql_and_get_dataframe_async(
 ) -> pd.DataFrame:
     """
     Execute SQL query on PostgreSQL with timeout.
-    
+
     Args:
         pool: asyncpg connection pool
         schema_name: PostgreSQL schema name
         sql: SQL query to execute
         timeout: Query timeout in seconds (default: 90)
-    
+
     Returns:
         pd.DataFrame: Query results as DataFrame
-    
+
     Raises:
         asyncio.TimeoutError: If query execution exceeds timeout
     """
+
     async def _execute_query():
         async with pool.acquire() as conn:
             # Set search_path for this connection
@@ -554,17 +562,22 @@ async def run_sql_and_get_dataframe_async(
             data = [dict(row) for row in rows]
             # Use `to_thread` because DataFrame creation is not async
             return await asyncio.to_thread(pd.DataFrame, data, columns=columns)
-    
+
     # Wrap execution with timeout
     return await asyncio.wait_for(_execute_query(), timeout=timeout)
 
 
 async def postgres_run_execution_async(
-    connection_string, schema_name, predictions_path, max_concurrent_tasks: int = 16, per_query_timeout_s: int = 90, force_rerun: bool = False
+    connection_string,
+    schema_name,
+    predictions_path,
+    max_concurrent_tasks: int = 16,
+    per_query_timeout_s: int = 90,
+    force_rerun: bool = False,
 ):
     """
     Execute SQL queries on PostgreSQL using asyncpg with timeout.
-    
+
     Args:
         connection_string: PostgreSQL connection string
         schema_name: PostgreSQL schema name
@@ -572,19 +585,19 @@ async def postgres_run_execution_async(
         max_concurrent_tasks: Maximum number of concurrent database connections
         per_query_timeout_s: Timeout for each SQL query in seconds (default: 90)
         force_rerun: Force re-execution even if results exist
-    
+
     Returns:
         int: Total number of queries executed
     """
     with open(predictions_path, "r") as pf:
         predictions_data = json.load(pf)
-    
+
     # Set search_path using server_settings parameter
     pool = await asyncpg.create_pool(
         dsn=connection_string,
         min_size=1,
         max_size=max_concurrent_tasks,
-        server_settings={'search_path': schema_name}
+        server_settings={"search_path": schema_name},
     )
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
 
@@ -594,7 +607,9 @@ async def postgres_run_execution_async(
 
     async def run_sql_with_count(sql):
         nonlocal query_count
-        df = await run_sql_and_get_dataframe_async(pool, schema_name, sql, per_query_timeout_s)
+        df = await run_sql_and_get_dataframe_async(
+            pool, schema_name, sql, per_query_timeout_s
+        )
         async with query_lock:
             query_count += 1
         return df
@@ -687,7 +702,7 @@ async def postgres_run_execution_async(
                     model_predictions[execution_time_key] = None
                     logger.debug(f"SQL error: {e}")
 
-            for model_name, model_predictions in obj.get("predictions", {}).items():
+            for _model_name, model_predictions in obj.get("predictions", {}).items():
                 await _run_and_store_df(
                     sql_key="predicted_sql",
                     df_key="predicted_df",
@@ -725,14 +740,39 @@ async def postgres_run_execution_async(
 
 
 def run_sqlite_query(db_path: str, sql: str) -> str:
-    conn = sqlite3.connect(db_path)
-    conn.text_factory = lambda b: b.decode(errors='replace')
-    conn.row_factory = sqlite3.Row
-    cursor = conn.execute(sql)
-    rows = cursor.fetchall()
-    columns = [col[0] for col in cursor.description]
-    data = [dict(zip(columns, row)) for row in rows]
-    conn.close()
+    """
+    Execute one read-only query against a SQLite benchmark database.
+
+    Opened read-only. Benchmark databases are immutable reference data, and the
+    dashboard's execute endpoint runs arbitrary caller-supplied SQL -- so a
+    write should be refused by SQLite itself rather than by anything upstream of
+    it. Tooling that genuinely needs to modify a benchmark database should use
+    sqlite3 directly rather than routing through the evaluation path.
+    """
+    # The URI form is the only way to ask SQLite for a read-only handle. Not
+    # `immutable=1`: that also promises the file will not change underneath us,
+    # which is a stronger claim than we can make.
+    uri = f"file:{urllib.parse.quote(str(db_path))}?mode=ro"
+    conn = sqlite3.connect(uri, uri=True)
+    try:
+        # Nothing legitimate in a benchmark query attaches another database, and
+        # a single execute() runs one statement so this is not exploitable
+        # today; refusing it outright keeps that from depending on a detail of
+        # the driver.
+        try:
+            conn.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
+        except (AttributeError, sqlite3.NotSupportedError):  # pragma: no cover
+            pass
+
+        conn.text_factory = lambda b: b.decode(errors="replace")
+        conn.row_factory = sqlite3.Row
+        cursor = conn.execute(sql)
+        rows = cursor.fetchall()
+        # description is None for statements that return no result set.
+        columns = [col[0] for col in cursor.description or []]
+        data = [dict(zip(columns, row, strict=True)) for row in rows]
+    finally:
+        conn.close()
     return pd.DataFrame(data, columns=columns).to_json(orient="split")
 
 
@@ -747,9 +787,46 @@ async def run_sqlite_query_with_timeout(
         )
         return pd.read_json(StringIO(json_result), orient="split")
     except FunctionTimedOut:
-        raise asyncio.TimeoutError(f"Query timed out after {timeout} seconds")
+        raise asyncio.TimeoutError(f"Query timed out after {timeout} seconds") from None
     except Exception as e:
-        raise RuntimeError(f"Error running query: {e}")
+        raise RuntimeError(f"Error running query: {e}") from e
+
+
+def resolve_sqlite_db_path(db_folder, db_id: str, db_filename: str) -> Path:
+    """
+    Locate a benchmark's SQLite file.
+
+    ``db_folder`` is registry-relative, so it must resolve against the registry
+    that was actually loaded -- ``$TEXT2SQL_DATA_ROOT`` or the repository's
+    ``data/`` -- not against the copy packaged inside the installed wheel. It
+    previously used the packaged path unconditionally, so databases placed where
+    ``data/benchmarks/dbs/README.md`` says to put them were never found.
+
+    Falls back to the packaged location so an installed-only layout still works.
+    """
+    folder = Path(db_folder)
+    if folder.is_absolute():
+        return folder / db_id / db_filename
+
+    candidates = [
+        get_benchmarks_file_path(is_test=False).parent,
+        get_benchmarks_file_path(is_test=True).parent,
+        Path(str(BENCHMARKS_FILE)).parent,
+    ]
+    seen = set()
+    first: Optional[Path] = None
+    for root in candidates:
+        if root in seen:
+            continue
+        seen.add(root)
+        candidate = root / folder / db_id / db_filename
+        if first is None:
+            first = candidate
+        if candidate.exists():
+            return candidate
+    # Nothing found: return the primary candidate so the error names the place
+    # the user was told to use.
+    return first if first is not None else Path(folder) / db_id / db_filename
 
 
 async def sqlite_run_execution_async(
@@ -773,9 +850,7 @@ async def sqlite_run_execution_async(
                 record["sql"] = record["metadata"]["sql"]
             db_id = record["db_id"]
             db_filename = db_id + ".sqlite"
-            db_path = (
-                Path(BENCHMARKS_FILE).parent / Path(db_folder) / db_id / db_filename
-            )
+            db_path = resolve_sqlite_db_path(db_folder, db_id, db_filename)
             if not db_path.exists():
                 raise ValueError(f"DB does not exist: {db_path}")
 
@@ -831,7 +906,7 @@ async def sqlite_run_execution_async(
                     )
                     execution_end = time.perf_counter()
                     execution_time_ms = (execution_end - execution_start) * 1000
-                    
+
                     query_count_ref[0] += 1
                     logger.debug(f"Finished running SQL query #{query_count_ref[0]}.")
 
@@ -867,7 +942,7 @@ async def sqlite_run_execution_async(
                     logger.debug(f"{sql_key} error: {e}")
 
             query_count_ref = [query_count]  # wrap in list to mutate inside helper
-            for model_name, model_predictions in record.get("predictions", {}).items():
+            for _model_name, model_predictions in record.get("predictions", {}).items():
                 await _run_sqlite_and_store(
                     sql_key="predicted_sql",
                     df_key="predicted_df",
@@ -907,7 +982,6 @@ async def sqlite_run_execution_async(
     logger.debug("Finished writing.")
 
     return query_count
-
 
 
 _LIMIT_RE = re.compile(r"(?is)\s+LIMIT\s+(\d+)\s*$")
@@ -1392,20 +1466,27 @@ def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = 
         connection_string = os.getenv(db_engine["connection_string_env_var"])
         if not connection_string:
             raise ValueError("Missing connection string.")
-        
+
         # Optional: get query timeout from config
         query_timeout = db_engine.get("query_timeout", 90)
-        
+
         query_count = asyncio.run(
             postgres_run_execution_async(
-                connection_string, schema_name, predictions_path, num_threads, query_timeout, force_rerun
+                connection_string,
+                schema_name,
+                predictions_path,
+                num_threads,
+                query_timeout,
+                force_rerun,
             )
         )
 
     elif db_engine["db_type"] == "sqlite":
         db_folder = benchmark_info["db_engine"]["db_folder"]
         query_count = asyncio.run(
-            sqlite_run_execution_async(db_folder, predictions_path, force_rerun=force_rerun)
+            sqlite_run_execution_async(
+                db_folder, predictions_path, force_rerun=force_rerun
+            )
         )
 
     elif db_engine["db_type"] == "db2":
@@ -1415,20 +1496,28 @@ def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = 
             raise ValueError("Missing DB2 connection string.")
         query_count = asyncio.run(
             db2_run_execution_async(
-                connection_string, schema_name, predictions_path, num_threads, force_rerun
+                connection_string,
+                schema_name,
+                predictions_path,
+                num_threads,
+                force_rerun,
             )
         )
     elif db_engine["db_type"] == "mysql":
         connection_string = os.getenv(db_engine["connection_string_env_var"])
         if not connection_string:
             raise ValueError("Missing MySQL connection string.")
-        
+
         # Optional: get query timeout from config
         query_timeout = db_engine.get("query_timeout", 90)
-        
+
         query_count = asyncio.run(
             mysql_run_execution_async(
-                connection_string, predictions_path, num_threads, query_timeout, force_rerun
+                connection_string,
+                predictions_path,
+                num_threads,
+                query_timeout,
+                force_rerun,
             )
         )
     elif db_engine["db_type"] == "presto":

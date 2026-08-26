@@ -28,7 +28,7 @@ export async function apiFetch(
       if (body?.detail) {
         message = `HTTP ${res.status}: ${body.detail}`;
       }
-    } catch (_) {
+    } catch {
       // non-JSON body — keep the plain status message
     }
     throw new Error(message);
