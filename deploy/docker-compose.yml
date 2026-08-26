@@ -126,7 +126,12 @@ services:
     mem_limit: ${MEM_LIMIT_POSTGRES:-1g}
     # Deliberately no `ports:` -- internal network only.
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set in deploy/.env}
+      # `:-`, not `:?`. Compose interpolates the whole file before filtering by
+      # profile, so `:?` made a browse-only deployment -- which never starts
+      # this service -- fail to render at all until it invented a database
+      # password. The postgres image already refuses to initialise without
+      # POSTGRES_PASSWORD, so the requirement is enforced where it applies.
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-}
       POSTGRES_DB: bird
       # Read by sql/postgres-init on first initialisation, which refuses to
       # initialise without it: the app must never hold superuser credentials.
@@ -151,7 +156,9 @@ services:
     mem_limit: ${MEM_LIMIT_MYSQL:-1g}
     # Deliberately no `ports:` -- internal network only.
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in deploy/.env}
+      # See postgres above; the mysql image likewise refuses to initialise
+      # without a root password.
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-}
       # As above: sql/mysql-init refuses to initialise without it.
       MYSQL_READONLY_PASSWORD: ${MYSQL_READONLY_PASSWORD:-}
     volumes:
