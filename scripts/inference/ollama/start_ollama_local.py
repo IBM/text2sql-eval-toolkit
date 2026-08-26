@@ -5,7 +5,7 @@ Ollama works great on Apple Silicon (M1/M2/M3/M4) and provides OpenAI-compatible
 
 Usage:
     python scripts/inference/ollama/start_ollama_local.py
-    
+
     # Or with custom settings:
     python scripts/inference/ollama/start_ollama_local.py --model qwen2.5:1.5b
 
@@ -25,10 +25,12 @@ import time
 def check_ollama_installed():
     """Check if Ollama is installed."""
     try:
-        subprocess.run(['ollama', '--version'], 
-                      stdout=subprocess.PIPE, 
-                      stderr=subprocess.PIPE,
-                      check=True)
+        subprocess.run(
+            ["ollama", "--version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
         return True
     except (FileNotFoundError, subprocess.CalledProcessError):
         return False
@@ -37,19 +39,18 @@ def check_ollama_installed():
 def is_ollama_running():
     """Check if Ollama service is running."""
     try:
-        result = subprocess.run(['pgrep', '-x', 'ollama'],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
+        result = subprocess.run(
+            ["pgrep", "-x", "ollama"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         return result.returncode == 0
     except FileNotFoundError:
         # pgrep not available, try alternative
         try:
-            result = subprocess.run(['ps', 'aux'],
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE,
-                                  text=True)
-            return 'ollama' in result.stdout
-        except:
+            result = subprocess.run(
+                ["ps", "aux"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            return "ollama" in result.stdout
+        except Exception:
             return False
 
 
@@ -58,12 +59,14 @@ def start_ollama_service(context_length=32768):
     try:
         # Set environment variable for context length
         env = os.environ.copy()
-        env['OLLAMA_NUM_CTX'] = str(context_length)
-        
-        subprocess.Popen(['ollama', 'serve'],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                        env=env)
+        env["OLLAMA_NUM_CTX"] = str(context_length)
+
+        subprocess.Popen(
+            ["ollama", "serve"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            env=env,
+        )
         time.sleep(3)
         return True
     except Exception as e:
@@ -74,12 +77,14 @@ def start_ollama_service(context_length=32768):
 def check_model_available(model):
     """Check if model is available locally."""
     try:
-        result = subprocess.run(['ollama', 'list'],
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE,
-                              text=True)
+        result = subprocess.run(
+            ["ollama", "list"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
         return model in result.stdout
-    except:
+    except Exception:
         return False
 
 
@@ -88,7 +93,7 @@ def pull_model(model):
     try:
         print(f"\033[1;33mPulling model {model}...\033[0m")
         print("\033[1;33mThis may take a few minutes on first run.\033[0m")
-        subprocess.run(['ollama', 'pull', model], check=True)
+        subprocess.run(["ollama", "pull", model], check=True)
         return True
     except subprocess.CalledProcessError:
         return False
@@ -118,42 +123,42 @@ Recommended small models for testing:
   - phi3:mini (2.3GB)
 
 See all available models: https://ollama.ai/library
-        """
+        """,
     )
-    
+
     parser.add_argument(
-        '--model',
+        "--model",
         type=str,
-        default=os.getenv('OLLAMA_MODEL', 'qwen2.5:0.5b'),
-        help='Model to use (default: qwen2.5:0.5b)'
+        default=os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b"),
+        help="Model to use (default: qwen2.5:0.5b)",
     )
-    
+
     parser.add_argument(
-        '--host',
+        "--host",
         type=str,
-        default=os.getenv('OLLAMA_HOST', '127.0.0.1'),
-        help='Host to bind to (default: 127.0.0.1)'
+        default=os.getenv("OLLAMA_HOST", "127.0.0.1"),
+        help="Host to bind to (default: 127.0.0.1)",
     )
-    
+
     parser.add_argument(
-        '--port',
+        "--port",
         type=int,
-        default=int(os.getenv('OLLAMA_PORT', '11434')),
-        help='Port to bind to (default: 11434)'
+        default=int(os.getenv("OLLAMA_PORT", "11434")),
+        help="Port to bind to (default: 11434)",
     )
-    
+
     parser.add_argument(
-        '--context-length',
+        "--context-length",
         type=int,
-        default=int(os.getenv('OLLAMA_NUM_CTX', '32768')),
-        help='Context length for the model (default: 32768)'
+        default=int(os.getenv("OLLAMA_NUM_CTX", "32768")),
+        help="Context length for the model (default: 32768)",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Set context length environment variable
-    os.environ['OLLAMA_NUM_CTX'] = str(args.context_length)
-    
+    os.environ["OLLAMA_NUM_CTX"] = str(args.context_length)
+
     # Check if Ollama is installed
     if not check_ollama_installed():
         print("\033[0;31mError: Ollama is not installed.\033[0m")
@@ -165,7 +170,7 @@ See all available models: https://ollama.ai/library
         print("\033[1;33m  https://ollama.ai/download\033[0m")
         print()
         sys.exit(1)
-    
+
     # Print configuration
     print("\033[0;32m========================================\033[0m")
     print("\033[0;32mStarting Ollama Local Server\033[0m")
@@ -177,21 +182,21 @@ See all available models: https://ollama.ai/library
     print(f"  Port: {args.port}")
     print(f"  Context Length: {args.context_length}")
     print()
-    
+
     # Check if Ollama service is running
     if not is_ollama_running():
         print("\033[1;33mStarting Ollama service...\033[0m")
         if not start_ollama_service(args.context_length):
             print("\033[0;31mFailed to start Ollama service\033[0m")
             sys.exit(1)
-    
+
     # Check if model is available
     print(f"\033[0;32mChecking if model {args.model} is available...\033[0m")
     if not check_model_available(args.model):
         if not pull_model(args.model):
             print(f"\033[0;31mFailed to pull model {args.model}\033[0m")
             sys.exit(1)
-    
+
     print()
     print("\033[0;32m✓ Ollama server is running\033[0m")
     print(f"\033[0;32m✓ Model {args.model} is ready\033[0m")
@@ -209,7 +214,7 @@ See all available models: https://ollama.ai/library
     print("\033[0;32mServer is ready for use!\033[0m")
     print("\033[1;33mPress Ctrl+C to exit (Ollama service will keep running)\033[0m")
     print()
-    
+
     # Keep script running
     try:
         while True:
@@ -220,5 +225,5 @@ See all available models: https://ollama.ai/library
         sys.exit(0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

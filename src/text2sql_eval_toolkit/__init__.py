@@ -2,7 +2,6 @@
 # Copyright IBM Corp. 2025 - 2026
 # SPDX-License-Identifier: Apache-2.0
 #
-__version__ = "1.1.0"
 
 """
 Public API for the text2sql-eval-toolkit library.
@@ -16,6 +15,7 @@ This package exposes multiple levels of functionality:
 - Utilities for discovering and inspecting available benchmarks (`get_available_benchmarks`, etc.)
 """
 
+from ._version import __version__
 from .evaluation.evaluation_tools import (
     evaluate_prediction,
     async_evaluate_predictions,
@@ -120,4 +120,3 @@ __all__ = [
     "add_summary_json_suffix",
     "add_summary_csv_suffix",
 ]
-

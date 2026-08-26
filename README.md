@@ -32,6 +32,16 @@ Assessing the correctness and utility of generated SQL queries requires more tha
 
 Whether you're building new models, comparing existing ones, or diagnosing performance bottlenecks, this toolkit provides the resources needed to evaluate text-to-SQL systems with rigor and clarity.
 
+## Documentation
+
+- **[docs/dashboard/](docs/dashboard/)** — the evaluation dashboard: features,
+  shareable links, the query index, capability tiers, and deployment.
+- **[data/benchmarks/README.md](data/benchmarks/README.md)** — benchmark
+  definitions and configuration.
+- **[data/benchmarks/dbs/README.md](data/benchmarks/dbs/README.md)** — database
+  setup for each benchmark.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — toolchain, tests, and coding standards.
+
 ## Components
 
 <p align="center">
@@ -41,9 +51,9 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 - **Evaluation** ([`scripts/evaluation`](scripts/evaluation)/`src/evaluation.py`): Includes a script and library for evaluating text-to-SQL model outputs using various metrics. See [`scripts/evaluation/README.md`](scripts/evaluation/README.md) for details.
 - **Text-to-SQL Inference** ([`scripts/inference`](scripts/inference)): Provides a simple LLM inference pipeline for generating SQL queries from natural language inputs. Run `python scripts/inference/run_inference.py -h` for more information.
 - **SQL Execution** ([`scripts/execution`](scripts/execution)): Runs the ground truth and predicted SQLs for a given benchmark and saves the dataframes for evaluation and error analysis. Run `python scripts/execution/run_execution.py -h` for more information.
-- **Results and Error Analysis** ([`scripts/analysis`](`scripts/analysis`)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
-- **SQL Profiling** ([`scripts/profiling`](`scripts/profiling`)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
-- **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [dashboard/README.md](dashboard/README.md) for installation, data paths, development workflow, and build options.
+- **Results and Error Analysis** ([`scripts/analysis`](scripts/analysis)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
+- **SQL Profiling** ([`scripts/profiling`](scripts/profiling)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
+- **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [docs/dashboard/](docs/dashboard/) for features, deployment, and development.
 
 ## Setup
 
@@ -71,14 +81,14 @@ brew install uv
 
 Zero-shot and agentic baseline results for all packaged benchmarks are
 hosted on the [Hugging Face Hub](https://huggingface.co/datasets/text2sql-eval-toolkit/text2sql-eval-results).
-To download them (~7 GB) into `${TEXT2SQL_DATA_ROOT:-./data}/results/`:
+To download them (~4 GB) into `${TEXT2SQL_DATA_ROOT:-./data}/results/`:
 
 ```bash
 text2sql-eval-toolkit results fetch
 ```
 
 After this completes, the dashboard and analysis scripts will work
-against the downloaded artefacts. See [dashboard/README.md](dashboard/README.md) to launch
+against the downloaded artefacts. See [docs/dashboard/](docs/dashboard/) to launch
 the UI.
 
 To fetch only a specific benchmark:
@@ -298,30 +308,29 @@ The output will be written to [data/results/README.md](data/results/README.md).
 
 ### Evaluation dashboard
 
-Install the optional UI with the `dashboard` extra:
+A web UI for browsing results, comparing pipelines and doing error analysis:
 
 ```bash
 uv pip install -e ".[dashboard]"
-# or: pip install -e ".[dashboard]"
+text2sql-eval-dashboard --open-browser
 ```
 
-Start the server:
+Every view has its own URL, so a benchmark, pipeline, filtered query or
+individual record can be linked to directly.
 
-```bash
-uv run text2sql-eval-dashboard --open-browser
-# or: text2sql-eval-dashboard --open-browser
-```
-
-By default the server listens on `http://127.0.0.1:8000`. Set `TEXT2SQL_DATA_ROOT` to the directory that contains `results/` (defaults to `./data` if unset).
-
-The pre-built frontend assets (`dashboard/dist/`) are committed to the repository, so no Node.js is required to run the dashboard. From a source checkout, the CLI will automatically rebuild `dashboard/dist` via Vite when sources change if Node.js/npm are available (run `npm install` in `dashboard/` once to enable this). Use `--no-watch-dashboard` to serve the committed build only.
-
-See [dashboard/README.md](dashboard/README.md) for full details (development with Vite, manual builds, and troubleshooting).
+The dashboard runs as a local tool with every capability enabled, or as a
+shared read-only site with optional sign-in for a small allowlist. See
+**[docs/dashboard/](docs/dashboard/)** for features, the URL scheme, the query
+index, capability tiers, and deployment.
 
 ## Project Structure
 
 ```
 text2sql-eval-toolkit
+├── docs/                       # Dashboard guides, deployment, development history
+├── deploy/                     # Container, Compose stack, and data provisioning
+├── dashboard/                  # React frontend (production build committed to dist/)
+├── tests/                      # Test suite
 ├── notebooks/                  # Jupyter notebooks showcasing the use of the toolkit functions
 ├── data/                       # Benchmark datasets and evaluation results
 │   ├── benchmarks/             # Benchmark data and schema files
@@ -345,10 +354,12 @@ text2sql-eval-toolkit
 │       ├── evaluation/         # Evaluation module
 │       ├── execution/          # SQL execution module
 │       ├── inference/          # LLM inference (baseline) module
-│       └── profiling/          # SQL profiling module
+│       ├── indexing/           # SQLite query index over the result artifacts
+│       ├── profiling/          # SQL profiling module
+│       └── ui/                 # Dashboard backend (FastAPI)
 ├── pyproject.toml              # Build system and project metadata
 ├── README.md                   # Project documentation
-├── requirements.txt            # Python dependencies
+├── requirements.txt            # Pinned export of uv.lock (generated; see its header)
 └── LICENSE                     # License file
 
 ```
@@ -382,11 +393,16 @@ This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE
 If you use this toolkit in research, please cite:
 
 ```bibtex
-@unpublished{hassanzadeh2026text2sql,
-  title  = {{Text-to-SQL Evaluation Toolkit}},
-  author = {Hassanzadeh, Oktie and Perlitz, Yotam and Pham, Nhan and Kaple, Tanvi and Zrobek, Karolina and Vu, Long and Glass, Michael and Subramanian, Dharmashankar and Pourreza, Mohammadreza and Rafiei, Davood},
-  year   = {2026},
-  note   = {Under submission},
+@article{HassanzadehPPKZVGSPR26,
+  title   = {Text-to-{SQL} Evaluation Toolkit},
+  volume  = {19},
+  url     = {https://doi.org/10.14778/3827998.3828071},
+  doi     = {10.14778/3827998.3828071},
+  number  = {12},
+  journal = {Proc. VLDB Endow.},
+  author  = {Hassanzadeh, Oktie and Perlitz, Yotam and Pham, Nhan and Kaple, Tanvi and \.{Z}r\'{o}bek, Karolina and Vu, Long and Glass, Michael and Subramanian, Dharmashankar and Pourreza, Mohammadreza and Rafiei, Davood},
+  year    = {2026},
+  pages   = {4582--4585},
 }
 ```
 

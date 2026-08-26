@@ -18,15 +18,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from huggingface_hub import HfApi, hf_hub_download, snapshot_download
-from huggingface_hub.utils import RepositoryNotFoundError, RevisionNotFoundError
+from huggingface_hub.utils import RevisionNotFoundError
 from loguru import logger
 
-try:
-    from importlib.metadata import version as _pkg_version
-
-    _TOOLKIT_VERSION: str = _pkg_version("text2sql-eval-toolkit")
-except Exception:  # pragma: no cover
-    _TOOLKIT_VERSION = "0.0.0"
+from text2sql_eval_toolkit._version import UNKNOWN_VERSION
+from text2sql_eval_toolkit._version import __version__ as _TOOLKIT_VERSION
 
 # ---------------------------------------------------------------------------
 # Public constants
@@ -73,7 +69,7 @@ def _validate_manifest(manifest: Dict[str, Any]) -> None:
         from packaging.specifiers import SpecifierSet
 
         spec = SpecifierSet(compat)
-        if _TOOLKIT_VERSION != "0.0.0" and not spec.contains(_TOOLKIT_VERSION):
+        if _TOOLKIT_VERSION != UNKNOWN_VERSION and not spec.contains(_TOOLKIT_VERSION):
             raise ValueError(
                 f"The results snapshot requires toolkit {compat}, "
                 f"but the installed version is {_TOOLKIT_VERSION}. "
@@ -359,9 +355,9 @@ def clear_cache(
         return
 
     if confirm and sys.stdin.isatty():
-        answer = input(
-            f"Delete {results_dir} and all its contents? [y/N] "
-        ).strip().lower()
+        answer = (
+            input(f"Delete {results_dir} and all its contents? [y/N] ").strip().lower()
+        )
         if answer not in ("y", "yes"):
             logger.info("Aborted.")
             return

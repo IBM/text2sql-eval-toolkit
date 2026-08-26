@@ -18,7 +18,7 @@ import asyncio
 import json
 import os
 import time
-from typing import Any, Dict, List, Optional, TypedDict, Annotated
+from typing import Any, List, Optional, TypedDict, Annotated
 from pathlib import Path
 import pandas as pd
 
@@ -28,7 +28,6 @@ import pandas as pd
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.inference.base_pipeline import BasePipeline
 from text2sql_eval_toolkit.inference.inference_tools import (
-    Text2SQLPrompt,
     WXAIClientChatAPI,
     VLLMClientChatAPI,
     ClaudeClientChatAPI,
@@ -42,16 +41,12 @@ from text2sql_eval_toolkit.utils import (
     get_utterance,
 )
 from text2sql_eval_toolkit.execution.execution_tools import (
-    run_sql_and_get_dataframe_async,
     run_sqlite_query_with_timeout,
     run_sql_and_get_dataframe_mysql_async,
     normalize_mysql_connection_string,
-    quote_mixed_case_columns,
     quote_mysql_identifiers,
 )
 import asyncpg
-import sqlite3
-from func_timeout import func_timeout, FunctionTimedOut
 
 logger = get_logger(__name__)
 
@@ -817,7 +812,7 @@ Step 3 (after SQL executes successfully):
                 df_preview = df.head(10).to_string(index=False)
                 if len(df) > 10:
                     df_preview += f"\n... ({len(df) - 10} more rows)"
-            except:
+            except Exception:
                 df_preview = (
                     f"({row_count} rows returned, but could not parse dataframe)"
                 )
@@ -1070,7 +1065,7 @@ When you generate SQL:
             messages.append(
                 {
                     "role": "assistant",
-                    "content": f"Previous reasoning:\n" + "\n".join(state["reasoning"]),
+                    "content": "Previous reasoning:\n" + "\n".join(state["reasoning"]),
                 }
             )
 
@@ -1137,7 +1132,7 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
         if not isinstance(schema.get("tables"), list) and isinstance(
             schema.get("tables"), dict
         ):
-            for table_name, table_obj in schema.get("tables").items():
+            for _table_name, table_obj in schema.get("tables").items():
                 tables.append(table_obj)
         else:
             tables = schema.get("tables", [])
@@ -1228,9 +1223,9 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                 state["token_usage_per_attempt"].append(token_usage)
                 # Update total token usage
                 for key in ["prompt_tokens", "completion_tokens", "total_tokens"]:
-                    state["total_token_usage"][key] = (
-                        state["total_token_usage"].get(key, 0) + token_usage.get(key, 0)
-                    )
+                    state["total_token_usage"][key] = state["total_token_usage"].get(
+                        key, 0
+                    ) + token_usage.get(key, 0)
 
             # Save full trace of this interaction
             state["agent_trace"].append(
@@ -1276,9 +1271,11 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
             state["execution_result"] = {
                 "success": True,
                 "row_count": result["row_count"],
-                "df": result["df"].to_json(orient="split")
-                if result["df"] is not None
-                else None,
+                "df": (
+                    result["df"].to_json(orient="split")
+                    if result["df"] is not None
+                    else None
+                ),
                 "execution_time_ms": result.get("execution_time_ms"),
             }
             state["execution_error"] = None
@@ -1603,16 +1600,24 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
         return {
             "predicted_sql": state.get("final_sql"),
             "predicted_df": state.get("final_df"),
-            "sql_execution_error": state.get("execution_error")
-            if not state.get("execution_result")
-            or not state["execution_result"].get("success")
-            else None,
-            "execution_time_ms": state.get("execution_result", {}).get("execution_time_ms") if state.get("execution_result") else None,
+            "sql_execution_error": (
+                state.get("execution_error")
+                if not state.get("execution_result")
+                or not state["execution_result"].get("success")
+                else None
+            ),
+            "execution_time_ms": (
+                state.get("execution_result", {}).get("execution_time_ms")
+                if state.get("execution_result")
+                else None
+            ),
             "attempts": state["attempt"],
             "reasoning": state.get("reasoning", []),
             "agent_trace": state.get("agent_trace", []),  # Full LLM interaction history
             "token_usage": state.get("total_token_usage"),  # Aggregated token usage
-            "token_usage_per_attempt": state.get("token_usage_per_attempt", []),  # Per-attempt breakdown
+            "token_usage_per_attempt": state.get(
+                "token_usage_per_attempt", []
+            ),  # Per-attempt breakdown
         }
 
     async def _run_agent_v4(
@@ -1733,11 +1738,18 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                         )
                         llm_response = response.content[0].text.strip()
                         # Extract token usage from Claude
-                        if hasattr(response, 'usage'):
+                        if hasattr(response, "usage"):
                             token_usage = {
-                                "prompt_tokens": getattr(response.usage, 'input_tokens', 0),
-                                "completion_tokens": getattr(response.usage, 'output_tokens', 0),
-                                "total_tokens": getattr(response.usage, 'input_tokens', 0) + getattr(response.usage, 'output_tokens', 0),
+                                "prompt_tokens": getattr(
+                                    response.usage, "input_tokens", 0
+                                ),
+                                "completion_tokens": getattr(
+                                    response.usage, "output_tokens", 0
+                                ),
+                                "total_tokens": getattr(
+                                    response.usage, "input_tokens", 0
+                                )
+                                + getattr(response.usage, "output_tokens", 0),
                             }
                     elif isinstance(client, VLLMClientChatAPI):
                         response = client._make_chat_request(messages)
@@ -1761,7 +1773,7 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                         )
                         llm_response = response.choices[0].message.content.strip()
                         # Extract token usage from OpenAI
-                        if hasattr(response, 'usage') and response.usage:
+                        if hasattr(response, "usage") and response.usage:
                             token_usage = {
                                 "prompt_tokens": response.usage.prompt_tokens,
                                 "completion_tokens": response.usage.completion_tokens,
@@ -1777,10 +1789,14 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                     if token_usage:
                         state["token_usage_per_attempt"].append(token_usage)
                         # Update total token usage
-                        for key in ["prompt_tokens", "completion_tokens", "total_tokens"]:
-                            state["total_token_usage"][key] = (
-                                state["total_token_usage"].get(key, 0) + token_usage.get(key, 0)
-                            )
+                        for key in [
+                            "prompt_tokens",
+                            "completion_tokens",
+                            "total_tokens",
+                        ]:
+                            state["total_token_usage"][key] = state[
+                                "total_token_usage"
+                            ].get(key, 0) + token_usage.get(key, 0)
 
                     # Record trace
                     state["agent_trace"].append(
@@ -1825,7 +1841,7 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                         messages.append(
                             {
                                 "role": "user",
-                                "content": f"Error: Your response must be valid JSON with 'thought', 'action', and 'action_input' fields. Please try again.",
+                                "content": "Error: Your response must be valid JSON with 'thought', 'action', and 'action_input' fields. Please try again.",
                             }
                         )
                     else:
@@ -1960,8 +1976,8 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                     ):
                         # LLM submitted different SQL than what was executed
                         logger.warning(
-                            f"LLM submitted different SQL in final_answer than what was executed. "
-                            f"Using the executed SQL and dataframe."
+                            "LLM submitted different SQL in final_answer than what was executed. "
+                            "Using the executed SQL and dataframe."
                         )
                         # Keep the existing final_sql and final_df from execution
                     elif not state.get("final_sql"):
@@ -2075,16 +2091,24 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
         return {
             "predicted_sql": state.get("final_sql"),
             "predicted_df": state.get("final_df"),
-            "sql_execution_error": state.get("execution_error")
-            if not state.get("execution_result")
-            or not state["execution_result"].get("success")
-            else None,
-            "execution_time_ms": state.get("execution_result", {}).get("execution_time_ms") if state.get("execution_result") else None,
+            "sql_execution_error": (
+                state.get("execution_error")
+                if not state.get("execution_result")
+                or not state["execution_result"].get("success")
+                else None
+            ),
+            "execution_time_ms": (
+                state.get("execution_result", {}).get("execution_time_ms")
+                if state.get("execution_result")
+                else None
+            ),
             "attempts": state["attempt"],
             "reasoning": state.get("reasoning", []),
             "agent_trace": state.get("agent_trace", []),
             "token_usage": state.get("total_token_usage"),  # Aggregated token usage
-            "token_usage_per_attempt": state.get("token_usage_per_attempt", []),  # Per-attempt breakdown
+            "token_usage_per_attempt": state.get(
+                "token_usage_per_attempt", []
+            ),  # Per-attempt breakdown
         }
 
     async def generate_sql(
@@ -2128,7 +2152,10 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                     pred = existing["predictions"].get(pipeline_id)
                     if pred:
                         # Always retry if there was an inference error (unless skip flag is set)
-                        if "inference_error" in pred and not skip_inference_error_retries:
+                        if (
+                            "inference_error" in pred
+                            and not skip_inference_error_retries
+                        ):
                             logger.info(
                                 f"Retrying failed inference for id={question_id}, pipeline={pipeline_id}"
                             )
@@ -2194,8 +2221,12 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                         "agent_trace": result.get(
                             "agent_trace", []
                         ),  # Full LLM interaction history
-                        "token_usage": result.get("token_usage"),  # Aggregated token usage
-                        "token_usage_per_attempt": result.get("token_usage_per_attempt", []),  # Per-attempt breakdown
+                        "token_usage": result.get(
+                            "token_usage"
+                        ),  # Aggregated token usage
+                        "token_usage_per_attempt": result.get(
+                            "token_usage_per_attempt", []
+                        ),  # Per-attempt breakdown
                     }
                 else:
                     record["predictions"] = {
@@ -2212,8 +2243,12 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                             "agent_trace": result.get(
                                 "agent_trace", []
                             ),  # Full LLM interaction history
-                            "token_usage": result.get("token_usage"),  # Aggregated token usage
-                            "token_usage_per_attempt": result.get("token_usage_per_attempt", []),  # Per-attempt breakdown
+                            "token_usage": result.get(
+                                "token_usage"
+                            ),  # Aggregated token usage
+                            "token_usage_per_attempt": result.get(
+                                "token_usage_per_attempt", []
+                            ),  # Per-attempt breakdown
                         }
                     }
                     predictions_data.append(record)
@@ -2235,7 +2270,7 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                 else:
                     record["predictions"] = {pipeline_id: error_record}
                     predictions_data.append(record)
-                    
+
             except Exception as e:
                 logger.error(f"Record {idx} (question id={question_id}) failed: {e}")
                 # Create prediction record with inference error
@@ -2244,7 +2279,9 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
                     "model_name": model_name,
                     "model_parameters": model_parameters,
                     "inference_error": str(e),
-                    "raw_response": getattr(e, 'response', None),  # Capture raw response if available
+                    "raw_response": getattr(
+                        e, "response", None
+                    ),  # Capture raw response if available
                 }
                 if existing:
                     existing["predictions"][pipeline_id] = error_record

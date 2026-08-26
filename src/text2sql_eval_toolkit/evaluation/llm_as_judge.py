@@ -25,6 +25,46 @@ def load_llm_judge_config(config_path: Optional[str] = None) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 
+def extract_token_usage(response: Any) -> Optional[Dict[str, int]]:
+    """
+    Pull token counts out of a watsonx response.
+
+    Two shapes are in play: the legacy ``generate`` API reports
+    ``input_token_count`` / ``generated_token_count`` inside ``results[0]``,
+    while the Chat API reports a ``usage`` object. Metering spend depends on
+    these, so both are handled, and an unrecognised shape returns None rather
+    than a misleading zero.
+    """
+    if not isinstance(response, dict):
+        return None
+
+    usage = response.get("usage")
+    if isinstance(usage, dict) and usage:
+        prompt_tokens = int(usage.get("prompt_tokens") or 0)
+        completion_tokens = int(usage.get("completion_tokens") or 0)
+        if prompt_tokens or completion_tokens:
+            return {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": int(
+                    usage.get("total_tokens") or prompt_tokens + completion_tokens
+                ),
+            }
+
+    results = response.get("results")
+    if isinstance(results, list) and results and isinstance(results[0], dict):
+        first = results[0]
+        prompt_tokens = int(first.get("input_token_count") or 0)
+        completion_tokens = int(first.get("generated_token_count") or 0)
+        if prompt_tokens or completion_tokens:
+            return {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens,
+            }
+    return None
+
+
 def evaluate_sql_prediction_with_llm(
     question: str,
     ground_truth_sql: str,
@@ -71,6 +111,7 @@ def evaluate_sql_prediction_with_llm(
     logger.debug("Running LLM-as-a-judge inference...")
     response = client.model.generate(prompt)
     answer = response.get("results", [{}])[0].get("generated_text", "").strip()
+    token_usage = extract_token_usage(response)
     if not answer:
         logger.error(f"LLM judge inference failed with response: {response}")
         raise ValueError(f"LLM judge inference failed with response: {response}")
@@ -87,4 +128,11 @@ def evaluate_sql_prediction_with_llm(
         score = 0.5
         explanation = answer
 
-    return {"verdict": verdict, "score": score, "explanation": explanation}
+    return {
+        "verdict": verdict,
+        "score": score,
+        "explanation": explanation,
+        # Present so callers can meter spend. None when the provider did not
+        # report usage; callers must handle that rather than assume zero.
+        "token_usage": token_usage,
+    }

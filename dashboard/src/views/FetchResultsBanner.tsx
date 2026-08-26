@@ -5,7 +5,7 @@ import { apiFetch } from "../lib/api";
 interface ResultsStatus {
   fetch_enabled: boolean;
   has_results: boolean;
-  results_path: string;
+  results_path?: string;
 }
 
 interface FetchJob {
@@ -22,9 +22,9 @@ interface FetchJob {
  * triggers a background download from the Hugging Face Hub and polls for
  * progress every 2 seconds.
  */
-export const FetchResultsBanner: React.FC<{ onResultsFetched?: () => void }> = ({
-  onResultsFetched,
-}) => {
+export const FetchResultsBanner: React.FC<{
+  onResultsFetched?: () => void;
+}> = ({ onResultsFetched }) => {
   const [status, setStatus] = useState<ResultsStatus | null>(null);
   const [job, setJob] = useState<FetchJob | null>(null);
   const [dismissed, setDismissed] = useState(false);
@@ -59,7 +59,7 @@ export const FetchResultsBanner: React.FC<{ onResultsFetched?: () => void }> = (
             stopPolling();
             if (updated.state === "completed") {
               setStatus((prev) =>
-                prev ? { ...prev, has_results: true } : prev
+                prev ? { ...prev, has_results: true } : prev,
               );
               onResultsFetched?.();
             }
@@ -69,7 +69,7 @@ export const FetchResultsBanner: React.FC<{ onResultsFetched?: () => void }> = (
         }
       }, 2000);
     },
-    [stopPolling, onResultsFetched]
+    [stopPolling, onResultsFetched],
   );
 
   const handleFetch = async () => {
@@ -94,6 +94,9 @@ export const FetchResultsBanner: React.FC<{ onResultsFetched?: () => void }> = (
   if (!status || status.has_results || dismissed) return null;
 
   const isRunning = job && (job.state === "queued" || job.state === "running");
+  // Shared deployments withhold the absolute path, so the sentence has to
+  // read correctly without it.
+  const whereClause = status.results_path ? ` (${status.results_path})` : "";
   const isFailed = job && job.state === "failed";
 
   if (isFailed) {
@@ -124,11 +127,14 @@ export const FetchResultsBanner: React.FC<{ onResultsFetched?: () => void }> = (
     <InlineNotification
       kind="info"
       title="No results found"
+      // Carbon declares `subtitle?: string` but renders whatever it is given,
+      // and the message needs a link. Narrowed here rather than flattening it
+      // to text; revisit if Carbon widens the prop to ReactNode.
       subtitle={
-        status.fetch_enabled ? (
+        (status.fetch_enabled ? (
           <span>
-            Results directory is empty ({status.results_path}). Download
-            pre-computed results from the Hugging Face Hub:
+            Results directory is empty{whereClause}. Download pre-computed
+            results from the Hugging Face Hub:
             {isRunning ? (
               <InlineLoading
                 description="Downloading results…"
@@ -147,10 +153,10 @@ export const FetchResultsBanner: React.FC<{ onResultsFetched?: () => void }> = (
           </span>
         ) : (
           <span>
-            Results directory is empty ({status.results_path}). Run:{" "}
+            Results directory is empty{whereClause}. Run:{" "}
             <code>text2sql-eval-toolkit results fetch</code>
           </span>
-        )
+        )) as unknown as string
       }
       lowContrast
       onCloseButtonClick={() => setDismissed(true)}

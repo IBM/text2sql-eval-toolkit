@@ -23,4 +23,3 @@ __all__ = [
     "sqlparse_queries_equivalent",
     "sql_exact_match",
 ]
-

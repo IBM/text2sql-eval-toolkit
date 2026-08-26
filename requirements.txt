@@ -1,74 +1,256 @@
-aiohappyeyeballs==2.6.1
-aiohttp==3.12.14
-aiosignal==1.4.0
-anyio==4.9.0
-attrs==25.3.0
-cachetools==6.1.0
-certifi==2025.7.9
-charset-normalizer==3.4.2
-datasets==3.6.0
-dill==0.3.8
-diskcache==5.6.3
-evaluate==0.4.5
-filelock==3.18.0
-frozenlist==1.7.0
-fsspec==2025.3.0
-h11==0.16.0
-hf-xet==1.1.5
-httpcore==1.0.9
-httpx==0.28.1
-huggingface-hub>=0.30,<1.0
-ibm-cos-sdk==2.14.2
-ibm-cos-sdk-core==2.14.2
-ibm-cos-sdk-s3transfer==2.14.2
-ibm_watsonx_ai==1.3.30
-idna==3.10
-iniconfig==2.1.0
-jmespath==1.0.1
-joblib==1.5.1
-lomond==0.3.3
-multidict==6.6.3
-multiprocess==0.70.16
-numpy==2.3.1
-packaging==25.0
-pandas==2.2.3
-pluggy==1.6.0
-propcache==0.3.2
-pyarrow==20.0.0
-Pygments==2.19.2
-pytest==8.4.1
-python-dateutil==2.9.0.post0
-pytz==2025.2
-PyYAML==6.0.2
-requests==2.32.4
-scikit-learn==1.7.0
-scipy==1.16.0
-setuptools==80.9.0
-six==1.17.0
-sniffio==1.3.1
-sqlalchemy==2.0.41
-sqlparse==0.5.3
-tabulate==0.9.0
-threadpoolctl==3.6.0
-tqdm==4.67.1
-typing_extensions==4.14.1
-tzdata==2025.2
-urllib3==2.5.0
-wheel==0.45.1
-xxhash==3.5.0
-yarl==1.20.1
-asyncpg==0.30.0
-sqlglot==27.0.0
-psycopg2-binary==2.9.10
-loguru==0.7.3
+# Generated from uv.lock -- do not edit by hand.
+#
+# pyproject.toml is the single source of truth for dependencies; this file is a
+# pinned export so `pip install -r requirements.txt` reproduces a known-good
+# environment. Regenerate after changing dependencies:
+#
+#   uv export --format requirements-txt --no-hashes --no-dev \
+#     --no-emit-project -o requirements.txt
+#
+# It used to be a hand-maintained freeze, which had drifted: it carried 55
+# packages that are not project dependencies (datasets, evaluate, aiohttp) while
+# omitting openai, which is one.
+annotated-types==0.7.0
+    # via pydantic
+anyio==4.12.1
+    # via
+    #   google-genai
+    #   httpx
+    #   openai
+asyncpg==0.31.0
+    # via text2sql-eval-toolkit
+cachetools==6.2.4
+    # via ibm-watsonx-ai
+certifi==2026.1.4
+    # via
+    #   httpcore
+    #   httpx
+    #   ibm-watsonx-ai
+    #   requests
+cffi==2.0.0 ; platform_python_implementation != 'PyPy'
+    # via cryptography
+charset-normalizer==3.4.4
+    # via requests
+colorama==0.4.6 ; sys_platform == 'win32'
+    # via
+    #   loguru
+    #   tqdm
+contourpy==1.3.3
+    # via matplotlib
+cryptography==46.0.3
+    # via google-auth
+cycler==0.12.1
+    # via matplotlib
+distro==1.9.0
+    # via
+    #   google-genai
+    #   openai
+filelock==3.29.0
+    # via huggingface-hub
+fonttools==4.61.1
+    # via matplotlib
+fsspec==2026.4.0
+    # via huggingface-hub
 func-timeout==4.3.5
-pytest==8.4.1
-matplotlib==3.10.5
-python-dotenv==1.1.1
-pyhive==0.7.0
-presto-python-client==0.8.4
-langgraph>=0.2.0
-langchain-core>=0.3.0
-aiomysql>=0.2.0
-greenlet>=3.0.0
-google-genai>=1.0.0
+    # via text2sql-eval-toolkit
+google-auth==2.49.2
+    # via google-genai
+google-genai==1.73.1
+    # via text2sql-eval-toolkit
+greenlet==3.3.0 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
+    # via sqlalchemy
+h11==0.16.0
+    # via httpcore
+hf-xet==1.5.0 ; platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'
+    # via huggingface-hub
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via
+    #   google-genai
+    #   ibm-watsonx-ai
+    #   langgraph-sdk
+    #   langsmith
+    #   openai
+huggingface-hub==0.36.2
+    # via text2sql-eval-toolkit
+ibm-cos-sdk==2.14.3
+    # via ibm-watsonx-ai
+ibm-cos-sdk-core==2.14.3
+    # via
+    #   ibm-cos-sdk
+    #   ibm-cos-sdk-s3transfer
+ibm-cos-sdk-s3transfer==2.14.3
+    # via ibm-cos-sdk
+ibm-watsonx-ai==1.5.0
+    # via text2sql-eval-toolkit
+idna==3.11
+    # via
+    #   anyio
+    #   httpx
+    #   requests
+jiter==0.13.0
+    # via openai
+jmespath==1.0.1
+    # via
+    #   ibm-cos-sdk
+    #   ibm-cos-sdk-core
+jsonpatch==1.33
+    # via langchain-core
+jsonpointer==3.0.0
+    # via jsonpatch
+kiwisolver==1.4.9
+    # via matplotlib
+langchain-core==1.2.7
+    # via
+    #   langgraph
+    #   langgraph-checkpoint
+    #   langgraph-prebuilt
+    #   text2sql-eval-toolkit
+langgraph==1.0.6
+    # via text2sql-eval-toolkit
+langgraph-checkpoint==4.0.0
+    # via
+    #   langgraph
+    #   langgraph-prebuilt
+langgraph-prebuilt==1.0.6
+    # via langgraph
+langgraph-sdk==0.3.3
+    # via langgraph
+langsmith==0.6.4
+    # via langchain-core
+loguru==0.7.3
+    # via text2sql-eval-toolkit
+lomond==0.3.3
+    # via ibm-watsonx-ai
+matplotlib==3.10.8
+    # via text2sql-eval-toolkit
+numpy==2.4.1
+    # via
+    #   contourpy
+    #   matplotlib
+    #   pandas
+openai==2.20.0
+    # via text2sql-eval-toolkit
+orjson==3.11.5
+    # via
+    #   langgraph-sdk
+    #   langsmith
+ormsgpack==1.12.1
+    # via langgraph-checkpoint
+packaging==25.0
+    # via
+    #   huggingface-hub
+    #   ibm-watsonx-ai
+    #   langchain-core
+    #   langsmith
+    #   matplotlib
+pandas==2.2.3
+    # via
+    #   ibm-watsonx-ai
+    #   text2sql-eval-toolkit
+pillow==12.1.0
+    # via matplotlib
+psycopg2-binary==2.9.11
+    # via text2sql-eval-toolkit
+pyasn1==0.6.3
+    # via pyasn1-modules
+pyasn1-modules==0.4.2
+    # via google-auth
+pycparser==2.23 ; implementation_name != 'PyPy' and platform_python_implementation != 'PyPy'
+    # via cffi
+pydantic==2.12.5
+    # via
+    #   google-genai
+    #   langchain-core
+    #   langgraph
+    #   langsmith
+    #   openai
+pydantic-core==2.41.5
+    # via pydantic
+pyparsing==3.3.1
+    # via matplotlib
+python-dateutil==2.9.0.post0
+    # via
+    #   ibm-cos-sdk-core
+    #   matplotlib
+    #   pandas
+python-dotenv==1.2.1
+    # via text2sql-eval-toolkit
+pytz==2025.2
+    # via pandas
+pyyaml==6.0.3
+    # via
+    #   huggingface-hub
+    #   langchain-core
+requests==2.32.5
+    # via
+    #   google-auth
+    #   google-genai
+    #   huggingface-hub
+    #   ibm-cos-sdk-core
+    #   ibm-watsonx-ai
+    #   langsmith
+    #   requests-toolbelt
+    #   text2sql-eval-toolkit
+requests-toolbelt==1.0.0
+    # via langsmith
+setuptools==80.9.0
+    # via text2sql-eval-toolkit
+six==1.17.0
+    # via
+    #   lomond
+    #   python-dateutil
+sniffio==1.3.1
+    # via
+    #   google-genai
+    #   openai
+sqlalchemy==2.0.45
+    # via text2sql-eval-toolkit
+sqlglot==28.6.0
+    # via text2sql-eval-toolkit
+sqlparse==0.5.5
+    # via text2sql-eval-toolkit
+tabulate==0.9.0
+    # via ibm-watsonx-ai
+tenacity==9.1.2
+    # via
+    #   google-genai
+    #   langchain-core
+tqdm==4.67.1
+    # via
+    #   huggingface-hub
+    #   openai
+    #   text2sql-eval-toolkit
+typing-extensions==4.15.0
+    # via
+    #   anyio
+    #   google-genai
+    #   huggingface-hub
+    #   langchain-core
+    #   openai
+    #   pydantic
+    #   pydantic-core
+    #   sqlalchemy
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via pydantic
+tzdata==2025.3
+    # via pandas
+urllib3==2.6.3
+    # via
+    #   ibm-cos-sdk-core
+    #   ibm-watsonx-ai
+    #   requests
+uuid-utils==0.13.0
+    # via
+    #   langchain-core
+    #   langsmith
+websockets==16.0
+    # via google-genai
+win32-setctime==1.2.0 ; sys_platform == 'win32'
+    # via loguru
+xxhash==3.6.0
+    # via langgraph
+zstandard==0.25.0
+    # via langsmith

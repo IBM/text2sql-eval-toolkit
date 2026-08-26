@@ -1,0 +1,112 @@
+#
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+
+"""
+Reading and writing the LLM-judge prompt configurations.
+
+The write endpoint is ``full`` tier and lands YAML inside the installed package
+directory, so the name is validated as a plain stem and containment is asserted
+on the resolved path -- belt and braces, because the first version of this
+interpolated a URL segment straight into a path.
+"""
+
+from pathlib import Path
+from typing import Any, Dict, List
+
+from fastapi import (
+    APIRouter,
+    Body,
+    HTTPException,
+)
+
+import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
+
+from text2sql_eval_toolkit.ui import runtime
+from text2sql_eval_toolkit.ui.capabilities import Tier
+from text2sql_eval_toolkit.ui.models import (
+    LLMJudgeConfigInfo,
+    LLMJudgeConfigListResponse,
+)
+
+from text2sql_eval_toolkit.logging import get_logger
+
+logger = get_logger(__name__)
+
+# The path resolution and its containment check live with the judge itself, so
+# there is one implementation of "which file does this name mean".
+from text2sql_eval_toolkit.ui.routers_judge import (  # noqa: E402
+    _resolve_judge_config_path,
+)
+
+router = APIRouter()
+
+
+@router.get("/api/llm-judge/configs", response_model=LLMJudgeConfigListResponse)
+def list_llm_judge_configs() -> LLMJudgeConfigListResponse:
+    """
+    List available LLM-judge YAML config files.
+    """
+    from text2sql_eval_toolkit.evaluation import llm_as_judge
+
+    base_dir = Path(llm_as_judge.__file__).parent / "llm_judge_config"
+    items: List[LLMJudgeConfigInfo] = []
+    # Clients address a config by name; only the full-mode editor has any use for
+    # a filesystem path, and it is a path *inside the installed package*, which
+    # is exactly the layout detail shared modes withhold everywhere else.
+    reveal_path = runtime.get_mode() is Tier.FULL
+    if base_dir.exists():
+        for path in sorted(base_dir.glob("*.yaml")):
+            items.append(
+                LLMJudgeConfigInfo(
+                    name=path.stem,
+                    path=str(path.resolve()) if reveal_path else "",
+                )
+            )
+    return LLMJudgeConfigListResponse(items=items)
+
+
+@router.get("/api/llm-judge/configs/{name}", response_model=Dict[str, Any])
+def get_llm_judge_config(name: str):
+    """
+    Return the parsed YAML config by name (stem).
+    """
+
+    try:
+        path = _resolve_judge_config_path(name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Config not found") from None
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Config not found")
+
+    import yaml
+
+    with path.open("r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+@router.put("/api/llm-judge/configs/{name}", response_model=Dict[str, Any])
+def update_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
+    """
+    Overwrite a YAML config file with the provided structure.
+    Performs minimal validation (must have model.id and prompt_template).
+    """
+    model_cfg = body.get("model") or {}
+    if "id" not in model_cfg:
+        raise HTTPException(status_code=400, detail="model.id is required")
+    if "prompt_template" not in body:
+        raise HTTPException(status_code=400, detail="prompt_template is required")
+
+    try:
+        path = _resolve_judge_config_path(name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=400, detail="Invalid config name") from None
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    import yaml
+
+    with path.open("w", encoding="utf-8") as f:
+        yaml.safe_dump(body, f, sort_keys=False, allow_unicode=True)
+
+    return body

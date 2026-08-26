@@ -6,14 +6,12 @@
 Unit tests for text2sql_eval_toolkit.cli (argparse wiring and normaliser).
 """
 
-import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from text2sql_eval_toolkit.cli import _build_parser, _normalise_list, main
-
 
 # ---------------------------------------------------------------------------
 # _normalise_list

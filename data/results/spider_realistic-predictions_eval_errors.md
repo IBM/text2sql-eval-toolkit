@@ -61217,19 +61217,19 @@ SELECT sql FROM sqlite_master WHERE type='table' AND name='cars_data';
 
 ### 📕 Predicted Result
 
-| sql                        |
-|:---------------------------|
-| CREATE TABLE "cars_data" ( |
-| 	"Id" INTEGER PRIMARY KEY,                             |
-| 	"MPG" TEXT,                             |
-| 	"Cylinders" INTEGER,                             |
-| 	"Edispl" REAL,                             |
+| sql                                             |
+|:------------------------------------------------|
+| CREATE TABLE "cars_data" (                      |
+| 	"Id" INTEGER PRIMARY KEY,                      |
+| 	"MPG" TEXT,                                    |
+| 	"Cylinders" INTEGER,                           |
+| 	"Edispl" REAL,                                 |
 | 	"Horsepower" TEXT,                             |
-| 	"Weight" INTEGER,                             |
+| 	"Weight" INTEGER,                              |
 | 	"Accelerate" REAL,                             |
-| 	"Year" INTEGER,                            |
-| 	FOREIGN KEY (Id) REFERENCES car_names (MakeId)                            |
-| )                          |
+| 	"Year" INTEGER,                                |
+| 	FOREIGN KEY (Id) REFERENCES car_names (MakeId) |
+| )                                               |
 
 ### 🤖 Agent Interaction Trace
 

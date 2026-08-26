@@ -1,0 +1,6 @@
+# Revisions that are pure formatting. Skip them in blame with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub picks this file up automatically.
+
+# style: apply Black formatting repo-wide
+a7a3aa978071f21f4d36a48db7a785bd1fdc8229

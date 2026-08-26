@@ -1,13 +1,14 @@
 import type { BenchmarkSummary } from "../types/benchmark";
 
-/** On-disk size of {id}-predictions_eval.json above which the dashboard may OOM on low RAM. */
-export const LARGE_EVAL_RESULTS_BYTES = 100 * 1024 * 1024; // 100 MiB
-
-export function isLargeBenchmark(benchmark: BenchmarkSummary): boolean {
-  const bytes = benchmark.eval_results_bytes;
-  return bytes != null && bytes >= LARGE_EVAL_RESULTS_BYTES;
-}
-
+/**
+ * Human-readable size of a benchmark's evaluation artifact.
+ *
+ * This used to sit alongside an `isLargeBenchmark` guard and a warning that
+ * loading profile data "may crash the server on machines with limited RAM".
+ * That was true while every request parsed the whole artifact; endpoints now
+ * read through the SQLite index, so memory no longer scales with file size and
+ * the warning has been removed. The size is still shown as plain context.
+ */
 export function formatEvalResultsSize(bytes: number | null | undefined): string | null {
   if (bytes == null || bytes <= 0) return null;
   if (bytes >= 1024 * 1024 * 1024) {
@@ -22,5 +23,4 @@ export function formatEvalResultsSize(bytes: number | null | undefined): string 
   return `${bytes} B`;
 }
 
-export const LARGE_BENCHMARK_WARNING =
-  "Large evaluation file — loading profile data uses a lot of memory and may crash the server on machines with limited RAM.";
+export type { BenchmarkSummary };

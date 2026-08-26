@@ -31,10 +31,9 @@ def test_top_level_import_and_symbols():
 
 def test_get_available_benchmarks_non_empty():
     mod = importlib.import_module("text2sql_eval_toolkit")
-    get_available_benchmarks = getattr(mod, "get_available_benchmarks")
+    get_available_benchmarks = mod.get_available_benchmarks
 
     benchmarks = get_available_benchmarks()
     assert isinstance(benchmarks, list)
     # The packaged benchmark metadata should define at least one benchmark id
     assert len(benchmarks) > 0
-

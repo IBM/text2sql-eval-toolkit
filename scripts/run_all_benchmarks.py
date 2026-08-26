@@ -6,7 +6,9 @@
 import argparse
 import time
 from pathlib import Path
-from text2sql_eval_toolkit import env_loader  # Load .env file automatically
+
+# Side effect import: loading this module reads .env into the environment.
+from text2sql_eval_toolkit import env_loader  # noqa: F401
 from text2sql_eval_toolkit.utils import get_benchmarks_info
 from text2sql_eval_toolkit.inference.baseline_llm_pipeline import (
     LLMSQLGenerationPipeline,
@@ -14,7 +16,10 @@ from text2sql_eval_toolkit.inference.baseline_llm_pipeline import (
 from text2sql_eval_toolkit.inference.agentic_pipeline import (
     AgenticSQLGenerationPipeline,
 )
-from text2sql_eval_toolkit.config_args import DEFAULT_MODEL_NAMES, DEFAULT_AGENTIC_MODELS
+from text2sql_eval_toolkit.config_args import (
+    DEFAULT_MODEL_NAMES,
+    DEFAULT_AGENTIC_MODELS,
+)
 from text2sql_eval_toolkit.evaluation.evaluation_tools import run_evaluation
 from text2sql_eval_toolkit.execution.execution_tools import run_execution
 from text2sql_eval_toolkit.analysis.report_tools import (
@@ -22,7 +27,6 @@ from text2sql_eval_toolkit.analysis.report_tools import (
     create_dashboard,
 )
 from text2sql_eval_toolkit.logging import get_logger
-
 
 SUMMARY_OUTPUT_FILE = "data/results/README.md"
 TEST_SUMMARY_OUTPUT_FILE = "data/benchmarks/test_benchmarks/results/README.md"
@@ -200,47 +204,53 @@ def main():
     else:
         # Run pipelines based on args
         pipeline_configs = []
-        
+
         if args.pipeline_type == "baseline":
             # Run standard baseline only
-            pipeline_configs.append({
-                "name": "standard-baseline",
-                "type": "baseline",
-                "pipeline": LLMSQLGenerationPipeline(),
-            })
+            pipeline_configs.append(
+                {
+                    "name": "standard-baseline",
+                    "type": "baseline",
+                    "pipeline": LLMSQLGenerationPipeline(),
+                }
+            )
         else:
             # pipeline_type == "agentic"
             # Always include standard baseline when running agentic versions
-            pipeline_configs.append({
-                "name": "standard-baseline",
-                "type": "baseline",
-                "pipeline": LLMSQLGenerationPipeline(),
-            })
-            
+            pipeline_configs.append(
+                {
+                    "name": "standard-baseline",
+                    "type": "baseline",
+                    "pipeline": LLMSQLGenerationPipeline(),
+                }
+            )
+
             # Add specified agentic versions
             for version in args.agentic_versions:
-                use_baseline_prompt = (version == "v1")
-                pipeline_configs.append({
-                    "name": f"agentic-baseline{version[1]}",  # e.g., "agentic-baseline1" for v1
-                    "type": "agentic",
-                    "pipeline": AgenticSQLGenerationPipeline(
-                        max_attempts=args.max_attempts,
-                        use_baseline_prompt=use_baseline_prompt,
-                        version=version,
-                    ),
-                })
-        
+                use_baseline_prompt = version == "v1"
+                pipeline_configs.append(
+                    {
+                        "name": f"agentic-baseline{version[1]}",  # e.g., "agentic-baseline1" for v1
+                        "type": "agentic",
+                        "pipeline": AgenticSQLGenerationPipeline(
+                            max_attempts=args.max_attempts,
+                            use_baseline_prompt=use_baseline_prompt,
+                            version=version,
+                        ),
+                    }
+                )
+
         logger.info(
             f"🎯 Running {len(pipeline_configs)} pipeline(s): {', '.join(c['name'] for c in pipeline_configs)}"
         )
 
     # Load benchmarks from appropriate file based on --test flag
     benchmarks = get_benchmarks_info(is_test=args.test)
-    
+
     # Set output file based on mode
     summary_output_file = TEST_SUMMARY_OUTPUT_FILE if args.test else SUMMARY_OUTPUT_FILE
     mode_name = "test" if args.test else "production"
-    
+
     logger.info(f"📁 Mode: {mode_name.upper()}")
     logger.info(f"📁 Output: {summary_output_file}")
 
@@ -288,15 +298,23 @@ def main():
                 )
 
                 # Determine which models to use for this pipeline
-                if pipeline_config['type'] == 'agentic':
+                if pipeline_config["type"] == "agentic":
                     # Agentic baselines: use agentic models list
-                    agentic_models = args.agentic_models if args.agentic_models else DEFAULT_AGENTIC_MODELS
+                    agentic_models = (
+                        args.agentic_models
+                        if args.agentic_models
+                        else DEFAULT_AGENTIC_MODELS
+                    )
                     pipeline_models = agentic_models
-                    logger.info(f"   Using {len(pipeline_models)} model(s) for agentic baseline: {', '.join(pipeline_models)}")
+                    logger.info(
+                        f"   Using {len(pipeline_models)} model(s) for agentic baseline: {', '.join(pipeline_models)}"
+                    )
                 else:
                     # Standard baseline: use all models
                     pipeline_models = model_names
-                    logger.info(f"   Using {len(pipeline_models)} model(s) for standard baseline")
+                    logger.info(
+                        f"   Using {len(pipeline_models)} model(s) for standard baseline"
+                    )
 
                 for model_idx, model_name in enumerate(pipeline_models, 1):
                     logger.info(
@@ -326,7 +344,7 @@ def main():
                 benchmark_id,
                 args.use_llm_judge,
                 force_rerun_llm_judge=args.force_rerun_llm_judge,
-                force_rerun=args.force_rerun
+                force_rerun=args.force_rerun,
             )
             logger.info(f"✅ Evaluation completed for benchmark '{benchmark_id}'.")
             logger.info(
@@ -369,10 +387,10 @@ def main():
     logger.info(
         f"✅ All summary and error analysis markdowns generated in: {output_folder}"
     )
-    logger.info(f"\n🎯 Experiment Configuration:")
+    logger.info("\n🎯 Experiment Configuration:")
     if args.run_all_baselines:
         logger.info(
-            f"   Pipelines: ALL baselines (standard + agentic-baseline0/1/2/3/4/5)"
+            "   Pipelines: ALL baselines (standard + agentic-baseline0/1/2/3/4/5)"
         )
         logger.info(f"   Max attempts (agentic): {args.max_attempts}")
     else:
@@ -380,16 +398,24 @@ def main():
         if args.pipeline_type == "agentic":
             logger.info(f"   Versions: {', '.join(args.agentic_versions)}")
             logger.info(f"   Max attempts: {args.max_attempts}")
-    
+
     # Show model configuration
-    agentic_models = args.agentic_models if args.agentic_models else DEFAULT_AGENTIC_MODELS
-    logger.info(f"   Standard baseline models: {len(model_names)} model(s) - {', '.join(model_names)}")
-    logger.info(f"   Agentic baseline models: {len(agentic_models)} model(s) - {', '.join(agentic_models)}")
+    agentic_models = (
+        args.agentic_models if args.agentic_models else DEFAULT_AGENTIC_MODELS
+    )
+    logger.info(
+        f"   Standard baseline models: {len(model_names)} model(s) - {', '.join(model_names)}"
+    )
+    logger.info(
+        f"   Agentic baseline models: {len(agentic_models)} model(s) - {', '.join(agentic_models)}"
+    )
     logger.info(f"   Benchmarks: {total_benchmarks} benchmark(s)")
     logger.info(f"   LLM Judge: {'enabled' if args.use_llm_judge else 'disabled'}")
     logger.info(f"   Force Rerun: {'enabled' if args.force_rerun else 'disabled'}")
     if args.use_llm_judge:
-        logger.info(f"   Force Rerun LLM Judge: {'enabled' if args.force_rerun_llm_judge else 'disabled'}")
+        logger.info(
+            f"   Force Rerun LLM Judge: {'enabled' if args.force_rerun_llm_judge else 'disabled'}"
+        )
 
 
 if __name__ == "__main__":

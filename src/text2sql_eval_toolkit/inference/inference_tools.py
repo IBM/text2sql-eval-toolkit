@@ -75,7 +75,7 @@ class Text2SQLPrompt:
         if not isinstance(schema.get("tables"), list) and isinstance(
             schema.get("tables"), dict
         ):
-            for table_name, table_obj in schema.get("tables").items():
+            for _table_name, table_obj in schema.get("tables").items():
                 tables.append(table_obj)
         else:
             tables = schema.get("tables")
@@ -145,64 +145,71 @@ def postprocess_sql(text: str) -> str:
     # Remove trailing semicolons and whitespace
     return text.rstrip("; \n")
 
+
 def extract_sql_from_reasoning(reasoning_text: str) -> str:
     """
     Extract SQL from reasoning_content using multiple fallback strategies.
-    
+
     This handles cases where the model outputs reasoning with embedded SQL
     but doesn't provide a separate 'content' field.
-    
+
     Strategies (in order of preference):
     1. Look for ```sql fenced blocks (partial or complete)
     2. Look for SELECT statements after "SQL:" marker
     3. Find the longest complete SELECT statement
     4. Extract any SELECT statement with cleanup
-    
+
     Args:
         reasoning_text: The reasoning content from the model response
-        
+
     Returns:
         Extracted SQL query string, or empty string if no SQL found
     """
     if not reasoning_text:
         return ""
-    
+
     # Strategy 1: Try to find ```sql blocks (even if incomplete/cut off)
-    sql_block = re.search(r'```sql\s*\n?(.*?)(?:```|$)', reasoning_text, re.DOTALL | re.IGNORECASE)
+    sql_block = re.search(
+        r"```sql\s*\n?(.*?)(?:```|$)", reasoning_text, re.DOTALL | re.IGNORECASE
+    )
     if sql_block:
         sql = sql_block.group(1).strip()
-        if sql and sql.upper().startswith('SELECT'):
-            return sql.rstrip(';').strip()
-    
+        if sql and sql.upper().startswith("SELECT"):
+            return sql.rstrip(";").strip()
+
     # Strategy 2: Look for "SQL:" marker followed by SELECT
-    sql_marker = re.search(r'SQL:\s*\n+(SELECT.*?)(?:\n\n|;|\Z)', reasoning_text, re.DOTALL | re.IGNORECASE)
+    sql_marker = re.search(
+        r"SQL:\s*\n+(SELECT.*?)(?:\n\n|;|\Z)", reasoning_text, re.DOTALL | re.IGNORECASE
+    )
     if sql_marker:
         sql = sql_marker.group(1).strip()
         if sql:
-            return sql.rstrip(';').strip()
-    
+            return sql.rstrip(";").strip()
+
     # Strategy 3: Find the last complete SELECT statement before cutoff
     # Look for SELECT...FROM...WHERE/GROUP/ORDER/LIMIT patterns
     select_statements = re.findall(
-        r'(SELECT\s+.*?(?:FROM|JOIN).*?)(?=\n\n|;|\Z)',
+        r"(SELECT\s+.*?(?:FROM|JOIN).*?)(?=\n\n|;|\Z)",
         reasoning_text,
-        re.DOTALL | re.IGNORECASE
+        re.DOTALL | re.IGNORECASE,
     )
-    
+
     if select_statements:
         # Return the longest one (likely most complete)
         longest_sql = max(select_statements, key=len).strip()
-        return longest_sql.rstrip(';').strip()
-    
+        return longest_sql.rstrip(";").strip()
+
     # Strategy 4: Last resort - find any SELECT statement
-    select_match = re.search(r'(SELECT\s+.+)', reasoning_text, re.DOTALL | re.IGNORECASE)
+    select_match = re.search(
+        r"(SELECT\s+.+)", reasoning_text, re.DOTALL | re.IGNORECASE
+    )
     if select_match:
         sql = select_match.group(1).strip()
         # Clean up common trailing text
-        sql = re.sub(r'\n\n.*$', '', sql)  # Remove text after double newline
-        sql = re.sub(r'\n(That\'s|This|We need|The).*$', '', sql, flags=re.IGNORECASE)
-        return sql.rstrip(';').strip()
-    
+        sql = re.sub(r"\n\n.*$", "", sql)  # Remove text after double newline
+        sql = re.sub(r"\n(That\'s|This|We need|The).*$", "", sql, flags=re.IGNORECASE)
+        return sql.rstrip(";").strip()
+
     return ""
 
 
@@ -323,10 +330,10 @@ class WXAIClientChatAPI:
 
         try:
             message = response["choices"][0]["message"]
-            
+
             # Try content first (normal case)
             sql = message.get("content", "").strip()
-            
+
             # Fall back to reasoning_content if content is empty
             if not sql:
                 reasoning = message.get("reasoning_content", "").strip()
@@ -336,18 +343,20 @@ class WXAIClientChatAPI:
                     if sql:
                         logger.info("Successfully extracted SQL from reasoning_content")
                     else:
-                        logger.warning("Could not extract valid SQL from reasoning_content")
-            
+                        logger.warning(
+                            "Could not extract valid SQL from reasoning_content"
+                        )
+
             if not sql:
                 error = ValueError("No SQL content found in response")
                 error.response = str(response)  # Attach raw response to exception
                 raise error
-                
+
         except (KeyError, IndexError) as e:
             logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
             error = ValueError("No SQL returned by the model.")
             error.response = str(response)  # Attach raw response to exception
-            raise error
+            raise error from e
 
         # Extract token usage from WatsonX response
         token_usage = None
@@ -444,7 +453,7 @@ class VLLMClientChatAPI:
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"vLLM API request failed: {e}")
-            raise ValueError(f"Failed to get response from vLLM API: {e}")
+            raise ValueError(f"Failed to get response from vLLM API: {e}") from e
 
     def generate_sql(self, prompt: Any) -> tuple[str, dict]:
         if hasattr(prompt, "prompt"):  # Text2SQLPrompt-like object
@@ -466,7 +475,7 @@ class VLLMClientChatAPI:
             sql = response["choices"][0]["message"]["content"].strip()
         except (KeyError, IndexError) as e:
             logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
+            raise ValueError("No SQL returned by the model.") from e
 
         # Extract token usage from vLLM response (OpenAI-compatible format)
         token_usage = None
@@ -572,9 +581,9 @@ class ClaudeClientChatAPI:
                     error_type = error_json["error"].get("type", "unknown")
                     error_msg = error_json["error"].get("message", "")
                     error_detail = f" - {error_type}: {error_msg}"
-            except:
+            except Exception:
                 pass
-            
+
             # Provide specific guidance for common errors
             if e.response.status_code == 401:
                 logger.error(f"Claude API authentication failed{error_detail}")
@@ -582,16 +591,18 @@ class ClaudeClientChatAPI:
                     f"Claude API authentication failed{error_detail}\n"
                     "Please check that your ANTHROPIC_API_KEY is valid.\n"
                     "Get a valid key at: https://console.anthropic.com/settings/keys"
-                )
+                ) from e
             elif e.response.status_code == 429:
                 logger.error(f"Claude API rate limit exceeded{error_detail}")
-                raise ValueError(f"Claude API rate limit exceeded{error_detail}")
+                raise ValueError(f"Claude API rate limit exceeded{error_detail}") from e
             else:
                 logger.error(f"Claude API request failed: {e}{error_detail}")
-                raise ValueError(f"Failed to get response from Claude API: {e}{error_detail}")
+                raise ValueError(
+                    f"Failed to get response from Claude API: {e}{error_detail}"
+                ) from e
         except requests.exceptions.RequestException as e:
             logger.error(f"Claude API request failed: {e}")
-            raise ValueError(f"Failed to get response from Claude API: {e}")
+            raise ValueError(f"Failed to get response from Claude API: {e}") from e
 
     def generate_sql(self, prompt: Any) -> tuple[str, dict]:
         if hasattr(prompt, "prompt"):  # Text2SQLPrompt-like object
@@ -614,7 +625,7 @@ class ClaudeClientChatAPI:
             sql = response["content"][0]["text"].strip()
         except (KeyError, IndexError) as e:
             logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
+            raise ValueError("No SQL returned by the model.") from e
 
         # Extract token usage from Claude response
         token_usage = None
@@ -654,8 +665,10 @@ class OpenAIClientChatAPI:
         # Check if this is an Ollama model (will be passed without prefix after stripping in baseline_llm_pipeline)
         # For Ollama, try OLLAMA_* env vars first, fall back to OPENAI_* for compatibility
         ollama_base_url = os.environ.get("OLLAMA_BASE_URL")
-        ollama_api_key = os.environ.get("OLLAMA_API_KEY", "ollama")  # Ollama doesn't require real API key
-        
+        ollama_api_key = os.environ.get(
+            "OLLAMA_API_KEY", "ollama"
+        )  # Ollama doesn't require real API key
+
         if ollama_base_url:
             # Using Ollama
             self.base_url = ollama_base_url.rstrip("/")
@@ -677,7 +690,7 @@ class OpenAIClientChatAPI:
 
             self.base_url = values["base_url"].rstrip("/")
             self.api_key = values["api_key"]
-        
+
         self.model_name = model_name
 
         # Filter and convert parameters for OpenAI API compatibility
@@ -747,13 +760,13 @@ class OpenAIClientChatAPI:
             logger.debug(f"Raw response: {response}\n")
         except Exception as e:
             logger.error(f"OpenAI API request failed: {e}")
-            raise ValueError(f"Failed to get response from OpenAI API: {e}")
+            raise ValueError(f"Failed to get response from OpenAI API: {e}") from e
 
         try:
             sql = response.choices[0].message.content.strip()
         except (AttributeError, IndexError, KeyError) as e:
             logger.error(f"SQL generation error: {repr(e)}. Raw response: {response}\n")
-            raise ValueError("No SQL returned by the model.")
+            raise ValueError("No SQL returned by the model.") from e
 
         # Extract token usage from OpenAI response
         token_usage = None
@@ -761,9 +774,17 @@ class OpenAIClientChatAPI:
             if hasattr(response, "usage") and response.usage:
                 usage = response.usage
                 token_usage = {
-                    "prompt_tokens": usage.prompt_tokens if hasattr(usage, "prompt_tokens") else 0,
-                    "completion_tokens": usage.completion_tokens if hasattr(usage, "completion_tokens") else 0,
-                    "total_tokens": usage.total_tokens if hasattr(usage, "total_tokens") else 0,
+                    "prompt_tokens": (
+                        usage.prompt_tokens if hasattr(usage, "prompt_tokens") else 0
+                    ),
+                    "completion_tokens": (
+                        usage.completion_tokens
+                        if hasattr(usage, "completion_tokens")
+                        else 0
+                    ),
+                    "total_tokens": (
+                        usage.total_tokens if hasattr(usage, "total_tokens") else 0
+                    ),
                 }
                 logger.debug(f"Token usage: {token_usage}\n")
         except Exception as e:
@@ -840,7 +861,9 @@ class GeminiClientChatAPI:
             "into accurate SQL queries using the given database schema and instructions."
         )
 
-    def _build_contents_from_messages(self, messages: list[dict[str, str]]) -> tuple[list[dict], str | None]:
+    def _build_contents_from_messages(
+        self, messages: list[dict[str, str]]
+    ) -> tuple[list[dict], str | None]:
         """
         Convert OpenAI-like chat messages into Gemini contents format.
         """
@@ -955,7 +978,11 @@ class GeminiClientChatAPI:
         except Exception:
             pass
 
-        if str(code_attr).lower() in {"429", "statuscode.resource_exhausted", "resource_exhausted"}:
+        if str(code_attr).lower() in {
+            "429",
+            "statuscode.resource_exhausted",
+            "resource_exhausted",
+        }:
             return True
 
         error_text = str(error).lower()
@@ -981,7 +1008,7 @@ class GeminiClientChatAPI:
         """
         backoff = min(
             self.max_backoff_seconds,
-            self.initial_backoff_seconds * (2 ** attempt_index),
+            self.initial_backoff_seconds * (2**attempt_index),
         )
         # Small jitter helps avoid synchronized retries across workers.
         jitter = random.uniform(0, 0.25 * backoff)
@@ -1030,7 +1057,7 @@ class GeminiClientChatAPI:
                         "and ensure Vertex routing env vars are not set for this run "
                         "(e.g., GOOGLE_GENAI_USE_VERTEXAI/GOOGLE_CLOUD_PROJECT/GOOGLE_CLOUD_LOCATION). "
                         f"Original error: {e}"
-                    )
+                    ) from e
 
                 is_retryable = self._is_rate_limited(e)
                 has_retries_left = attempt < self.max_retry_attempts
@@ -1052,10 +1079,10 @@ class GeminiClientChatAPI:
                     raise ValueError(
                         "Gemini API rate limit/resource exhausted after "
                         f"{self.max_retry_attempts} attempts: {e}"
-                    )
+                    ) from e
 
                 logger.error(f"Gemini API request failed: {e}")
-                raise ValueError(f"Failed to get response from Gemini API: {e}")
+                raise ValueError(f"Failed to get response from Gemini API: {e}") from e
 
         if response is None:
             raise ValueError(

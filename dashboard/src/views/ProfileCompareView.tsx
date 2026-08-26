@@ -28,12 +28,11 @@ import {
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
+  clampToAvailable,
   flattenMetricInsightsSelectNames,
 } from "../lib/metricInsightsSelect";
 import {
-  LARGE_BENCHMARK_WARNING,
   formatEvalResultsSize,
-  isLargeBenchmark,
 } from "../lib/largeBenchmark";
 
 interface Props {
@@ -149,8 +148,8 @@ export const ProfileCompareView: React.FC<Props> = ({
   const [loading, setLoading] = useState(false);
 
   const [selectedPipeline, setSelectedPipeline] = useState("");
-  const [metricA, setMetricA] = useState("execution_accuracy");
-  const [metricB, setMetricB] = useState("subset_non_empty_execution_accuracy");
+  const [rawMetricA, setMetricA] = useState("execution_accuracy");
+  const [rawMetricB, setMetricB] = useState("subset_non_empty_execution_accuracy");
   const [pipelineScope, setPipelineScope] = useState<"common" | "all">("common");
 
   const [metricDefinitions, setMetricDefinitions] = useState<MetricDefinitionsResponse | null>(null);
@@ -169,14 +168,6 @@ export const ProfileCompareView: React.FC<Props> = ({
   const benchmarkById = useMemo(
     () => new Map(benchmarks.map((b) => [b.benchmark_id, b])),
     [benchmarks]
-  );
-
-  const selectedLargeBenchmarks = useMemo(
-    () =>
-      selectedBenchmarkIds
-        .map((id) => benchmarkById.get(id))
-        .filter((b): b is BenchmarkSummary => b != null && isLargeBenchmark(b)),
-    [selectedBenchmarkIds, benchmarkById]
   );
 
   useEffect(() => {
@@ -209,15 +200,15 @@ export const ProfileCompareView: React.FC<Props> = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (!metricDefinitions?.metrics?.length) return;
-    const groups = buildMetricInsightsSelectGroups(metricDefinitions.metrics);
-    const names = flattenMetricInsightsSelectNames(groups);
-    if (names.length === 0) return;
-    const allowed = new Set(names);
-    setMetricA((a) => (allowed.has(a) ? a : names[0]));
-    setMetricB((b) => (allowed.has(b) ? b : names[1] ?? names[0]));
-  }, [metricDefinitions]);
+  const availableMetricNames = useMemo(
+    () => flattenMetricInsightsSelectNames(metricSelectGroups),
+    [metricSelectGroups]
+  );
+
+  // Derived rather than corrected from an effect: the selection is never
+  // briefly invalid, and no render uses a stale value to build a request.
+  const metricA = clampToAvailable(rawMetricA, availableMetricNames, 0);
+  const metricB = clampToAvailable(rawMetricB, availableMetricNames, 1);
 
   useEffect(() => {
     if (selectedBenchmarkIds.length === 0) {
@@ -412,11 +403,8 @@ export const ProfileCompareView: React.FC<Props> = ({
           ) : (
             selectedBenchmarkIds.map((id) => {
               const meta = benchmarkById.get(id);
-              const large = meta != null && isLargeBenchmark(meta);
               const sizeLabel = formatEvalResultsSize(meta?.eval_results_bytes);
-              const largeTitle = large
-                ? `${LARGE_BENCHMARK_WARNING}${sizeLabel ? ` (${sizeLabel} on disk)` : ""}`
-                : undefined;
+              const largeTitle = sizeLabel ? `${sizeLabel} on disk` : undefined;
               return (
                 <span
                   key={id}
@@ -430,11 +418,6 @@ export const ProfileCompareView: React.FC<Props> = ({
                   >
                     {id}
                   </Tag>
-                  {large ? (
-                    <Tag type="magenta" size="sm" title={largeTitle}>
-                      Large
-                    </Tag>
-                  ) : null}
                 </span>
               );
             })
@@ -457,11 +440,6 @@ export const ProfileCompareView: React.FC<Props> = ({
               item ? (
                 <span style={{ display: "inline-flex", gap: "0.35rem", alignItems: "center" }}>
                   <span>{item.benchmark_id}</span>
-                  {isLargeBenchmark(item) ? (
-                    <Tag type="magenta" size="sm" title={LARGE_BENCHMARK_WARNING}>
-                      Large
-                    </Tag>
-                  ) : null}
                 </span>
               ) : null
             }
@@ -505,15 +483,6 @@ export const ProfileCompareView: React.FC<Props> = ({
           lowContrast
         />
       ) : null}
-
-      {selectedLargeBenchmarks.length > 0 && (
-        <InlineNotification
-          kind="warning"
-          title="Large benchmarks selected"
-          subtitle={`${selectedLargeBenchmarks.map((b) => b.benchmark_id).join(", ")} — ${LARGE_BENCHMARK_WARNING}`}
-          lowContrast
-        />
-      )}
 
       {metricDefinitionsError && (
         <InlineNotification
