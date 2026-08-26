@@ -105,18 +105,27 @@ def list_benchmarks() -> BenchmarksResponse:
         num_records = 0
         num_pipelines = 0
 
-        # Count records from benchmark data file
-        data_path = info.get("benchmark_json_path")
+        # How many records this benchmark has.
+        #
+        # The index first, because it is the count of what a visitor can
+        # actually browse and because it is the only source a deployment has:
+        # the published snapshot ships `results/` and nothing else, so a public
+        # host has no `benchmarks/*.json` to count and every benchmark showed
+        # "0 records" on the landing page.
         try:
-            # Prefer repository data root if configured (data/benchmarks/*.json),
-            # then fall back to benchmark_json_path from package metadata.
-            rel_data_path = info.get("data")
-            if isinstance(rel_data_path, str):
-                num_records = count_records(get_data_root() / rel_data_path)
-            if num_records == 0:
-                num_records = count_records(data_path)
-        except Exception as e:  # pragma: no cover - defensive
-            logger.warning(f"Could not count records for {benchmark_id}: {e}")
+            num_records = get_index(benchmark_id).record_count()
+        except Exception:
+            # No index, or one this deployment may not build. Fall back to the
+            # benchmark data file, which is what a local checkout has.
+            data_path = info.get("benchmark_json_path")
+            try:
+                rel_data_path = info.get("data")
+                if isinstance(rel_data_path, str):
+                    num_records = count_records(get_data_root() / rel_data_path)
+                if num_records == 0:
+                    num_records = count_records(data_path)
+            except Exception as e:  # pragma: no cover - defensive
+                logger.warning(f"Could not count records for {benchmark_id}: {e}")
 
         # Count pipelines from summary JSON if present
         summary_path = results_dir / f"{benchmark_id}-predictions_eval_summary.json"

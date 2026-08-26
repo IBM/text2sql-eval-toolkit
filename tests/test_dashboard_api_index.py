@@ -398,3 +398,36 @@ def test_no_async_handler_reaches_a_blocking_index_build():
     ), "async endpoints reach get_index() without offloading it:\n  " + "\n  ".join(
         offenders
     )
+
+
+def test_benchmark_listing_counts_records_without_the_benchmark_data_file(
+    tmp_path, monkeypatch
+):
+    """
+    The published snapshot ships `results/` and nothing else, so a deployment
+    has no `benchmarks/*.json` to count. Counting from those files made every
+    benchmark on the live landing page read "0 records" while its pipelines
+    listed correctly -- the index knows the real number, and it is the count of
+    what a visitor can actually browse.
+
+    Uses a real registry id, because the listing enumerates the benchmark
+    registry rather than whatever happens to be in the results directory.
+    """
+    results = tmp_path / "results"
+    results.mkdir()
+    records = [{"id": f"rec-{i}", "question": "q", "predictions": {}} for i in range(7)]
+    (results / "archer_en_dev-predictions_eval.json").write_text(
+        json.dumps(records), encoding="utf-8"
+    )
+    monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
+    server.invalidate_index_cache()
+    try:
+        items = TestClient(server.app).get("/api/benchmarks").json()["items"]
+        listed = {b["benchmark_id"]: b for b in items}
+        assert listed["archer_en_dev"]["num_records"] == len(records)
+        # Benchmarks with no artifact under this data root still list, falling
+        # back to the packaged data file rather than breaking the page.
+        assert len(listed) > 1
+        assert all(isinstance(b["num_records"], int) for b in items)
+    finally:
+        server.invalidate_index_cache()
