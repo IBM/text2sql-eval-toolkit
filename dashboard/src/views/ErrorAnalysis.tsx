@@ -22,6 +22,7 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import { highlightSql } from "../lib/sql";
 import { ResultTableView } from "./ResultTableView";
 import { resolveDetailPipeline } from "../lib/detailPipeline";
 import {
@@ -134,29 +135,6 @@ function formatMetricHeader(metricName: string, fallback: string): string {
   return trimmed.replaceAll("_", " ");
 }
 
-function escapeHtml(text: string): string {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-}
-
-function highlightSql(sql: string): string {
-  const escaped = escapeHtml(sql);
-  const keywords = [
-    "SELECT","FROM","WHERE","GROUP BY","ORDER BY","HAVING","LIMIT","JOIN","LEFT JOIN",
-    "RIGHT JOIN","INNER JOIN","OUTER JOIN","ON","AS","AND","OR","NOT","IN","EXISTS",
-    "COUNT","SUM","AVG","MIN","MAX","DISTINCT","CASE","WHEN","THEN","ELSE","END",
-  ];
-  const sorted = keywords.sort((a, b) => b.length - a.length);
-  let html = escaped;
-  sorted.forEach((kw) => {
-    const token = kw.replace(/\s+/g, "\\s+");
-    const re = new RegExp(`\\b${token}\\b`, "gi");
-    html = html.replace(
-      re,
-      (m) => `<span style="color:#0f62fe;font-weight:600;">${m.toUpperCase()}</span>`
-    );
-  });
-  return html;
-}
 
 export const ErrorAnalysis: React.FC<Props> = ({
   benchmarkId,
