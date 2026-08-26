@@ -1,7 +1,7 @@
 # Copyright IBM Corp. 2025 - 2026
 # SPDX-License-Identifier: Apache-2.0
 #
-# Public dashboard stack for a single VM (see docs/plan/03-public-deployment.md).
+# Public dashboard stack for a single VM (see docs/dashboard/deployment.md).
 #
 # Only `caddy` publishes ports. Postgres and MySQL are reachable solely over the
 # internal Compose network -- no published port, no public hostname. For
@@ -116,7 +116,7 @@ services:
   # --- Optional database services --------------------------------------------
   # Enabled with:  docker compose --profile databases up -d
   # Only worth starting once the corresponding data has been loaded; see
-  # deploy/provision.sh and docs/plan/03-public-deployment.md items 3.11-3.12.
+  # deploy/provision.sh and docs/dashboard/deployment.md.
 
   postgres:
     image: postgres:17-bookworm

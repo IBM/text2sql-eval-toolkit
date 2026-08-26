@@ -12,7 +12,7 @@ excluded by ``addopts`` in pyproject.toml.  Run them explicitly with::
 
     pytest -m integration
 
-See docs/plan/04-code-quality.md item 4.3.
+See docs/attic/plan/04-code-quality.md item 4.3.
 """
 
 import os

@@ -1,7 +1,7 @@
 # Deployment Runbook
 
 Operating the public dashboard. Companion to
-[`plan/03-public-deployment.md`](plan/03-public-deployment.md), which explains
+[`plan/03-public-deployment.md`](../attic/plan/03-public-deployment.md), which explains
 *why* the design is what it is; this file is what you follow when something
 needs doing.
 

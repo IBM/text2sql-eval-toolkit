@@ -1,5 +1,12 @@
 # Refactor Plan
 
+> **Superseded.** These were plans, executed and completed. The reference
+> material they contained now lives in [`docs/dashboard/`](../../dashboard/);
+> what remains here is the record of what was intended, what it cost, and where
+> the reasoning turned out to be wrong. The
+> [project log](../project-log.md) is later than this document wherever they
+> disagree.
+
 Plan for four goals, written against the baseline recorded in
 [`../project-log.md`](../project-log.md) (`main` @ `60dd451`).
 
