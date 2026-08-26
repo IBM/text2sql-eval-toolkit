@@ -330,6 +330,15 @@ The pre-built frontend assets (`dashboard/dist/`) are committed to the repositor
 
 See [dashboard/README.md](dashboard/README.md) for full details (development with Vite, manual builds, and troubleshooting).
 
+#### The public dashboard
+
+A read-only deployment browsing the published results snapshot:
+**<https://text2sql-eval-toolkit.oktie.com>**
+
+Every view there is addressable, so a link reproduces the exact benchmark, pipeline,
+filtered query, or individual record. It runs no inference and executes no SQL — it reads
+a pinned Hugging Face snapshot, so the numbers behind a shared link do not move.
+
 #### Shareable links
 
 Every view has its own URL, so a benchmark, a pipeline, a filtered error-analysis
@@ -340,6 +349,7 @@ query, or an individual record can be linked to directly:
 /benchmark/bird_mini_dev_sqlite/pipeline/{pipeline_id}      pipeline detail
 /benchmark/bird_mini_dev_sqlite/errors?pipeline=…&value=0   filtered error analysis
 /benchmark/bird_mini_dev_sqlite/errors?…&record={id}        one record, open
+/benchmark/{id}/pipeline/{pipeline_id}/record/{record_id}   one record, in a pipeline
 ```
 
 The address bar is the link — there is no "copy this URL" button, since it would

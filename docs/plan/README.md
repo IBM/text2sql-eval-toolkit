@@ -18,15 +18,18 @@ the live status.
 ## Where things stand
 
 Branch `dashboard-v2` at **1.3.0**, pushed, with [PR #12](https://github.com/IBM/text2sql-eval-toolkit/pull/12)
-open as a draft. 606 backend, 77 frontend and 10 end-to-end tests pass; ruff, black, mypy
-and eslint are clean. **CI runs and is green on all ten jobs**, including the container
-image. Not deployed.
+open as a draft. 607 backend, 82 frontend and 13 end-to-end tests pass; ruff, black, mypy
+and eslint are clean. CI is green on all ten jobs.
+
+**Deployed and live at [text2sql-eval-toolkit.oktie.com](https://text2sql-eval-toolkit.oktie.com)** —
+a Hetzner CX22, browse-only, `judge` mode, pinned to the `v1.1.0` snapshot. TLS issued on
+the first attempt; sign-in verified against real Google on the live site.
 
 | Goal | Done | Remaining |
 |---|---|---|
-| 1 — Shareable URLs | 7 / 7 | — (E2E found three defects in it; all fixed) |
+| 1 — Shareable URLs | 7 / 7 | — plus a record-detail page added after deployment, on request |
 | 2 — Performance | 8.5 / 9 | Data-fetching library and list virtualisation (part of 2.8), both deliberately deferred |
-| 3 — Public deployment | 12 / 12 | — (container unbuilt locally; sign-in unexercised against Google) |
+| 3 — Public deployment | 12 / 12 | — deployed, TLS live, sign-in verified |
 | 4 — Code quality | 13 / 13 | — (unpushed) |
 
 ### Goal 1 — Shareable URLs
@@ -39,6 +42,7 @@ image. Not deployed.
 | 1.4 Copy-link affordance | Done, narrowed | The plain "Copy link" button was removed — it duplicated the address bar. **Copy short link** remains, shown only on addresses that name a pipeline |
 | 1.5 Server-side SPA fallback | Done | `SPAStaticFiles`; `/api/*` still 404s properly |
 | 1.6 Short identifiers | Done | Ten-character aliases, derived server-side and expanded on arrival; **Copy short link** in the header. A 247-character comparison link becomes 158. Renamed from "stable": a hash of the id cannot survive a rename — see the note below |
+| 1.8 Record detail as a page | Done | `/benchmark/{id}/pipeline/{p}/record/{r}`. Was a panel over a view whose address never changed, so it could not be shared. Added after deployment, on request |
 | 1.7 Not-found and permission states | Done | Explicit not-found; capability surfaced via `/api/me`. A benchmark the URL names but this server lacks now says so instead of silently opening a different one — found by E2E |
 
 ### Goal 2 — Performance
@@ -92,10 +96,12 @@ image. Not deployed.
 
 ### Known limitations, stated plainly
 
-- **Nothing has been deployed.** TLS issuance has never happened — CI cannot obtain a
-  certificate for `example.org` — and no data has ever been fetched through
-  `provision.sh` end to end; CI only checks that it starts. Both are first-deploy
-  discoveries by nature.
+- **The judge tier is configured but inert.** `WATSONX_APIKEY` and `WATSONX_PROJECTID` are
+  unset on the deployment, and `judge_available` is derived from the mode and the kill
+  switch rather than from whether watsonx is actually configured — so a signed-in
+  allowlisted user is offered the control and then gets an error. Either set the keys or
+  set `TEXT2SQL_JUDGE_DISABLED=true`; the underlying logic should derive from
+  configuration.
 - **No `v1.3.0` results snapshot exists.** `v1.1.0` is the only tag on the Hub. It is
   readable, 3.95 GB, and compatible with 1.3.0, so pinning it works — but its manifest
   lists directory names (`bak`, `charts`, `logs`) rather than benchmarks. Downloads are

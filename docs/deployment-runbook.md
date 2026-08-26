@@ -314,6 +314,20 @@ Auth logs carry a truncated hash of the identity, never the address.
 
 ---
 
+## Measured on the first deploy
+
+A Hetzner CX22 (2 vCPU / 4 GB / 38 GB), browse-only:
+
+| | |
+|---|---|
+| First image build | ~12 min (no cache; npm install, then ~90 Python packages) |
+| Provisioning | ~2 min — 3.7 GB fetched, six indices built |
+| Disk after provisioning | 8.3 GB of 38 GB |
+| TLS issuance | seconds, `tls-alpn-01`, first attempt |
+| Peak app memory | well inside the 1.5 GB limit, including Beaver's 108 MB record |
+
+Rebuilds are cached and take well under a minute.
+
 ## Sizing and failure behaviour
 
 Each container has a memory ceiling (`MEM_LIMIT_*` in `deploy/.env`, defaults

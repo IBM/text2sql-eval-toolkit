@@ -18,8 +18,9 @@ which is enforced by a test rather than by intention.
 
 ### Added
 - **Shareable URLs.** Every view has its own address — benchmark, pipeline
-  detail, filtered error analysis, an individual record — and reopening one
-  restores the same view. `Copy link` in the header copies it.
+  detail, filtered error analysis, an individual record, and a record within a
+  pipeline (`/benchmark/{id}/pipeline/{pipeline}/record/{record}`) — and
+  reopening one restores the same view.
 - **Short pipeline links.** `GET /api/benchmarks/{id}/pipeline-aliases` returns
   a derived alias per pipeline; the dashboard accepts an alias anywhere it
   accepts an id and expands it on arrival. A two-pipeline comparison link goes
