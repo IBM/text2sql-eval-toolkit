@@ -168,3 +168,26 @@ def test_importing_the_package_never_depends_on_a_writable_install(
     logger = get_logger("test-import-safety")
     logger.handlers.clear()
     assert get_logger("test-import-safety") is logger
+
+
+def test_the_log_is_appended_not_truncated(tmp_path):
+    """
+    Running two dashboards on different ports is ordinary. With mode="w" the
+    second truncates the first's file while the first carries on writing at its
+    old offset, and the result is half-lines in the wrong order -- which is
+    exactly how it presented when it happened.
+    """
+    target = tmp_path / "shared.log"
+    target.write_text("earlier process was here\n", encoding="utf-8")
+
+    logger = logging.getLogger("test-append")
+    logger.handlers.clear()
+    _attach_file_handler(logger, target)
+    logger.warning("second process")
+    for handler in logger.handlers:
+        handler.flush()
+        handler.close()
+
+    contents = target.read_text(encoding="utf-8")
+    assert "earlier process was here" in contents, "the first process's log survived"
+    assert "second process" in contents
