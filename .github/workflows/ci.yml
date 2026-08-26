@@ -250,6 +250,19 @@ jobs:
           echo "$out" | grep -q "TEXT2SQL_RESULTS_REVISION is unset" \
             || { echo "::error::provisioning did not run; see output above"; exit 1; }
 
+      - name: Default logos ship in the image and seed the data root
+        # The snapshot ships `results/` only, so a deployment's data root has no
+        # logos and every benchmark tile rendered blank -- including the
+        # generic.png the UI falls back to.
+        run: |
+          docker run --rm --entrypoint sh text2sql-dashboard:ci -c \
+            'ls /opt/text2sql/default-logos/generic.png' >/dev/null \
+            || { echo "::error::default logos are not in the image"; exit 1; }
+          out=$(docker run --rm -e TEXT2SQL_DATA_ROOT=/tmp/seed \
+            --entrypoint text2sql-provision text2sql-dashboard:ci 2>&1 || true)
+          echo "$out" | grep -qE "seeded [1-9][0-9]* default logo" \
+            || { echo "$out"; echo "::error::provisioning did not seed logos"; exit 1; }
+
       - name: Compose wires the database read-only passwords
         # These reach the init scripts, which refuse to initialise without them
         # rather than leaving a server whose only account is superuser. They
