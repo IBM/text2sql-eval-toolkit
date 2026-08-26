@@ -128,6 +128,20 @@ the one case where the target reliably might not exist on the recipient's server
 
 *Acceptance:* each route renders an actionable message, never a blank page or a crash.
 
+### 1.8 Record detail as a page — added after deployment
+Clicking a row in a pipeline detail view opened a panel over a view whose URL had not
+changed, so *look at this record for this pipeline* — the thing a reader most wants to
+send — could not be linked to at all. Raised by the user against the live site.
+
+`/benchmark/{id}/pipeline/{pipeline}/record/{record}`. A path segment rather than a query
+parameter, unlike error analysis: there are no filters here for it to sit beside, and an
+address that reads as a page is what makes it obviously shareable. The record comes from
+the URL and the view reports changes upward, so opening and closing push history entries
+and back closes the record rather than leaving the pipeline.
+
+*Acceptance:* the address reopens the identical record in a browser context that has never
+seen the sender's session — covered end-to-end.
+
 ## Testing
 
 - Unit: URL encode/decode round-trip for pipeline ids containing `/`, `:`, spaces, and

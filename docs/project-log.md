@@ -12,6 +12,84 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-26 — Deployed. Everything that had never run, ran.
+
+Live at **https://text2sql-eval-toolkit.oktie.com** — a Hetzner CX22, browse-only,
+`judge` mode, pinned to the `v1.1.0` results snapshot.
+
+**What worked on the first attempt**, all of it previously unexercised:
+
+- **TLS.** Let's Encrypt issued via `tls-alpn-01` within seconds of `up -d`. CI structurally
+  cannot rehearse this — it has no domain to be challenged on.
+- **Provisioning end to end.** 3.7 GB fetched, six indices built, all reported `current`, no
+  OOM inside the 1.5 GB limit — including Beaver's 108 MB record, the part I was least sure
+  of. Total ~14 minutes, most of it the first image build.
+- **The proxy-header fix.** `redirect_uri` came back `https://`. Without that change Google
+  would have refused every sign-in, and it would have looked like an OAuth configuration
+  problem rather than a scheme problem.
+- **Authorization.** Anonymous `/execute` 403; the sub-path bypass probe never reaches a
+  handler; `judge/usage.sqlite` 403; deep links survive refresh. Sign-in confirmed by the
+  user on the live site.
+
+**Three bugs the deployment found, and they share one cause.** `results fetch` downloads
+`results/**` and nothing else, so *anything else the app reads from the data root has to
+arrive some other way*. Three places assumed a source checkout's layout:
+
+1. **Compose would not render at all.** `:?` on the database superuser passwords applied
+   even to a browse-only deployment that never starts those services, because compose
+   interpolates the whole file before filtering by profile. It asked for passwords for
+   containers it will never run. I had flagged exactly this friction when adding the
+   read-only passwords and chose to match the existing pattern instead of changing it —
+   the pattern was the bug, and only deploying proved it.
+2. **Every benchmark showed "0 records"** while its pipeline count was right. The listing
+   counted records from `benchmarks/*.json`, which no deployment has. It now asks the
+   index, which is the better answer regardless: it counts what a visitor can actually
+   browse, it is already built, and it is one query.
+3. **Every tile rendered blank.** The default logos are tracked in the repository under
+   `data/benchmarks/logos/`, but the snapshot does not carry them and the image copied no
+   `data/` — so not even the `generic.png` fallback existed. The image now ships them and
+   provisioning seeds any the data root lacks, before the already-provisioned early exit,
+   because an existing data root has exactly this problem.
+
+All three are now asserted in CI, which is the only reason to think there is not a fourth.
+
+**One operational note.** `caddy` depends on `app` with `service_started` rather than
+`service_healthy`, so the certificate was obtained while the app was still coming up. That
+was the intended consequence of the change: the edge must not be hostage to app health, or
+a broken app takes the ACME endpoint down with it.
+
+---
+
+## 2026-08-26 — A record detail is a page now, not a panel with no address
+
+Reported directly: clicking a row in a pipeline detail view opened a panel over a view
+whose URL had not changed, so the one thing a reader most wants to send — *look at this
+record for this pipeline* — could not be shared at all.
+
+    /benchmark/{id}/pipeline/{pipeline}/record/{record}
+
+A path segment rather than a query parameter, unlike error analysis: there are no filters
+here for it to sit beside, and an address that reads as a page is what makes it obviously
+shareable. The record comes from the URL and the view reports changes upward — the same
+shape the error-analysis position already uses — so opening and closing push history
+entries and back closes the record rather than leaving the pipeline.
+
+Three end-to-end tests, of which the middle one is the actual claim and could not have
+been written before: the address reopens the identical record in a fresh browser context.
+
+**Three of my own mistakes, since each cost time and two produced false confidence.** The
+route-builder edit silently did nothing — it targeted a template literal that an earlier
+`/b/` → `/benchmark/` sweep had turned into plain text, and I had not asserted on that
+particular replacement. The first tests clicked `table tbody tr` first, which on that page
+is the metrics summary rather than a record row. And the first live verification ran
+against a stale `localhost:8010` tab and reported success for the wrong site; I caught it
+only because the benchmark id in the output did not match what I had asked for. That last
+one nearly became "it works in production" on the strength of a local tab.
+
+607 backend, 82 frontend and 13 end-to-end tests passing.
+
+---
+
 ## 2026-08-26 — Pushed, and CI immediately found what "never run" was hiding
 
 The branch is on GitHub with [PR #12](https://github.com/IBM/text2sql-eval-toolkit/pull/12)
