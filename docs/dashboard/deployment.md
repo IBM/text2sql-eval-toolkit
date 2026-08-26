@@ -149,7 +149,8 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
 # Authorization is not skipped under a sub-path (this was a real bug).
 curl -s -o /dev/null -w '%{http_code}\n' -X POST \
   $DOMAIN/dashboard/api/benchmarks/spider_dev/execute
-# expect: 403 or 404 -- never 422 (which means the handler ran)
+# expect: 403, 404 or 405 -- never 422, which means the handler ran.
+# 405 is the SPA static mount refusing a POST, so the route was never reached.
 
 # Internal files are not served.
 curl -s -o /dev/null -w '%{http_code}\n' $DOMAIN/api/static/judge/usage.sqlite
