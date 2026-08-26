@@ -93,7 +93,14 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
    `GOOGLE_CLIENT_SECRET` nobody can reach the judge tier — the site still works,
    read-only.
 
-5. **Provision the data — before starting the app.**
+5. **Skip the databases unless you know you need them.** `docker compose up -d`
+   without `--profile databases` starts only Caddy and the app. Every route
+   that queries a database requires `full` tier, which a public deployment can
+   never grant — so on this host those containers would be unreachable by
+   anyone. Browse-only also means the box holds no database credentials, so a
+   tier-enforcement bug has nothing to reach.
+
+6. **Provision the data — before starting the app.**
    ```bash
    docker compose -f deploy/docker-compose.yml run --rm \
      --entrypoint text2sql-provision app
@@ -110,12 +117,12 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
    4 GB box runs out of memory. On a shared deployment the server will not build
    indices on demand at all; an unprovisioned benchmark returns 503.
 
-6. **Start.**
+7. **Start.**
    ```bash
    docker compose -f deploy/docker-compose.yml up -d
    ```
 
-7. **Verify.** See [Health checks](#health-checks).
+8. **Verify.** See [Health checks](#health-checks).
 
 ---
 

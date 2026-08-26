@@ -68,8 +68,18 @@ compatible by construction.
 
 ## Hosting
 
-**Decided: a single Hetzner CX22 VM running Docker Compose — ~$4–5/month**, hosting the
-app, both database engines, the results set, and the SQLite database files together.
+**Decided: a single Hetzner CX22 VM running Docker Compose — ~$4–5/month**, on
+`text2sql-eval-toolkit.oktie.com`. Confirmed 2026-08-26 after re-checking Fly.io
+(~$7.40/month, no OS to patch) and Hugging Face Spaces (~$30.60/month always-on, since a
+Docker Space needs a paid plan and free hardware sleeps after 48 hours).
+
+**The `databases` profile has no role in this deployment**, and that is a correction to the
+reasoning below rather than a change of plan. Every route that touches a database lives in
+`routers_execution.py` and requires `full`; the public host runs at ceiling `judge`, so
+none of them is reachable. Postgres and MySQL would be two idle containers nothing can
+query. They remain useful for a *private* team deployment running `--allow-remote-full`,
+which is a different thing from the public site. Start browse-only: it also means the host
+holds no database credentials at all.
 
 This is the "full" configuration: every benchmark queryable, nothing deferred for
 infrastructure reasons. It is chosen over managed platforms because co-locating Postgres
