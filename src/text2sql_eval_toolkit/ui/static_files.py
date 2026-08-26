@@ -217,9 +217,11 @@ def mount_static(app: FastAPI) -> None:
     Mount built frontend assets if available.
 
     We expect a Vite build under `dashboard/dist` at the project root.
-    When installed as a package, these assets can be bundled as package data
-    and looked up via importlib.resources instead; for now we focus on
-    local development usage.
+
+    The wheel does not carry that build, so a pip install serves the API with no
+    UI behind it. That case is warned about loudly rather than logged at INFO:
+    the symptom is a bare 404 at `/` from a server that started cleanly, which
+    tells the operator nothing about the cause.
     """
     candidate_dirs = [
         Path.cwd() / "dashboard" / "dist",
@@ -234,4 +236,10 @@ def mount_static(app: FastAPI) -> None:
             )
             logger.info(f"Mounted dashboard static files from {static_dir}")
             return
-    logger.info("No built dashboard assets found to mount")
+    logger.warning(
+        "No built dashboard frontend found -- the API is serving, but '/' will "
+        "return 404. Looked in: %s. A pip-installed wheel does not carry the "
+        "build; run from a source checkout, or build it with "
+        "`cd dashboard && npm run build`.",
+        ", ".join(str(d) for d in candidate_dirs),
+    )

@@ -98,6 +98,10 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "text2sql_eval_toolkit" = ["data/*.json"]
+# The judge prompts are read at runtime by load_llm_judge_config(). Without
+# this the wheel installs the judge code and none of its configuration, and
+# every judge call raises FileNotFoundError on a pip install.
+"text2sql_eval_toolkit.evaluation" = ["llm_judge_config/*.yaml"]
 
 
 # ---------------------------------------------------------------------------
