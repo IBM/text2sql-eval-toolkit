@@ -46,5 +46,7 @@ BEAVER_DATABASES="${BEAVER_DATABASES:-dw csail_stata_neutron csail_stata_nova ke
 } | mysql --protocol=socket -uroot -p"${MYSQL_ROOT_PASSWORD}"
 
 echo "[init] read-only MySQL user granted SELECT on: ${BEAVER_DATABASES}"
-echo "[init] NOTE: run deploy/load-beaver.sh once the Beaver dump is available;"
-echo "[init] databases created afterwards are covered by the prefix grant."
+echo "[init] NOTE: run deploy/load-beaver.sh once the Beaver dump is available."
+echo "[init] These grants name each database individually -- there is no prefix"
+echo "[init] grant -- so a database outside the list above needs its own GRANT,"
+echo "[init] added here before the volume is initialised or by hand afterwards."
