@@ -63,6 +63,14 @@ COPY --from=frontend /build/dist ./dashboard/dist
 COPY deploy/provision.sh /usr/local/bin/text2sql-provision
 RUN chmod +x /usr/local/bin/text2sql-provision
 
+# Default benchmark logos. They are tracked in the repository under
+# data/benchmarks/logos/, but the published results snapshot ships `results/`
+# and nothing else -- so a deployment's data root has no logos and every tile
+# rendered blank, including the `generic.png` the UI falls back to. Provisioning
+# seeds them into the data root from here; uploaded logos land in the same place
+# and take precedence by simply being there.
+COPY data/benchmarks/logos/ /opt/text2sql/default-logos/
+
 RUN mkdir -p /data && chown -R app:app /data /app
 USER app
 

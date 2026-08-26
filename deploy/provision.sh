@@ -23,6 +23,25 @@ MARKER="${DATA_ROOT}/.provisioned"
 log() { printf '[provision] %s\n' "$*"; }
 fail() { printf '[provision] ERROR: %s\n' "$*" >&2; exit 1; }
 
+# Seed default benchmark logos. Deliberately before the marker check: an
+# already-provisioned data root that predates this still has blank tiles, and
+# re-running provisioning is the obvious thing to reach for. Only fills gaps --
+# an uploaded logo of the same name is left alone.
+DEFAULT_LOGOS="/opt/text2sql/default-logos"
+if [ -d "$DEFAULT_LOGOS" ]; then
+  mkdir -p "${DATA_ROOT}/benchmarks/logos"
+  seeded=0
+  for logo in "$DEFAULT_LOGOS"/*; do
+    [ -e "$logo" ] || continue
+    target="${DATA_ROOT}/benchmarks/logos/$(basename "$logo")"
+    if [ ! -e "$target" ]; then
+      cp "$logo" "$target"
+      seeded=$((seeded + 1))
+    fi
+  done
+  log "seeded ${seeded} default logo(s) into ${DATA_ROOT}/benchmarks/logos"
+fi
+
 if [ -f "$MARKER" ]; then
   log "already provisioned:"
   sed 's/^/[provision]   /' "$MARKER"
