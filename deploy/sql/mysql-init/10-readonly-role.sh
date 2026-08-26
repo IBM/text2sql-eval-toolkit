@@ -4,29 +4,47 @@
 #
 # Runs once, on first initialisation of the MySQL volume.
 #
-# Beaver uses six databases and selects between them by swapping the database
-# in the connection string, so the grant has to span them. It is scoped by
-# prefix rather than *.* so the server's own schemas stay unreachable.
+# Beaver spreads its questions across six databases and selects between them by
+# swapping the database in the connection string, so the grant has to name all
+# of them.
+#
+# They are named individually rather than by prefix. An earlier version granted
+# on `beaver%`.*, which matched nothing: load-beaver.sh creates `dw`,
+# `csail_stata_neutron` and `csail_stata_nova`, none of which start with
+# "beaver". The read-only user could not read a single table.
+#
+# MySQL grants privileges by name, so granting on a database that does not exist
+# yet is fine -- which is what lets this run at first init, before any data has
+# been loaded.
+
 set -euo pipefail
 
 if [ -z "${MYSQL_READONLY_PASSWORD:-}" ]; then
-  echo "[init] MYSQL_READONLY_PASSWORD is unset; skipping read-only user." >&2
-  exit 0
+  # Refuse rather than skip. Skipping leaves a server whose only account is
+  # root, so the app would have to connect as superuser -- and the whole point
+  # of this file is that a write is refused by the database rather than by
+  # application logic. Initialisation happens once, so a message on stderr would
+  # be gone by the time anyone looked.
+  echo "[init] MYSQL_READONLY_PASSWORD is unset. Set it in deploy/.env and" >&2
+  echo "[init] recreate this volume; refusing to initialise with root only." >&2
+  exit 1
 fi
 
-PREFIX="${BEAVER_DB_PREFIX:-beaver}"
+# The six databases the Beaver benchmark refers to. Three have published dumps
+# today; the other three are granted anyway so that loading them later needs no
+# privilege change.
+BEAVER_DATABASES="${BEAVER_DATABASES:-dw csail_stata_neutron csail_stata_nova keystone csail_stata_glance csail_stata_cinder}"
 
-mysql --protocol=socket -uroot -p"${MYSQL_ROOT_PASSWORD}" <<-SQL
-	CREATE USER IF NOT EXISTS 'readonly'@'%'
-	    IDENTIFIED BY '${MYSQL_READONLY_PASSWORD}';
+{
+  echo "CREATE USER IF NOT EXISTS 'readonly'@'%' IDENTIFIED BY '${MYSQL_READONLY_PASSWORD}';"
+  for db in $BEAVER_DATABASES; do
+    # SELECT only, and named individually. Never *.*, which would include
+    # mysql, performance_schema and sys.
+    echo "GRANT SELECT ON \`${db}\`.* TO 'readonly'@'%';"
+  done
+  echo "FLUSH PRIVILEGES;"
+} | mysql --protocol=socket -uroot -p"${MYSQL_ROOT_PASSWORD}"
 
-	-- SELECT only, and only on the benchmark databases. Never *.*, which would
-	-- include mysql, performance_schema and sys.
-	GRANT SELECT ON \`${PREFIX}%\`.* TO 'readonly'@'%';
-
-	FLUSH PRIVILEGES;
-SQL
-
-echo "[init] read-only MySQL user created for ${PREFIX}* databases."
+echo "[init] read-only MySQL user granted SELECT on: ${BEAVER_DATABASES}"
 echo "[init] NOTE: run deploy/load-beaver.sh once the Beaver dump is available;"
 echo "[init] databases created afterwards are covered by the prefix grant."

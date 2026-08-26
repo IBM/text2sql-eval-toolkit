@@ -48,6 +48,12 @@ services:
       TEXT2SQL_DASHBOARD_MODE: ${TEXT2SQL_DASHBOARD_MODE:-public}
       TEXT2SQL_DATA_ROOT: /data
 
+      # Read by provisioning, which runs in this same service. Compose uses
+      # deploy/.env for interpolation only -- variables do not reach a container
+      # unless they are named here -- so without this line provisioning fails on
+      # its own first check.
+      TEXT2SQL_RESULTS_REVISION: ${TEXT2SQL_RESULTS_REVISION:-}
+
       # Believe X-Forwarded-* from caddy. Without this the app sees every
       # request as plain http -- so sign-in builds an http redirect_uri that
       # Google rejects, and the rate limiter keys every visitor on caddy's
@@ -100,6 +106,12 @@ services:
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set in deploy/.env}
       POSTGRES_DB: bird
+      # Read by sql/postgres-init on first initialisation, which refuses to
+      # initialise without it: the app must never hold superuser credentials.
+      # Not `:?` -- compose interpolates the whole file before filtering by
+      # profile, so that would force a browse-only deployment to invent a
+      # password for a database it never starts.
+      POSTGRES_READONLY_PASSWORD: ${POSTGRES_READONLY_PASSWORD:-}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./sql/postgres-init:/docker-entrypoint-initdb.d:ro
@@ -116,6 +128,8 @@ services:
     # Deliberately no `ports:` -- internal network only.
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in deploy/.env}
+      # As above: sql/mysql-init refuses to initialise without it.
+      MYSQL_READONLY_PASSWORD: ${MYSQL_READONLY_PASSWORD:-}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./sql/mysql-init:/docker-entrypoint-initdb.d:ro

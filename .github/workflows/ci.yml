@@ -237,6 +237,46 @@ jobs:
             http://127.0.0.1:8000/api/benchmarks/demo/execute)
           echo "execute -> $code"
           [ "$code" = "403" ]
+      - name: Provisioning is reachable inside the image
+        # The documented first deployment step runs this. It failed three ways
+        # at once and nothing noticed: the script was not in the image, the
+        # entrypoint swallowed it as an argument, and the pinned revision never
+        # reached the container. Exercised here without network by checking it
+        # gets far enough to complain about the one thing it should.
+        run: |
+          out=$(docker run --rm --entrypoint text2sql-provision \
+            text2sql-dashboard:ci 2>&1 || true)
+          echo "$out"
+          echo "$out" | grep -q "TEXT2SQL_RESULTS_REVISION is unset" \
+            || { echo "::error::provisioning did not run; see output above"; exit 1; }
+
+      - name: Compose wires the database read-only passwords
+        # These reach the init scripts, which refuse to initialise without them
+        # rather than leaving a server whose only account is superuser. They
+        # were absent entirely, so the read-only roles were never created.
+        run: |
+          cfg=$(docker compose -f deploy/docker-compose.yml --profile databases config)
+          echo "$cfg" | grep -q "POSTGRES_READONLY_PASSWORD" \
+            || { echo "::error::postgres init cannot see its password"; exit 1; }
+          echo "$cfg" | grep -q "MYSQL_READONLY_PASSWORD" \
+            || { echo "::error::mysql init cannot see its password"; exit 1; }
+        env:
+          DASHBOARD_DOMAIN: example.org
+          ACME_EMAIL: ci@example.org
+          POSTGRES_SUPERUSER_PASSWORD: ci
+          MYSQL_ROOT_PASSWORD: ci
+
+      - name: Compose passes the pinned revision to the app
+        run: |
+          docker compose -f deploy/docker-compose.yml config \
+            | grep -q "TEXT2SQL_RESULTS_REVISION" \
+            || { echo "::error::the revision never reaches the container"; exit 1; }
+        env:
+          DASHBOARD_DOMAIN: example.org
+          ACME_EMAIL: ci@example.org
+          POSTGRES_SUPERUSER_PASSWORD: ci
+          MYSQL_ROOT_PASSWORD: ci
+
       - name: Container logs on failure
         if: failure()
         run: docker logs dash || true

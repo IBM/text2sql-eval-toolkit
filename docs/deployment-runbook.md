@@ -64,9 +64,12 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
 
 4. **Provision the data — before starting the app.**
    ```bash
-   docker compose -f deploy/docker-compose.yml run --rm app \
-     deploy/provision.sh
+   docker compose -f deploy/docker-compose.yml run --rm \
+     --entrypoint text2sql-provision app
    ```
+   `--entrypoint` is required: the image's entrypoint is the dashboard itself,
+   so passing a script as an argument would append it to the dashboard's argv
+   rather than run it.
    Fetches the pinned snapshot (~4 GB), builds the indices, verifies none are
    stale, and writes `/data/.provisioned`. It is idempotent.
 
