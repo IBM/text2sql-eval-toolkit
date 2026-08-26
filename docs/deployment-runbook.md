@@ -36,9 +36,40 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
 ## First deploy
 
 1. **Provision the VM.** Docker Engine + Compose plugin, unattended security
-   upgrades, ports 80/443 open, everything else closed.
+   upgrades, ports 80/443 open, everything else closed. The default memory
+   limits assume roughly 4 GB; see *Sizing and failure behaviour* below.
 
-2. **Configure.**
+2. **Get a hostname.** A hostname is not optional in the way a *purchased*
+   domain is. TLS needs one, and so does Google: OAuth redirect URIs must be
+   `https`, and Google accepts `http` only for `localhost`. So without a
+   hostname there is no sign-in, and therefore no judge tier — the site still
+   works, read-only.
+
+   Three ways, in order of preference:
+
+   - **A domain you own.** Point an `A` record at the VM. Cleanest.
+   - **A free DuckDNS subdomain** (`<name>.duckdns.org`). No purchase. It is on
+     the [Public Suffix List](https://publicsuffix.org/), which matters more
+     than it sounds: Let's Encrypt applies its "certificates per registered
+     domain" limit per PSL entry, so your subdomain gets its own budget instead
+     of sharing one with every other user of the service.
+   - **Wildcard-IP DNS** (`<ip>.sslip.io`, `nip.io`). Zero setup and resolves
+     correctly, but these are *not* on the Public Suffix List, so every user in
+     the world shares one certificate rate-limit bucket. Issuance can fail for
+     reasons that have nothing to do with you. Fine for a throwaway test, poor
+     for something you want to stay up.
+
+   Whichever you choose becomes `DASHBOARD_DOMAIN`, and its
+   `https://<host>/api/auth/callback` must be registered as an authorised
+   redirect URI on the Google OAuth client.
+
+   **Browsing without any hostname** is possible: set `DASHBOARD_DOMAIN` to
+   `:80` so Caddy serves plain HTTP on the IP, and leave `GOOGLE_CLIENT_ID`
+   unset. Every read-only view works. Do not set `TEXT2SQL_COOKIE_SECURE=false`
+   to force sign-in over plain HTTP — that sends the session cookie, which is
+   the whole of the authorisation, in clear.
+
+3. **Configure.**
    ```bash
    cp deploy/env.deploy.example deploy/.env
    ```
@@ -57,12 +88,12 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
    sees it. Setting both means the second one re-reads a header that has already
    been applied.
 
-3. **Register the Google OAuth client.** Authorised redirect URI must be exactly
+4. **Register the Google OAuth client.** Authorised redirect URI must be exactly
    `https://<domain>/api/auth/callback`. Without `GOOGLE_CLIENT_ID` and
    `GOOGLE_CLIENT_SECRET` nobody can reach the judge tier — the site still works,
    read-only.
 
-4. **Provision the data — before starting the app.**
+5. **Provision the data — before starting the app.**
    ```bash
    docker compose -f deploy/docker-compose.yml run --rm \
      --entrypoint text2sql-provision app
@@ -79,12 +110,12 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
    4 GB box runs out of memory. On a shared deployment the server will not build
    indices on demand at all; an unprovisioned benchmark returns 503.
 
-5. **Start.**
+6. **Start.**
    ```bash
    docker compose -f deploy/docker-compose.yml up -d
    ```
 
-6. **Verify.** See [Health checks](#health-checks).
+7. **Verify.** See [Health checks](#health-checks).
 
 ---
 

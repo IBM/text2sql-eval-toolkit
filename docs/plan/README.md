@@ -17,9 +17,10 @@ the live status.
 
 ## Where things stand
 
-Branch `dashboard-v2` at **1.3.0**, **not yet pushed**. 580 backend, 77 frontend and 10 end-to-end tests pass;
-ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, but has
-**never executed** — the first push is when it runs.
+Branch `dashboard-v2` at **1.3.0**, pushed, with [PR #12](https://github.com/IBM/text2sql-eval-toolkit/pull/12)
+open as a draft. 606 backend, 77 frontend and 10 end-to-end tests pass; ruff, black, mypy
+and eslint are clean. **CI runs and is green on all ten jobs**, including the container
+image. Not deployed.
 
 | Goal | Done | Remaining |
 |---|---|---|
@@ -59,13 +60,13 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | Item | Status | Note |
 |---|---|---|
 | 3.1 Capability tiers | Done | Central enforcement, fails closed, mode is a ceiling |
-| 3.2 Google sign-in | Done (code) | Verified by unit tests; **never exercised against real Google** |
+| 3.2 Google sign-in | Done, verified | Exercised against real Google end to end: verified email → judge tier, `can_mutate` false, every `full` route 403, session cookie HttpOnly, address never logged in clear |
 | 3.3 Scoped judge endpoint | Done | Per-record; canonical artifacts untouched |
 | 3.4 Cost controls | Done | $50/month, metered from tokens, persists across restarts |
 | 3.5 Security hardening | Done | Plus three HIGH findings from review, all fixed |
-| 3.6 Container image | Done (unbuilt) | No Docker locally; CI builds and smoke-tests it |
-| 3.7 Provisioning automation | Done | Verified against the real 3.6 GB corpus |
-| 3.8 Operations | Done | `docs/deployment-runbook.md` |
+| 3.6 Container image | Done, built | CI builds it, starts it, and checks it serves public tier and refuses `/execute`. The first build found the package could not be imported where site-packages is read-only |
+| 3.7 Provisioning automation | Done, corrected | The documented first step could not run — script absent from the image, entrypoint swallowed it, pinned revision never reached the container. CI now exercises it inside the built image |
+| 3.8 Operations | Done | `docs/deployment-runbook.md`, plus sizing/failure-behaviour and HSTS sections and a health check for the sign-in redirect |
 | 3.9 Public-facing polish | Done | Read-only tag, sign-in control, data stamp, About panel |
 | 3.10 SQLite execution | Done | Read-only, `ATTACH` disabled |
 | 3.11 PostgreSQL | Done | BIRD loaded; 500/500 gold queries |
@@ -78,7 +79,7 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 | 4.1 Tooling configuration | Done | All config in `pyproject.toml` |
 | 4.2 Lint/type baseline | Done | 83 ruff findings → 0; 44 files reformatted. mypy scope widened to `indexing/` and `ui/aliases.py` |
 | 4.3 Test markers | Done | Default run is hermetic |
-| 4.4 CI | Done (unrun) | 6 jobs; `actionlint` clean |
+| 4.4 CI | Done, green | 10 jobs. Its first run found two real bugs; later runs found three more in the deployment |
 | 4.5 Frontend test harness | Done | Vitest (77 tests) plus **Playwright: 9 E2E tests** that copy a link and reopen it in a fresh browser context. They found three defects on first run — see the log |
 | 4.6 Registry single source of truth | Done | Checkout copy canonical; sync script, test, and CI check |
 | 4.7 One dependency source | Done | `requirements.txt` now generated from `uv.lock`; CI checks both it and lock freshness |
@@ -91,13 +92,15 @@ ruff, black, mypy and eslint are clean. CI is written and passes `actionlint`, b
 
 ### Known limitations, stated plainly
 
-- **CI has never run.** Everything is verified locally against the real toolchain, and the
-  workflow passes `actionlint`, but no job has executed. `npm ci` failing was found this
-  way once already.
-- **The container has never been built** — no Docker in this environment.
-- **Google sign-in has never completed a real round trip.** The verified-email rule, the
-  redirect sanitiser, and the session wiring are unit-tested; no actual Google account has
-  signed in.
+- **Nothing has been deployed.** TLS issuance has never happened — CI cannot obtain a
+  certificate for `example.org` — and no data has ever been fetched through
+  `provision.sh` end to end; CI only checks that it starts. Both are first-deploy
+  discoveries by nature.
+- **No `v1.3.0` results snapshot exists.** `v1.1.0` is the only tag on the Hub. It is
+  readable, 3.95 GB, and compatible with 1.3.0, so pinning it works — but its manifest
+  lists directory names (`bak`, `charts`, `logs`) rather than benchmarks. Downloads are
+  unaffected (`results fetch` ignores the manifest unfiltered, and falls back to direct
+  paths when filtered, warning as it does); only `results list` reads oddly.
 - **Spider and Archer databases are not downloaded**, so those two benchmarks cannot
   execute locally. Their results still browse normally.
 - **15 Beaver questions cannot run**: `keystone`, `csail_stata_glance` and

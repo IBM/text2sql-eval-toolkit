@@ -12,6 +12,123 @@ place to look for what is finished and what is not.
 
 ---
 
+## 2026-08-26 — Pushed, and CI immediately found what "never run" was hiding
+
+The branch is on GitHub with [PR #12](https://github.com/IBM/text2sql-eval-toolkit/pull/12)
+open as a draft. Two corrections to what I had said before pushing.
+
+**"CI is running for the first time" was wrong.** The workflow triggers on `push` to
+`main` and on `pull_request`. Pushing a branch matched neither, so nothing ran — zero runs,
+checked against the API rather than assumed. `workflow_dispatch` was no help either:
+GitHub only offers it for workflows that exist on the default branch, and this one does
+not yet. A PR was the only way, which is what opened it.
+
+**Its first run failed two jobs, both real.**
+
+*The container exited on startup.* `get_logger` derived a default log path as
+`Path(__file__).parents[2] / "data/results/bak/log.txt"` — the repository root in a
+checkout, the *interpreter's library directory* once pip-installed. So it tried to create
+`data/results/bak` inside site-packages and raised during `import text2sql_eval_toolkit`,
+because `get_logger` is called at module scope. **The published package could not be
+imported anywhere site-packages is read-only** — every container, every system-wide
+install — and where it was writable it littered the library directory instead.
+Pre-existing on `main`; it survived because a source checkout is the one layout where that
+path is right, and nothing had ever built the container.
+
+*The advisory 3.14 job failed nine evaluation tests.* `sort_df` wrote canonicalised values
+back with `.iloc[:, i] = ...`, asking pandas to coerce a string into an int64 column.
+Pandas warned about that for years and now raises, so **every execution-match metric
+returned `eval_error` instead of a score** on any current pandas. Verified the fix by
+comparing old and new over 2,550 real result frames across four benchmarks — all
+identical.
+
+---
+
+## 2026-08-26 — Sign-in verified for real, and three things that would have broken it
+
+Item 3.2 had been "done (code), never exercised against real Google" since it was written.
+Exercising it turned up three defects, two of which would have made sign-in impossible on
+the deployment rather than merely awkward.
+
+**The app would have sent Google an `http` redirect_uri.** uvicorn believes
+`X-Forwarded-*` only from peers in its trust list, which defaults to `127.0.0.1`. Caddy
+runs in its own container, so it is not that — meaning the app would have seen every
+request as plain http despite TLS terminating at the edge. `url_for("auth_callback")`
+builds the redirect from the request scheme, and Google refuses a mismatch outright. Sign-in
+could not have completed once. The same setting keys the rate limiter, so the whole
+internet would also have shared one bucket. Demonstrated by driving uvicorn's
+`ProxyHeadersMiddleware` directly rather than reasoning about it, and now covered by a test
+that also pins uvicorn's *default* behaviour so the extra configuration can be dropped if
+that ever changes.
+
+**The judge allowlist granted nothing in `public` mode.** The mode is a ceiling, so
+`resolve_tier(PUBLIC, allowlisted_user)` returns `PUBLIC`. `env.deploy.example` says
+`judge` correctly, but compose falls back to `public` when the line is absent — and the
+failure is silent: the judge control simply never appears. Startup now warns when a
+non-empty allowlist cannot grant anything.
+
+**`/api/auth/login` returned 500 rather than saying what was wrong.** SessionMiddleware is
+installed by `main()`, so serving the ASGI app directly with Google credentials set gives a
+server that advertises sign-in and then raises deep inside Starlette. Both auth routes now
+return 503 naming the cause and the fix. That is the **third** bug of the shape "works only
+if you go through `main()`", after the deployment-mode one in the security review and the
+proxy headers above. Worth treating as a pattern.
+
+**And the test suite was only hermetic on a machine with no `.env`.** `env_loader` runs on
+import, so importing `ui.server` pulls in the developer's real credentials.
+`pyproject.toml` and `CLAUDE.md` both claimed otherwise. It passed in CI and passed here
+until sign-in was configured for this very test, at which point a rate-limit test silently
+began exercising a different branch. A conftest fixture now strips credential-shaped
+variables for non-integration tests; verified by running the suite with them set.
+
+**What the round trip actually proved.** An allowlisted user resolves to `judge`,
+`can_run_judge` true, `can_mutate` false; `/execute`, `/playground/evaluate`, the registry
+write and the judge-config write all return 403; the session cookie is HttpOnly; and the
+log records `identity 2426d5148397` with the address appearing zero times in clear. That is
+the design's central claim, checked against a real session rather than inferred.
+
+---
+
+## 2026-08-26 — Reviewing the deployment found that it could not have worked
+
+None of `deploy/` had ever executed. Reviewing it before standing up a server, rather than
+after, found three faults — two of them silent.
+
+**The documented first step failed three ways at once.**
+`docker compose run --rm app deploy/provision.sh`: the image never copied `deploy/`; the
+entrypoint is the dashboard, so the path would have been appended to its argv; and
+`TEXT2SQL_RESULTS_REVISION`, which the script checks first, was absent from the app service
+— compose uses `.env` for interpolation, and variables do not reach a container unless
+named in `environment:`. The script is now `text2sql-provision` on PATH, the revision is
+passed, and the runbook explains why `--entrypoint` is needed.
+
+**The read-only database roles were never created.** Neither readonly password was passed
+by compose nor mentioned in the example env, so both init scripts took their
+"unset, skipping" branch and exited 0. The app would then have connected as superuser to
+run caller-supplied SQL — which is exactly what those files exist to prevent, their own
+comments saying application-layer checks are the wrong place for that guarantee. Both now
+refuse to initialise rather than skip, because initialisation happens once and a warning on
+stderr is gone by the time anyone looks.
+
+**The MySQL grant matched nothing.** It granted on `beaver%`.*, but `load-beaver.sh`
+creates `dw`, `csail_stata_neutron` and `csail_stata_nova`. The read-only user could not
+have read a single table, and the example connection string named a `beaver` database that
+is never created. Written before the real dumps arrived and never reconciled.
+
+**Three more about failure behaviour rather than function.** `caddy` depended on `app`
+being *healthy*, so a failing app kept the edge down entirely — no error page and, worse, no
+ACME endpoint, which is how a certificate quietly fails to renew. No container had a memory
+ceiling, so a runaway one takes the host down rather than itself. And HSTS asserted
+`includeSubDomains`, a browser-cached year-long promise about subdomains this deployment
+does not control.
+
+All of it is now asserted in CI against the rendered compose config, so it fails a build
+rather than a deployment.
+
+606 backend, 77 frontend and 10 end-to-end tests passing; all ten CI jobs green.
+
+---
+
 ## 2026-08-25 — Sweeping every view for responsiveness found a data-corruption bug
 
 Prompted by "mini-dev postgres is somewhat slow too — check all the views". Timed every
