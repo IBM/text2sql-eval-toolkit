@@ -14,7 +14,13 @@
 	# The app sets its own CSP, nosniff, framing and referrer headers, and they
 	# are tier-aware, so they are not duplicated here. HSTS belongs at the edge.
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		# `includeSubDomains` is deliberately not the default. It is a browser-
+		# cached, year-long commitment that every *other* subdomain of this
+		# domain is also https-only -- including ones served by unrelated
+		# systems, which is a promise this deployment is in no position to
+		# make. Safe on a dedicated subdomain; add it via HSTS_VALUE if that is
+		# what this is.
+		Strict-Transport-Security "{$HSTS_VALUE:max-age=31536000}"
 		-Server
 	}
 

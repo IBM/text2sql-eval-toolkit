@@ -14,12 +14,18 @@
 #   cp deploy/env.deploy.example deploy/.env   # then fill it in
 #   docker compose -f deploy/docker-compose.yml up -d
 
+# Memory limits are set per service so one runaway container is OOM-killed and
+# restarted instead of the host thrashing until sshd stops answering. Defaults
+# assume the 4 GB VM the plan sizes for; override per host in deploy/.env.
+
 name: text2sql-dashboard
 
 services:
   caddy:
     image: caddy:2.8-alpine
     restart: unless-stopped
+    # Static proxy; it needs almost nothing.
+    mem_limit: ${MEM_LIMIT_CADDY:-128m}
     ports:
       - "80:80"
       - "443:443"
@@ -32,15 +38,29 @@ services:
       # ongoing chore of self-managed hosting.
       DASHBOARD_DOMAIN: ${DASHBOARD_DOMAIN:?set DASHBOARD_DOMAIN in deploy/.env}
       ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in deploy/.env}
+      # Whole HSTS header value. Default commits this host only; see Caddyfile.
+      HSTS_VALUE: ${HSTS_VALUE:-max-age=31536000}
     depends_on:
+      # `service_started`, not `service_healthy`. depends_on only orders
+      # startup, so this decides one thing: whether a failing app can keep the
+      # edge from coming up at all. With `service_healthy` it can -- and then
+      # the domain does not resolve to anything, so there is no error page to
+      # read and, worse, no ACME endpoint, which is how a certificate quietly
+      # fails to renew while the app is broken. Caddy up with a 502 behind it is
+      # strictly more recoverable.
       app:
-        condition: service_healthy
+        condition: service_started
 
   app:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
     restart: unless-stopped
+    # Also the ceiling for provisioning, which runs in this service. Index
+    # building peaks on the largest single record -- Beaver holds one of 108 MB
+    # whose parsed form costs several hundred more -- so a limit below about
+    # 1 GB turns the first deploy into an OOM kill.
+    mem_limit: ${MEM_LIMIT_APP:-1500m}
     # No ports: reachable only through caddy.
     environment:
       # Capability ceiling. `full` is refused here anyway -- it would bind a
@@ -102,6 +122,8 @@ services:
     image: postgres:17-bookworm
     profiles: ["databases"]
     restart: unless-stopped
+    # Read-only reference data; no write workload to buffer.
+    mem_limit: ${MEM_LIMIT_POSTGRES:-1g}
     # Deliberately no `ports:` -- internal network only.
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set in deploy/.env}
@@ -125,6 +147,8 @@ services:
     image: mysql:8.4
     profiles: ["databases"]
     restart: unless-stopped
+    # As postgres.
+    mem_limit: ${MEM_LIMIT_MYSQL:-1g}
     # Deliberately no `ports:` -- internal network only.
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set in deploy/.env}
