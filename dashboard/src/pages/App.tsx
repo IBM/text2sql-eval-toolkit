@@ -535,6 +535,20 @@ export const App: React.FC = () => {
         <PipelineDetailView
           benchmarkId={selectedBenchmark}
           pipelineName={selectedPipeline}
+          recordId={match.recordId}
+          // Opening or closing a record is a step a reader walks back through,
+          // so it pushes a history entry rather than replacing one.
+          onSelectRecord={(recordId) =>
+            navigate(
+              recordId
+                ? routes.pipelineRecord(
+                    selectedBenchmark,
+                    selectedPipeline,
+                    recordId
+                  )
+                : routes.pipeline(selectedBenchmark, selectedPipeline)
+            )
+          }
           onBack={() =>
             selectedBenchmark && navigate(routes.benchmark(selectedBenchmark))
           }
