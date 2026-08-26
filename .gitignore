@@ -228,3 +228,7 @@ dashboard/playwright-report/
 dashboard/blob-report/
 dashboard/.playwright/
 .e2e-data/
+
+# Build output: setup.py copies dashboard/dist here when building a wheel.
+# The committed copy of the frontend is dashboard/dist, not this one.
+src/text2sql_eval_toolkit/ui/static/

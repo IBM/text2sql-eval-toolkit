@@ -102,6 +102,9 @@ where = ["src"]
 # this the wheel installs the judge code and none of its configuration, and
 # every judge call raises FileNotFoundError on a pip install.
 "text2sql_eval_toolkit.evaluation" = ["llm_judge_config/*.yaml"]
+# The dashboard frontend. setup.py copies dashboard/dist here at build time --
+# it lives outside the package, and package-data cannot reach outside one.
+"text2sql_eval_toolkit.ui" = ["static/**/*"]
 
 
 # ---------------------------------------------------------------------------

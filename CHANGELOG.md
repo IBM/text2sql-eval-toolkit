@@ -16,6 +16,15 @@ artifact format is unchanged — hence a minor bump rather than a major one. A
 default `text2sql-eval-dashboard` on loopback keeps every capability it had,
 which is enforced by a test rather than by intention.
 
+### Packaging
+
+- The wheel now contains the LLM-judge prompt configs. Every release to date
+  shipped the judge code without them, so `load_llm_judge_config()` raised
+  `FileNotFoundError` on any pip install.
+- The wheel now contains the dashboard frontend, so `pip install
+  "text2sql-eval-toolkit[dashboard]"` serves the UI instead of returning 404 at
+  `/`. The Vite build is copied into the package at build time by `setup.py`.
+
 ### Added
 - **Shareable URLs.** Every view has its own address — benchmark, pipeline
   detail, filtered error analysis, an individual record, and a record within a

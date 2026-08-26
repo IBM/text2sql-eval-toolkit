@@ -216,16 +216,23 @@ def mount_static(app: FastAPI) -> None:
     """
     Mount built frontend assets if available.
 
-    We expect a Vite build under `dashboard/dist` at the project root.
+    Two layouts, in priority order.
 
-    The wheel does not carry that build, so a pip install serves the API with no
-    UI behind it. That case is warned about loudly rather than logged at INFO:
-    the symptom is a bare 404 at `/` from a server that started cleanly, which
-    tells the operator nothing about the cause.
+    A source checkout builds to `dashboard/dist`, and that wins: it is what the
+    `vite build --watch` process rewrites, so a developer sees their edits.
+
+    An installed wheel has no such directory. setup.py copies the build into the
+    package as `ui/static/` at build time, which is the fallback here.
+
+    If neither exists the API still serves and `/` returns 404, which on its own
+    tells an operator nothing -- so that case warns with the paths it tried.
     """
     candidate_dirs = [
         Path.cwd() / "dashboard" / "dist",
         Path(__file__).resolve().parents[3] / "dashboard" / "dist",
+        # Installed wheel: placed here by setup.py. Last, so a source checkout
+        # always prefers its own live build over a stale packaged one.
+        Path(__file__).resolve().parent / "static",
     ]
     for static_dir in candidate_dirs:
         if static_dir.exists():
@@ -238,8 +245,7 @@ def mount_static(app: FastAPI) -> None:
             return
     logger.warning(
         "No built dashboard frontend found -- the API is serving, but '/' will "
-        "return 404. Looked in: %s. A pip-installed wheel does not carry the "
-        "build; run from a source checkout, or build it with "
-        "`cd dashboard && npm run build`.",
+        "return 404. Looked in: %s. Build it with `cd dashboard && npm run "
+        "build`; an installed wheel should carry one already.",
         ", ".join(str(d) for d in candidate_dirs),
     )
