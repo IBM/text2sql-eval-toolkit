@@ -192,7 +192,7 @@ curl -s $DOMAIN/api/benchmarks/spider_dev/pipeline-aliases | jq '.aliases | leng
 4. Re-provision and restart:
    ```bash
    rm /var/lib/docker/volumes/text2sql-dashboard_data/_data/.provisioned
-   docker compose run --rm app deploy/provision.sh
+   docker compose run --rm --entrypoint text2sql-provision app
    docker compose up -d --force-recreate app
    ```
 5. Confirm the new stamp shows in `/api/deployment` and in the UI strip.
@@ -206,9 +206,9 @@ did not parse.
 
 ### Stop LLM-judge spending immediately
 
+Set `TEXT2SQL_JUDGE_DISABLED=true` in `deploy/.env`, then:
+
 ```bash
-docker compose exec app sh -c 'echo "kill switch"'   # confirm you have a shell
-# then set TEXT2SQL_JUDGE_DISABLED=true in deploy/.env and:
 docker compose up -d --force-recreate app
 ```
 
@@ -243,8 +243,10 @@ a server that starts against indices from an older schema answers 503 for every
 benchmark until they are rebuilt:
 
 ```bash
-docker compose run --rm app text2sql-eval-toolkit index build --data-root /data
-docker compose run --rm app text2sql-eval-toolkit index status --data-root /data
+docker compose run --rm --entrypoint text2sql-eval-toolkit app \
+  index build --data-root /data
+docker compose run --rm --entrypoint text2sql-eval-toolkit app \
+  index status --data-root /data
 ```
 
 `index status` naming anything `stale` means the rebuild did not finish. Budget
@@ -279,7 +281,9 @@ Non-negotiables, all enforced in `deploy/sql/*-init/`:
   execute endpoint runs arbitrary caller-supplied SQL and that guarantee does
   not belong in the app.
 - **No published ports.** Reachable only over the Compose network.
-- Execution stays gated at the `judge` tier, never `public`.
+- Execution requires the `full` tier. A public or judge deployment cannot
+  reach it at all, which is why these containers belong only to a private
+  team deployment.
 
 The init scripts run **once**, on first initialisation of the volume. Changing
 `POSTGRES_READONLY_PASSWORD` afterwards means altering the role by hand or

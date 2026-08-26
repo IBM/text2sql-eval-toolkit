@@ -47,7 +47,6 @@ export default tseslint.config(
       // component test each before being rewritten, since every one of them
       // decides what a user ends up looking at.
       //
-      // Tracked as item 4.13 in docs/plan/04-code-quality.md.
 
     },
   }

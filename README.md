@@ -53,7 +53,7 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 - **SQL Execution** ([`scripts/execution`](scripts/execution)): Runs the ground truth and predicted SQLs for a given benchmark and saves the dataframes for evaluation and error analysis. Run `python scripts/execution/run_execution.py -h` for more information.
 - **Results and Error Analysis** ([`scripts/analysis`](scripts/analysis)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
 - **SQL Profiling** ([`scripts/profiling`](scripts/profiling)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
-- **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [dashboard/README.md](dashboard/README.md) for installation, data paths, development workflow, and build options.
+- **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [docs/dashboard/](docs/dashboard/) for features, deployment, and development.
 
 ## Setup
 
@@ -88,7 +88,7 @@ text2sql-eval-toolkit results fetch
 ```
 
 After this completes, the dashboard and analysis scripts will work
-against the downloaded artefacts. See [dashboard/README.md](dashboard/README.md) to launch
+against the downloaded artefacts. See [docs/dashboard/](docs/dashboard/) to launch
 the UI.
 
 To fetch only a specific benchmark:
@@ -327,8 +327,10 @@ index, capability tiers, and deployment.
 
 ```
 text2sql-eval-toolkit
-├── docs/                       # Project log, refactor plans, deployment runbook
+├── docs/                       # Dashboard guides, deployment, development history
 ├── deploy/                     # Container, Compose stack, and data provisioning
+├── dashboard/                  # React frontend (production build committed to dist/)
+├── tests/                      # Test suite
 ├── notebooks/                  # Jupyter notebooks showcasing the use of the toolkit functions
 ├── data/                       # Benchmark datasets and evaluation results
 │   ├── benchmarks/             # Benchmark data and schema files
@@ -352,7 +354,9 @@ text2sql-eval-toolkit
 │       ├── evaluation/         # Evaluation module
 │       ├── execution/          # SQL execution module
 │       ├── inference/          # LLM inference (baseline) module
-│       └── profiling/          # SQL profiling module
+│       ├── indexing/           # SQLite query index over the result artifacts
+│       ├── profiling/          # SQL profiling module
+│       └── ui/                 # Dashboard backend (FastAPI)
 ├── pyproject.toml              # Build system and project metadata
 ├── README.md                   # Project documentation
 ├── requirements.txt            # Pinned export of uv.lock (generated; see its header)
