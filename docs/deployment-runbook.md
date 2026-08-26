@@ -276,6 +276,40 @@ Auth logs carry a truncated hash of the identity, never the address.
 
 ---
 
+## Sizing and failure behaviour
+
+Each container has a memory ceiling (`MEM_LIMIT_*` in `deploy/.env`, defaults
+sized for a 4 GB VM). The point is containment: one runaway container is
+OOM-killed and restarted by `restart: unless-stopped`, instead of the host
+thrashing until sshd stops answering.
+
+The app's limit is also what **provisioning** runs under, since it runs in that
+service. Index building peaks on the largest single record — Beaver holds one of
+108 MB whose parsed form costs several hundred more — so do not take
+`MEM_LIMIT_APP` below about 1 GB, and provision before starting the databases.
+
+`caddy` depends on `app` with `service_started`, not `service_healthy`. That is
+deliberate: `depends_on` orders startup only, so the sole thing it decides is
+whether a failing app can stop the edge coming up at all. It should not be able
+to — a domain that resolves to nothing has no error page to read and no ACME
+endpoint, which is how a certificate quietly fails to renew while you are
+debugging something else. Caddy up with a 502 behind it is recoverable; Caddy
+down is not.
+
+So a broken app looks like **502 from a valid certificate**, not a dead domain.
+Check `docker compose logs app`.
+
+## HSTS
+
+The default `Strict-Transport-Security` commits this host only. `HSTS_VALUE`
+takes the whole header if you want more.
+
+Add `; includeSubDomains` only if this domain has no other subdomains served by
+anything else. Browsers cache it for the full `max-age`, so it applies to
+subdomains that do not exist yet and cannot be walked back by changing the
+header — a promise this deployment is in no position to make on a shared apex
+domain.
+
 ## What is not covered yet
 
 - **Backups.** Deliberately minimal: results and indices are rebuildable from

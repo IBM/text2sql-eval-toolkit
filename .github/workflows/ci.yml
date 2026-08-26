@@ -266,6 +266,41 @@ jobs:
           POSTGRES_SUPERUSER_PASSWORD: ci
           MYSQL_ROOT_PASSWORD: ci
 
+      - name: Compose bounds memory and does not gate the edge on app health
+        # Both are about what a failure looks like on the box: unbounded
+        # containers take the host down with them, and gating caddy on app
+        # health takes the domain down -- including the ACME endpoint -- while
+        # the app is broken.
+        # `--format json` + stdlib python: no yq, no PyYAML, nothing to assume
+        # about what the runner image ships.
+        run: |
+          docker compose -f deploy/docker-compose.yml --profile databases \
+            config --format json > /tmp/compose.json
+          python3 - <<'CHECK'
+          import json, sys
+          cfg = json.load(open("/tmp/compose.json"))
+          problems = []
+          for svc in ("app", "postgres", "mysql", "caddy"):
+              if not cfg["services"][svc].get("mem_limit"):
+                  problems.append(f"{svc} has no memory limit")
+          cond = (
+              cfg["services"]["caddy"]
+              .get("depends_on", {})
+              .get("app", {})
+              .get("condition")
+          )
+          if cond != "service_started":
+              problems.append(f"caddy waits on app with {cond!r}, not service_started")
+          for p in problems:
+              print(f"::error::{p}")
+          sys.exit(1 if problems else 0)
+          CHECK
+        env:
+          DASHBOARD_DOMAIN: example.org
+          ACME_EMAIL: ci@example.org
+          POSTGRES_SUPERUSER_PASSWORD: ci
+          MYSQL_ROOT_PASSWORD: ci
+
       - name: Compose passes the pinned revision to the app
         run: |
           docker compose -f deploy/docker-compose.yml config \
