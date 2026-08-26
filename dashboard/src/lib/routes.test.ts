@@ -194,3 +194,43 @@ describe("parseLocation", () => {
     expect(() => parseLocation("/benchmark/%E0%A4%A")).not.toThrow();
   });
 });
+
+describe("a record inside a pipeline detail view", () => {
+  const PIPE = "wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi";
+
+  it("has an address of its own", () => {
+    expect(routes.pipelineRecord("bird_mini_dev_postgres", PIPE, "rec-42")).toBe(
+      `/benchmark/bird_mini_dev_postgres/pipeline/${encodeURIComponent(
+        PIPE
+      )}/record/rec-42`
+    );
+  });
+
+  it("round-trips back to the same benchmark, pipeline and record", () => {
+    const url = routes.pipelineRecord("demo", PIPE, "rec-42");
+    const match = parseLocation(url);
+    expect(match.view).toBe("pipeline");
+    expect(match.benchmarkId).toBe("demo");
+    expect(match.pipelineId).toBe(PIPE);
+    expect(match.recordId).toBe("rec-42");
+  });
+
+  it("still resolves when the record id needs encoding", () => {
+    // Record ids are benchmark-supplied; some carry slashes and colons.
+    const rid = "a/b:c d";
+    const match = parseLocation(routes.pipelineRecord("demo", PIPE, rid));
+    expect(match.recordId).toBe(rid);
+  });
+
+  it("leaves recordId null on the pipeline view itself", () => {
+    expect(parseLocation(routes.pipeline("demo", PIPE)).recordId).toBeNull();
+  });
+
+  it("does not match a malformed record path", () => {
+    // `/pipeline/{p}/record` with no id is not a record view.
+    const match = parseLocation(
+      `/benchmark/demo/pipeline/${encodeURIComponent(PIPE)}/record`
+    );
+    expect(match.notFound).toBe(true);
+  });
+});

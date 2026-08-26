@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   DataTable,
@@ -21,6 +21,10 @@ import { ResultTableView } from "./ResultTableView";
 interface Props {
   benchmarkId: string;
   pipelineName: string;
+  /** Record open in the detail panel, from the URL. */
+  recordId?: string | null;
+  /** Report a record being opened or closed, so the address follows. */
+  onSelectRecord?: (recordId: string | null) => void;
   onBack: () => void;
   onOpenErrorAnalysis?: (filters: Record<string, any>) => void;
 }
@@ -149,6 +153,8 @@ function highlightSql(sql: string): string {
 export const PipelineDetailView: React.FC<Props> = ({
   benchmarkId,
   pipelineName,
+  recordId,
+  onSelectRecord,
   onBack,
   onOpenErrorAnalysis,
 }) => {
@@ -159,7 +165,14 @@ export const PipelineDetailView: React.FC<Props> = ({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [error, setError] = useState<string | null>(null);
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  // Which record is open lives in the URL, not here. It is the thing a reader
+  // wants to link to -- "look at this record for this pipeline" -- and a modal
+  // over a view with no address of its own cannot be shared at all.
+  const selectedRecordId = recordId ?? null;
+  const setSelectedRecordId = useCallback(
+    (next: string | null) => onSelectRecord?.(next),
+    [onSelectRecord]
+  );
   const [detail, setDetail] = useState<ErrorRecordDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);

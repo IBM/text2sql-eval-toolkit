@@ -246,3 +246,75 @@ test.describe("large results stay renderable", () => {
     expect(nodes).toBeLessThan(20_000);
   });
 });
+
+/**
+ * Rows of the *records* table on a pipeline detail page.
+ *
+ * There are two tables on that page and the metrics summary comes first, so
+ * `table tbody tr` alone selects the wrong one.
+ */
+function recordRows(page: Page) {
+  return page
+    .locator("table")
+    .filter({ has: page.getByRole("columnheader", { name: /record id/i }) })
+    .locator("tbody tr");
+}
+
+test.describe("a record inside a pipeline detail view is its own page", () => {
+  const pipelinePath = `/benchmark/${BENCHMARK}/pipeline/${encodeURIComponent(
+    PIPELINE
+  )}`;
+
+  test("clicking a row puts the record in the address", async ({ page }) => {
+    await openFresh(page, pipelinePath);
+    await expect(recordRows(page).first()).toBeVisible();
+    await recordRows(page).first().click();
+
+    await expect.poll(() => page.url()).toContain("/record/");
+    await expect(page.getByText("Predicted SQL").first()).toBeVisible();
+  });
+
+  test("that address reopens the same record for someone else", async ({
+    page,
+    browser,
+  }) => {
+    // The whole claim: a record detail used to be a panel over a view with no
+    // address of its own, so it could not be linked to at all.
+    await openFresh(page, pipelinePath);
+    await expect(recordRows(page).first()).toBeVisible();
+    await recordRows(page).first().click();
+    await expect.poll(() => page.url()).toContain("/record/");
+    // The detail panel fetches after the address changes, so a snapshot taken
+    // on the URL alone can catch it mid-load -- which under parallel load is
+    // often enough to matter.
+    await expect(page.getByText("Predicted SQL").first()).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    const url = page.url();
+    const expected = await page.locator("main, .cds--content").first().innerText();
+
+    const recipient = await browser.newContext();
+    const opened = await recipient.newPage();
+    await openFresh(opened, url);
+    await expect(opened.getByText("Predicted SQL").first()).toBeVisible();
+    await expect
+      .poll(() => opened.locator("main, .cds--content").first().innerText(), {
+        timeout: 15_000,
+      })
+      .toBe(expected);
+    await recipient.close();
+  });
+
+  test("back closes the record rather than leaving the pipeline", async ({
+    page,
+  }) => {
+    await openFresh(page, pipelinePath);
+    await expect(recordRows(page).first()).toBeVisible();
+    await recordRows(page).first().click();
+    await expect.poll(() => page.url()).toContain("/record/");
+
+    await page.goBack();
+    await expect.poll(() => page.url()).not.toContain("/record/");
+    await expect(recordRows(page).first()).toBeVisible();
+  });
+});

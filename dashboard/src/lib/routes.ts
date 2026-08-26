@@ -66,6 +66,21 @@ export const routes = {
   benchmark: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}`,
   pipeline: (benchmarkId: string, pipelineId: string): string =>
     `/benchmark/${encode(benchmarkId)}/pipeline/${encode(pipelineId)}`,
+  /**
+   * One record, within one pipeline's detail view.
+   *
+   * A path segment rather than a query parameter, unlike error analysis: there
+   * are no filters here for it to sit beside, and an address that reads as a
+   * page is what makes it obviously shareable.
+   */
+  pipelineRecord: (
+    benchmarkId: string,
+    pipelineId: string,
+    recordId: string
+  ): string =>
+    `/benchmark/${encode(benchmarkId)}/pipeline/${encode(
+      pipelineId
+    )}/record/${encode(recordId)}`,
   errors: (benchmarkId: string, filters?: ErrorFilters): string =>
     `/benchmark/${encode(benchmarkId)}/errors${buildQuery(filters)}`,
   insights: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}/insights`,
@@ -140,6 +155,8 @@ export interface RouteMatch {
   benchmarkId: string | null;
   pipelineId: string | null;
   configName: string | null;
+  /** Record open within a pipeline detail view, if the path names one. */
+  recordId: string | null;
   /** True when the path matched no known route. */
   notFound: boolean;
 }
@@ -149,6 +166,7 @@ const EMPTY: RouteMatch = {
   benchmarkId: null,
   pipelineId: null,
   configName: null,
+  recordId: null,
   notFound: false,
 };
 
@@ -189,6 +207,15 @@ export function parseLocation(pathname: string): RouteMatch {
 
     if (rest[0] === "pipeline" && rest.length === 2) {
       return { ...EMPTY, view: "pipeline", benchmarkId, pipelineId: rest[1] };
+    }
+    if (rest[0] === "pipeline" && rest[2] === "record" && rest.length === 4) {
+      return {
+        ...EMPTY,
+        view: "pipeline",
+        benchmarkId,
+        pipelineId: rest[1],
+        recordId: rest[3],
+      };
     }
     if (rest[0] === "errors" && rest.length === 1) {
       return { ...EMPTY, view: "errorAnalysis", benchmarkId };
