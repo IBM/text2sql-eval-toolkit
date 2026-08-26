@@ -293,8 +293,8 @@ recreating the volume.
 **Beaver/MySQL is not loadable yet.** The repo has no dump or load procedure for
 it — `data/benchmarks/dbs/README.md` points at the upstream project. The `mysql`
 service, the read-only grant, and the execution path are in place; the data is
-the outstanding dependency. The grant is scoped by database name prefix, so the
-six Beaver databases are covered once created.
+the outstanding dependency. The six Beaver databases are granted by name, so they
+are covered once created; anything outside that list needs its own grant.
 
 ---
 

@@ -7,6 +7,10 @@ import { afterEach, vi } from "vitest";
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  // restoreAllMocks does not undo vi.stubGlobal, and the fetch stubs are
+  // installed that way -- without this they survive into the next test, which is
+  // exactly the leakage the hook above is supposed to prevent.
+  vi.unstubAllGlobals();
 });
 
 // jsdom implements neither, and Carbon reaches for both.

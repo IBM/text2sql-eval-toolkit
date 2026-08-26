@@ -46,10 +46,10 @@ which is enforced by a test rather than by intention.
   users, metered against a monthly budget that persists across restarts.
 - **Deployment artifacts**: container image, compose file with internal-only
   database networking, provisioning script, and an operations runbook
-  (`docs/deployment-runbook.md`).
+  (`docs/dashboard/deployment.md`).
 - **CI**: lint, format, type check, tests across Python 3.11–3.13, frontend
   build and lint, per-module coverage floors, and end-to-end tests.
-- **Tests**: 548 backend, 77 frontend, and 9 Playwright end-to-end tests that
+- **Tests**: 619 backend, 82 frontend, and 13 Playwright end-to-end tests that
   copy a link and reopen it in a fresh browser context.
 
 ### Changed
