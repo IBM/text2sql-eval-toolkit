@@ -81,7 +81,12 @@ def _attach_file_handler(logger: logging.Logger, path: Path) -> None:
     """
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        handler = logging.FileHandler(path, mode="w")
+        # Append, not truncate. Two dashboards on different ports is an
+        # ordinary thing to do, and with "w" the second one truncates the
+        # first's file while the first keeps writing at its old offset -- which
+        # produces a log full of half-lines in the wrong order. A diagnostic
+        # that misleads while you are debugging is worse than no diagnostic.
+        handler = logging.FileHandler(path, mode="a")
     except OSError as exc:
         logger.warning("Logging to file is disabled (%s): %s", path, exc)
         return

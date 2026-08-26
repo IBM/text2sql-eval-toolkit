@@ -303,6 +303,20 @@ def main(argv: Optional[List[str]] = None) -> None:
             "reach the judge tier. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
             mode.name.lower(),
         )
+
+    # The mode is a ceiling, so a `public` deployment grants `public` to
+    # everyone -- allowlisted or not. That is the correct fail-closed default,
+    # but it is silent: the judge control simply never appears, with nothing to
+    # say the allowlist was ignored. Say it.
+    if get_judge_allowlist() and mode < Tier.JUDGE:
+        logger.warning(
+            "Mode is '%s', which is a ceiling, so the %d-entry judge allowlist "
+            "grants nothing: an allowlisted user still resolves to '%s'. Set "
+            "TEXT2SQL_DASHBOARD_MODE=judge to let them reach the judge tier.",
+            mode.name.lower(),
+            len(get_judge_allowlist()),
+            mode.name.lower(),
+        )
     logger.info(
         "Capability mode: %s (judge allowlist: %d entr%s)",
         mode.name.lower(),
