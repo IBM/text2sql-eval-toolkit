@@ -203,6 +203,18 @@ def main(argv: Optional[List[str]] = None) -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument(
+        "--forwarded-allow-ips",
+        default=os.getenv("TEXT2SQL_FORWARDED_ALLOW_IPS", "127.0.0.1"),
+        help=(
+            "Peers whose X-Forwarded-* headers are believed, as IPs or CIDRs "
+            "(comma-separated), or '*' for any. Behind a TLS-terminating proxy "
+            "this MUST include the proxy, or the app sees every request as "
+            "http and builds an http OAuth redirect_uri that Google rejects. "
+            "Defaults to 127.0.0.1, which is right for a local run and wrong "
+            "for a proxy in another container."
+        ),
+    )
+    parser.add_argument(
         "--open-browser",
         action="store_true",
         help="Open the default browser to the dashboard URL after startup",
@@ -334,7 +346,19 @@ def main(argv: Optional[List[str]] = None) -> None:
             # Open slightly after startup; this is best-effort.
             threading.Timer(1.5, lambda: webbrowser.open(url)).start()
 
-        uvicorn.run(app, host=args.host, port=args.port)
+        # proxy_headers is on by default, but its trust list is not: uvicorn
+        # believes X-Forwarded-* only from 127.0.0.1 unless told otherwise, and
+        # a proxy in another container is not that. Left unset, the app reports
+        # scheme http behind TLS -- so `url_for("auth_callback")` produces an
+        # http redirect_uri that Google refuses, and every visitor shares one
+        # rate-limit bucket keyed on the proxy's address.
+        uvicorn.run(
+            app,
+            host=args.host,
+            port=args.port,
+            proxy_headers=True,
+            forwarded_allow_ips=args.forwarded_allow_ips,
+        )
     finally:
         _terminate_dashboard_watch(watch_proc)
 
