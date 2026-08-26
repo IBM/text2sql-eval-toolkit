@@ -35,6 +35,18 @@ text2sql-eval-dashboard --watch-dashboard      # force the watcher
 
 The watcher needs `npm install` to have been run in `dashboard/` once.
 
+## Where the build lives
+
+There is one build, `dashboard/dist/`, and it is committed. Two things read it:
+
+- `text2sql-eval-dashboard` in a source checkout serves it directly.
+- Building a wheel copies it into the package as `ui/static/` (`setup.py`), which
+  is what a `pip install` serves. That copy is generated and gitignored — never
+  edit or commit it.
+
+CI fails if a built wheel has no frontend, because the test suite cannot catch
+it: the tests run from a checkout, where `dashboard/dist` resolves either way.
+
 ## Before committing frontend changes
 
 `dashboard/dist/` is checked in, so a source change without a rebuild ships a

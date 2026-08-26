@@ -1,0 +1,101 @@
+#
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# Publishes to PyPI when a v* tag is pushed.
+#
+# Authentication is PyPI Trusted Publishing (OIDC): the workflow exchanges a
+# short-lived GitHub identity token for an upload token at publish time. No API
+# token is stored in the repository, and nothing here can be replayed elsewhere.
+#
+# One-time setup, on PyPI under the project's Publishing settings, before the
+# first tag: owner `IBM`, repository `text2sql-eval-toolkit`, workflow
+# `release.yml`, environment `pypi`.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      testpypi:
+        description: "Publish to TestPyPI instead of PyPI"
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    name: Build and verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+
+      - name: Tag must match the packaged version
+        # A tag that disagrees with pyproject.toml publishes a version nobody
+        # asked for, and PyPI will not let it be replaced afterwards.
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          built=$(ls dist/*.whl | sed -E 's/.*-([0-9][^-]*)-py3.*/\1/')
+          echo "tag=$tag  built=$built"
+          if [ "$tag" != "$built" ]; then
+            echo "::error::tag $tag does not match built version $built"
+            exit 1
+          fi
+
+      - name: The wheel must carry its data and its UI
+        # Same contract the CI workflow checks on every PR, re-checked here
+        # because publishing it wrong is not reversible.
+        run: |
+          python - <<'PY'
+          import sys, zipfile, glob
+          names = zipfile.ZipFile(glob.glob("dist/*.whl")[0]).namelist()
+          required = [
+              "text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_default_config.yaml",
+              "text2sql_eval_toolkit/data/benchmarks.json",
+              "text2sql_eval_toolkit/ui/static/index.html",
+          ]
+          missing = [p for p in required if p not in names]
+          for p in missing:
+              print(f"::error::missing from wheel: {p}")
+          sys.exit(1 if missing else 0)
+          PY
+
+      - name: Metadata renders on PyPI
+        run: twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # The environment is the gate: add required reviewers to it on GitHub and a
+    # release waits for a human before the irreversible step.
+    environment:
+      name: ${{ (github.event_name == 'workflow_dispatch' && inputs.testpypi) && 'testpypi' || 'pypi' }}
+      url: https://pypi.org/p/text2sql-eval-toolkit
+    permissions:
+      id-token: write # required for Trusted Publishing; nothing else is granted
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: ${{ (github.event_name == 'workflow_dispatch' && inputs.testpypi) && 'https://test.pypi.org/legacy/' || '' }}

@@ -390,3 +390,66 @@ jobs:
             echo "Run 'cd dashboard && npm run build' and commit the result."
             echo "$changed"
           fi
+
+  packaging:
+    name: Wheel contents
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Build distributions
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+      - name: The wheel must contain what the runtime reads at import time
+        # Neither of these is covered by the test suite, which always runs from a
+        # source checkout where both resolve from the repository instead. Both
+        # have shipped broken: the judge YAML was absent from every release to
+        # date, and the frontend was absent until it was packaged deliberately.
+        run: |
+          python - <<'PY'
+          import sys, zipfile, glob
+          whl = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(whl).namelist()
+          checks = {
+              "judge prompts": "text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_default_config.yaml",
+              "benchmark registry": "text2sql_eval_toolkit/data/benchmarks.json",
+              "dashboard entry point": "text2sql_eval_toolkit/ui/static/index.html",
+          }
+          failed = False
+          for label, path in checks.items():
+              ok = path in names
+              print(f"{'ok  ' if ok else 'MISS'} {label}: {path}")
+              if not ok:
+                  print(f"::error::{label} missing from the wheel ({path})")
+                  failed = True
+          assets = [n for n in names if n.startswith("text2sql_eval_toolkit/ui/static/assets/")]
+          print(f"{'ok  ' if assets else 'MISS'} dashboard assets: {len(assets)} file(s)")
+          if not assets:
+              print("::error::the wheel carries index.html but no assets")
+              failed = True
+          sys.exit(1 if failed else 0)
+          PY
+      - name: A clean install must serve the UI, not a bare 404
+        run: |
+          python -m venv /tmp/probe
+          /tmp/probe/bin/pip install -q "$(ls dist/*.whl)[dashboard]"
+          cd /tmp   # outside the checkout, so nothing resolves from the repo
+          /tmp/probe/bin/text2sql-eval-dashboard --port 8123 > /tmp/probe.log 2>&1 &
+          for _ in $(seq 1 30); do
+            sleep 2
+            curl -sf -o /tmp/index.html http://127.0.0.1:8123/ && break
+          done
+          code=$(curl -s -o /tmp/index.html -w '%{http_code}' http://127.0.0.1:8123/)
+          echo "GET / -> $code"
+          cat /tmp/probe.log
+          if [ "$code" != "200" ]; then
+            echo "::error::a pip install serves $code at / -- the frontend is not packaged"
+            exit 1
+          fi
+          grep -q "<div id=\"root\"" /tmp/index.html || {
+            echo "::error::/ returned 200 but not the dashboard document"; exit 1; }
+          echo "a pip install serves the dashboard"

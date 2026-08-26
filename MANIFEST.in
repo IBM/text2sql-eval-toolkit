@@ -1,0 +1,7 @@
+# The wheel's frontend is copied from here by setup.py, so the sdist must carry
+# it -- otherwise `pip install <sdist>` builds a wheel with no dashboard UI.
+graft dashboard/dist
+
+exclude .env
+prune dashboard/node_modules
+prune data/results

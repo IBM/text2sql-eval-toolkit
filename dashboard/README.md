@@ -10,4 +10,6 @@ Documentation has moved to **[`docs/dashboard/`](../docs/dashboard/)**:
 - [Deployment](../docs/dashboard/deployment.md)
 
 The production build in `dist/` is committed, so running the dashboard needs no
-Node.js. Rebuild it with `npm run build` after changing anything under `src/`.
+Node.js. Rebuild it with `npm run build` after changing anything under `src/`,
+and commit the result — a wheel copies this directory into the package, so a
+stale build here is what pip users get.
