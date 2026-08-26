@@ -104,7 +104,6 @@ where = ["src"]
 # Tooling
 #
 # Conventions previously documented in CONTRIBUTING.md but not enforced.
-# See docs/attic/plan/04-code-quality.md for the rationale behind each choice.
 # ---------------------------------------------------------------------------
 
 [tool.black]
@@ -158,7 +157,6 @@ markers = [
 # (3.13 in CI).  The 3.11 floor is enforced where it actually matters -- the test
 # matrix runs on 3.11 -- which is a stronger guarantee than a static assumption.
 # Narrow initial scope, widened module by module as annotations land.
-# See docs/attic/plan/04-code-quality.md item 4.2.
 files = [
     "src/text2sql_eval_toolkit/results",
     "src/text2sql_eval_toolkit/indexing",

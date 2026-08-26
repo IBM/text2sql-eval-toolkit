@@ -1,20 +1,18 @@
 # Project Log
 
-A running record of where the codebase stands and why. Newest entry first.
+A chronological record of the v2 rework: what changed, what it broke, and what that
+cost. Newest entry first.
 
-- **Current status at a glance**, item by item:
-  [`plan/README.md#where-things-stand`](plan/README.md#where-things-stand)
-- **Plans** for the remaining work: [`plan/`](plan/)
-- **Running the deployment**: [`deployment-runbook.md`](../dashboard/deployment.md)
-
-This file explains *why* each change was made and what it cost; the plan index is the
-place to look for what is finished and what is not.
+This is history, not reference. It explains *why* the code is the way it is; how it
+works is documented in [`../dashboard/`](../dashboard/). Entries reference plan
+documents and a status table that were removed once the work they tracked was
+finished.
 
 ---
 
 ## 2026-08-26 — Deployed. Everything that had never run, ran.
 
-Live at **https://text2sql-eval-toolkit.oktie.com** — a Hetzner CX22, browse-only,
+Live on a Hetzner CX22 — browse-only,
 `judge` mode, pinned to the `v1.1.0` results snapshot.
 
 **What worked on the first attempt**, all of it previously unexercised:
@@ -1226,7 +1224,7 @@ is on the release checklist (plan item 4.8).
 ## 2026-08-24 — Phase A started: tooling and CI foundations
 
 Branch `phase-a-foundations`. First implementation step of
-[`docs/plan/`](plan/), addressing observation 4 of the baseline snapshot below.
+a set of plan documents (since removed), addressing observation 4 of the baseline snapshot below.
 
 **Landed**
 

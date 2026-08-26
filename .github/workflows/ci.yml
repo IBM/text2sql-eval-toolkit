@@ -2,7 +2,6 @@
 # Copyright IBM Corp. 2025 - 2026
 # SPDX-License-Identifier: Apache-2.0
 #
-# Introduced by the v2 refactor (docs/attic/plan/04-code-quality.md, item 4.4).
 # Before this workflow existed, nothing ran tests or linting on a PR.
 
 name: CI
@@ -91,7 +90,6 @@ jobs:
           pip install -e ".[dev,dashboard]"
       - name: Mypy
         # Scope is narrow by design and widens module by module; see
-        # docs/attic/plan/04-code-quality.md item 4.2.
         run: mypy
 
   test:
