@@ -13,6 +13,29 @@ logger = get_logger(__name__)
 
 
 def load_llm_judge_config(config_path: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Load an LLM-judge configuration from YAML.
+
+    The config carries the model id under ``model.id`` -- in ``provider:name``
+    form -- with any remaining keys under ``model`` passed through as generation
+    parameters, plus the prompt template the judge uses.
+
+    Args:
+        config_path: Path to a judge YAML. ``None`` loads the packaged
+            ``llm_judge_default_config.yaml``. Other packaged configs sit
+            alongside it in ``evaluation/llm_judge_config/``.
+
+    Returns:
+        dict: The parsed configuration.
+
+    Raises:
+        FileNotFoundError: If *config_path* does not exist.
+
+    Example:
+        >>> config = load_llm_judge_config()
+        >>> config["model"]["id"]
+        'wxai:meta-llama/llama-3-3-70b-instruct'
+    """
     if config_path is None:
         config_path = (
             Path(__file__).parent / "llm_judge_config" / "llm_judge_default_config.yaml"
@@ -74,6 +97,58 @@ def evaluate_sql_prediction_with_llm(
     generation_prompt: str,
     llm_judge_config: dict,
 ) -> Dict[str, Any]:
+    """
+    Ask an LLM whether a predicted query answers the question.
+
+    Complements the execution metrics rather than replacing them: it catches
+    predictions that are defensible but do not match the ground truth exactly,
+    and questions where more than one query is reasonable.
+
+    Everything it needs is already in the evaluation artifacts, so **this
+    requires no database connection** -- only credentials for the judge model.
+
+    Args:
+        question: The natural-language question.
+        ground_truth_sql: The reference statement.
+        ground_truth_df: The reference result, as a DataFrame or its serialised
+            form.
+        predicted_sql: The model's statement.
+        predicted_df: The model's result, in the same form as *ground_truth_df*.
+        generation_prompt: The prompt the prediction was generated from. Shown
+            to the judge as context.
+        llm_judge_config: A config from :func:`load_llm_judge_config`.
+
+    Returns:
+        dict: With keys
+
+        - ``verdict``: ``"Yes"``, ``"No"``, ``"Maybe"``, or ``"N/A"`` when the
+          reply could not be interpreted.
+        - ``score``: ``1.0``, ``0.0``, ``0.5`` and ``0.0`` respectively. Note
+          that an uninterpretable reply scores the same as a rejection, so
+          ``verdict`` is the field to check when telling the two apart matters.
+        - ``explanation``: The judge's reasoning.
+        - ``token_usage``: Prompt and completion counts, or ``None`` when the
+          provider reported none. Callers metering spend must handle ``None``
+          rather than treating it as zero.
+
+    Raises:
+        NotImplementedError: If the configured model is not a ``wxai:`` model.
+            Only watsonx is wired up on this path today.
+
+    Example:
+        >>> config = load_llm_judge_config()
+        >>> result = evaluate_sql_prediction_with_llm(
+        ...     question="How many customers are there?",
+        ...     ground_truth_sql="SELECT COUNT(*) FROM customers",
+        ...     ground_truth_df=gt_df,
+        ...     predicted_sql="SELECT COUNT(id) FROM customers",
+        ...     predicted_df=pred_df,
+        ...     generation_prompt=prompt,
+        ...     llm_judge_config=config,
+        ... )
+        >>> result["verdict"], result["score"]
+        ('Yes', 1.0)
+    """
     # Extract model config
     model_config = llm_judge_config.get("model", {})
     evaluator_model = model_config.get("id", "")

@@ -265,6 +265,36 @@ def run_with_timeout(func, timeout=90, retries=2, wait=3, *args, **kwargs):
 
 
 async def run_with_timeout_async(task, base_timeout=90, retries=2, wait=3):
+    """
+    Await a coroutine factory with a timeout, retrying with a longer one.
+
+    The timeout **escalates**: attempt *n* is allowed ``base_timeout * (n + 1)``
+    seconds, so the default gives 90s, then 180s, then 270s. This differs from the
+    synchronous :func:`run_with_timeout`, which applies the same timeout every
+    attempt. Escalation suits work whose first attempt is slow because a resource
+    is cold rather than because it is stuck.
+
+    Args:
+        task: Zero-argument callable returning an awaitable. It is called afresh
+            on each attempt, so it must be a factory rather than a single
+            coroutine object -- an already-awaited coroutine cannot be retried.
+        base_timeout: Seconds allowed for the first attempt.
+        retries: Attempts *after* the first.
+        wait: Seconds to sleep between attempts.
+
+    Returns:
+        Whatever the awaited task returns.
+
+    Raises:
+        asyncio.TimeoutError: If every attempt times out.
+
+    Example:
+        >>> async def slow():
+        ...     await asyncio.sleep(0.1)
+        ...     return "done"
+        >>> await run_with_timeout_async(slow, base_timeout=1)
+        'done'
+    """
     for attempt in range(retries + 1):
         timeout = base_timeout * (attempt + 1)
         try:
@@ -281,7 +311,28 @@ async def run_with_timeout_async(task, base_timeout=90, retries=2, wait=3):
 
 
 def parse_dataframe(json_str):
-    """Reconstruct a DataFrame from a JSON-encoded dictionary."""
+    """
+    Reconstruct a DataFrame from the toolkit's serialised form.
+
+    Result sets are stored throughout the toolkit as pandas ``orient="split"``
+    JSON -- an object with ``columns``, ``index`` and ``data`` keys. This is the
+    reader for the ``gt_df`` and ``predicted_df`` fields of a prediction record.
+
+    Args:
+        json_str: JSON text in pandas ``orient="split"`` form.
+
+    Returns:
+        pandas.DataFrame: The reconstructed frame, with its original index.
+
+    Raises:
+        ValueError: If the text is not valid JSON or lacks the expected keys.
+            The offending string is included in the message.
+
+    Example:
+        >>> parse_dataframe('{"columns": ["n"], "index": [0], "data": [[1]]}')
+           n
+        0  1
+    """
     try:
         df_dict = json.loads(json_str)
         return pd.DataFrame(
@@ -314,7 +365,28 @@ def truncate_dataframe(
 
 
 def get_question_id(record):
-    """Gets Question ID from benchmark or prediction data record"""
+    """
+    Read the identifier from a benchmark or prediction record.
+
+    Benchmarks disagree on what the id field is called, so the first of ``id``,
+    ``question_id``, ``qid`` and ``_id`` that is present wins.
+
+    Note:
+        This **mutates** *record*, copying the value to ``record["id"]`` so that
+        later code can rely on that key existing. Pass a copy if the caller needs
+        the original untouched.
+
+    Args:
+        record: A benchmark question or prediction record.
+
+    Returns:
+        The identifier, in whatever type the record used -- commonly ``str`` or
+        ``int``. Note that ``0`` is a valid id, so test for ``None`` rather than
+        for falsiness.
+
+    Raises:
+        ValueError: If the record carries none of the recognised keys.
+    """
     id_keys = ["id", "question_id", "qid", "_id"]
     for key in id_keys:
         question_id = record.get(key)
@@ -325,7 +397,27 @@ def get_question_id(record):
 
 
 def get_utterance(record):
-    """Gets the question (utterance) from the benchmark or prediction data record"""
+    """
+    Read the natural-language question from a record.
+
+    Tries ``utterance``, then ``page_content``, then ``question``.
+
+    Note:
+        This **mutates** *record*, copying the value to ``record["utterance"]``.
+
+    See Also:
+        :func:`get_question`, which reads the same content but tries the keys in
+        the opposite order and raises ``KeyError`` rather than ``ValueError``.
+
+    Args:
+        record: A benchmark question or prediction record.
+
+    Returns:
+        str: The question text.
+
+    Raises:
+        ValueError: If the record carries none of the recognised keys.
+    """
     utterance_keys = ["utterance", "page_content", "question"]
     for key in utterance_keys:
         utterance = record.get(key)
@@ -336,6 +428,31 @@ def get_utterance(record):
 
 
 def get_gt_sqls(record):
+    """
+    Read the ground-truth SQL from a record, always as a list.
+
+    A question may have more than one correct SQL formulation, so this always
+    returns a list even when the record stores a single string. Tries ``sql``,
+    ``SQL``, ``target`` and ``query``, then falls back to
+    ``record["metadata"]["sql"]``.
+
+    Values stored as a ``dict`` are skipped rather than returned: some benchmarks
+    keep a structured representation of the query under the same key, and that is
+    not executable SQL.
+
+    Note:
+        This **mutates** *record*, writing the normalised list to ``record["sql"]``
+        (except on the ``metadata`` fallback path, which does not).
+
+    Args:
+        record: A benchmark question record.
+
+    Returns:
+        list[str]: One or more ground-truth statements.
+
+    Raises:
+        ValueError: If no ground-truth SQL can be found.
+    """
     gt_sql_keys = ["sql", "SQL", "target", "query"]
     for key in gt_sql_keys:
         gt_sqls = record.get(key)
@@ -353,6 +470,25 @@ def get_gt_sqls(record):
 
 
 def get_question(record):
+    """
+    Read the question text, preferring ``page_content``.
+
+    See Also:
+        :func:`get_utterance`, which reads the same content but prefers
+        ``utterance``, normalises the record as a side effect, and raises
+        ``ValueError`` instead of ``KeyError``. Prefer that one in new code; this
+        exists for callers that predate it.
+
+    Args:
+        record: A benchmark question or prediction record.
+
+    Returns:
+        str: The question text.
+
+    Raises:
+        KeyError: If the record has none of ``page_content``, ``question`` or
+            ``utterance``.
+    """
     return (
         record["page_content"]
         if "page_content" in record
@@ -361,13 +497,61 @@ def get_question(record):
 
 
 def get_default_eval_filename(predictions_file):
+    """
+    Derive the evaluation artifact path from a predictions path.
+
+    Inserts ``_eval`` before the extension, which is the naming convention the
+    whole pipeline relies on: ``{benchmark}-predictions.json`` becomes
+    ``{benchmark}-predictions_eval.json``.
+
+    Args:
+        predictions_file: Path to a predictions file, as ``str`` or ``Path``.
+
+    Returns:
+        str: The evaluation filename.
+
+    Example:
+        >>> get_default_eval_filename("data/results/spider_dev-predictions.json")
+        'data/results/spider_dev-predictions_eval.json'
+    """
     base_name, ext = os.path.splitext(predictions_file)
     return f"{base_name}_eval{ext}"
 
 
 def add_summary_json_suffix(path: str) -> str:
+    """
+    Derive the JSON summary path from an evaluation artifact path.
+
+    Replaces the extension with ``_summary.json``.
+
+    Args:
+        path: Path to an evaluation artifact.
+
+    Returns:
+        str: The summary path.
+
+    Example:
+        >>> add_summary_json_suffix("spider_dev-predictions_eval.json")
+        'spider_dev-predictions_eval_summary.json'
+    """
     return os.path.splitext(path)[0] + "_summary.json"
 
 
 def add_summary_csv_suffix(path: str) -> str:
+    """
+    Derive the CSV summary path from an evaluation artifact path.
+
+    Replaces the extension with ``_summary.csv``. The CSV carries the same
+    per-pipeline rows as the JSON summary, for spreadsheet use.
+
+    Args:
+        path: Path to an evaluation artifact.
+
+    Returns:
+        str: The summary path.
+
+    Example:
+        >>> add_summary_csv_suffix("spider_dev-predictions_eval.json")
+        'spider_dev-predictions_eval_summary.csv'
+    """
     return os.path.splitext(path)[0] + "_summary.csv"
