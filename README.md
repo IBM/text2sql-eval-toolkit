@@ -34,6 +34,8 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 
 ## Documentation
 
+- **[API reference](https://ibm.github.io/text2sql-eval-toolkit/reference/)** —
+  every exported function and class, generated from the docstrings.
 - **[docs/dashboard/](docs/dashboard/)** — the evaluation dashboard: features,
   shareable links, the query index, capability tiers, and deployment.
 - **[data/benchmarks/README.md](data/benchmarks/README.md)** — benchmark
@@ -234,7 +236,7 @@ agentic.run_pipeline(
 )
 ```
 
-See the docstrings of the exported functions/classes in `text2sql_eval_toolkit.__init__` for the full list of public APIs.
+Every exported function and class is documented in the **[API reference](https://ibm.github.io/text2sql-eval-toolkit/reference/)**, generated from the docstrings.
 
 ### Running Experiments
 

@@ -1,0 +1,89 @@
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# The API reference is generated from docstrings rather than written twice, so
+# `tests/test_public_api.py` -- which fails when an exported symbol loses its
+# docstring or documents an argument it does not take -- is what keeps this site
+# accurate. Build with `mkdocs build --strict`; CI does, and strict turns a
+# broken reference into a failure instead of a blank section.
+
+site_name: Text-to-SQL Evaluation Toolkit
+site_description: Evaluating text-to-SQL systems — inference, execution, evaluation, profiling, analysis.
+site_url: https://ibm.github.io/text2sql-eval-toolkit/
+repo_url: https://github.com/IBM/text2sql-eval-toolkit
+repo_name: IBM/text2sql-eval-toolkit
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+# Development history and plans are kept in the repository, not published: they
+# describe why things changed, which dates badly on a reference site.
+exclude_docs: |
+  attic/
+  # Anchored: docs/README.md is the index for browsing the repository on GitHub
+  # and duplicates index.md here. An unanchored pattern would also drop
+  # dashboard/README.md, which the nav points at.
+  /README.md
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: { icon: material/weather-night, name: Switch to dark mode }
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: { icon: material/weather-sunny, name: Switch to light mode }
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            docstring_options:
+              # These docstrings describe one return value across several lines.
+              # Left on, griffe reads each line as a separate returned item and
+              # then reports every one of them as missing a type.
+              returns_multiple_items: false
+              returns_named_value: false
+            show_source: true
+            show_signature_annotations: true
+            separate_signature: true
+            show_root_heading: true
+            heading_level: 3
+            members_order: source
+            filters: ["!^_"]
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight: { anchor_linenums: true }
+  - toc: { permalink: true }
+  - tables
+
+nav:
+  - Home: index.md
+  - API reference:
+      - Overview: reference/index.md
+      - Benchmarks: reference/benchmarks.md
+      - Inference: reference/inference.md
+      - Execution: reference/execution.md
+      - Evaluation: reference/evaluation.md
+      - Metrics: reference/metrics.md
+      - Utilities: reference/utilities.md
+  - Dashboard:
+      - Overview: dashboard/README.md
+      - Shareable links: dashboard/shareable-links.md
+      - Query index: dashboard/query-index.md
+      - Capability tiers: dashboard/capability-tiers.md
+      - Deployment: dashboard/deployment.md
+      - Development: dashboard/development.md

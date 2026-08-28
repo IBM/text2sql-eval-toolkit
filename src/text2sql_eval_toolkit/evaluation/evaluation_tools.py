@@ -410,10 +410,10 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
         :func:`summary_to_df_csv` both do.
 
     Args:
-        metrics_by_model: Per-record metric dicts, keyed by ``pipeline_id``.
-        llm_judge_config: The judge config used, or ``None``. Recorded in the
+        metrics_by_model (dict): Per-record metric dicts, keyed by ``pipeline_id``.
+        llm_judge_config (dict | None): The judge config used. Recorded in the
             result so a summary says which judge produced its verdicts.
-        token_usage_by_model: Optional token counts keyed by ``pipeline_id``,
+        token_usage_by_model (dict | None): Token counts keyed by ``pipeline_id``,
             folded into the summary when present.
 
     Returns:
@@ -534,9 +534,9 @@ def summary_to_df_csv(summary, output_path, use_llm):
     The ``"llm_judge_config"`` entry is skipped, so each row is one pipeline.
 
     Args:
-        summary: A mapping from :func:`compute_summary`.
-        output_path: Where to write the CSV. Written with ``index=False``.
-        use_llm: Whether to include LLM-judge columns. When ``False`` the judge
+        summary (dict): A mapping from :func:`compute_summary`.
+        output_path (str | Path): Where to write the CSV. Written with ``index=False``.
+        use_llm (bool): Whether to include LLM-judge columns. When ``False`` the judge
             columns are filled with ``"N/A"`` rather than omitted, so the column
             set is stable across runs with and without the judge.
 
@@ -612,13 +612,13 @@ def print_summary(summary, use_llm):
     equivalent. The ``"llm_judge_config"`` entry is skipped.
 
     Args:
-        summary: A mapping from :func:`compute_summary`.
-        use_llm: Whether to include LLM-judge columns. Pass ``False`` when the
-            judge did not run, or its rows will read as zeros rather than as
+        summary (dict): A mapping from :func:`compute_summary`.
+        use_llm (bool): Whether to include LLM-judge columns. Pass ``False`` when
+            the judge did not run, or its rows will read as zeros rather than as
             absent.
 
     Returns:
-        None. Output goes to stdout.
+        None: Output goes to stdout.
     """
     print("\n=== Evaluation Summary ===")
     for pipeline, metrics in summary.items():
@@ -899,10 +899,12 @@ def evaluate_predictions(
         per-pipeline summary table.
 
     Example:
+        ```python
         >>> data, summary_df = evaluate_predictions(
         ...     "data/results/my-benchmark-predictions.json"
         ... )
         >>> summary_df.head()
+        ```
     """
     llm_judge_config = None
     if use_llm or llm_judge_config_path is not None:
@@ -955,8 +957,10 @@ def run_evaluation(
         ValueError: If *benchmark_id* is in neither registry.
 
     Example:
+        ```python
         >>> data, summary_df = run_evaluation("bird_mini_dev_sqlite")
         >>> summary_df[["subset_non_empty_execution_accuracy_avg"]]
+        ```
     """
     benchmark_info = get_benchmark_info(benchmark_id)
     predictions_path = str(Path(benchmark_info["predictions_path"]))

@@ -1466,7 +1466,7 @@ def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = 
         force_rerun: Re-execute records that already have stored results.
 
     Returns:
-        The number of queries executed.
+        int: The number of queries executed.
 
     Raises:
         NotImplementedError: If the benchmark's ``db_type`` is not one of
@@ -1474,7 +1474,9 @@ def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = 
         ValueError: If the connection string environment variable is unset.
 
     Example:
+        ```python
         >>> run_execution("bird_mini_dev_postgres")
+        ```
     """
     benchmark_info = get_benchmark_info(benchmark_id)
     predictions_path = Path(benchmark_info["predictions_path"])

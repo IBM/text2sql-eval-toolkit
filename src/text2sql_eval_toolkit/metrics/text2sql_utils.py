@@ -526,8 +526,8 @@ def is_sqlglot_parsable(sql: str, db_type="sqlite") -> bool:
     therefore parse when it should not, or fail when it is valid.
 
     Args:
-        sql: The statement to check.
-        db_type: sqlglot dialect name. ``"db2"`` is mapped to ``"postgres"``.
+        sql (str): The statement to check.
+        db_type (str): sqlglot dialect name. ``"db2"`` is mapped to ``"postgres"``.
 
     Returns:
         bool: ``False`` for empty or whitespace-only input, and for anything
