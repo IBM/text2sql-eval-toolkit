@@ -394,6 +394,31 @@ def evaluate_prediction(
 
 
 def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=None):
+    """
+    Aggregate per-record metrics into a per-pipeline summary.
+
+    Averages are taken over records that could be evaluated, so a benchmark where
+    some records failed to execute still yields a meaningful score rather than
+    one dragged toward zero by errors. Failure counts are reported alongside, and
+    should be read together with the averages -- a high score over few evaluated
+    records is not the same claim as a high score over all of them.
+
+    Note:
+        The returned mapping carries a ``"llm_judge_config"`` key alongside the
+        pipeline ids, recording which judge produced the verdicts. Consumers
+        iterating pipelines must skip it -- :func:`print_summary` and
+        :func:`summary_to_df_csv` both do.
+
+    Args:
+        metrics_by_model: Per-record metric dicts, keyed by ``pipeline_id``.
+        llm_judge_config: The judge config used, or ``None``. Recorded in the
+            result so a summary says which judge produced its verdicts.
+        token_usage_by_model: Optional token counts keyed by ``pipeline_id``,
+            folded into the summary when present.
+
+    Returns:
+        dict: ``pipeline_id`` to metrics, plus the ``"llm_judge_config"`` entry.
+    """
     summary = {}
     for model, records in metrics_by_model.items():
         num_records = len(records)
@@ -503,6 +528,22 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
 
 
 def summary_to_df_csv(summary, output_path, use_llm):
+    """
+    Render a summary as a DataFrame and write it to CSV.
+
+    The ``"llm_judge_config"`` entry is skipped, so each row is one pipeline.
+
+    Args:
+        summary: A mapping from :func:`compute_summary`.
+        output_path: Where to write the CSV. Written with ``index=False``.
+        use_llm: Whether to include LLM-judge columns. When ``False`` the judge
+            columns are filled with ``"N/A"`` rather than omitted, so the column
+            set is stable across runs with and without the judge.
+
+    Returns:
+        pandas.DataFrame: The same table that was written, for callers that want
+        it in memory as well as on disk.
+    """
     rows = []
     for model, metrics in summary.items():
         if model == "llm_judge_config":
@@ -564,6 +605,21 @@ def summary_to_df_csv(summary, output_path, use_llm):
 
 
 def print_summary(summary, use_llm):
+    """
+    Print a summary to stdout in a human-readable form.
+
+    For terminal use; :func:`summary_to_df_csv` is the machine-readable
+    equivalent. The ``"llm_judge_config"`` entry is skipped.
+
+    Args:
+        summary: A mapping from :func:`compute_summary`.
+        use_llm: Whether to include LLM-judge columns. Pass ``False`` when the
+            judge did not run, or its rows will read as zeros rather than as
+            absent.
+
+    Returns:
+        None. Output goes to stdout.
+    """
     print("\n=== Evaluation Summary ===")
     for pipeline, metrics in summary.items():
         if pipeline == "llm_judge_config":
@@ -677,6 +733,37 @@ async def async_evaluate_predictions(
     force_rerun_llm_judge: bool = False,
     force_rerun: bool = False,
 ):
+    """
+    Evaluate a predictions file, awaitable.
+
+    What :func:`evaluate_predictions` wraps. Await this from code that already
+    runs an event loop; the synchronous wrapper would raise there.
+
+    Records are evaluated concurrently behind a semaphore of *max_concurrency*.
+    Raising it increases pressure on whatever the judge model's endpoint will
+    tolerate, not on local CPU.
+
+    Args:
+        input_file: Path to a predictions JSON file.
+        output_file: Evaluation artifact path. Defaults to *input_file* with
+            ``_eval`` inserted before the extension.
+        summary_file: JSON summary path. Defaults to the output path with
+            ``_summary.json``.
+        csv_summary_file: CSV summary path. Defaults to the output path with
+            ``_summary.csv``.
+        llm_judge_config: An already-loaded judge config, as returned by
+            :func:`load_llm_judge_config`. ``None`` skips the judge. Note that
+            this takes the config itself, where the synchronous wrapper takes a
+            path.
+        max_concurrency: Records evaluated at once.
+        force_rerun_llm_judge: Re-run the judge for records that already have a
+            verdict.
+        force_rerun: Re-evaluate everything, ignoring stored results.
+
+    Returns:
+        tuple[dict, pandas.DataFrame]: The full evaluation data, and the
+        per-pipeline summary table.
+    """
     output_file = output_file or get_default_eval_filename(input_file)
     summary_file = summary_file or add_summary_json_suffix(output_file)
     csv_summary_file = csv_summary_file or add_summary_csv_suffix(output_file)
@@ -779,6 +866,44 @@ def evaluate_predictions(
     force_rerun_llm_judge: bool = False,
     force_rerun: bool = False,
 ):
+    """
+    Evaluate a predictions file and write the evaluation and summary artifacts.
+
+    The synchronous entry point, and the one most callers want.
+
+    Note:
+        This calls ``asyncio.run`` internally, so it **cannot be called from
+        inside a running event loop**. Async callers should await
+        :func:`async_evaluate_predictions` instead.
+
+    Evaluation is resumable: records that already carry results are left alone
+    unless *force_rerun* is set.
+
+    Args:
+        input_file: Path to a predictions JSON file.
+        output_file: Where to write the evaluation artifact. Defaults to the
+            input path with ``_eval`` inserted before the extension.
+        summary_file: Where to write the JSON summary. Defaults to the output
+            path with ``_summary.json``.
+        csv_summary_file: Where to write the CSV summary. Defaults to the output
+            path with ``_summary.csv``.
+        use_llm: Also run LLM-as-judge.
+        llm_judge_config_path: Path to a judge config YAML. Passing this loads a
+            judge config even when *use_llm* is ``False``.
+        force_rerun_llm_judge: Re-run the judge for records that already have a
+            verdict.
+        force_rerun: Re-evaluate everything, ignoring stored results.
+
+    Returns:
+        tuple[dict, pandas.DataFrame]: The full evaluation data, and the
+        per-pipeline summary table.
+
+    Example:
+        >>> data, summary_df = evaluate_predictions(
+        ...     "data/results/my-benchmark-predictions.json"
+        ... )
+        >>> summary_df.head()
+    """
     llm_judge_config = None
     if use_llm or llm_judge_config_path is not None:
         llm_judge_config = load_llm_judge_config(llm_judge_config_path)
@@ -803,6 +928,36 @@ def run_evaluation(
     force_rerun_llm_judge: bool = False,
     force_rerun: bool = False,
 ):
+    """
+    Evaluate a registered benchmark's predictions.
+
+    The registry-aware entry point: it resolves the predictions path for
+    *benchmark_id* and hands off to :func:`evaluate_predictions`. Use that one
+    directly to evaluate a file that is not part of a registered benchmark.
+
+    Args:
+        benchmark_id: A benchmark from ``benchmarks.json`` or
+            ``test-benchmarks.json``. See :func:`get_available_benchmarks`.
+        use_llm: Also run LLM-as-judge. Requires credentials for the model named
+            in the judge config.
+        llm_judge_config_path: Path to a judge config YAML. Passing this loads a
+            judge config even when *use_llm* is ``False``.
+        force_rerun_llm_judge: Re-run the judge for records that already carry a
+            verdict.
+        force_rerun: Re-evaluate everything, ignoring stored results. Implies
+            *force_rerun_llm_judge*.
+
+    Returns:
+        tuple[dict, pandas.DataFrame]: The full evaluation data, and the
+        per-pipeline summary table.
+
+    Raises:
+        ValueError: If *benchmark_id* is in neither registry.
+
+    Example:
+        >>> data, summary_df = run_evaluation("bird_mini_dev_sqlite")
+        >>> summary_df[["subset_non_empty_execution_accuracy_avg"]]
+    """
     benchmark_info = get_benchmark_info(benchmark_id)
     predictions_path = str(Path(benchmark_info["predictions_path"]))
     return evaluate_predictions(

@@ -48,6 +48,27 @@ logger = get_logger(__name__)
 
 
 class LLMSQLGenerationPipelineSimple(BasePipeline):
+    """
+    Sequential zero-shot SQL generation, with a caller-chosen pipeline id.
+
+    The simple counterpart to :class:`LLMSQLGenerationPipeline`. It processes
+    records one at a time and takes ``pipeline_id`` as an argument rather than
+    deriving it, which suits small runs, debugging a prompt, and any case where
+    the results must be filed under an id of your choosing.
+
+    For full benchmarks prefer :class:`LLMSQLGenerationPipeline`, which runs
+    concurrently and retries failed inferences.
+
+    Example:
+        >>> pipeline = LLMSQLGenerationPipelineSimple()
+        >>> pipeline.run_pipeline(
+        ...     benchmark_id="bird_mini_dev_sqlite",
+        ...     pipeline_id="my-experiment",
+        ...     model_name="wxai:ibm/granite-4-h-small",
+        ...     model_parameters={"max_new_tokens": 512},
+        ... )
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -152,6 +173,33 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
 
 
 class LLMSQLGenerationPipeline(BasePipeline):
+    """
+    Concurrent zero-shot SQL generation for a whole benchmark.
+
+    The baseline pipeline: one prompt per question, no execution feedback, no
+    retry loop over the model's own output. It is what the agentic pipelines are
+    measured against, so its behaviour is deliberately plain.
+
+    Records are generated concurrently, and inferences that fail are retried on a
+    later pass unless that is disabled. Runs are resumable -- existing
+    predictions are kept unless ``force_rerun`` is set.
+
+    Note:
+        The ``pipeline_id`` is **derived**, not passed:
+        ``f"{model_name}-greedy-zero-shot-chatapi"``. That id is the unit of
+        comparison everywhere downstream -- summaries, the dashboard, shareable
+        links -- so results for a given model always file under the same id.
+        Use :class:`LLMSQLGenerationPipelineSimple` to choose the id yourself.
+
+    Example:
+        >>> pipeline = LLMSQLGenerationPipeline()
+        >>> pipeline.run_pipeline(
+        ...     benchmark_id="bird_mini_dev_sqlite",
+        ...     model_name="wxai:ibm/granite-4-h-small",
+        ...     model_parameters={"max_new_tokens": 512},
+        ... )
+    """
+
     def __init__(self):
         super().__init__()
 
