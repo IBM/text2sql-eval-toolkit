@@ -22,6 +22,7 @@ from fastapi import APIRouter, HTTPException
 import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
 
 from text2sql_eval_toolkit.utils import get_benchmarks_info
+from text2sql_eval_toolkit.evaluation.evaluation_tools import split_summary
 from text2sql_eval_toolkit.ui.aliases import alias_map
 from text2sql_eval_toolkit.ui.models import (
     BenchmarkCategorySummaryResponse,
@@ -111,9 +112,7 @@ def list_benchmarks() -> BenchmarksResponse:
         if summary_path.exists():
             try:
                 summary = load_json(summary_path)
-                num_pipelines = len(
-                    [k for k in summary.keys() if k != "llm_judge_config"]
-                )
+                num_pipelines = len(split_summary(summary)[0])
             except Exception as e:  # pragma: no cover - defensive
                 logger.warning(f"Could not read summary for {benchmark_id}: {e}")
 
@@ -280,8 +279,7 @@ def get_benchmark_summary(benchmark_id: str) -> BenchmarkDetailResponse:
             status_code=404, detail=_summary_not_found_detail(benchmark_id)
         )
 
-    raw = load_json(summary_path)
-    llm_cfg = raw.pop("llm_judge_config", None)
+    raw, llm_cfg = split_summary(load_json(summary_path))
     default_sort_metric = "subset_non_empty_execution_accuracy"
     if llm_cfg and isinstance(llm_cfg, dict):
         default_sort_metric = llm_cfg.get("default_sort_metric", default_sort_metric)
@@ -316,8 +314,7 @@ def get_pipeline_aliases(benchmark_id: str) -> PipelineAliasesResponse:
     """
     summary_path = get_results_dir() / f"{benchmark_id}-predictions_eval_summary.json"
     if summary_path.exists():
-        raw = load_json(summary_path)
-        pipeline_ids = [k for k in raw.keys() if k != "llm_judge_config"]
+        pipeline_ids = list(split_summary(load_json(summary_path))[0])
     else:
         # No summary: fall back to the artifact itself rather than 404, so a
         # benchmark that was evaluated but never summarised still has links.
@@ -458,8 +455,7 @@ def get_benchmark_summary_by_category(
             status_code=404, detail=_summary_not_found_detail(benchmark_id)
         )
 
-    summary_raw = load_json(summary_path)
-    llm_cfg = summary_raw.pop("llm_judge_config", None)
+    summary_raw, llm_cfg = split_summary(load_json(summary_path))
     default_sort_metric = "subset_non_empty_execution_accuracy"
     if llm_cfg and isinstance(llm_cfg, dict):
         default_sort_metric = llm_cfg.get("default_sort_metric", default_sort_metric)

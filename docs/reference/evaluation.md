@@ -20,5 +20,6 @@ evaluation artifacts.
 ## Summaries
 
 ::: text2sql_eval_toolkit.compute_summary
+::: text2sql_eval_toolkit.split_summary
 ::: text2sql_eval_toolkit.summary_to_df_csv
 ::: text2sql_eval_toolkit.print_summary

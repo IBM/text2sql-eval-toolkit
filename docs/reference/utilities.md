@@ -14,6 +14,12 @@ Benchmarks disagree on field names, so these accept the common spellings.
 ::: text2sql_eval_toolkit.get_question
 ::: text2sql_eval_toolkit.get_gt_sqls
 
+Reading is side-effect free. To write the canonical `id`, `utterance` and `sql`
+keys onto a record before storing it — which is what inference does before
+appending to the predictions file — normalise explicitly:
+
+::: text2sql_eval_toolkit.normalize_record
+
 ## Dataframes
 
 Result sets are stored as pandas `orient="split"` JSON.

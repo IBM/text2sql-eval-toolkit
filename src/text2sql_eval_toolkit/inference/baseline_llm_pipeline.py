@@ -41,6 +41,7 @@ from text2sql_eval_toolkit.inference.inference_tools import (
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
     get_question_id,
+    normalize_record,
     get_utterance,
 )
 
@@ -111,6 +112,9 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
 
         # Extend predictions_data with new predictions
         for idx, record in enumerate(data):
+            # Stored under the canonical keys: this record is appended to
+            # predictions_data and looked up by record["id"] when resuming.
+            normalize_record(record)
             question_id = get_question_id(record)
             utterance = get_utterance(record)
             db_schema = None
@@ -224,6 +228,9 @@ class LLMSQLGenerationPipeline(BasePipeline):
         skip_inference_error_retries=False,
     ):
         async with semaphore:
+            # Stored under the canonical keys: this record is appended to
+            # predictions_data and looked up by record["id"] when resuming.
+            normalize_record(record)
             question_id = get_question_id(record)
             try:
                 utterance = get_utterance(record)
