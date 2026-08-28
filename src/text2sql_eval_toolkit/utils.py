@@ -370,6 +370,43 @@ def truncate_dataframe(
     return pd.concat([top, ellipsis_row, bottom])
 
 
+def normalize_record(record):
+    """
+    Write the canonical keys onto *record*, in place.
+
+    Benchmarks spell their fields differently -- ``question_id`` or ``qid``,
+    ``page_content`` or ``question``, ``SQL`` or ``target``. Predictions are
+    stored under the canonical spellings ``id``, ``utterance`` and ``sql``, and
+    inference looks records up by ``record["id"]`` when resuming, so the
+    normalisation has to happen before a record is written.
+
+    The readers (:func:`get_question_id`, :func:`get_utterance`,
+    :func:`get_gt_sqls`) used to do this as a side effect of being called, which
+    meant a caller who only wanted to read a value silently modified the record
+    they were given. Call this instead, where normalising is what you mean.
+
+    Missing fields are skipped rather than raising: a record with no ground-truth
+    SQL is still worth normalising for its id and question.
+
+    Args:
+        record (dict): A benchmark question or prediction record. Modified in
+            place.
+
+    Returns:
+        dict: The same record, for chaining.
+    """
+    for key, reader in (
+        ("id", get_question_id),
+        ("utterance", get_utterance),
+        ("sql", get_gt_sqls),
+    ):
+        try:
+            record[key] = reader(record)
+        except (ValueError, KeyError):
+            continue
+    return record
+
+
 def get_question_id(record):
     """
     Read the identifier from a benchmark or prediction record.
@@ -377,10 +414,8 @@ def get_question_id(record):
     Benchmarks disagree on what the id field is called, so the first of ``id``,
     ``question_id``, ``qid`` and ``_id`` that is present wins.
 
-    Note:
-        This **mutates** *record*, copying the value to ``record["id"]`` so that
-        later code can rely on that key existing. Pass a copy if the caller needs
-        the original untouched.
+    Reading is side-effect free. Use :func:`normalize_record` to write the
+    canonical keys onto a record before storing it.
 
     Args:
         record (dict): A benchmark question or prediction record.
@@ -397,7 +432,6 @@ def get_question_id(record):
     for key in id_keys:
         question_id = record.get(key)
         if question_id is not None:
-            record["id"] = question_id  # Ensure 'id' is always set
             return question_id
     raise ValueError(f"Record has no ID field among {id_keys}: {record}")
 
@@ -408,8 +442,7 @@ def get_utterance(record):
 
     Tries ``utterance``, then ``page_content``, then ``question``.
 
-    Note:
-        This **mutates** *record*, copying the value to ``record["utterance"]``.
+    Reading is side-effect free; see :func:`normalize_record` to normalise.
 
     See Also:
         :func:`get_question`, which reads the same content but tries the keys in
@@ -428,7 +461,6 @@ def get_utterance(record):
     for key in utterance_keys:
         utterance = record.get(key)
         if utterance:
-            record["utterance"] = utterance  # Ensure 'utterance' is always set
             return utterance
     raise ValueError(f"Record has no utterance field among {utterance_keys}: {record}")
 
@@ -446,9 +478,7 @@ def get_gt_sqls(record):
     keep a structured representation of the query under the same key, and that is
     not executable SQL.
 
-    Note:
-        This **mutates** *record*, writing the normalised list to ``record["sql"]``
-        (except on the ``metadata`` fallback path, which does not).
+    Reading is side-effect free; see :func:`normalize_record` to normalise.
 
     Args:
         record (dict): A benchmark question record.
@@ -468,7 +498,6 @@ def get_gt_sqls(record):
                 continue
             if not isinstance(gt_sqls, list):
                 gt_sqls = [gt_sqls]
-            record["sql"] = gt_sqls
             return gt_sqls
     if "metadata" in record and "sql" in record["metadata"]:
         return [record["metadata"]["sql"]]

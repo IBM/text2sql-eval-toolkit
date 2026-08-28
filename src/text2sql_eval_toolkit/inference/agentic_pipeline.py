@@ -38,6 +38,7 @@ from text2sql_eval_toolkit.inference.inference_tools import (
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
     get_question_id,
+    normalize_record,
     get_utterance,
 )
 from text2sql_eval_toolkit.execution.execution_tools import (
@@ -2132,6 +2133,9 @@ Analyze the error and generate a corrected SQL query. If you need more schema in
     ):
         """Generate SQL for a single record using the agentic pipeline."""
         async with semaphore:
+            # Stored under the canonical keys: this record is appended to
+            # predictions_data and looked up by record["id"] when resuming.
+            normalize_record(record)
             question_id = get_question_id(record)
             try:
                 utterance = get_utterance(record)

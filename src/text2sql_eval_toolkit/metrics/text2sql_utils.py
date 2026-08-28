@@ -513,6 +513,56 @@ class SQLNonExecutionMetricResult:
     sql_syntactic_equivalence: int
 
 
+def _upper_outside_string_literals(sql: str) -> str:
+    """
+    Upper-case *sql* while leaving quoted string literals alone.
+
+    Case-folding the whole statement makes ``WHERE name = 'bob'`` equal to
+    ``WHERE name = 'BOB'``, which on a case-sensitive column is a false match.
+    Doubled quotes inside a literal (``'it''s'``) stay part of that literal.
+    """
+    out, i, n = [], 0, len(sql)
+    while i < n:
+        ch = sql[i]
+        if ch in ("'", '"'):
+            quote, j = ch, i + 1
+            while j < n:
+                if sql[j] == quote:
+                    if j + 1 < n and sql[j + 1] == quote:
+                        j += 2
+                        continue
+                    break
+                j += 1
+            out.append(sql[i : j + 1])
+            i = j + 1
+        else:
+            out.append(ch.upper())
+            i += 1
+    return "".join(out)
+
+
+def _strip_string_literals(sql: str) -> str:
+    """Blank the contents of quoted literals, so keyword searches cannot match inside one."""
+    out, i, n = [], 0, len(sql)
+    while i < n:
+        ch = sql[i]
+        if ch in ("'", '"'):
+            quote, j = ch, i + 1
+            while j < n:
+                if sql[j] == quote:
+                    if j + 1 < n and sql[j + 1] == quote:
+                        j += 2
+                        continue
+                    break
+                j += 1
+            out.append(quote * 2)
+            i = j + 1
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
+
 def is_sqlglot_parsable(sql: str, db_type="sqlite") -> bool:
     """
     Report whether sqlglot can parse *sql* in the given dialect.
@@ -764,10 +814,8 @@ def sqlglot_parsed_queries_equivalent(sql1: str, sql2: str, dialect: str = "") -
     Stricter than :func:`sqlglot_optimized_equivalence`, which normalises both
     trees first: here, a difference in alias or predicate order is a difference.
 
-    Note:
-        **SELECT statements only.** If either side parses to anything else --
-        ``INSERT``, ``UPDATE``, a DDL statement -- this returns ``False``, even
-        when the two are byte-identical.
+    Any statement kind is compared, not only ``SELECT``. Two statements of
+    different kinds are never equivalent.
 
     Args:
         sql1: First statement.
@@ -778,14 +826,20 @@ def sqlglot_parsed_queries_equivalent(sql1: str, sql2: str, dialect: str = "") -
         bool: ``True`` if both parse as SELECT and their trees are equal.
         ``False`` on any parse failure. Never raises.
     """
-    from sqlglot import exp, parse_one
+    from sqlglot import parse_one
 
     try:
         ast1 = parse_one(sql1, read=dialect)
         ast2 = parse_one(sql2, read=dialect)
     except Exception:
         return False
-    if not (isinstance(ast1, exp.Select) and isinstance(ast2, exp.Select)):
+    if ast1 is None or ast2 is None:
+        return False
+    # Statements of different kinds are never equivalent, but two of the same
+    # kind are compared on their trees whatever that kind is. This used to
+    # require both sides to be SELECT, which meant two byte-identical INSERTs
+    # compared unequal.
+    if type(ast1) is not type(ast2):
         return False
 
     return ast1 == ast2
@@ -817,7 +871,7 @@ def sql_exact_match(sql1: str, sql2: str) -> bool:
     def normalize_sql(s: str) -> str:
         s = s.strip().rstrip(";")
         s = re.sub(r"\s+", " ", s)
-        return s.upper()
+        return _upper_outside_string_literals(s)
 
     return normalize_sql(sql1) == normalize_sql(sql2)
 
@@ -1025,7 +1079,10 @@ def compare_result_dfs(
     """
     subset_match = 0
     non_empty_match = 0
-    if "ORDER BY" in gold_sql.upper():
+    # Literals are blanked first: a gold query selecting the text 'order by'
+    # is not an ordered query, and treating it as one silently applies a
+    # stricter comparison than the benchmark intends.
+    if "ORDER BY" in _strip_string_literals(gold_sql).upper():
         match = int(compare_dfs_ignore_colnames_ordered_rows(pred_df, gold_df))
         if not gold_df.empty and not pred_df.empty:
             non_empty_match = match

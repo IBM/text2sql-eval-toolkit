@@ -5,8 +5,10 @@
 
 import asyncio
 import json
+import threading
 import pandas as pd
 from pathlib import Path
+from typing import Any, Dict
 from tqdm.asyncio import tqdm_asyncio
 from text2sql_eval_toolkit.metrics.text2sql_utils import (
     compare_result_dfs,
@@ -35,6 +37,10 @@ from text2sql_eval_toolkit.evaluation.llm_as_judge import (
 from text2sql_eval_toolkit.logging import get_logger
 
 logger = get_logger(__name__)
+
+#: Key under which a summary records the judge that produced its verdicts.
+#: It sits alongside pipeline ids; see :func:`split_summary`.
+JUDGE_CONFIG_KEY = "llm_judge_config"
 
 
 def evaluate_prediction(
@@ -391,6 +397,42 @@ def evaluate_prediction(
         # raise e
 
     return result
+
+
+def split_summary(summary):
+    """
+    Separate a summary's pipeline entries from its judge-config entry.
+
+    :func:`compute_summary` returns a mapping keyed by ``pipeline_id``, with one
+    exception: ``"llm_judge_config"`` entry recording which judge produced
+    the verdicts. Every consumer therefore has to know to skip that key, and one
+    that does not silently treats it as a pipeline.
+
+    The shape itself is not changed, because it is the published artifact format:
+    every ``*_eval_summary.json`` on the Hub carries that key, and re-shaping it
+    would stop existing snapshots being readable. This is the supported way to
+    take it apart.
+
+    Args:
+        summary (dict): A mapping from :func:`compute_summary`, or the parsed
+            contents of a ``*_eval_summary.json`` file.
+
+    Returns:
+        tuple[dict, dict | None]: The pipeline entries keyed by ``pipeline_id``,
+        and the judge config (``None`` when the judge did not run).
+
+    Example:
+        ```python
+        >>> pipelines, judge = split_summary(summary)
+        >>> sorted(pipelines)
+        ['modelA-greedy-zero-shot-chatapi', 'modelB-greedy-zero-shot-chatapi']
+        ```
+    """
+    if not isinstance(summary, dict):
+        return {}, None
+    judge_config = summary.get(JUDGE_CONFIG_KEY)
+    pipelines = {k: v for k, v in summary.items() if k != JUDGE_CONFIG_KEY}
+    return pipelines, judge_config
 
 
 def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=None):
@@ -856,6 +898,36 @@ async def async_evaluate_predictions(
     return data, summary_df
 
 
+def _run_coroutine(coro):
+    """
+    Run *coro* to completion from synchronous code, loop or no loop.
+
+    ``asyncio.run`` raises when a loop is already running in this thread, which
+    made the synchronous entry points unusable from notebooks and from any async
+    server. Handing the coroutine to a worker thread with its own loop keeps one
+    synchronous signature that works in both settings.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    result: Dict[str, Any] = {}
+
+    def _worker() -> None:
+        try:
+            result["value"] = asyncio.run(coro)
+        except BaseException as exc:  # re-raised on the calling thread below
+            result["error"] = exc
+
+    thread = threading.Thread(target=_worker, name="text2sql-eval", daemon=True)
+    thread.start()
+    thread.join()
+    if "error" in result:
+        raise result["error"]
+    return result["value"]
+
+
 def evaluate_predictions(
     input_file: str,
     output_file: str = None,
@@ -871,10 +943,10 @@ def evaluate_predictions(
 
     The synchronous entry point, and the one most callers want.
 
-    Note:
-        This calls ``asyncio.run`` internally, so it **cannot be called from
-        inside a running event loop**. Async callers should await
-        :func:`async_evaluate_predictions` instead.
+    Safe to call from inside a running event loop: it detects one and runs the
+    work on a worker thread with its own loop. Async callers should still prefer
+    awaiting :func:`async_evaluate_predictions` directly, which avoids the extra
+    thread.
 
     Evaluation is resumable: records that already carry results are left alone
     unless *force_rerun* is set.
@@ -909,7 +981,7 @@ def evaluate_predictions(
     llm_judge_config = None
     if use_llm or llm_judge_config_path is not None:
         llm_judge_config = load_llm_judge_config(llm_judge_config_path)
-    return asyncio.run(
+    return _run_coroutine(
         async_evaluate_predictions(
             input_file,
             output_file,
