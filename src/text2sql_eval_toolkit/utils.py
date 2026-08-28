@@ -79,10 +79,11 @@ def get_available_benchmarks(include_test: bool = True):
     Get list of available benchmark IDs.
 
     Args:
-        include_test: If True, include test benchmarks from test-benchmarks.json
+        include_test (bool): If True, include test benchmarks from
+            test-benchmarks.json.
 
     Returns:
-        List of benchmark IDs
+        list[str]: Benchmark IDs.
     """
     benchmarks = []
 
@@ -241,10 +242,11 @@ def run_with_timeout(func, timeout=90, retries=2, wait=3, *args, **kwargs):
         timeout (int): Timeout in seconds for each attempt.
         retries (int): Number of retries after the first attempt.
         wait (int): Seconds to wait between retries.
-        *args, **kwargs: Arguments to pass to the function.
+        *args (Any): Positional arguments passed through to *func*.
+        **kwargs (Any): Keyword arguments passed through to *func*.
 
     Returns:
-        The result of the function if successful.
+        Any: The result of the function if successful.
 
     Raises:
         TimeoutError: If all attempts time out.
@@ -275,25 +277,27 @@ async def run_with_timeout_async(task, base_timeout=90, retries=2, wait=3):
     is cold rather than because it is stuck.
 
     Args:
-        task: Zero-argument callable returning an awaitable. It is called afresh
+        task (Callable): Zero-argument callable returning an awaitable. It is called afresh
             on each attempt, so it must be a factory rather than a single
             coroutine object -- an already-awaited coroutine cannot be retried.
-        base_timeout: Seconds allowed for the first attempt.
-        retries: Attempts *after* the first.
-        wait: Seconds to sleep between attempts.
+        base_timeout (int): Seconds allowed for the first attempt.
+        retries (int): Attempts *after* the first.
+        wait (int): Seconds to sleep between attempts.
 
     Returns:
-        Whatever the awaited task returns.
+        Any: Whatever the awaited task returns.
 
     Raises:
         asyncio.TimeoutError: If every attempt times out.
 
     Example:
+        ```python
         >>> async def slow():
         ...     await asyncio.sleep(0.1)
         ...     return "done"
         >>> await run_with_timeout_async(slow, base_timeout=1)
         'done'
+        ```
     """
     for attempt in range(retries + 1):
         timeout = base_timeout * (attempt + 1)
@@ -319,7 +323,7 @@ def parse_dataframe(json_str):
     reader for the ``gt_df`` and ``predicted_df`` fields of a prediction record.
 
     Args:
-        json_str: JSON text in pandas ``orient="split"`` form.
+        json_str (str): JSON text in pandas ``orient="split"`` form.
 
     Returns:
         pandas.DataFrame: The reconstructed frame, with its original index.
@@ -329,9 +333,11 @@ def parse_dataframe(json_str):
             The offending string is included in the message.
 
     Example:
+        ```python
         >>> parse_dataframe('{"columns": ["n"], "index": [0], "data": [[1]]}')
            n
         0  1
+        ```
     """
     try:
         df_dict = json.loads(json_str)
@@ -377,10 +383,10 @@ def get_question_id(record):
         the original untouched.
 
     Args:
-        record: A benchmark question or prediction record.
+        record (dict): A benchmark question or prediction record.
 
     Returns:
-        The identifier, in whatever type the record used -- commonly ``str`` or
+        str | int: The identifier, in whatever type the record used -- commonly ``str`` or
         ``int``. Note that ``0`` is a valid id, so test for ``None`` rather than
         for falsiness.
 
@@ -410,7 +416,7 @@ def get_utterance(record):
         the opposite order and raises ``KeyError`` rather than ``ValueError``.
 
     Args:
-        record: A benchmark question or prediction record.
+        record (dict): A benchmark question or prediction record.
 
     Returns:
         str: The question text.
@@ -445,7 +451,7 @@ def get_gt_sqls(record):
         (except on the ``metadata`` fallback path, which does not).
 
     Args:
-        record: A benchmark question record.
+        record (dict): A benchmark question record.
 
     Returns:
         list[str]: One or more ground-truth statements.
@@ -480,7 +486,7 @@ def get_question(record):
         exists for callers that predate it.
 
     Args:
-        record: A benchmark question or prediction record.
+        record (dict): A benchmark question or prediction record.
 
     Returns:
         str: The question text.
@@ -505,14 +511,16 @@ def get_default_eval_filename(predictions_file):
     ``{benchmark}-predictions_eval.json``.
 
     Args:
-        predictions_file: Path to a predictions file, as ``str`` or ``Path``.
+        predictions_file (str | Path): Path to a predictions file.
 
     Returns:
         str: The evaluation filename.
 
     Example:
+        ```python
         >>> get_default_eval_filename("data/results/spider_dev-predictions.json")
         'data/results/spider_dev-predictions_eval.json'
+        ```
     """
     base_name, ext = os.path.splitext(predictions_file)
     return f"{base_name}_eval{ext}"
@@ -531,8 +539,10 @@ def add_summary_json_suffix(path: str) -> str:
         str: The summary path.
 
     Example:
+        ```python
         >>> add_summary_json_suffix("spider_dev-predictions_eval.json")
         'spider_dev-predictions_eval_summary.json'
+        ```
     """
     return os.path.splitext(path)[0] + "_summary.json"
 
@@ -551,7 +561,9 @@ def add_summary_csv_suffix(path: str) -> str:
         str: The summary path.
 
     Example:
+        ```python
         >>> add_summary_csv_suffix("spider_dev-predictions_eval.json")
         'spider_dev-predictions_eval_summary.csv'
+        ```
     """
     return os.path.splitext(path)[0] + "_summary.csv"

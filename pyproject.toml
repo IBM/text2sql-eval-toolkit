@@ -41,6 +41,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Building the documentation site. Not needed to use the toolkit.
+docs = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+  "mkdocstrings[python]>=0.26",
+]
 db2 = [
   "ibm-db>=3.2.6",
   "ibm-db-sa>=0.4.0",  # SQLAlchemy variant
@@ -88,7 +94,13 @@ text2sql-eval-dashboard = "text2sql_eval_toolkit.ui.server:main"
 text2sql-eval-toolkit = "text2sql_eval_toolkit.cli:main"
 
 [project.urls]
+# PyPI renders README.md as the project page and shows these in its sidebar; it
+# does not host API documentation, so the reference is hosted and linked.
 Homepage = "https://github.com/IBM/text2sql-eval-toolkit"
+Documentation = "https://ibm.github.io/text2sql-eval-toolkit/"
+Repository = "https://github.com/IBM/text2sql-eval-toolkit"
+Changelog = "https://github.com/IBM/text2sql-eval-toolkit/blob/main/CHANGELOG.md"
+Issues = "https://github.com/IBM/text2sql-eval-toolkit/issues"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

@@ -391,6 +391,47 @@ jobs:
             echo "$changed"
           fi
 
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[docs]"
+      - name: Build the site
+        # --strict turns a warning into a failure. The one that matters is an
+        # unresolved cross-reference: without this it renders as a blank section
+        # on the published page rather than failing anywhere visible.
+        run: mkdocs build --strict
+      - name: Every exported symbol must appear in the reference
+        # The reference pages list symbols explicitly rather than globbing a
+        # module, which keeps them grouped by pipeline stage but means a new
+        # export can be added to __all__ and silently never documented.
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          import text2sql_eval_toolkit as t
+
+          html = "\n".join(
+              p.read_text(errors="ignore") for p in Path("site/reference").rglob("*.html")
+          )
+          missing = [
+              n for n in t.__all__
+              if f'id="text2sql_eval_toolkit.{n}"' not in html and f">{n}<" not in html
+          ]
+          for n in missing:
+              print(f"::error::{n} is exported but does not appear in the API reference")
+          print(f"{len(t.__all__) - len(missing)}/{len(t.__all__)} exported symbols documented")
+          sys.exit(1 if missing else 0)
+          PY
+
   packaging:
     name: Wheel contents
     runs-on: ubuntu-latest

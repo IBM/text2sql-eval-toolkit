@@ -32,9 +32,11 @@ def load_llm_judge_config(config_path: Optional[str] = None) -> Dict[str, Any]:
         FileNotFoundError: If *config_path* does not exist.
 
     Example:
+        ```python
         >>> config = load_llm_judge_config()
         >>> config["model"]["id"]
         'wxai:meta-llama/llama-3-3-70b-instruct'
+        ```
     """
     if config_path is None:
         config_path = (
@@ -136,6 +138,7 @@ def evaluate_sql_prediction_with_llm(
             Only watsonx is wired up on this path today.
 
     Example:
+        ```python
         >>> config = load_llm_judge_config()
         >>> result = evaluate_sql_prediction_with_llm(
         ...     question="How many customers are there?",
@@ -148,6 +151,7 @@ def evaluate_sql_prediction_with_llm(
         ... )
         >>> result["verdict"], result["score"]
         ('Yes', 1.0)
+        ```
     """
     # Extract model config
     model_config = llm_judge_config.get("model", {})

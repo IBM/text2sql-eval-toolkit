@@ -60,6 +60,7 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
     concurrently and retries failed inferences.
 
     Example:
+        ```python
         >>> pipeline = LLMSQLGenerationPipelineSimple()
         >>> pipeline.run_pipeline(
         ...     benchmark_id="bird_mini_dev_sqlite",
@@ -67,6 +68,7 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
         ...     model_name="wxai:ibm/granite-4-h-small",
         ...     model_parameters={"max_new_tokens": 512},
         ... )
+        ```
     """
 
     def __init__(self):
@@ -192,12 +194,14 @@ class LLMSQLGenerationPipeline(BasePipeline):
         Use :class:`LLMSQLGenerationPipelineSimple` to choose the id yourself.
 
     Example:
+        ```python
         >>> pipeline = LLMSQLGenerationPipeline()
         >>> pipeline.run_pipeline(
         ...     benchmark_id="bird_mini_dev_sqlite",
         ...     model_name="wxai:ibm/granite-4-h-small",
         ...     model_parameters={"max_new_tokens": 512},
         ... )
+        ```
     """
 
     def __init__(self):
