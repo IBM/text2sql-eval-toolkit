@@ -7,8 +7,11 @@
 name: CI
 
 on:
+  # Every branch, so work in progress is checked before a PR exists. Without
+  # this, a branch with no PR open gets no CI at all -- which is how two commits
+  # reached this repository unverified.
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
 
@@ -23,6 +26,10 @@ env:
 jobs:
   lint:
     name: Lint and format
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +53,10 @@ jobs:
     # Two files in this repo are generated from another; both have silently
     # drifted before. Checking is cheaper than noticing later.
     name: Generated files in sync
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,6 +88,10 @@ jobs:
 
   typecheck:
     name: Type check
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -95,6 +110,10 @@ jobs:
 
   test:
     name: Tests (py${{ matrix.python-version }})
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -129,6 +148,10 @@ jobs:
 
   e2e:
     name: End-to-end (shareable links)
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -175,6 +198,10 @@ jobs:
     # Non-blocking early warning for the next interpreter. Promote into `test`
     # once dependency wheels (psycopg2-binary, ibm_watsonx_ai) are confirmed.
     name: Tests (py3.14, advisory)
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -194,6 +221,10 @@ jobs:
     # The deployment image is unverified until something builds it. Compose
     # config is validated too, so a typo there fails here rather than on the VM.
     name: Container image
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -330,6 +361,10 @@ jobs:
 
   frontend:
     name: Dashboard build
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -393,6 +428,10 @@ jobs:
 
   docs:
     name: Documentation
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -434,6 +473,10 @@ jobs:
 
   packaging:
     name: Wheel contents
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
