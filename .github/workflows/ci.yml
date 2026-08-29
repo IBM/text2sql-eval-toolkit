@@ -251,9 +251,16 @@ jobs:
       - name: Smoke test the image
         # Public mode needs no credentials and no data, so this checks the image
         # actually starts and serves rather than merely compiles.
+        #
+        # TEXT2SQL_ADMIN_EMAILS is required from 1.4.0: a shared deployment
+        # refuses to start without one, because nobody could grant a role and
+        # there would be no other way in. This job caught that the first time it
+        # ran, which is the same failure an operator hits upgrading without
+        # reading the release notes.
         run: |
           docker run -d --name dash -p 8000:8000 \
             -e TEXT2SQL_DASHBOARD_MODE=public \
+            -e TEXT2SQL_ADMIN_EMAILS=ci@example.com \
             text2sql-dashboard:ci
           for _ in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/api/me > /tmp/me.json; then break; fi
