@@ -25,7 +25,9 @@ from fastapi.testclient import TestClient  # noqa: E402
 from fastapi import Request  # noqa: E402
 
 from text2sql_eval_toolkit.ui import middleware, runtime, server  # noqa: E402
+from text2sql_eval_toolkit.ui.roles import Role
 from text2sql_eval_toolkit.ui.capabilities import (  # noqa: E402
+    requires_admin,
     iter_routes,
     ROUTE_TIERS,
     SAFE_METHODS,
@@ -53,7 +55,7 @@ def client(tmp_path, monkeypatch):
         yield TestClient(server.app)
     finally:
         server.set_mode(original_mode)
-        server.set_judge_allowlist(set())
+        server.set_admin_emails(set())
         server.invalidate_index_cache()
 
 
@@ -83,6 +85,22 @@ def _concrete(path: str) -> str:
 
 
 # --- the classification table itself -------------------------------------
+
+
+def _grant(email, role):
+    """Grant a role through whatever store the app is currently using."""
+    from text2sql_eval_toolkit.ui import runtime as _rt
+    from text2sql_eval_toolkit.ui.roles import UserStore
+
+    store = _rt.get_user_store()
+    if store is None:
+        import tempfile
+        from pathlib import Path as _P
+
+        store = UserStore(_P(tempfile.mkdtemp()) / "roles.sqlite")
+        _rt.set_user_store(store)
+    store.grant(email, role)
+    return store
 
 
 def test_every_mutating_route_is_explicitly_classified():
@@ -132,6 +150,13 @@ def test_public_mode_refuses_endpoints_above_its_tier(client, method, path):
     if required_tier(method, path) > Tier.PUBLIC:
         assert resp.status_code == 403, f"{method} {path} returned {resp.status_code}"
         assert "read-only" in resp.json()["detail"]
+    elif requires_admin(method, path):
+        # Admin is a second gate, orthogonal to the tier: these routes declare
+        # PUBLIC precisely so an admin can reach them on a judge-mode host, and
+        # the admin check is what stops everyone else. Covered by the admin
+        # tests rather than here.
+        assert resp.status_code == 403, f"{method} {path} must still require admin"
+        assert "administrator" in resp.json()["detail"]
     else:
         assert resp.status_code != 403, f"{method} {path} was wrongly blocked"
 
@@ -212,7 +237,8 @@ def test_full_mode_reaches_the_handlers(client):
 def test_mode_is_a_ceiling_that_signing_in_cannot_raise(client, monkeypatch):
     """A public deployment must not become full because someone signed in."""
     server.set_mode(Tier.PUBLIC)
-    server.set_judge_allowlist({ALLOWED})
+    server.set_admin_emails(set())
+    _grant(ALLOWED, Role.JUDGE)
     monkeypatch.setattr(runtime, "current_user_email", lambda request: ALLOWED)
 
     resp = client.post("/api/benchmarks/demo/execute", json={"sql": "SELECT 1"})
@@ -226,30 +252,47 @@ def test_mode_is_a_ceiling_that_signing_in_cannot_raise(client, monkeypatch):
 # --- tier resolution ------------------------------------------------------
 
 
-def test_allowlisted_user_reaches_judge_but_not_full():
-    allowlist = {ALLOWED}
-    assert resolve_tier(Tier.JUDGE, ALLOWED, allowlist) is Tier.JUDGE
-    assert resolve_tier(Tier.JUDGE, ALLOWED, allowlist) < Tier.FULL
+def test_a_judge_role_reaches_judge_but_not_full():
+    assert resolve_tier(Tier.JUDGE, ALLOWED, Tier.JUDGE) is Tier.JUDGE
+    assert resolve_tier(Tier.JUDGE, ALLOWED, Tier.JUDGE) < Tier.FULL
 
 
-def test_signed_in_stranger_is_public():
-    assert resolve_tier(Tier.JUDGE, "someone@else.com", {ALLOWED}) is Tier.PUBLIC
+def test_signed_in_with_no_role_is_public():
+    assert resolve_tier(Tier.JUDGE, "someone@else.com", Tier.PUBLIC) is Tier.PUBLIC
 
 
 def test_anonymous_is_public():
-    assert resolve_tier(Tier.JUDGE, None, {ALLOWED}) is Tier.PUBLIC
-
-
-def test_allowlist_matching_is_case_insensitive():
-    assert resolve_tier(Tier.JUDGE, "Allowed@Example.COM", {ALLOWED}) is Tier.JUDGE
-
-
-def test_empty_allowlist_grants_nobody_judge():
-    assert resolve_tier(Tier.JUDGE, ALLOWED, set()) is Tier.PUBLIC
+    assert resolve_tier(Tier.JUDGE, None, Tier.FULL) is Tier.PUBLIC
 
 
 def test_local_mode_ignores_identity_entirely():
-    assert resolve_tier(Tier.FULL, None, set()) is Tier.FULL
+    assert resolve_tier(Tier.FULL, None, Tier.PUBLIC) is Tier.FULL
+
+
+def test_the_mode_caps_what_a_role_asks_for():
+    """A full role on a judge deployment gets judge, and nothing more."""
+    assert resolve_tier(Tier.JUDGE, ALLOWED, Tier.FULL) is Tier.JUDGE
+    assert resolve_tier(Tier.PUBLIC, ALLOWED, Tier.FULL) is Tier.PUBLIC
+
+
+def test_role_matching_is_case_insensitive(tmp_path):
+    """
+    Case folding moved from resolve_tier into role lookup when roles moved to
+    the database, so it is asserted where it now lives.
+    """
+    from text2sql_eval_toolkit.ui.roles import Role, UserStore, effective_role
+
+    store = UserStore(tmp_path / "roles.sqlite")
+    store.grant("Allowed@Example.COM", Role.JUDGE)
+    assert store.role_for("allowed@example.com") is Role.JUDGE
+    assert effective_role("ALLOWED@example.com", store, set()) is Role.JUDGE
+
+
+def test_no_role_grants_nobody_judge(tmp_path):
+    from text2sql_eval_toolkit.ui.roles import Role, UserStore, effective_role
+
+    store = UserStore(tmp_path / "roles.sqlite")
+    assert effective_role(ALLOWED, store, set()) is Role.READ_ONLY
 
 
 @pytest.mark.parametrize(

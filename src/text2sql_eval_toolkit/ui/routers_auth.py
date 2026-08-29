@@ -29,9 +29,11 @@ from text2sql_eval_toolkit.ui.capabilities import (
 )
 
 from text2sql_eval_toolkit.ui.runtime import (
-    get_judge_allowlist,
+    get_admin_emails,
     get_mode,
+    get_user_store,
 )
+from text2sql_eval_toolkit.ui.roles import ROLE_TIERS, effective_role
 from text2sql_eval_toolkit.logging import get_logger
 
 logger = get_logger(__name__)
@@ -121,7 +123,8 @@ async def auth_callback(request: Request):
         )
 
     request.session["email"] = email
-    tier = resolve_tier(get_mode(), email, get_judge_allowlist())
+    role = effective_role(email, get_user_store(), get_admin_emails())
+    tier = resolve_tier(get_mode(), email, ROLE_TIERS[role])
     logger.info(
         "Sign-in for identity %s granted tier %s",
         auth.hash_identity(email),

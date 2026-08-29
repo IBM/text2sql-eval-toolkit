@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed — breaking
+
+- **`TEXT2SQL_JUDGE_ALLOWLIST` is removed.** Roles now live in a database an
+  administrator edits from the dashboard, so changing who may reach the judge no
+  longer needs an edit to `deploy/.env` and a container recreate.
+
+  **Upgrading:** set `TEXT2SQL_ADMIN_EMAILS` to one or more verified addresses
+  before restarting. A shared deployment refuses to start without it, because
+  nobody could grant a role and there would be no other way in. Existing judge
+  users must then be granted the `judge` role from the dashboard — the old
+  variable is ignored, and startup warns while it is still set.
+
+### Added
+
+- **User management.** `admin`, `full`, `judge` and `read_only` roles, granted
+  and revoked from the dashboard by an administrator. `TEXT2SQL_ADMIN_EMAILS`
+  always holds admin and is read at every startup, so it is the recovery path if
+  the role table is wrong.
+- A grant above the deployment's mode is recorded and shown as **inactive** with
+  the reason, rather than looking effective and being refused.
+
 ## [1.3.0] - 2026-08-26
 
 A dashboard release: every view is now addressable by URL, reads are served from
