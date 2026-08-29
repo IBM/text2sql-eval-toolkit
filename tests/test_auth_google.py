@@ -30,7 +30,7 @@ def client(monkeypatch):
         yield TestClient(server.app)
     finally:
         server.set_mode(original)
-        server.set_judge_allowlist(set())
+        server.set_admin_emails(set())
 
 
 # --- the verified-email rule ---------------------------------------------

@@ -80,8 +80,10 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
      back to `main`, and the public dataset would change under shared links.
    - `TEXT2SQL_SESSION_SECRET` — at least 32 characters, or startup refuses it.
      Generate with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
-   - `TEXT2SQL_JUDGE_ALLOWLIST` — the addresses allowed to spend LLM budget.
-     Everyone else is read-only, signed in or not.
+   - `TEXT2SQL_ADMIN_EMAILS` — administrators. **Required**: a shared
+     deployment refuses to start without one, because nobody could grant a role
+     and there is no other way in. Read at every startup and never overridden by
+     a stored role, so it is also the way back if the role table is wrong.
 
    Leave `TEXT2SQL_TRUSTED_PROXIES` **empty**. It was once needed to name the
    Caddy container so `X-Forwarded-For` was believed; the app now trusts the
@@ -198,12 +200,27 @@ curl -s $DOMAIN/api/benchmarks/spider_dev/pipeline-aliases | jq '.aliases | leng
    ```
 5. Confirm the new stamp shows in `/api/deployment` and in the UI strip.
 
-### Change the judge allowlist
+### Grant or revoke a role
 
-Edit `TEXT2SQL_JUDGE_ALLOWLIST` in `deploy/.env`, then
-`docker compose up -d --force-recreate app`. No rebuild. Startup logs the
-allowlist **size** (never the addresses); an unexpected count means the variable
-did not parse.
+From the dashboard, signed in as an administrator: **Users** lists everyone with
+a role and lets you grant `admin`, `full`, `judge` or `read_only`. No redeploy —
+this replaced `TEXT2SQL_JUDGE_ALLOWLIST`, which needed an edit to `deploy/.env`
+and a container recreate.
+
+Two things to expect:
+
+- **A grant above the deployment's mode is recorded but inert.** The mode is a
+  ceiling, so granting `full` on a `judge` host stores the role and shows it as
+  inactive, with the reason. It takes effect if you later raise the ceiling.
+- **Addresses named in `TEXT2SQL_ADMIN_EMAILS` cannot be revoked here.** They are
+  the recovery path and are deliberately changeable only with shell access.
+
+The address must be exactly what the identity provider returns for that user.
+Gmail's dot and `+tag` variants reach the same inbox but are different strings,
+and only the verified `email` claim is matched.
+
+Startup logs the administrator **count**, never the addresses; an unexpected
+count means the variable did not parse.
 
 ### Stop LLM-judge spending immediately
 

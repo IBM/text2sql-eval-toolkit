@@ -20,8 +20,15 @@ from text2sql_eval_toolkit.ui.judge_budget import (
 )
 from text2sql_eval_toolkit.ui.capabilities import (
     Tier,
-    parse_allowlist,
     resolve_tier,
+)
+from text2sql_eval_toolkit.ui.roles import (
+    ADMIN_EMAILS_ENV,
+    REMOVED_ALLOWLIST_ENV,
+    ROLE_TIERS,
+    UserStore,
+    admin_emails_from_env,
+    effective_role,
 )
 
 # Runtime state (deployment ceiling, judge allowlist, request identity) and the
@@ -41,6 +48,7 @@ from text2sql_eval_toolkit.ui import (
     routers_execution,
     routers_judge,
     routers_judge_configs,
+    routers_users,
     static_files,
 )
 from text2sql_eval_toolkit.ui.indexes import (  # noqa: F401
@@ -71,9 +79,9 @@ from text2sql_eval_toolkit.ui.middleware import reset_rate_limits  # noqa: F401
 from text2sql_eval_toolkit.ui.runtime import (  # noqa: F401
     _cookie_secure,
     current_user_email,
-    get_judge_allowlist,
+    get_admin_emails,
     get_mode,
-    set_judge_allowlist,
+    set_admin_emails,
     set_mode,
 )
 from text2sql_eval_toolkit.logging import get_logger
@@ -102,6 +110,7 @@ for _router in (
     routers_execution.router,
     routers_compare.router,
     routers_judge_configs.router,
+    routers_users.router,
     static_files.router,
 ):
     app.include_router(_router)
@@ -135,7 +144,8 @@ def get_session_info(request: Request) -> SessionInfo:
     not offered buttons that cannot work.
     """
     email = current_user_email(request)
-    tier = resolve_tier(get_mode(), email, get_judge_allowlist())
+    role = effective_role(email, _runtime.get_user_store(), get_admin_emails())
+    tier = resolve_tier(get_mode(), email, ROLE_TIERS[role])
     judge_usage = None
     if tier >= Tier.JUDGE and not judge_disabled():
         try:
@@ -274,7 +284,8 @@ def main(argv: Optional[List[str]] = None) -> None:
             "for a shared deployment, or --allow-remote-full if you are certain."
         )
     set_mode(mode)
-    set_judge_allowlist(parse_allowlist(os.getenv("TEXT2SQL_JUDGE_ALLOWLIST")))
+    set_admin_emails(admin_emails_from_env())
+    _runtime.set_user_store(UserStore(get_data_root() / "users" / "roles.sqlite"))
     configure_cors(mode)
 
     if auth.is_configured():
@@ -304,24 +315,47 @@ def main(argv: Optional[List[str]] = None) -> None:
             mode.name.lower(),
         )
 
-    # The mode is a ceiling, so a `public` deployment grants `public` to
-    # everyone -- allowlisted or not. That is the correct fail-closed default,
-    # but it is silent: the judge control simply never appears, with nothing to
-    # say the allowlist was ignored. Say it.
-    if get_judge_allowlist() and mode < Tier.JUDGE:
+    admins = get_admin_emails()
+
+    # TEXT2SQL_ADMIN_EMAILS is the only env-level authority now, and therefore
+    # the only recovery path. A shared deployment with none has nobody who can
+    # grant a role, and no way to fix that short of a redeploy -- refuse rather
+    # than start something that cannot be administered.
+    if not admins and mode is not Tier.FULL:
+        parser.error(
+            f"--mode {mode.name.lower()} needs at least one administrator, and "
+            f"{ADMIN_EMAILS_ENV} is empty. Nobody could grant a role, and there "
+            "is no other way in. Set it to one or more verified email addresses."
+        )
+
+    # Removed in 1.4.0. An operator who upgrades without reading the notes would
+    # otherwise watch it silently stop working.
+    if os.getenv(REMOVED_ALLOWLIST_ENV):
         logger.warning(
-            "Mode is '%s', which is a ceiling, so the %d-entry judge allowlist "
-            "grants nothing: an allowlisted user still resolves to '%s'. Set "
-            "TEXT2SQL_DASHBOARD_MODE=judge to let them reach the judge tier.",
+            "%s is set but no longer used: roles moved to the database in 1.4.0. "
+            "Grant the judge role from the dashboard, or list the address in %s. "
+            "Unset it to silence this.",
+            REMOVED_ALLOWLIST_ENV,
+            ADMIN_EMAILS_ENV,
+        )
+
+    # The mode is a ceiling, so a `public` deployment grants `public` to
+    # everyone -- whatever any role says. That is the correct fail-closed
+    # default, but it is silent: the judge control simply never appears. Say it.
+    if admins and mode < Tier.JUDGE:
+        logger.warning(
+            "Mode is '%s', which is a ceiling, so no role grants anything above "
+            "'%s' -- including the %d administrator(s). Set "
+            "TEXT2SQL_DASHBOARD_MODE=judge to let roles take effect.",
             mode.name.lower(),
-            len(get_judge_allowlist()),
             mode.name.lower(),
+            len(admins),
         )
     logger.info(
-        "Capability mode: %s (judge allowlist: %d entr%s)",
+        "Capability mode: %s (%d administrator%s)",
         mode.name.lower(),
-        len(get_judge_allowlist()),
-        "y" if len(get_judge_allowlist()) == 1 else "ies",
+        len(admins),
+        "" if len(admins) == 1 else "s",
     )
 
     if args.enable_fetch:

@@ -85,6 +85,12 @@ ROUTE_TIERS: Dict[Tuple[str, str], Tier] = {
     ("POST", "/api/benchmarks/logo-upload"): Tier.FULL,
     # Writes YAML into the installed package directory.
     ("PUT", "/api/llm-judge/configs/{name}"): Tier.FULL,
+    # User management. The tier is PUBLIC because the real gate is ADMIN_ROUTES,
+    # checked separately: an admin must be able to grant roles on a judge-mode
+    # host, and a FULL requirement here would deny exactly that. Nothing reaches
+    # these without passing the admin check first.
+    ("POST", "/api/users"): Tier.PUBLIC,
+    ("DELETE", "/api/users/{email}"): Tier.PUBLIC,
     # Downloads gigabytes to the data root.
     ("POST", "/api/results/fetch"): Tier.FULL,
 }
@@ -157,23 +163,51 @@ def unclassified_routes(app: "FastAPI") -> List[Tuple[str, str]]:
     return missing
 
 
+#: Routes only an admin may call, whatever the deployment mode.
+#:
+#: This is a separate question from the tier: user management has to work on a
+#: judge-mode host, where the ceiling denies ``full``. Expressing it as a tier
+#: would make the console unusable exactly where it is needed.
+ADMIN_ROUTES: Set[Tuple[str, str]] = {
+    ("GET", "/api/users"),
+    ("POST", "/api/users"),
+    ("DELETE", "/api/users/{email}"),
+}
+
+
+def requires_admin(method: str, path: str) -> bool:
+    """Whether *method* and *path* may only be called by an admin."""
+    return (method.upper(), path) in ADMIN_ROUTES
+
+
 def resolve_tier(
     mode: Tier,
     email: Optional[str],
-    allowlist: Set[str],
+    requested: Tier = Tier.PUBLIC,
 ) -> Tier:
     """
     Effective tier for one request.
 
     ``mode`` is the ceiling set at startup -- a public deployment can never
-    grant ``full`` regardless of who signs in.  Within that ceiling, an
-    allowlisted signed-in caller reaches ``judge``; everyone else is ``public``.
+    grant ``full`` regardless of who signs in, or what any stored role says.
+
+    Args:
+        mode: The deployment ceiling.
+        email: The verified address, or ``None`` when not signed in.
+        requested: The tier this caller's role asks for. Anonymous callers ask
+            for ``public``; a stored role may ask for more, and the ceiling
+            decides whether it is honoured.
+
+    Returns:
+        Tier: ``min(requested, mode)`` for a signed-in caller. A local operator
+        (``mode`` is ``full``) keeps ``full`` without signing in, which is what
+        makes the toolkit usable from a laptop.
     """
     if mode is Tier.FULL:
         return Tier.FULL
-    if email and email.strip().lower() in allowlist:
-        return min(Tier.JUDGE, mode)
-    return Tier.PUBLIC
+    if not email:
+        return Tier.PUBLIC
+    return min(requested, mode)
 
 
 def parse_allowlist(raw: Optional[str]) -> Set[str]:
