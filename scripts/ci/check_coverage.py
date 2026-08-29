@@ -44,7 +44,7 @@ FLOORS: dict[str, int] = {
     "metrics/text2sql_utils.py": 46,
     "analysis/report_tools.py": 50,
     "analysis/error_analysis.py": 65,
-    "evaluation/llm_as_judge.py": 73,
+    "evaluation/llm_as_judge.py": 90,
     # --- What a pip user imports -----------------------------------------
     # These are a published contract: other people call them from their own
     # code, and 1.4.0's requirement is that dashboard work does not change what

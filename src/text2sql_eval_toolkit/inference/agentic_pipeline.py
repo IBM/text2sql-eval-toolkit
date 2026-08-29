@@ -32,9 +32,9 @@ from text2sql_eval_toolkit.inference.inference_tools import (
     VLLMClientChatAPI,
     ClaudeClientChatAPI,
     OpenAIClientChatAPI,
-    GeminiClientChatAPI,
     postprocess_sql,
 )
+from text2sql_eval_toolkit.inference.model_clients import resolve_client
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
     get_question_id,
@@ -356,28 +356,14 @@ class AgenticSQLGenerationPipeline(BasePipeline):
 
     def _create_llm_client(self, model_name: str, model_parameters: dict):
         """Create an LLM client based on model name."""
-        if model_name.startswith("wxai:"):
-            return WXAIClientChatAPI(model_name[5:], model_parameters)
-        elif model_name.startswith("gemini:"):
-            return GeminiClientChatAPI(model_name[7:], model_parameters)
-        elif model_name.startswith("anthropic:"):
-            return ClaudeClientChatAPI(model_name[10:], model_parameters)
-        elif model_name.startswith("vllm:"):
-            return VLLMClientChatAPI(model_name[5:], model_parameters)
-        elif model_name.startswith("openai:"):
-            return OpenAIClientChatAPI(model_name[7:], model_parameters)
-        elif model_name.startswith("rits"):
-            logger.info(f"Getting RITS model endpoint for {model_name}")
-            model_id = model_name.split("/")[-1].replace(".", "-").lower()
-            rits_api_key = os.environ.get("RITS_API_KEY")
-            if rits_api_key is None:
-                raise ValueError("Missing RITS_API_KEY environment variable")
-            os.environ["VLLM_API_BASE"] = (
-                f"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/{model_id}/v1"
-            )
-            return VLLMClientChatAPI(model_name[5:], model_parameters)
-        else:
-            raise NotImplementedError(f"Model {model_name} is not supported.")
+        """
+        Build a client for *model_name*.
+
+        Delegates to the shared table so this pipeline, the baseline pipeline and
+        the judge all accept the same model strings. This method used to carry
+        its own copy of the dispatch, and the four copies had drifted apart.
+        """
+        return resolve_client(model_name, model_parameters)
 
     def _build_v4_system_prompt(self, state: AgentState) -> str:
         """

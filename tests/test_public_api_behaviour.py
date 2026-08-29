@@ -267,8 +267,42 @@ class TestJudgeConfig:
         with pytest.raises(FileNotFoundError):
             load_llm_judge_config("/nonexistent/judge.yaml")
 
-    def test_only_watsonx_models_are_supported(self):
-        config = {"model": {"id": "openai:gpt-4"}, "prompt_template": "{question}"}
+    def test_any_supported_prefix_may_judge(self, monkeypatch):
+        """
+        The judge accepted only ``wxai:`` until the dispatch tables were merged.
+        It now reaches whatever the pipelines reach, so a judge config can name
+        an Anthropic or OpenAI model.
+        """
+        seen = {}
+
+        class FakeClient:
+            def __init__(self, model_name, model_parameters):
+                seen["model"] = model_name
+
+            def generate_sql(self, prompt, postprocess=True):
+                return "Yes, correct", {"prompt_tokens": 1, "completion_tokens": 1}
+
+        monkeypatch.setattr(
+            "text2sql_eval_toolkit.inference.model_clients.ClaudeClientChatAPI",
+            FakeClient,
+        )
+        result = evaluate_sql_prediction_with_llm(
+            question="q",
+            ground_truth_sql="SELECT 1",
+            ground_truth_df="{}",
+            predicted_sql="SELECT 1",
+            predicted_df="{}",
+            generation_prompt="p",
+            llm_judge_config={
+                "model": {"id": "anthropic:claude-sonnet-4-5"},
+                "prompt_template": "{question}",
+            },
+        )
+        assert result["verdict"] == "Yes"
+        assert seen["model"] == "claude-sonnet-4-5"  # prefix stripped for the provider
+
+    def test_an_unknown_prefix_is_still_refused(self):
+        config = {"model": {"id": "nosuchprovider:x"}, "prompt_template": "{question}"}
         with pytest.raises(NotImplementedError):
             evaluate_sql_prediction_with_llm(
                 question="q",
@@ -292,19 +326,19 @@ class TestJudgeConfig:
     def test_verdicts_are_read_from_the_reply(self, monkeypatch, reply, verdict, score):
         """The judge maps a free-text reply onto a verdict and a score."""
 
-        class FakeModel:
-            def generate(self, prompt):
-                return {
-                    "results": [{"generated_text": reply}],
-                    "usage": {"prompt_tokens": 10, "completion_tokens": 5},
-                }
-
         class FakeClient:
             def __init__(self, model_name, model_parameters):
-                self.model = FakeModel()
+                pass
+
+            def generate_sql(self, prompt, postprocess=True):
+                # postprocess must be False here: the judge asks for text, and
+                # SQL post-processing would edit prose.
+                assert postprocess is False
+                return reply, {"prompt_tokens": 10, "completion_tokens": 5}
 
         monkeypatch.setattr(
-            "text2sql_eval_toolkit.evaluation.llm_as_judge.WXAIClient", FakeClient
+            "text2sql_eval_toolkit.inference.model_clients.WXAIClientChatAPI",
+            FakeClient,
         )
         result = evaluate_sql_prediction_with_llm(
             question="q",

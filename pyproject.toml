@@ -41,6 +41,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Routes any provider LiteLLM knows, for model strings the native prefixes do
+# not cover. An extra rather than a dependency: it pulls ~23 packages including
+# boto3, and narrows the openai pin, which is a lot to impose on everyone who
+# installs the library when the built-in prefixes already reach six providers.
+litellm = [
+  "litellm>=1.50",
+]
 # Building the documentation site. Not needed to use the toolkit.
 docs = [
   "mkdocs>=1.6",
