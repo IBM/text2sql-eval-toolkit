@@ -199,7 +199,7 @@ omit = ["*/data/*"]
 # exercise; raising it would mean either weak tests or a suite that cannot run
 # offline.  The floors that matter are per module and live in
 # scripts/ci/check_coverage.py, where each one has a stated reason.
-fail_under = 38
+fail_under = 43
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
