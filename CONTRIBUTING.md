@@ -113,6 +113,25 @@ pytest -m integration
 
 Hub network tests additionally require `RUN_NETWORK_TESTS=1`.
 
+## The published surface is a contract
+
+Everything exported from `text2sql_eval_toolkit.__init__` is on PyPI and is
+imported by people who are not in this repository. **It does not change because
+the dashboard needs something.** No signature, no return shape, no default.
+
+Dashboard features live in `ui/`. Where one genuinely needs something from the
+library, the library gains an *optional* parameter that defaults to today's
+behaviour — the per-user API keys in 1.4.0 are the worked example: the clients
+took an optional `api_key`, and a call that passes nothing reads the environment
+exactly as it always did.
+
+This is enforced rather than trusted. `tests/test_public_api.py` fails when an
+exported symbol disappears, loses its docstring, or documents an argument it does
+not take, and the characterisation tests fail when behaviour changes. A
+deliberate change to the public surface therefore has to change a test too, which
+is the point: it makes the decision visible in review instead of shipping as a
+side effect.
+
 ## Coding style guidelines
 
 These are enforced by CI on every pull request, so run them before pushing:

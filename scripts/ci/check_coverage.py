@@ -40,10 +40,29 @@ FLOORS: dict[str, int] = {
     # --- The numbers the toolkit publishes -------------------------------
     # A bug here produces a plausible wrong score that gets committed, cited,
     # and uploaded to the Hub.
-    "evaluation/evaluation_tools.py": 32,
-    "metrics/text2sql_utils.py": 40,
+    "evaluation/evaluation_tools.py": 55,
+    "metrics/text2sql_utils.py": 46,
     "analysis/report_tools.py": 50,
     "analysis/error_analysis.py": 65,
+    "evaluation/llm_as_judge.py": 90,
+    # --- What a pip user imports -----------------------------------------
+    # These are a published contract: other people call them from their own
+    # code, and 1.4.0's requirement is that dashboard work does not change what
+    # they see.  tests/test_public_api_signatures.py locks the signatures;
+    # these floors keep the behaviour behind them exercised.
+    "utils.py": 80,
+    # --- Model output and SQL execution ----------------------------------
+    # Deliberately low, and honest about it.  Most of these modules need an LLM
+    # endpoint or a live database, so what is covered is the endpoint-free part:
+    # parsing what a model returned, quoting identifiers, running SQLite.  That
+    # is also where a silent regression would be worst, since it decides what
+    # counts as the SQL a model produced.  The floors ratchet what exists rather
+    # than claim it is enough; raising them means stubbing transports, which is
+    # its own piece of work.
+    "execution/execution_tools.py": 11,
+    "inference/inference_tools.py": 10,
+    "inference/baseline_llm_pipeline.py": 6,
+    "inference/agentic_pipeline.py": 4,
     # --- The artifact index ------------------------------------------------
     # Every dashboard read goes through it.  An index that disagrees with its
     # source is worse than a slow dashboard: it is a confident wrong answer.

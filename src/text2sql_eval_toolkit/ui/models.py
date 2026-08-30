@@ -182,6 +182,10 @@ class CrossPipelineBinaryMetricConfusionResponse(BaseModel):
 class LLMJudgeConfigInfo(BaseModel):
     name: str
     path: str
+    #: True when a dashboard-written copy is what this name resolves to. A
+    #: packaged config stays False until it is edited, at which point the copy
+    #: shadows it and this flips -- which is what lets the UI offer "revert".
+    user_defined: bool = False
 
 
 class LLMJudgeConfigListResponse(BaseModel):
@@ -312,6 +316,11 @@ class JudgeRequest(BaseModel):
     record_id: str
     pipeline: str
     config_name: Optional[str] = None
+    #: Return a stored verdict if there is one, and otherwise nothing at all --
+    #: never start an inference. A shared link carries the config it was judged
+    #: with and reopens the verdict on load; without this that link would bill
+    #: whoever opened it, which is not what sharing a result should mean.
+    cached_only: bool = False
 
 
 class JudgeUsage(BaseModel):
@@ -347,6 +356,10 @@ class SessionInfo(BaseModel):
     signed_in: bool = False
     can_run_judge: bool = False
     can_mutate: bool = False
+    # The caller's role, and whether they may reach the user console. Admin
+    # is not a tier -- it is a separate gate -- so it needs its own field.
+    role: str = "read_only"
+    can_manage_users: bool = False
     # Remaining budget, so a user sees the ceiling approaching rather than
     # meeting it as an opaque error.
     judge_usage: Optional["JudgeUsage"] = None

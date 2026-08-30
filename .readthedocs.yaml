@@ -1,0 +1,32 @@
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# Read the Docs builds and hosts the site that [project.urls] advertises to
+# PyPI. GitHub Pages is unavailable on this organisation, and the alternative --
+# pointing PyPI at the repository -- does not work here: docs/reference/*.md are
+# mkdocstrings directives, so GitHub renders the API reference as literal
+# ``::: text2sql_eval_toolkit.foo`` lines.
+#
+# The package itself must be installed, not just the docs tooling: mkdocstrings
+# imports the modules to read their signatures and docstrings, so a build
+# without the package produces a reference with nothing in it.
+
+version: 2
+
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.13"
+
+mkdocs:
+  configuration: mkdocs.yml
+  # Fail the build on a broken reference rather than publishing a page with a
+  # silently empty section. Matches what CI runs.
+  fail_on_warning: true
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs

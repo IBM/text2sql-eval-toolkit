@@ -41,7 +41,7 @@ def iter_record_spans(
     fh: BinaryIO, chunk_size: int = DEFAULT_CHUNK_SIZE
 ) -> Iterator[RecordSpan]:
     """
-    Yield one :class:`RecordSpan` per top-level object in a JSON array.
+    Yield one `RecordSpan` per top-level object in a JSON array.
 
     Memory is bounded by ``chunk_size`` plus the largest single record.  The
     file object must be opened in binary mode and positioned at the start.

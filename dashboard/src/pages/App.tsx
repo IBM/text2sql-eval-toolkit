@@ -1,4 +1,11 @@
-import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Button,
@@ -18,45 +25,59 @@ import { BenchmarkConfigModal } from "../views/BenchmarkConfigModal";
 // are ~2.4k lines. Each is reachable only via its own route, so splitting on the
 // route boundary costs nothing in navigation terms.
 const BenchmarkDetail = lazy(() =>
-  import("../views/BenchmarkDetail").then((m) => ({ default: m.BenchmarkDetail }))
+  import("../views/BenchmarkDetail").then((m) => ({
+    default: m.BenchmarkDetail,
+  })),
 );
 const ErrorAnalysis = lazy(() =>
-  import("../views/ErrorAnalysis").then((m) => ({ default: m.ErrorAnalysis }))
+  import("../views/ErrorAnalysis").then((m) => ({ default: m.ErrorAnalysis })),
 );
 const PipelineDetailView = lazy(() =>
   import("../views/PipelineDetailView").then((m) => ({
     default: m.PipelineDetailView,
-  }))
+  })),
 );
 const LLMJudgeConfigView = lazy(() =>
   import("../views/LLMJudgeConfigView").then((m) => ({
     default: m.LLMJudgeConfigView,
-  }))
+  })),
+);
+const UsersView = lazy(() =>
+  import("../views/UsersView").then((m) => ({
+    default: m.UsersView,
+  })),
+);
+const MyKeysView = lazy(() =>
+  import("../views/MyKeysView").then((m) => ({
+    default: m.MyKeysView,
+  })),
 );
 const RunEvaluationView = lazy(() =>
   import("../views/RunEvaluationView").then((m) => ({
     default: m.RunEvaluationView,
-  }))
+  })),
 );
 const ToolkitInsightsView = lazy(() =>
   import("../views/ToolkitInsightsView").then((m) => ({
     default: m.ToolkitInsightsView,
-  }))
+  })),
 );
 const PipelineCompareView = lazy(() =>
   import("../views/PipelineCompareView").then((m) => ({
     default: m.PipelineCompareView,
-  }))
+  })),
 );
 const ProfileCompareView = lazy(() =>
   import("../views/ProfileCompareView").then((m) => ({
     default: m.ProfileCompareView,
-  }))
+  })),
 );
 import { FetchResultsBanner } from "../views/FetchResultsBanner";
 import { CopyShortLinkButton } from "../views/CopyShortLinkButton";
 import { DataStampBar, SessionBar } from "../views/SessionBar";
 import { AboutPanel } from "../views/AboutPanel";
+import { NavLink } from "../views/NavLink";
+import { fetchSession } from "../lib/session";
 import {
   createBenchmark,
   fetchBenchmarkConfig,
@@ -66,8 +87,16 @@ import {
 } from "../services/benchmarks";
 import toolkitLogo from "../assets/text2sql-eval-toolkit-logo.png";
 import githubLogo from "../assets/github.png";
-import type { BenchmarkConfigInput, BenchmarkSummary } from "../types/benchmark";
-import { FILTER_DEFAULTS, parseLocation, parseQuery, routes } from "../lib/routes";
+import type {
+  BenchmarkConfigInput,
+  BenchmarkSummary,
+} from "../types/benchmark";
+import {
+  FILTER_DEFAULTS,
+  parseLocation,
+  parseQuery,
+  routes,
+} from "../lib/routes";
 import {
   expandUrl,
   looksLikeAlias,
@@ -81,7 +110,13 @@ const NAV_PANEL_WIDTH_PX = 200;
 
 /** IBM Cloud–style quad-line menu icon (four horizontal bars). */
 const HamburgerMenuIcon: React.FC = () => (
-  <svg width={18} height={18} viewBox="0 0 16 16" aria-hidden style={{ display: "block", paddingLeft: 0, paddingRight: 0 }}>
+  <svg
+    width={18}
+    height={18}
+    viewBox="0 0 16 16"
+    aria-hidden
+    style={{ display: "block", paddingLeft: 0, paddingRight: 0 }}
+  >
     {[0, 1, 2, 3].map((i) => (
       <rect
         key={i}
@@ -110,16 +145,30 @@ export const App: React.FC = () => {
   const [benchmarks, setBenchmarks] = useState<BenchmarkSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ kind: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
   // The URL is the source of truth for navigation, so every view is linkable and
   // survives a reload. `navigate` replaces what used to be setActiveView.
   const location = useLocation();
   const navigate = useNavigate();
-  const match = useMemo(() => parseLocation(location.pathname), [location.pathname]);
+  const match = useMemo(
+    () => parseLocation(location.pathname),
+    [location.pathname],
+  );
 
   const urlFilters = useMemo(
     () => parseQuery(location.search.replace(/^\?/, "")),
-    [location.search]
+    [location.search],
+  );
+
+  // Read straight from the query string rather than through parseQuery: that
+  // parser is the error-analysis filter set, and the judge config is not one of
+  // its filters.
+  const judgeConfigFromUrl = useMemo(
+    () => new URLSearchParams(location.search).get("judge"),
+    [location.search],
   );
 
   // A shared link may name a pipeline by its short alias rather than its full
@@ -129,13 +178,13 @@ export const App: React.FC = () => {
   const aliasRefs = useMemo(
     () =>
       [match.pipelineId, urlFilters.pipeline, urlFilters.pipeline2].filter(
-        (ref): ref is string => !!ref && looksLikeAlias(ref)
+        (ref): ref is string => !!ref && looksLikeAlias(ref),
       ),
-    [match.pipelineId, urlFilters.pipeline, urlFilters.pipeline2]
+    [match.pipelineId, urlFilters.pipeline, urlFilters.pipeline2],
   );
   const { table: aliasTable, ready: aliasesReady } = usePipelineAliases(
     match.benchmarkId,
-    aliasRefs.length > 0
+    aliasRefs.length > 0,
   );
   const unknownAlias =
     aliasesReady && aliasRefs.some((ref) => !aliasTable.aliases[ref]);
@@ -175,6 +224,30 @@ export const App: React.FC = () => {
   // Turning a page or opening a record must: those are the deliberate steps a
   // reader expects to walk back through, and replacing them meant "back" left
   // the view entirely from page 2.
+  const onPlaygroundStateChange = useCallback(
+    (state: {
+      benchmarkId: string | null;
+      recordId: string | null;
+      pipeline: string | null;
+      judgeConfig: string | null;
+    }) => {
+      const next = routes.run(
+        state.benchmarkId,
+        state.recordId,
+        state.pipeline,
+        state.judgeConfig,
+      );
+      const current = `${location.pathname}${location.search}`;
+      if (next === current) return;
+      // Replace while the same record is being re-examined, push when the record
+      // changes: the back button should step between records rather than undo
+      // every pipeline toggle.
+      const stepped = (state.recordId ?? null) !== (match.recordId ?? null);
+      navigate(next, { replace: !stepped });
+    },
+    [location.pathname, location.search, match.recordId, navigate],
+  );
+
   const onErrorAnalysisStateChange = useCallback(
     (state: {
       filters: Record<string, unknown>;
@@ -198,17 +271,26 @@ export const App: React.FC = () => {
         (state.record ?? null) !== (urlFilters.record ?? null);
       navigate(next, { replace: !stepped });
     },
-    [match.benchmarkId, location.pathname, location.search, navigate, urlFilters]
+    [
+      match.benchmarkId,
+      location.pathname,
+      location.search,
+      navigate,
+      urlFilters,
+    ],
   );
 
   const selectedBenchmark = match.benchmarkId;
   const selectedPipeline = match.pipelineId;
   const activeView = match.view;
-  const [showBenchmarkPanel, setShowBenchmarkPanel] = useState(false);
   const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
-  const [benchmarkModalMode, setBenchmarkModalMode] = useState<BenchmarkModalMode>("create");
-  const [editingBenchmarkId, setEditingBenchmarkId] = useState<string | null>(null);
-  const [editingBenchmarkConfig, setEditingBenchmarkConfig] = useState<BenchmarkConfigInput | null>(null);
+  const [benchmarkModalMode, setBenchmarkModalMode] =
+    useState<BenchmarkModalMode>("create");
+  const [editingBenchmarkId, setEditingBenchmarkId] = useState<string | null>(
+    null,
+  );
+  const [editingBenchmarkConfig, setEditingBenchmarkConfig] =
+    useState<BenchmarkConfigInput | null>(null);
   const [savingBenchmark, setSavingBenchmark] = useState(false);
   const [showNavMenu, setShowNavMenu] = useState(false);
 
@@ -219,7 +301,8 @@ export const App: React.FC = () => {
       const items = await fetchBenchmarks();
       setBenchmarks(items);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to load benchmarks";
+      const message =
+        e instanceof Error ? e.message : "Failed to load benchmarks";
       setError(message);
     } finally {
       setLoading(false);
@@ -241,7 +324,8 @@ export const App: React.FC = () => {
   }, []);
 
   const fallbackBenchmarkId =
-    benchmarks.find((b) => b.benchmark_id === DEFAULT_BENCHMARK_ID)?.benchmark_id ??
+    benchmarks.find((b) => b.benchmark_id === DEFAULT_BENCHMARK_ID)
+      ?.benchmark_id ??
     benchmarks[0]?.benchmark_id ??
     null;
 
@@ -264,7 +348,13 @@ export const App: React.FC = () => {
     if (needsBenchmark) {
       navigate(routes.benchmark(fallbackBenchmarkId), { replace: true });
     }
-  }, [activeView, benchmarks, fallbackBenchmarkId, selectedBenchmark, navigate]);
+  }, [
+    activeView,
+    benchmarks,
+    fallbackBenchmarkId,
+    selectedBenchmark,
+    navigate,
+  ]);
 
   // Named, but not here.
   const unknownBenchmark =
@@ -295,7 +385,8 @@ export const App: React.FC = () => {
       const response = await fetchBenchmarkConfig(benchmarkId);
       setEditingBenchmarkConfig(response.config);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to load benchmark config";
+      const message =
+        e instanceof Error ? e.message : "Failed to load benchmark config";
       setFeedback({ kind: "error", message });
       resetBenchmarkModal();
     } finally {
@@ -317,13 +408,19 @@ export const App: React.FC = () => {
           benchmark_id: payload.benchmark_id,
           ...payload.config,
         });
-        setFeedback({ kind: "success", message: `Created benchmark '${payload.benchmark_id}'.` });
+        setFeedback({
+          kind: "success",
+          message: `Created benchmark '${payload.benchmark_id}'.`,
+        });
       } else {
         if (!editingBenchmarkId) {
           throw new Error("No benchmark selected for edit");
         }
         await updateBenchmark(editingBenchmarkId, payload.config);
-        setFeedback({ kind: "success", message: `Updated benchmark '${editingBenchmarkId}'.` });
+        setFeedback({
+          kind: "success",
+          message: `Updated benchmark '${editingBenchmarkId}'.`,
+        });
       }
       await loadBenchmarks();
       resetBenchmarkModal();
@@ -334,25 +431,33 @@ export const App: React.FC = () => {
 
   const goto = useCallback(
     (path: string) => {
-      setShowBenchmarkPanel(false);
       navigate(path);
     },
-    [navigate]
+    [navigate],
   );
 
   /** Target benchmark for views that require one, falling back when none is in the URL. */
   const benchmarkForNav = selectedBenchmark ?? fallbackBenchmarkId;
 
-  const openToolkitInsights = () =>
-    benchmarkForNav && goto(routes.insights(benchmarkForNav));
-  const openPipelineCompare = () =>
-    benchmarkForNav && goto(routes.compare(benchmarkForNav));
-  const openProfileCompare = () =>
-    benchmarkForNav && goto(routes.profileCompare(benchmarkForNav));
-  const openErrorAnalysis = () =>
-    benchmarkForNav && goto(routes.errors(benchmarkForNav));
-  const openLLMJudge = () => goto(routes.llmJudge());
-  const openRunEvaluation = () => goto(routes.run());
+  // Whether to offer the user console at all. Showing a control that 403s is
+  // the failure this whole area is trying to avoid.
+  const [canManageUsers, setCanManageUsers] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    void fetchSession()
+      .then((info) => {
+        if (cancelled) return;
+        setCanManageUsers(Boolean(info.can_manage_users));
+        setSignedIn(Boolean(info.signed_in));
+      })
+      .catch(() => {
+        /* the nav simply omits the entry */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const body = () => {
     if (loading) {
@@ -375,7 +480,11 @@ export const App: React.FC = () => {
       return (
         <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
           <NotFound message="That short link does not name a pipeline this server has. It may be from a different results snapshot." />
-          <Button kind="tertiary" size="sm" onClick={() => navigate(routes.home())}>
+          <Button
+            kind="tertiary"
+            size="sm"
+            onClick={() => navigate(routes.home())}
+          >
             Go to benchmarks
           </Button>
         </div>
@@ -391,7 +500,11 @@ export const App: React.FC = () => {
           <NotFound
             message={`This server has no benchmark called "${selectedBenchmark}". It may be from a deployment with a different results snapshot.`}
           />
-          <Button kind="tertiary" size="sm" onClick={() => navigate(routes.home())}>
+          <Button
+            kind="tertiary"
+            size="sm"
+            onClick={() => navigate(routes.home())}
+          >
             Go to benchmarks
           </Button>
         </div>
@@ -402,7 +515,11 @@ export const App: React.FC = () => {
       return (
         <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
           <NotFound message={`No such page: ${location.pathname}`} />
-          <Button kind="tertiary" size="sm" onClick={() => navigate(routes.home())}>
+          <Button
+            kind="tertiary"
+            size="sm"
+            onClick={() => navigate(routes.home())}
+          >
             Go to benchmarks
           </Button>
         </div>
@@ -412,90 +529,95 @@ export const App: React.FC = () => {
     if (activeView === "home") {
       if (!selectedBenchmark) {
         return (
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-            padding: "0 1.25rem 1.25rem 1.25rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-          }}
-        >
           <div
             style={{
-              border: "1px solid rgba(120,169,255,0.22)",
-              borderRadius: "10px",
-              padding: "1.1rem 1.2rem",
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.22)",
+              maxWidth: "1100px",
+              margin: "0 auto",
+              padding: "0 1.25rem 1.25rem 1.25rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.85rem" }}>
-              <img
-                src={toolkitLogo}
-                alt="Text2SQL Evaluation Toolkit logo"
+            <div
+              style={{
+                border: "1px solid rgba(120,169,255,0.22)",
+                borderRadius: "10px",
+                padding: "1.1rem 1.2rem",
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015))",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.22)",
+              }}
+            >
+              <div
                 style={{
-                  width: "140px",
-                  maxWidth: "100%",
-                  borderRadius: "6px",
+                  display: "flex",
+                  justifyContent: "center",
+                  marginBottom: "0.85rem",
                 }}
+              >
+                <img
+                  src={toolkitLogo}
+                  alt="Text2SQL Evaluation Toolkit logo"
+                  style={{
+                    width: "140px",
+                    maxWidth: "100%",
+                    borderRadius: "6px",
+                  }}
+                />
+              </div>
+              <h3 style={{ margin: "0 0 0.45rem 0", textAlign: "center" }}>
+                Welcome to the Text2SQL Evaluation Dashboard
+              </h3>
+              <p
+                style={{
+                  margin: "0 0 0.45rem 0",
+                  opacity: 0.9,
+                  textAlign: "center",
+                  lineHeight: 1.45,
+                }}
+              >
+                Explore benchmark-level performance, compare pipelines, and
+                drill down into failed examples for targeted error analysis.
+              </p>
+              <p
+                style={{
+                  margin: 0,
+                  opacity: 0.9,
+                  textAlign: "center",
+                  lineHeight: 1.4,
+                }}
+              >
+                Start by selecting a benchmark tile below, or use the
+                <strong> Benchmarks </strong>
+                button in the top-right corner at any time.
+              </p>
+            </div>
+
+            <div
+              style={{
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: "8px",
+                padding: "0.75rem",
+                background: "rgba(255,255,255,0.015)",
+              }}
+            >
+              <BenchmarkTiles
+                items={benchmarks}
+                onSelect={(benchmarkId) => {
+                  navigate(routes.benchmark(benchmarkId));
+                }}
+                onEdit={(benchmarkId) => {
+                  void openEditBenchmarkModal(benchmarkId);
+                }}
+                onAddNew={openCreateBenchmarkModal}
               />
             </div>
-            <h3 style={{ margin: "0 0 0.45rem 0", textAlign: "center" }}>
-              Welcome to the Text2SQL Evaluation Dashboard
-            </h3>
-            <p
-              style={{
-                margin: "0 0 0.45rem 0",
-                opacity: 0.9,
-                textAlign: "center",
-                lineHeight: 1.45,
-              }}
-            >
-              Explore benchmark-level performance, compare pipelines, and drill down into
-              failed examples for targeted error analysis.
-            </p>
-            <p
-              style={{
-                margin: 0,
-                opacity: 0.9,
-                textAlign: "center",
-                lineHeight: 1.4,
-              }}
-            >
-              Start by selecting a benchmark tile below, or use the
-              <strong> Benchmarks </strong>
-              button in the top-right corner at any time.
-            </p>
-          </div>
 
-          <div
-            style={{
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: "8px",
-              padding: "0.75rem",
-              background: "rgba(255,255,255,0.015)",
-            }}
-          >
-            <BenchmarkTiles
-              items={benchmarks}
-              onSelect={(benchmarkId) => {
-                navigate(routes.benchmark(benchmarkId));
-              }}
-              onEdit={(benchmarkId) => {
-                void openEditBenchmarkModal(benchmarkId);
-              }}
-              onAddNew={openCreateBenchmarkModal}
-            />
+            <AboutPanel />
           </div>
-
-          <AboutPanel />
-        </div>
-      );
+        );
       }
-
     }
 
     if (activeView === "benchmark") {
@@ -516,7 +638,8 @@ export const App: React.FC = () => {
             selectedBenchmark && navigate(routes.compare(selectedBenchmark))
           }
           onOpenProfileCompare={() =>
-            selectedBenchmark && navigate(routes.profileCompare(selectedBenchmark))
+            selectedBenchmark &&
+            navigate(routes.profileCompare(selectedBenchmark))
           }
           onOpenErrorAnalysis={() =>
             selectedBenchmark && navigate(routes.errors(selectedBenchmark))
@@ -544,9 +667,9 @@ export const App: React.FC = () => {
                 ? routes.pipelineRecord(
                     selectedBenchmark,
                     selectedPipeline,
-                    recordId
+                    recordId,
                   )
-                : routes.pipeline(selectedBenchmark, selectedPipeline)
+                : routes.pipeline(selectedBenchmark, selectedPipeline),
             )
           }
           onBack={() =>
@@ -590,8 +713,52 @@ export const App: React.FC = () => {
       return <LLMJudgeConfigView />;
     }
 
+    if (activeView === "benchmarks") {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Benchmarks</h3>
+            <p
+              style={{
+                margin: "0.35rem 0 0",
+                maxWidth: "52rem",
+                lineHeight: 1.45,
+                color: "var(--cds-text-secondary)",
+              }}
+            >
+              Every benchmark with results on this deployment. This was a
+              slide-out panel, which meant it had no address of its own and
+              could not be linked to or opened in a new tab.
+            </p>
+          </div>
+          <BenchmarkList
+            items={benchmarks}
+            selectedId={selectedBenchmark}
+            onSelect={(benchmarkId) => navigate(routes.benchmark(benchmarkId))}
+          />
+        </div>
+      );
+    }
+
+    if (activeView === "users") {
+      return <UsersView />;
+    }
+
+    if (activeView === "myKeys") {
+      return <MyKeysView />;
+    }
+
     if (activeView === "runEvaluation") {
-      return <RunEvaluationView benchmarks={benchmarks} />;
+      return (
+        <RunEvaluationView
+          benchmarks={benchmarks}
+          initialBenchmarkId={match.benchmarkId}
+          initialRecordId={match.recordId}
+          initialPipeline={urlFilters.pipeline ?? null}
+          initialJudgeConfig={judgeConfigFromUrl}
+          onStateChange={onPlaygroundStateChange}
+        />
+      );
     }
 
     if (activeView === "toolkitInsights") {
@@ -660,7 +827,6 @@ export const App: React.FC = () => {
           kind="ghost"
           size="sm"
           onClick={() => {
-            setShowBenchmarkPanel(false);
             setShowNavMenu((prev) => !prev);
           }}
           aria-label="Toggle navigation menu"
@@ -681,7 +847,6 @@ export const App: React.FC = () => {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setShowBenchmarkPanel(false);
             navigate(routes.home());
           }}
           style={{
@@ -696,19 +861,14 @@ export const App: React.FC = () => {
         >
           Evaluation Dashboard
         </HeaderName>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center" }}>
+        <div
+          style={{ marginLeft: "auto", display: "flex", alignItems: "center" }}
+        >
           <SessionBar />
-          <CopyShortLinkButton />
-          <Button
-            kind="ghost"
-            size="sm"
-            onClick={() => {
-              setShowBenchmarkPanel(true);
-            }}
-            style={{ marginRight: "0.5rem" }}
-          >
-            Benchmarks
-          </Button>
+          {/* The playground has its own Export menu, which offers this and
+              more. Two controls doing the same thing on one page is worse
+              than either. */}
+          {activeView !== "runEvaluation" && <CopyShortLinkButton />}
         </div>
       </Header>
       <div style={{ marginTop: "3rem" }}>
@@ -733,7 +893,9 @@ export const App: React.FC = () => {
             transition: "width 0.22s cubic-bezier(0.2, 0, 0, 1)",
             overflow: "hidden",
             background: "#161616",
-            borderRight: showNavMenu ? "1px solid rgba(255,255,255,0.12)" : "none",
+            borderRight: showNavMenu
+              ? "1px solid rgba(255,255,255,0.12)"
+              : "none",
             display: "flex",
             flexDirection: "column",
           }}
@@ -758,38 +920,37 @@ export const App: React.FC = () => {
                 gap: "0.15rem",
               }}
             >
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openToolkitInsights}
-                style={{ width: "100%", justifyContent: "flex-start" }}
+              <NavLink href={routes.benchmarks()} onNavigate={goto}>
+                Benchmarks
+              </NavLink>
+              <NavLink
+                href={benchmarkForNav ? routes.insights(benchmarkForNav) : null}
+                onNavigate={goto}
               >
                 Metric Insights
-              </Button>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openPipelineCompare}
-                style={{ width: "100%", justifyContent: "flex-start" }}
+              </NavLink>
+              <NavLink
+                href={benchmarkForNav ? routes.compare(benchmarkForNav) : null}
+                onNavigate={goto}
               >
                 Pipeline Compare
-              </Button>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openProfileCompare}
-                style={{ width: "100%", justifyContent: "flex-start" }}
+              </NavLink>
+              <NavLink
+                href={
+                  benchmarkForNav
+                    ? routes.profileCompare(benchmarkForNav)
+                    : null
+                }
+                onNavigate={goto}
               >
                 Profile Compare
-              </Button>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openErrorAnalysis}
-                style={{ width: "100%", justifyContent: "flex-start" }}
+              </NavLink>
+              <NavLink
+                href={benchmarkForNav ? routes.errors(benchmarkForNav) : null}
+                onNavigate={goto}
               >
                 Error Analysis
-              </Button>
+              </NavLink>
               <div
                 style={{
                   height: "1px",
@@ -797,22 +958,22 @@ export const App: React.FC = () => {
                   margin: "0.5rem 0",
                 }}
               />
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openLLMJudge}
-                style={{ width: "100%", justifyContent: "flex-start" }}
-              >
+              <NavLink href={routes.llmJudge()} onNavigate={goto}>
                 LLM Judge
-              </Button>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openRunEvaluation}
-                style={{ width: "100%", justifyContent: "flex-start" }}
-              >
+              </NavLink>
+              {signedIn && (
+                <NavLink href={routes.myKeys()} onNavigate={goto}>
+                  My API keys
+                </NavLink>
+              )}
+              {canManageUsers && (
+                <NavLink href={routes.users()} onNavigate={goto}>
+                  Users
+                </NavLink>
+              )}
+              <NavLink href={routes.run()} onNavigate={goto}>
                 Eval Playground
-              </Button>
+              </NavLink>
             </nav>
           </div>
         </aside>
@@ -824,138 +985,93 @@ export const App: React.FC = () => {
             flexDirection: "column",
           }}
         >
-      {showBenchmarkPanel && (
-        <>
-          <div
-            onClick={() => setShowBenchmarkPanel(false)}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background: "rgba(0, 0, 0, 0.25)",
-              zIndex: 7000,
-            }}
+          <BenchmarkConfigModal
+            open={showBenchmarkModal}
+            mode={benchmarkModalMode}
+            benchmarkId={editingBenchmarkId}
+            initialConfig={editingBenchmarkConfig}
+            submitting={savingBenchmark}
+            onClose={resetBenchmarkModal}
+            onSubmit={saveBenchmarkConfig}
+            onUploadLogo={uploadBenchmarkLogo}
           />
-          <div
-            style={{
-              position: "fixed",
-              top: "3rem",
-              right: 0,
-              bottom: 0,
-              width: "420px",
-              zIndex: 7100,
-              background: "#161616",
-              borderLeft: "1px solid rgba(255,255,255,0.12)",
-              padding: "0.75rem",
-              overflow: "auto",
-            }}
-          >
-            <div
+          <Theme theme="g10">
+            <Content
+              id="main-content"
               style={{
+                padding: "1rem",
+                paddingTop: "1rem",
+                flex: 1,
+                minHeight: 0,
+                background: "#ffffff",
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "0.5rem",
+                flexDirection: "column",
               }}
             >
-              <strong>Benchmarks</strong>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={() => setShowBenchmarkPanel(false)}
+              <div
+                style={{
+                  flex: 1,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "0.75rem",
+                }}
               >
-                X
-              </Button>
-            </div>
-            <BenchmarkList
-              items={benchmarks}
-              selectedId={selectedBenchmark}
-              onSelect={(benchmarkId) => {
-                navigate(routes.benchmark(benchmarkId));
-                setShowBenchmarkPanel(false);
-              }}
-            />
-          </div>
-        </>
-      )}
-      <BenchmarkConfigModal
-        open={showBenchmarkModal}
-        mode={benchmarkModalMode}
-        benchmarkId={editingBenchmarkId}
-        initialConfig={editingBenchmarkConfig}
-        submitting={savingBenchmark}
-        onClose={resetBenchmarkModal}
-        onSubmit={saveBenchmarkConfig}
-        onUploadLogo={uploadBenchmarkLogo}
-      />
-      <Theme theme="g10">
-        <Content
-          id="main-content"
-          style={{
-            padding: "1rem",
-            paddingTop: "1rem",
-            flex: 1,
-            minHeight: 0,
-            background: "#ffffff",
-            display: "flex",
-            flexDirection: "column",
-          }}
-        >
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            <FetchResultsBanner onResultsFetched={() => void loadBenchmarks()} />
-            {feedback ? (
-              <InlineNotification
-                kind={feedback.kind}
-                title={feedback.kind === "success" ? "Success" : "Error"}
-                subtitle={feedback.message}
-                lowContrast
-                onCloseButtonClick={() => setFeedback(null)}
-              />
-            ) : null}
-            <Suspense fallback={<DataTableSkeleton role="progressbar" />}>
-              {body()}
-            </Suspense>
-          </div>
-          <footer
-            style={{
-              marginTop: "1rem",
-              paddingTop: "0.75rem",
-              paddingBottom: "0.75rem",
-              marginLeft: "-1rem",
-              marginRight: "-1rem",
-              marginBottom: "-1rem",
-              borderTop: "1px solid rgba(255,255,255,0.16)",
-              display: "flex",
-              justifyContent: "center",
-              background: "#161616",
-            }}
-          >
-            <a
-              href="https://github.com/IBM/text2sql-eval-toolkit"
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.45rem",
-                color: "#f4f4f4",
-                textDecoration: "none",
-                fontSize: "0.9rem",
-                fontWeight: 500,
-              }}
-            >
-              <img
-                src={githubLogo}
-                alt="GitHub"
-                style={{ width: "18px", height: "18px" }}
-              />
-              IBM/text2sql-eval-toolkit
-            </a>
-          </footer>
-        </Content>
-      </Theme>
+                <FetchResultsBanner
+                  onResultsFetched={() => void loadBenchmarks()}
+                />
+                {feedback ? (
+                  <InlineNotification
+                    kind={feedback.kind}
+                    title={feedback.kind === "success" ? "Success" : "Error"}
+                    subtitle={feedback.message}
+                    lowContrast
+                    onCloseButtonClick={() => setFeedback(null)}
+                  />
+                ) : null}
+                <Suspense fallback={<DataTableSkeleton role="progressbar" />}>
+                  {body()}
+                </Suspense>
+              </div>
+              <footer
+                style={{
+                  marginTop: "1rem",
+                  paddingTop: "0.75rem",
+                  paddingBottom: "0.75rem",
+                  marginLeft: "-1rem",
+                  marginRight: "-1rem",
+                  marginBottom: "-1rem",
+                  borderTop: "1px solid rgba(255,255,255,0.16)",
+                  display: "flex",
+                  justifyContent: "center",
+                  background: "#161616",
+                }}
+              >
+                <a
+                  href="https://github.com/IBM/text2sql-eval-toolkit"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.45rem",
+                    color: "#f4f4f4",
+                    textDecoration: "none",
+                    fontSize: "0.9rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  <img
+                    src={githubLogo}
+                    alt="GitHub"
+                    style={{ width: "18px", height: "18px" }}
+                  />
+                  IBM/text2sql-eval-toolkit
+                </a>
+              </footer>
+            </Content>
+          </Theme>
         </div>
       </div>
     </Theme>
   );
 };
-

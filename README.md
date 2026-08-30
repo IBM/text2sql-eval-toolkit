@@ -4,7 +4,7 @@
 > Supports execution-based metrics, multiple ground truths, LLM-as-judge, and rich error analysis.
 
 <p align="center">
-  <img src="dashboard-screenshot.png" alt="Text2SQL Evaluation Dashboard: benchmark overview with tiles for each dataset" width="560"/>
+  <img src="https://raw.githubusercontent.com/IBM/text2sql-eval-toolkit/main/dashboard-screenshot.png" alt="Text2SQL Evaluation Dashboard: benchmark overview with tiles for each dataset" width="560"/>
 </p>
 
 Text-to-SQL systems aim to translate natural language questions into executable SQL queries, enabling intuitive access to structured data. While recent advances in large language models have significantly improved generation quality, evaluating these systems remains a complex and critical challenge.
@@ -34,26 +34,31 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 
 ## Documentation
 
-- **[docs/dashboard/](docs/dashboard/)** — the evaluation dashboard: features,
+- **[Documentation site](https://text2sql-eval-toolkit.readthedocs.io/)** — the
+  guide (installation, the five stages, the data model, benchmarks, models,
+  LLM-as-judge, the CLI and configuration) and the
+  [API reference](https://text2sql-eval-toolkit.readthedocs.io/reference/) for
+  every exported function and class.
+- **[docs/dashboard/](https://github.com/IBM/text2sql-eval-toolkit/tree/main/docs/dashboard)** — the evaluation dashboard: features,
   shareable links, the query index, capability tiers, and deployment.
-- **[data/benchmarks/README.md](data/benchmarks/README.md)** — benchmark
+- **[data/benchmarks/README.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/data/benchmarks/README.md)** — benchmark
   definitions and configuration.
-- **[data/benchmarks/dbs/README.md](data/benchmarks/dbs/README.md)** — database
+- **[data/benchmarks/dbs/README.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/data/benchmarks/dbs/README.md)** — database
   setup for each benchmark.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** — toolchain, tests, and coding standards.
+- **[CONTRIBUTING.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/CONTRIBUTING.md)** — toolchain, tests, and coding standards.
 
 ## Components
 
 <p align="center">
-  <img src="toolkit.png" alt="Text-to-SQL Toolkit Components" width="500"/>
+  <img src="https://raw.githubusercontent.com/IBM/text2sql-eval-toolkit/main/toolkit.png" alt="Text-to-SQL Toolkit Components" width="500"/>
 </p>
 
-- **Evaluation** ([`scripts/evaluation`](scripts/evaluation)/`src/evaluation.py`): Includes a script and library for evaluating text-to-SQL model outputs using various metrics. See [`scripts/evaluation/README.md`](scripts/evaluation/README.md) for details.
-- **Text-to-SQL Inference** ([`scripts/inference`](scripts/inference)): Provides a simple LLM inference pipeline for generating SQL queries from natural language inputs. Run `python scripts/inference/run_inference.py -h` for more information.
-- **SQL Execution** ([`scripts/execution`](scripts/execution)): Runs the ground truth and predicted SQLs for a given benchmark and saves the dataframes for evaluation and error analysis. Run `python scripts/execution/run_execution.py -h` for more information.
-- **Results and Error Analysis** ([`scripts/analysis`](scripts/analysis)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
-- **SQL Profiling** ([`scripts/profiling`](scripts/profiling)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
-- **Evaluation Dashboard** ([`dashboard`](dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [docs/dashboard/](docs/dashboard/) for features, deployment, and development.
+- **Evaluation** ([`scripts/evaluation`](https://github.com/IBM/text2sql-eval-toolkit/tree/main/scripts/evaluation)/`src/evaluation.py`): Includes a script and library for evaluating text-to-SQL model outputs using various metrics. See [`scripts/evaluation/README.md`](https://github.com/IBM/text2sql-eval-toolkit/blob/main/scripts/evaluation/README.md) for details.
+- **Text-to-SQL Inference** ([`scripts/inference`](https://github.com/IBM/text2sql-eval-toolkit/tree/main/scripts/inference)): Provides a simple LLM inference pipeline for generating SQL queries from natural language inputs. Run `python scripts/inference/run_inference.py -h` for more information.
+- **SQL Execution** ([`scripts/execution`](https://github.com/IBM/text2sql-eval-toolkit/tree/main/scripts/execution)): Runs the ground truth and predicted SQLs for a given benchmark and saves the dataframes for evaluation and error analysis. Run `python scripts/execution/run_execution.py -h` for more information.
+- **Results and Error Analysis** ([`scripts/analysis`](https://github.com/IBM/text2sql-eval-toolkit/tree/main/scripts/analysis)): Contains scripts and utilities for analyzing evaluation results, identifying common error patterns, and generating summary statistics and visualizations. Useful for debugging and improving model performance.
+- **SQL Profiling** ([`scripts/profiling`](https://github.com/IBM/text2sql-eval-toolkit/tree/main/scripts/profiling)) tools to profile SQL queries to gather query characteristics to facilitate better analysis of results and errors.
+- **Evaluation Dashboard** ([`dashboard`](https://github.com/IBM/text2sql-eval-toolkit/tree/main/dashboard)): Optional FastAPI + React web UI for browsing benchmarks and pipeline metrics, error analysis (search, filters, cross-pipeline disagreement), side-by-side comparison of result summaries, editing LLM-as-judge YAML, and launching evaluations with job status. See [docs/dashboard/](https://github.com/IBM/text2sql-eval-toolkit/tree/main/docs/dashboard) for features, deployment, and development.
 
 ## Setup
 
@@ -88,7 +93,7 @@ text2sql-eval-toolkit results fetch
 ```
 
 After this completes, the dashboard and analysis scripts will work
-against the downloaded artefacts. See [docs/dashboard/](docs/dashboard/) to launch
+against the downloaded artefacts. See [docs/dashboard/](https://github.com/IBM/text2sql-eval-toolkit/tree/main/docs/dashboard) to launch
 the UI.
 
 To fetch only a specific benchmark:
@@ -149,13 +154,13 @@ pip install -e .
 
 ## Additional Requirements
 
-To use features that rely on LLM inference, you need to set the required environment variables for the relevant services. For watsonx.ai, this includes setting the following environment variables: `WATSONX_APIKEY`, `WATSONX_API_BASE`, and `WATSONX_PROJECTID`. See [env.example](env.example) for all available configuration options.
+To use features that rely on LLM inference, you need to set the required environment variables for the relevant services. For watsonx.ai, this includes setting the following environment variables: `WATSONX_APIKEY`, `WATSONX_API_BASE`, and `WATSONX_PROJECTID`. See [env.example](https://github.com/IBM/text2sql-eval-toolkit/blob/main/env.example) for all available configuration options.
 
 ### Benchmarks
 
 The toolkit comes with pre-defined public benchmarks including BIRD-SQL, Spider, Beaver, and Archer. These benchmarks require initial setup such as downloading databases or configuring connection strings. The toolkit also includes smaller test benchmarks (subsets of the full benchmarks) for quick validation and CI/CD pipelines.
 
-**📚 See [data/benchmarks/README.md](data/benchmarks/README.md) for complete benchmark details, setup instructions, and configuration.**
+**📚 See [data/benchmarks/README.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/data/benchmarks/README.md) for complete benchmark details, setup instructions, and configuration.**
 
 ## Usage
 
@@ -234,7 +239,7 @@ agentic.run_pipeline(
 )
 ```
 
-See the docstrings of the exported functions/classes in `text2sql_eval_toolkit.__init__` for the full list of public APIs.
+Every exported function and class is documented in the **[API reference](https://text2sql-eval-toolkit.readthedocs.io/reference/)**, generated from the docstrings.
 
 ### Running Experiments
 
@@ -243,7 +248,7 @@ See the docstrings of the exported functions/classes in `text2sql_eval_toolkit._
 python scripts/run_experiment.py [benchmark_name]
 ```
 
-This will initialize a pipeline, perform inference to generate SQLs and output dataframes, and run the evaluation script to gather accuracy metrics. Benchmark names and configurations are defined in [`data/benchmarks.json`](data/benchmarks.json) (for full benchmarks) or [`data/test-benchmarks.json`](data/test-benchmarks.json) (for test benchmarks). See [data/benchmarks/README.md](data/benchmarks/README.md) for more details. Run `python scripts/run_experiment.py -h` for details on how to set different input arguments for the script.
+This will initialize a pipeline, perform inference to generate SQLs and output dataframes, and run the evaluation script to gather accuracy metrics. Benchmark names and configurations are defined in [`data/benchmarks.json`](https://github.com/IBM/text2sql-eval-toolkit/blob/main/data/benchmarks.json) (for full benchmarks) or [`data/test-benchmarks.json`](https://github.com/IBM/text2sql-eval-toolkit/blob/main/data/test-benchmarks.json) (for test benchmarks). See [data/benchmarks/README.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/data/benchmarks/README.md) for more details. Run `python scripts/run_experiment.py -h` for details on how to set different input arguments for the script.
 
 **Multiple Benchmarks:**
 ```bash
@@ -257,7 +262,7 @@ python scripts/run_all_benchmarks.py
 python scripts/run_all_benchmarks.py --test --run_all_baselines
 ```
 
-The `run_all_benchmarks.py` script supports separate model configurations for standard and agentic baselines to optimize runtime. See [data/benchmarks/README.md](data/benchmarks/README.md#model-configuration) for detailed configuration options.
+The `run_all_benchmarks.py` script supports separate model configurations for standard and agentic baselines to optimize runtime. See [data/benchmarks/README.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/data/benchmarks/README.md#model-configuration) for detailed configuration options.
 
 ### Running Individual Components
 
@@ -267,7 +272,7 @@ To run evaluation only:
 python scripts/evaluation/run_evaluation.py [-h] [--output_file OUTPUT_FILE] [--summary_file SUMMARY_FILE] [--csv_summary_file CSV_SUMMARY_FILE] [--use_llm_judge] input_file
 ```
 
-See [`scripts/evaluation/README.md`](scripts/evaluation/README.md) for details.
+See [`scripts/evaluation/README.md`](https://github.com/IBM/text2sql-eval-toolkit/blob/main/scripts/evaluation/README.md) for details.
 
 To run inference only:
 
@@ -304,7 +309,7 @@ To produce the results dashboard along with results summary and error analysis M
 python scripts/analysis/make_summary_report.py
 ```
 
-The output will be written to [data/results/README.md](data/results/README.md).
+The output will be written to [data/results/README.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/data/results/README.md).
 
 ### Evaluation dashboard
 
@@ -320,7 +325,7 @@ individual record can be linked to directly.
 
 The dashboard runs as a local tool with every capability enabled, or as a
 shared read-only site with optional sign-in for a small allowlist. See
-**[docs/dashboard/](docs/dashboard/)** for features, the URL scheme, the query
+**[docs/dashboard/](https://github.com/IBM/text2sql-eval-toolkit/tree/main/docs/dashboard)** for features, the URL scheme, the query
 index, capability tiers, and deployment.
 
 ## Project Structure
@@ -374,7 +379,7 @@ A good way to familiarize yourself with the codebase and contribution process is
 
 **Note: We appreciate your effort, and want to avoid a situation where a contribution requires extensive rework (by you or by us), sits in backlog for a long time, or cannot be accepted at all!**
 
-For detailed contribution guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.md).
+For detailed contribution guidelines, please see [CONTRIBUTING.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/CONTRIBUTING.md).
 
 ### Pull Request Process
 
@@ -386,7 +391,7 @@ For detailed contribution guidelines, please see [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for more details.
+This project is licensed under the Apache License 2.0. See the [LICENSE](https://github.com/IBM/text2sql-eval-toolkit/tree/main/LICENSE) file for more details.
 
 ## Citation
 
@@ -408,9 +413,9 @@ If you use this toolkit in research, please cite:
 
 ## Additional Resources
 
-- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
-- [SECURITY.md](SECURITY.md) - Security policy and vulnerability reporting
-- [MAINTAINERS.md](MAINTAINERS.md) - Project maintainers
-- [CHANGELOG.md](CHANGELOG.md) - Project changelog
+- [CODE_OF_CONDUCT.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/CODE_OF_CONDUCT.md) - Community guidelines
+- [SECURITY.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/SECURITY.md) - Security policy and vulnerability reporting
+- [MAINTAINERS.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/MAINTAINERS.md) - Project maintainers
+- [CHANGELOG.md](https://github.com/IBM/text2sql-eval-toolkit/blob/main/CHANGELOG.md) - Project changelog
 
 [issues]: https://github.com/IBM/text2sql-eval-toolkit/issues/new

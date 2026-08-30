@@ -83,8 +83,21 @@ ROUTE_TIERS: Dict[Tuple[str, str], Tier] = {
     ("POST", "/api/benchmarks"): Tier.FULL,
     ("PUT", "/api/benchmarks/{benchmark_id}"): Tier.FULL,
     ("POST", "/api/benchmarks/logo-upload"): Tier.FULL,
-    # Writes YAML into the installed package directory.
+    # Writes YAML into the data root, shadowing the packaged config of the same
+    # name; the delete removes that copy and restores the packaged original.
     ("PUT", "/api/llm-judge/configs/{name}"): Tier.FULL,
+    ("DELETE", "/api/llm-judge/configs/{name}"): Tier.FULL,
+    # User management. The tier is PUBLIC because the real gate is ADMIN_ROUTES,
+    # checked separately: an admin must be able to grant roles on a judge-mode
+    # host, and a FULL requirement here would deny exactly that. Nothing reaches
+    # these without passing the admin check first.
+    ("POST", "/api/users"): Tier.PUBLIC,
+    # A signed-in user's own credentials. PUBLIC because the handler scopes
+    # every operation to the caller and refuses an anonymous one: a higher tier
+    # would stop a read-only user storing the key that is theirs to spend.
+    ("POST", "/api/my/keys"): Tier.PUBLIC,
+    ("DELETE", "/api/my/keys/{provider}"): Tier.PUBLIC,
+    ("DELETE", "/api/users/{email}"): Tier.PUBLIC,
     # Downloads gigabytes to the data root.
     ("POST", "/api/results/fetch"): Tier.FULL,
 }
@@ -139,7 +152,7 @@ def iter_routes(target: Any, _depth: int = 0) -> Iterator[Any]:
 
 def unclassified_routes(app: "FastAPI") -> List[Tuple[str, str]]:
     """
-    Mutating routes with no entry in :data:`ROUTE_TIERS`.
+    Mutating routes with no entry in `ROUTE_TIERS`.
 
     Such a route still fails closed, but silently defaulting is how a route
     meant for the judge tier ends up unreachable in production, so a test
@@ -157,23 +170,66 @@ def unclassified_routes(app: "FastAPI") -> List[Tuple[str, str]]:
     return missing
 
 
+#: Routes only an admin may call, whatever the deployment mode.
+#:
+#: This is a separate question from the tier: user management has to work on a
+#: judge-mode host, where the ceiling denies ``full``. Expressing it as a tier
+#: would make the console unusable exactly where it is needed.
+ADMIN_ROUTES: Set[Tuple[str, str]] = {
+    ("GET", "/api/users"),
+    ("POST", "/api/users"),
+    ("DELETE", "/api/users/{email}"),
+}
+
+
+def requires_admin(method: str, path: str) -> bool:
+    """Whether *method* and *path* may only be called by an admin."""
+    return (method.upper(), path) in ADMIN_ROUTES
+
+
 def resolve_tier(
     mode: Tier,
     email: Optional[str],
-    allowlist: Set[str],
+    requested: Tier = Tier.PUBLIC,
+    remote: bool = False,
 ) -> Tier:
     """
     Effective tier for one request.
 
     ``mode`` is the ceiling set at startup -- a public deployment can never
-    grant ``full`` regardless of who signs in.  Within that ceiling, an
-    allowlisted signed-in caller reaches ``judge``; everyone else is ``public``.
+    grant ``full`` regardless of who signs in, or what any stored role says.
+
+    Args:
+        mode: The deployment ceiling.
+        email: The verified address, or ``None`` when not signed in.
+        requested: The tier this caller's role asks for. Anonymous callers ask
+            for ``public``; a stored role may ask for more, and the ceiling
+            decides whether it is honoured.
+
+    Args (continued):
+        remote: Whether this deployment is reachable beyond loopback. This is
+            what separates the two very different meanings of ``full``.
+
+    Returns:
+        Tier: ``min(requested, mode)`` for a signed-in caller.
+
+    On a **local** deployment, ``full`` grants ``full`` to the caller without a
+    sign-in: it is a single-operator tool on a laptop, the operator already
+    controls the process, and requiring them to authenticate to themselves would
+    be ceremony.
+
+    On a **remote** one that behaves the same way, ``full`` would hand arbitrary
+    SQL execution, evaluation runs and registry writes to anyone who finds the
+    URL -- anonymously. So when *remote* is set, ``full`` raises the ceiling and
+    nothing more: a caller still has to be signed in and hold a role that asks
+    for it. That is what ``--allow-remote-full`` is for, and it is the only way
+    the console's ``full`` grant can mean anything.
     """
-    if mode is Tier.FULL:
+    if mode is Tier.FULL and not remote:
         return Tier.FULL
-    if email and email.strip().lower() in allowlist:
-        return min(Tier.JUDGE, mode)
-    return Tier.PUBLIC
+    if not email:
+        return Tier.PUBLIC
+    return min(requested, mode)
 
 
 def parse_allowlist(raw: Optional[str]) -> Set[str]:

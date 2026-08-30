@@ -7,3 +7,9 @@ what changed, what it broke, and what that cost. Newest first.
 
 It is history, not reference. Read it to find out *why* something is the way it
 is; read [`../dashboard/`](../dashboard/) to find out how it works.
+
+Plans live here too while work is in flight, and are deleted once the release
+ships — a plan stops being true the moment it is carried out. What survives a
+plan moves to where it will be met: the *why* into this log, ongoing rules into
+`CONTRIBUTING.md`, and anything a user needs into the guides. There is no plan
+in flight at the moment.

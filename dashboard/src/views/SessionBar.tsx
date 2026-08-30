@@ -27,7 +27,10 @@ export const SessionBar: React.FC = () => {
 
   const load = useCallback(async () => {
     // Never let this strip break the page it decorates.
-    const [s, d] = await Promise.allSettled([fetchSession(), fetchDeployment()]);
+    const [s, d] = await Promise.allSettled([
+      fetchSession(),
+      fetchDeployment(),
+    ]);
     if (s.status === "fulfilled") setSession(s.value);
     if (d.status === "fulfilled") setDeployment(d.value);
   }, []);
@@ -46,8 +49,21 @@ export const SessionBar: React.FC = () => {
 
   const returnTo = `${location.pathname}${location.search}` || "/";
 
-  // Local mode is the operator's own tool; none of this is worth the space.
-  if (session?.mode === "full") {
+  // Hidden only where there is genuinely nothing to say: a local operator tool
+  // with no sign-in configured, where the caller already has every capability
+  // and cannot authenticate anyway.
+  //
+  // This used to key on `mode === "full"`, which was the same thing until full
+  // became something a *remote* deployment could run. There, sign-in is how a
+  // caller reaches the full tier at all -- and the test hid the sign-in and
+  // sign-out controls on exactly the deployment that needs them.
+  // The local operator tool: every capability already, and no way to sign in
+  // because none is configured. Nothing here would tell them anything.
+  const isLocalOperator =
+    !!session?.can_mutate &&
+    !session?.signed_in &&
+    !deployment?.sign_in_available;
+  if (isLocalOperator) {
     return null;
   }
 
@@ -66,20 +82,30 @@ export const SessionBar: React.FC = () => {
       }}
     >
       {session && !session.can_mutate && (
-        <Tag type="cool-gray" size="sm" title="Browsing only on this deployment">
+        <Tag
+          type="cool-gray"
+          size="sm"
+          title="Browsing only on this deployment"
+        >
           Read-only
         </Tag>
       )}
 
       {session?.can_run_judge && (
-        <Tag type="green" size="sm" title="You can run LLM-as-judge on a record">
+        <Tag
+          type="green"
+          size="sm"
+          title="You can run LLM-as-judge on a record"
+        >
           Judge enabled
         </Tag>
       )}
 
       {session?.signed_in ? (
         <>
-          <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>{session.email}</span>
+          <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>
+            {session.email}
+          </span>
           <Button kind="ghost" size="sm" onClick={() => void onSignOut()}>
             Sign out
           </Button>
@@ -96,7 +122,6 @@ export const SessionBar: React.FC = () => {
     </div>
   );
 };
-
 
 /**
  * Thin strip under the header naming the snapshot on screen.

@@ -61,6 +61,15 @@ services:
     # whose parsed form costs several hundred more -- so a limit below about
     # 1 GB turns the first deploy into an OOM kill.
     mem_limit: ${MEM_LIMIT_APP:-1500m}
+    # Appended to the image's entrypoint. Needed only for
+    # TEXT2SQL_DASHBOARD_MODE=full on a reachable host, and kept here rather than
+    # in the Dockerfile so the image carries no capability decision.
+    #
+    # It raises the ceiling; it grants nothing. On a non-loopback bind, `full`
+    # still requires a signed-in caller holding the `full` or `admin` role --
+    # anonymous callers resolve to `public`. Without that distinction the flag
+    # would hand SQL execution to anyone who found the URL.
+    command: ["--allow-remote-full"]
     # No ports: reachable only through caddy.
     environment:
       # Capability ceiling. `full` is refused here anyway -- it would bind a
@@ -86,7 +95,8 @@ services:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       TEXT2SQL_SESSION_SECRET: ${TEXT2SQL_SESSION_SECRET:-}
-      TEXT2SQL_JUDGE_ALLOWLIST: ${TEXT2SQL_JUDGE_ALLOWLIST:-}
+      TEXT2SQL_ADMIN_EMAILS: ${TEXT2SQL_ADMIN_EMAILS:-}
+      TEXT2SQL_SECRET_KEY: ${TEXT2SQL_SECRET_KEY:-}
 
       # Judge budget. Rates are an estimate until calibrated against a real
       # invoice; keep an independent budget alert on the watsonx account too.
@@ -98,6 +108,17 @@ services:
       WATSONX_APIKEY: ${WATSONX_APIKEY:-}
       WATSONX_API_BASE: ${WATSONX_API_BASE:-}
       WATSONX_PROJECTID: ${WATSONX_PROJECTID:-}
+
+      # The other providers the judge and the inference pipelines can reach.
+      # Absent here until 1.4.0 merged the four dispatch tables, when watsonx
+      # stopped being the only thing a deployment could use -- a judge config
+      # naming anthropic: would otherwise fail for want of a variable that was
+      # sitting in deploy/.env, unread.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Only needed for an identity-linked key; workspace-scoped keys carry it.
+      ANTHROPIC_WORKSPACE_ID: ${ANTHROPIC_WORKSPACE_ID:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
 
       # Read-only database access, internal hostnames only. Absent by default:
       # a browse-only deployment holds no database credentials at all, so a

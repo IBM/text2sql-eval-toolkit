@@ -111,6 +111,29 @@ def normalize_mysql_connection_string(
 
     connect_args = {}
 
+    # Execution is asyncio, so the URL has to name an async driver. Only
+    # `mysql://` used to be rewritten, which meant a connection string written
+    # as `mysql+pymysql://` -- the form most MySQL documentation shows, and a
+    # perfectly good sync driver -- passed straight through into an async engine
+    # and failed with "The asyncio extension requires an async driver to be
+    # used". That names the symptom and not the fix, so the sync drivers are
+    # translated here instead.
+    for sync_driver in (
+        "mysql+pymysql://",
+        "mysql+mysqldb://",
+        "mysql+mysqlconnector://",
+    ):
+        if connection_string.startswith(sync_driver):
+            logger.info(
+                "Rewriting %s to mysql+aiomysql:// -- execution is asyncio and "
+                "needs an async driver.",
+                sync_driver.rstrip(":/"),
+            )
+            connection_string = (
+                "mysql+aiomysql://" + connection_string[len(sync_driver) :]
+            )
+            break
+
     # Handle mysql:// with SSL parameters like your example
     if connection_string.startswith("mysql://"):
         # For async, we'll try aiomysql first, then fall back to asyncio-mysql
@@ -119,6 +142,7 @@ def normalize_mysql_connection_string(
             "mysql://", "mysql+aiomysql://", 1
         )
 
+    if connection_string.startswith("mysql+aiomysql://"):
         # Parse the URL to modify the database part only if db_id is provided
         if db_id:
             parsed = urlparse(connection_string)
@@ -1444,6 +1468,40 @@ async def presto_run_execution_async(
 
 # For running from script
 def run_execution(benchmark_id: str, num_threads: int = 16, force_rerun: bool = False):
+    """
+    Run ground-truth and predicted SQL for a benchmark and store the results.
+
+    The stage between inference and evaluation: it executes both statements for
+    every record and writes the resulting frames back into the predictions file,
+    so evaluation can compare result sets without touching a database again.
+
+    Requires a working connection for the benchmark's database. The connection
+    string is read from the environment variable named in the benchmark's
+    ``db_engine`` config -- ``POSTGRES_CONNECTION_STRING`` and friends. SQLite
+    benchmarks read a local database directory instead.
+
+    Execution is resumable: records that already carry result frames are skipped
+    unless *force_rerun* is set.
+
+    Args:
+        benchmark_id: A benchmark from either registry.
+        num_threads: Queries in flight at once. Bounded by what the database
+            will tolerate, not by local CPU.
+        force_rerun: Re-execute records that already have stored results.
+
+    Returns:
+        int: The number of queries executed.
+
+    Raises:
+        NotImplementedError: If the benchmark's ``db_type`` is not one of
+            ``postgres``, ``sqlite``, ``db2``, ``mysql`` or ``presto``.
+        ValueError: If the connection string environment variable is unset.
+
+    Example:
+        ```python
+        >>> run_execution("bird_mini_dev_postgres")
+        ```
+    """
     benchmark_info = get_benchmark_info(benchmark_id)
     predictions_path = Path(benchmark_info["predictions_path"])
     db_engine = benchmark_info["db_engine"]

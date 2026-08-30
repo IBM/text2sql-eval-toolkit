@@ -12,7 +12,7 @@ small, Auth0 or Clerk would add cost and a dependency for nothing, and Google
 OAuth itself is free.
 
 What the rest of the app gets from this module is one thing -- a verified email
-address in the session -- which :mod:`capabilities` turns into a tier.
+address in the session -- which `capabilities` turns into a tier.
 
 Security notes that are easy to get wrong:
 
