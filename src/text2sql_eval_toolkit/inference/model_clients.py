@@ -126,6 +126,14 @@ class ModelClient:
                 logger.warning("usage callback raised; continuing", exc_info=True)
 
     def _call(self, prompt: Any, postprocess: bool) -> Tuple[str, Optional[dict]]:
+        # A bare string is a legitimate prompt -- it is what the judge builds
+        # from its template -- but the chat clients accept only a prompt object
+        # or a message list. Before the dispatch tables were merged the judge
+        # reached watsonx's raw generate() and a string worked; afterwards it
+        # went through a chat client and failed with "Incorrect prompt type",
+        # which describes the caller rather than the mismatch.
+        if isinstance(prompt, str):
+            prompt = [{"role": "user", "content": prompt}]
         result = self._inner.generate_sql(prompt, postprocess=postprocess)
         if isinstance(result, tuple):
             text, usage = result
