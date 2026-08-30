@@ -26,6 +26,7 @@ from text2sql_eval_toolkit.execution.execution_tools import (
     run_sqlite_query,
 )
 from text2sql_eval_toolkit.inference.inference_tools import (
+    _watsonx_credentials,
     extract_sql_from_reasoning,
     postprocess_sql,
 )
@@ -231,3 +232,56 @@ class TestMysqlConnectionStrings:
     def test_no_db_id_leaves_the_path_alone(self):
         url, _ = normalize_mysql_connection_string("mysql://u:p@h:3306/base")
         assert url == "mysql+aiomysql://u:p@h:3306/base"
+
+
+class TestWatsonxCredentialNames:
+    """
+    `WATSONX_PROJECTID` has no underscore before `ID`, which is the unusual
+    choice -- IBM's own docs mostly write `WATSONX_PROJECT_ID`. Setting the
+    sensible-looking one produced "Missing WATSONX.AI credentials in environment
+    variables: WATSONX_PROJECTID" while a near-identically named variable sat in
+    the same file.
+    """
+
+    @pytest.fixture(autouse=True)
+    def clean_env(self, monkeypatch):
+        for name in (
+            "WATSONX_APIKEY",
+            "WATSONX_API_KEY",
+            "WATSONX_API_BASE",
+            "WATSONX_URL",
+            "WATSONX_PROJECTID",
+            "WATSONX_PROJECT_ID",
+        ):
+            monkeypatch.delenv(name, raising=False)
+
+    def _set(self, monkeypatch, key, base, project):
+        monkeypatch.setenv(key, "k")
+        monkeypatch.setenv(base, "https://example.test")
+        monkeypatch.setenv(project, "p")
+
+    def test_the_documented_spellings_work(self, monkeypatch):
+        self._set(
+            monkeypatch, "WATSONX_APIKEY", "WATSONX_API_BASE", "WATSONX_PROJECTID"
+        )
+        assert _watsonx_credentials()["project_id"] == "p"
+
+    def test_the_underscored_spellings_also_work(self, monkeypatch):
+        self._set(monkeypatch, "WATSONX_API_KEY", "WATSONX_URL", "WATSONX_PROJECT_ID")
+        assert _watsonx_credentials()["project_id"] == "p"
+
+    def test_the_spellings_can_be_mixed(self, monkeypatch):
+        self._set(
+            monkeypatch, "WATSONX_APIKEY", "WATSONX_API_BASE", "WATSONX_PROJECT_ID"
+        )
+        creds = _watsonx_credentials()
+        assert creds["api_key"] == "k" and creds["project_id"] == "p"
+
+    def test_the_error_names_every_accepted_spelling(self, monkeypatch):
+        monkeypatch.setenv("WATSONX_APIKEY", "k")
+        monkeypatch.setenv("WATSONX_API_BASE", "https://example.test")
+        with pytest.raises(ValueError) as excinfo:
+            _watsonx_credentials()
+        message = str(excinfo.value)
+        assert "WATSONX_PROJECTID" in message
+        assert "WATSONX_PROJECT_ID" in message

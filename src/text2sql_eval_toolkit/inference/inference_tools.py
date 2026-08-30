@@ -213,26 +213,58 @@ def extract_sql_from_reasoning(reasoning_text: str) -> str:
     return ""
 
 
+#: watsonx credentials, and the spellings accepted for each.
+#:
+#: ``WATSONX_PROJECTID`` has no underscore before ``ID``, which is the unusual
+#: choice: IBM's own documentation and SDK examples mostly write
+#: ``WATSONX_PROJECT_ID``. Setting the sensible-looking one produced "Missing
+#: WATSONX.AI credentials in environment variables: WATSONX_PROJECTID" while a
+#: near-identically named variable sat in the same file, so both are accepted.
+WATSONX_ENV_VARS: dict[str, tuple[str, ...]] = {
+    "api_key": ("WATSONX_APIKEY", "WATSONX_API_KEY"),
+    "url": ("WATSONX_API_BASE", "WATSONX_URL"),
+    "project_id": ("WATSONX_PROJECTID", "WATSONX_PROJECT_ID"),
+}
+
+
+def _watsonx_credentials() -> dict:
+    """
+    Read watsonx credentials, accepting either spelling of each variable.
+
+    Returns:
+        dict: ``api_key``, ``url`` and ``project_id``.
+
+    Raises:
+        ValueError: Naming every missing credential and every spelling accepted
+            for it, because "set WATSONX_PROJECTID" is unhelpful advice to
+            someone who has already set WATSONX_PROJECT_ID.
+    """
+    found: dict = {}
+    missing: list = []
+    for field, names in WATSONX_ENV_VARS.items():
+        value = next((os.environ.get(n) for n in names if os.environ.get(n)), None)
+        if value:
+            found[field] = value
+        else:
+            missing.append(" or ".join(names))
+    if missing:
+        raise ValueError(
+            "Missing WATSONX.AI credentials in environment variables: "
+            + ", ".join(missing)
+        )
+    return found
+
+
 class WXAIClient:
     """
     LLM API client using IBM watsonx.ai.
     """
 
     def __init__(self, model_name: str, model_parameters: dict):
-        env_vars = {
-            "api_key": "WATSONX_APIKEY",
-            "url": "WATSONX_API_BASE",
-            "project_id": "WATSONX_PROJECTID",
-        }
-        values = {k: os.environ.get(v) for k, v in env_vars.items()}
-        missing = [env_vars[k] for k, val in values.items() if not val]
-        api_key = values["api_key"]
-        url = values["url"]
-        project_id = values["project_id"]
-        if missing:
-            raise ValueError(
-                f"Missing WATSONX.AI credentials in environment variables: {', '.join(missing)}"
-            )
+        creds_values = _watsonx_credentials()
+        api_key = creds_values["api_key"]
+        url = creds_values["url"]
+        project_id = creds_values["project_id"]
 
         creds = Credentials(api_key=api_key, url=url)
         self.model = ModelInference(
@@ -262,17 +294,7 @@ class WXAIClientChatAPI:
     """
 
     def __init__(self, model_name: str, model_parameters: dict):
-        env_vars = {
-            "api_key": "WATSONX_APIKEY",
-            "url": "WATSONX_API_BASE",
-            "project_id": "WATSONX_PROJECTID",
-        }
-        values = {k: os.environ.get(v) for k, v in env_vars.items()}
-        missing = [env_vars[k] for k, val in values.items() if not val]
-        if missing:
-            raise ValueError(
-                f"Missing WATSONX.AI credentials in environment variables: {', '.join(missing)}"
-            )
+        values = _watsonx_credentials()
 
         creds = Credentials(api_key=values["api_key"], url=values["url"])
         # model_parameters can be a plain dict **or**
