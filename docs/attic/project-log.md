@@ -10,6 +10,104 @@ finished.
 
 ---
 
+## 2026-08-30 — 1.4.0 built. The features were the easy half.
+
+All five planned items are on branch `1.4.0` and running live at
+`text2sql-eval-toolkit.oaklayer.dev`: documentation, test coverage, one dispatch
+table for every model call site, a user-management console, and per-user
+provider keys. The plan for those is in
+[`plan/1.4.0.md`](plan/1.4.0.md), with each item's outcome recorded against its
+own *Done when*.
+
+What is worth recording here is the other half of the branch, none of which was
+in the plan, and almost all of which was found by deploying the thing and then
+using it.
+
+**The unification worked in the library and changed nothing for the deployment.**
+`deploy/docker-compose.yml` passed only the watsonx variables into the container,
+so a judge config naming `anthropic:` would resolve, build a client, and fail on
+a credential the container had never been given. The dispatch table was correct
+and the deployment could still only ever have used watsonx.
+
+**Three defects appeared the first time a judge actually ran.** Routing the judge
+through a chat client was new, and the test suite had never called a real
+provider:
+
+1. The judge's prompt is a bare string; the chat clients accept only a message
+   list. Every run failed with "Incorrect prompt type" — introduced by the
+   unification itself.
+2. The Claude client printed its entire request payload to stdout, into the
+   container logs, on every call.
+3. The judge was being told to write SQL. `ClaudeClientChatAPI` sent "You are a
+   SQL expert… convert natural language questions into accurate SQL queries" as
+   the system message on *every* request, judging included — a contradiction the
+   model has to resolve, and a quiet bias on verdicts.
+
+None of the three is subtle. All three needed a real API call to see.
+
+**`WATSONX_PROJECTID` has no underscore, and IBM's documentation mostly writes
+`WATSONX_PROJECT_ID`.** Setting the sensible-looking one produced `Missing
+WATSONX.AI credentials … WATSONX_PROJECTID` while a near-identically named
+variable sat unread in the same file. Both spellings are now accepted for all
+three watsonx variables, and the error names every accepted spelling — naming
+only the one the reader has already set is how a five-minute fix becomes an hour.
+
+**Judge configs were written into `site-packages`.** The write endpoint targeted
+the installed package directory: root-owned on the deployment, with the server
+running unprivileged, so every save was a bare 500. The location was wrong even
+where the permissions allow it, since a pip upgrade discards the edit. Writes now
+land in the data root and shadow the packaged config of the same name; deleting
+the copy restores the original.
+
+The same report surfaced a second defect behind the first: the editor could only
+*overwrite* the selected config, never create one — so the attempt to add a
+Claude judge was on course to overwrite the shipped default rather than fail.
+
+**Sharing a verdict needed a new endpoint flag, not a query parameter.** The
+playground address now carries `?judge=<config>` once a verdict is showing, and
+opening such a link restores it — strictly cached-only, returning 204 when
+nothing is stored. Opening a link someone sent must not start an inference: the
+sender is sharing an answer, not authorising the reader to spend against the
+budget, or against their own provider key. A consequence worth keeping: an
+exhausted budget still serves a shared link rather than turning it into a 429.
+
+The URL names the config rather than embedding the verdict, so a URL cannot be
+edited into claiming a verdict the judge never gave.
+
+**One export bug predates all of this.** `llm_explanation` from the published
+evaluation is rendered as prose rather than as a metric row, and the export only
+ever walked the metric rows — so it had been absent from every export since
+exports existed.
+
+**Two security findings.**
+
+- `resolve_tier` returned `FULL` whenever the server was in full mode, *before*
+  checking identity. Enabling full mode remotely would have granted it to
+  anonymous internet users. Caught before that happened; the fix adds a `remote`
+  flag, and anonymous callers on the full-mode host now resolve to `public`.
+- `SessionBar` hid the whole strip on a remote-full deployment, leaving a
+  signed-in user with no sign-out. The first fix was too broad and three existing
+  tests caught it — the coverage item earning its place ahead of the features.
+
+**What the ordering bought.** Documentation and tests were sequenced first on the
+argument that they are what make the rest safe to attempt. That held twice in
+ways that are easy to measure: writing docstrings surfaced five real defects
+while describing what functions did, and the characterisation tests caught two
+regressions in dashboard work that would otherwise have reached the deployment.
+
+**Not done.** The version is still `1.3.0` and the branch has never been opened
+as a PR. The `TEXT2SQL_JUDGE_ALLOWLIST` removal is the breaking change of this
+release and its release notes are unwritten. OpenAI, Gemini and the `litellm:`
+prefix are covered by tests but have never been called for real.
+
+And one that would ship a visible defect: `[project.urls]` advertises
+`https://ibm.github.io/text2sql-eval-toolkit/`, which **404s today** — Pages
+publishes on push to `main` only, and its source still has to be set to "GitHub
+Actions" once in repository settings. Releasing before both are true puts a dead
+link in PyPI's sidebar, on the page that is the project's front door.
+
+---
+
 ## 2026-08-26 — Deployed. Everything that had never run, ran.
 
 Live on a Hetzner CX22 — browse-only,
