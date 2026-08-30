@@ -21,6 +21,7 @@ export type ViewName =
   | "pipelineCompare"
   | "profileCompare"
   | "llmJudge"
+  | "benchmarks"
   | "users"
   | "myKeys"
   | "runEvaluation";
@@ -115,6 +116,8 @@ export const routes = {
     }
     return pipeline ? `${path}?pipeline=${encodeURIComponent(pipeline)}` : path;
   },
+  /** Every benchmark, as a page rather than a slide-out panel. */
+  benchmarks: (): string => "/benchmarks",
   users: (): string => "/users",
   myKeys: (): string => "/my-keys",
 };
@@ -241,6 +244,10 @@ export function parseLocation(pathname: string): RouteMatch {
     // Anything else under /run is a link that has been mangled; say so rather
     // than silently opening the playground on a different record.
     return { ...EMPTY, view: "runEvaluation", notFound: true };
+  }
+
+  if (segments[0] === "benchmarks" && segments.length === 1) {
+    return { ...EMPTY, view: "benchmarks" };
   }
 
   if (segments[0] === "users" && segments.length === 1) {

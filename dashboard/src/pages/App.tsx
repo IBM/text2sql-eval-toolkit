@@ -76,6 +76,7 @@ import { FetchResultsBanner } from "../views/FetchResultsBanner";
 import { CopyShortLinkButton } from "../views/CopyShortLinkButton";
 import { DataStampBar, SessionBar } from "../views/SessionBar";
 import { AboutPanel } from "../views/AboutPanel";
+import { NavLink } from "../views/NavLink";
 import { fetchSession } from "../lib/session";
 import {
   createBenchmark,
@@ -272,7 +273,6 @@ export const App: React.FC = () => {
   const selectedBenchmark = match.benchmarkId;
   const selectedPipeline = match.pipelineId;
   const activeView = match.view;
-  const [showBenchmarkPanel, setShowBenchmarkPanel] = useState(false);
   const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
   const [benchmarkModalMode, setBenchmarkModalMode] =
     useState<BenchmarkModalMode>("create");
@@ -421,7 +421,6 @@ export const App: React.FC = () => {
 
   const goto = useCallback(
     (path: string) => {
-      setShowBenchmarkPanel(false);
       navigate(path);
     },
     [navigate],
@@ -429,18 +428,6 @@ export const App: React.FC = () => {
 
   /** Target benchmark for views that require one, falling back when none is in the URL. */
   const benchmarkForNav = selectedBenchmark ?? fallbackBenchmarkId;
-
-  const openToolkitInsights = () =>
-    benchmarkForNav && goto(routes.insights(benchmarkForNav));
-  const openPipelineCompare = () =>
-    benchmarkForNav && goto(routes.compare(benchmarkForNav));
-  const openProfileCompare = () =>
-    benchmarkForNav && goto(routes.profileCompare(benchmarkForNav));
-  const openErrorAnalysis = () =>
-    benchmarkForNav && goto(routes.errors(benchmarkForNav));
-  const openLLMJudge = () => goto(routes.llmJudge());
-  const openUsers = () => goto(routes.users());
-  const openMyKeys = () => goto(routes.myKeys());
 
   // Whether to offer the user console at all. Showing a control that 403s is
   // the failure this whole area is trying to avoid.
@@ -461,7 +448,6 @@ export const App: React.FC = () => {
       cancelled = true;
     };
   }, []);
-  const openRunEvaluation = () => goto(routes.run());
 
   const body = () => {
     if (loading) {
@@ -717,6 +703,33 @@ export const App: React.FC = () => {
       return <LLMJudgeConfigView />;
     }
 
+    if (activeView === "benchmarks") {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div>
+            <h3 style={{ margin: 0 }}>Benchmarks</h3>
+            <p
+              style={{
+                margin: "0.35rem 0 0",
+                maxWidth: "52rem",
+                lineHeight: 1.45,
+                color: "var(--cds-text-secondary)",
+              }}
+            >
+              Every benchmark with results on this deployment. This was a
+              slide-out panel, which meant it had no address of its own and
+              could not be linked to or opened in a new tab.
+            </p>
+          </div>
+          <BenchmarkList
+            items={benchmarks}
+            selectedId={selectedBenchmark}
+            onSelect={(benchmarkId) => navigate(routes.benchmark(benchmarkId))}
+          />
+        </div>
+      );
+    }
+
     if (activeView === "users") {
       return <UsersView />;
     }
@@ -803,7 +816,6 @@ export const App: React.FC = () => {
           kind="ghost"
           size="sm"
           onClick={() => {
-            setShowBenchmarkPanel(false);
             setShowNavMenu((prev) => !prev);
           }}
           aria-label="Toggle navigation menu"
@@ -824,7 +836,6 @@ export const App: React.FC = () => {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setShowBenchmarkPanel(false);
             navigate(routes.home());
           }}
           style={{
@@ -847,16 +858,6 @@ export const App: React.FC = () => {
               more. Two controls doing the same thing on one page is worse
               than either. */}
           {activeView !== "runEvaluation" && <CopyShortLinkButton />}
-          <Button
-            kind="ghost"
-            size="sm"
-            onClick={() => {
-              setShowBenchmarkPanel(true);
-            }}
-            style={{ marginRight: "0.5rem" }}
-          >
-            Benchmarks
-          </Button>
         </div>
       </Header>
       <div style={{ marginTop: "3rem" }}>
@@ -908,38 +909,37 @@ export const App: React.FC = () => {
                 gap: "0.15rem",
               }}
             >
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openToolkitInsights}
-                style={{ width: "100%", justifyContent: "flex-start" }}
+              <NavLink href={routes.benchmarks()} onNavigate={goto}>
+                Benchmarks
+              </NavLink>
+              <NavLink
+                href={benchmarkForNav ? routes.insights(benchmarkForNav) : null}
+                onNavigate={goto}
               >
                 Metric Insights
-              </Button>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openPipelineCompare}
-                style={{ width: "100%", justifyContent: "flex-start" }}
+              </NavLink>
+              <NavLink
+                href={benchmarkForNav ? routes.compare(benchmarkForNav) : null}
+                onNavigate={goto}
               >
                 Pipeline Compare
-              </Button>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openProfileCompare}
-                style={{ width: "100%", justifyContent: "flex-start" }}
+              </NavLink>
+              <NavLink
+                href={
+                  benchmarkForNav
+                    ? routes.profileCompare(benchmarkForNav)
+                    : null
+                }
+                onNavigate={goto}
               >
                 Profile Compare
-              </Button>
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openErrorAnalysis}
-                style={{ width: "100%", justifyContent: "flex-start" }}
+              </NavLink>
+              <NavLink
+                href={benchmarkForNav ? routes.errors(benchmarkForNav) : null}
+                onNavigate={goto}
               >
                 Error Analysis
-              </Button>
+              </NavLink>
               <div
                 style={{
                   height: "1px",
@@ -947,42 +947,22 @@ export const App: React.FC = () => {
                   margin: "0.5rem 0",
                 }}
               />
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openLLMJudge}
-                style={{ width: "100%", justifyContent: "flex-start" }}
-              >
+              <NavLink href={routes.llmJudge()} onNavigate={goto}>
                 LLM Judge
-              </Button>
+              </NavLink>
               {signedIn && (
-                <Button
-                  kind="ghost"
-                  size="sm"
-                  onClick={openMyKeys}
-                  style={{ width: "100%", justifyContent: "flex-start" }}
-                >
+                <NavLink href={routes.myKeys()} onNavigate={goto}>
                   My API keys
-                </Button>
+                </NavLink>
               )}
               {canManageUsers && (
-                <Button
-                  kind="ghost"
-                  size="sm"
-                  onClick={openUsers}
-                  style={{ width: "100%", justifyContent: "flex-start" }}
-                >
+                <NavLink href={routes.users()} onNavigate={goto}>
                   Users
-                </Button>
+                </NavLink>
               )}
-              <Button
-                kind="ghost"
-                size="sm"
-                onClick={openRunEvaluation}
-                style={{ width: "100%", justifyContent: "flex-start" }}
-              >
+              <NavLink href={routes.run()} onNavigate={goto}>
                 Eval Playground
-              </Button>
+              </NavLink>
             </nav>
           </div>
         </aside>
@@ -994,59 +974,6 @@ export const App: React.FC = () => {
             flexDirection: "column",
           }}
         >
-          {showBenchmarkPanel && (
-            <>
-              <div
-                onClick={() => setShowBenchmarkPanel(false)}
-                style={{
-                  position: "fixed",
-                  inset: 0,
-                  background: "rgba(0, 0, 0, 0.25)",
-                  zIndex: 7000,
-                }}
-              />
-              <div
-                style={{
-                  position: "fixed",
-                  top: "3rem",
-                  right: 0,
-                  bottom: 0,
-                  width: "420px",
-                  zIndex: 7100,
-                  background: "#161616",
-                  borderLeft: "1px solid rgba(255,255,255,0.12)",
-                  padding: "0.75rem",
-                  overflow: "auto",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: "0.5rem",
-                  }}
-                >
-                  <strong>Benchmarks</strong>
-                  <Button
-                    kind="ghost"
-                    size="sm"
-                    onClick={() => setShowBenchmarkPanel(false)}
-                  >
-                    X
-                  </Button>
-                </div>
-                <BenchmarkList
-                  items={benchmarks}
-                  selectedId={selectedBenchmark}
-                  onSelect={(benchmarkId) => {
-                    navigate(routes.benchmark(benchmarkId));
-                    setShowBenchmarkPanel(false);
-                  }}
-                />
-              </div>
-            </>
-          )}
           <BenchmarkConfigModal
             open={showBenchmarkModal}
             mode={benchmarkModalMode}

@@ -72,6 +72,7 @@ def spa_client(tmp_path, monkeypatch):
         # are the addresses people paste into issues.
         "/run/bird_mini_dev_sqlite",
         "/run/bird_mini_dev_sqlite/record/1490",
+        "/benchmarks",
         "/users",
         "/my-keys",
     ],
