@@ -79,8 +79,12 @@ describe("markdown export", () => {
     expect(toMarkdown(failed)).toContain("no such table: singer");
   });
 
-  it("handles a record with no metrics yet", () => {
-    expect(() => toMarkdown({ ...record, metrics: [] })).not.toThrow();
+  it("says why when a record has no metrics", () => {
+    // Omitting the section made an export taken before evaluation look the same
+    // as one where every metric was missing, with no way to tell which.
+    const out = toMarkdown({ ...record, metrics: [] });
+    expect(out).toContain("## Metrics");
+    expect(out).toContain("had not been evaluated");
   });
 });
 
@@ -109,11 +113,32 @@ describe("html export", () => {
   });
 
   it("carries the metrics table", () => {
+    expect(html).toContain("<h2>Metrics</h2>");
     expect(html).toContain("execution_accuracy");
-    expect(html).toContain("<table>");
+    expect(html).toContain("1 if the result sets match.");
   });
 
-  it("has print rules, since PDF goes through the print dialog", () => {
+  it("keeps every metric, not just the first", () => {
+    const many = {
+      ...record,
+      metrics: Array.from({ length: 19 }, (_, i) => ({
+        name: `metric_${i}`,
+        value: String(i),
+        group: "g",
+        description: `d${i}`,
+      })),
+    };
+    const out = toHtml(many);
+    many.metrics.forEach((m) => expect(out).toContain(m.name));
+  });
+
+  it("says why when there are none", () => {
+    const out = toHtml({ ...record, metrics: [] });
+    expect(out).toContain("<h2>Metrics</h2>");
+    expect(out).toContain("had not been evaluated");
+  });
+
+  it("keeps print rules, so a browser can still print it sensibly", () => {
     expect(html).toContain("@media print");
   });
 });

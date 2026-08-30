@@ -40,6 +40,16 @@ export interface MetricRow {
   description: string;
 }
 
+/**
+ * Said out loud when a record has no metrics.
+ *
+ * The section used to be omitted entirely, so an export taken before the
+ * evaluation finished looked identical to one where every metric happened to be
+ * missing -- and the reader had no way to tell which. Saying why is cheap.
+ */
+const NO_METRICS_NOTE =
+  "No metrics: this record had not been evaluated when the export was taken.";
+
 /** Rows beyond this are summarised rather than listed. */
 const MAX_EXPORTED_ROWS = 50;
 
@@ -158,8 +168,8 @@ export function toMarkdown(record: ExportableRecord): string {
     parts.push("_no result_", "");
   }
 
+  parts.push("## Metrics", "");
   if (record.metrics.length > 0) {
-    parts.push("## Metrics", "");
     parts.push("| Metric | Value | What it means |");
     parts.push("| --- | --- | --- |");
     record.metrics.forEach((m) => {
@@ -167,8 +177,10 @@ export function toMarkdown(record: ExportableRecord): string {
         `| \`${m.name}\` | ${escapeMarkdownCell(m.value)} | ${escapeMarkdownCell(m.description)} |`,
       );
     });
-    parts.push("");
+  } else {
+    parts.push(`_${NO_METRICS_NOTE}_`);
   }
+  parts.push("");
   return parts.join("\n");
 }
 
@@ -238,7 +250,8 @@ ${record.predictedSql.trim() ? `<h2>Predicted SQL</h2><pre><code>${escapeHtml(re
 ${gtTables}
 <h2>Predicted result</h2>
 ${predictedBlock}
-${metricRows ? `<h2>Metrics</h2><table><thead><tr><th>Metric</th><th>Value</th><th>What it means</th></tr></thead><tbody>${metricRows}</tbody></table>` : ""}
+<h2>Metrics</h2>
+${metricRows ? `<table><thead><tr><th>Metric</th><th>Value</th><th>What it means</th></tr></thead><tbody>${metricRows}</tbody></table>` : `<p class="note">${escapeHtml(NO_METRICS_NOTE)}</p>`}
 </body>
 </html>`;
 }
