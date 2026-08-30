@@ -21,7 +21,11 @@ from pydantic import BaseModel
 
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.ui import runtime
-from text2sql_eval_toolkit.ui.user_keys import PROVIDERS, SecretsUnavailable
+from text2sql_eval_toolkit.ui.user_keys import (
+    PROVIDERS,
+    SECONDARY_LABELS,
+    SecretsUnavailable,
+)
 
 logger = get_logger(__name__)
 
@@ -32,6 +36,8 @@ class StoreKeyRequest(BaseModel):
     provider: str
     api_key: str
     label: str = ""
+    # Companion value for providers that need one; watsonx's project id.
+    secondary: str = ""
 
 
 def _caller(request: Request) -> str:
@@ -64,6 +70,9 @@ def list_my_keys(request: Request) -> Dict[str, Any]:
     return {
         "keys": _store().describe(_caller(request)),
         "providers": list(PROVIDERS),
+        # So the form can ask for a project id where one is needed, rather than
+        # accepting a credential the server will then refuse.
+        "secondary_labels": SECONDARY_LABELS,
     }
 
 
@@ -78,7 +87,7 @@ def store_my_key(req: StoreKeyRequest, request: Request) -> Dict[str, Any]:
     """
     email = _caller(request)
     try:
-        _store().store(email, req.provider, req.api_key, req.label)
+        _store().store(email, req.provider, req.api_key, req.label, req.secondary)
     except SecretsUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from None
     except ValueError as exc:

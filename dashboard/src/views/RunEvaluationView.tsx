@@ -25,6 +25,7 @@ import type { BenchmarkSummary } from "../types/benchmark";
 import { apiUrl } from "../lib/api";
 import { type ExportableRecord } from "../lib/playgroundExport";
 import { ExportMenu } from "./ExportMenu";
+import { JudgePlayground } from "./JudgePlayground";
 
 interface Props {
   benchmarks: BenchmarkSummary[];
@@ -1596,6 +1597,22 @@ export const RunEvaluationView: React.FC<Props> = ({
           </div>
         )}
       </section>
+
+      {/* Below the per-record metrics, because the judge is a second opinion on
+          what those metrics already said. */}
+      <div
+        style={{
+          borderTop: "1px solid var(--cds-border-subtle-01)",
+          paddingTop: "1rem",
+        }}
+      >
+        <JudgePlayground
+          benchmarkId={selectedBenchmark?.benchmark_id ?? null}
+          recordId={loadedRecordId || null}
+          pipeline={selectedPipelineName ?? null}
+          configs={llmJudgeConfigs}
+        />
+      </div>
     </div>
   );
 };

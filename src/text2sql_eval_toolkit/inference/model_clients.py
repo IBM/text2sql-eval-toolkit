@@ -194,6 +194,22 @@ class _LiteLLMClient:
         return (postprocess_sql(content) if postprocess else content), usage
 
 
+def _credential_values(prefix: str, api_key) -> Optional[Dict[str, str]]:
+    """
+    Normalise *api_key* into environment variables to set while building a client.
+
+    Accepts either a bare string -- the common case, one key for one variable --
+    or a mapping already keyed by variable name, which is what a stored watsonx
+    credential looks like once its project id is included.
+    """
+    if not api_key:
+        return None
+    if isinstance(api_key, dict):
+        return api_key
+    env_var = PROVIDER_ENV_VARS.get(prefix)
+    return {env_var: api_key} if env_var else None
+
+
 def resolve_client(
     model_name: str,
     model_parameters: Optional[dict] = None,
@@ -210,7 +226,9 @@ def resolve_client(
             through LiteLLM when that extra is installed.
         model_parameters: Generation parameters, passed to the provider.
         api_key: Use this credential instead of the provider's environment
-            variable. Omit -- as every library, CLI and notebook call does -- and
+            variable. Either the key itself, or a mapping of variable names to
+            values for a provider that needs more than one -- watsonx needs a
+            project id alongside its key. Omit -- as every library, CLI and notebook call does -- and
             the client reads the environment exactly as before.
         on_usage: Called as ``on_usage(model_name, usage)`` after each request
             that reports token counts. The library never interprets this; it is
@@ -235,8 +253,7 @@ def resolve_client(
     for prefix, (class_name, strip) in NATIVE_PREFIXES.items():
         if model_name.startswith(prefix):
             client_cls = globals()[class_name]
-            env_var = PROVIDER_ENV_VARS.get(prefix)
-            with _temporary_credential(env_var, api_key):
+            with _temporary_credential(_credential_values(prefix, api_key)):
                 inner = client_cls(model_name[strip:], params)
             return ModelClient(inner, model_name, on_usage)
 
@@ -274,32 +291,33 @@ def resolve_client(
 
 class _temporary_credential:
     """
-    Set a provider's environment variable for the duration of construction.
+    Set a provider's environment variables for the duration of construction.
 
-    The clients read their credential from ``os.environ`` in ``__init__``, so an
-    explicit key has nowhere else to go until those constructors take one. This
-    is deliberately scoped to the constructor call and restored immediately:
-    ``os.environ`` is process-global, and leaving it set would let one caller's
-    key serve another's request.
+    The clients read their credentials from ``os.environ`` in ``__init__``, so
+    explicit ones have nowhere else to go until those constructors take them.
+    This is deliberately scoped to the constructor call and restored
+    immediately: ``os.environ`` is process-global, and leaving it set would let
+    one caller's key serve another's request.
+
+    A mapping rather than a single value, because a credential is not always one
+    thing: watsonx needs a project id alongside its key, and setting only half of
+    it produces a client that fails for a reason unrelated to what went wrong.
     """
 
-    def __init__(self, env_var: Optional[str], value: Optional[str]):
-        self._var = env_var
-        self._value = value
-        self._previous: Optional[str] = None
-        self._had = False
+    def __init__(self, values: Optional[Dict[str, str]]):
+        self._values = {k: v for k, v in (values or {}).items() if k and v}
+        self._previous: Dict[str, Optional[str]] = {}
 
     def __enter__(self):
-        if self._var and self._value:
-            self._had = self._var in os.environ
-            self._previous = os.environ.get(self._var)
-            os.environ[self._var] = self._value
+        for var, value in self._values.items():
+            self._previous[var] = os.environ.get(var)
+            os.environ[var] = value
         return self
 
     def __exit__(self, *exc):
-        if self._var and self._value:
-            if self._had:
-                os.environ[self._var] = self._previous  # type: ignore[assignment]
+        for var, before in self._previous.items():
+            if before is None:
+                os.environ.pop(var, None)
             else:
-                os.environ.pop(self._var, None)
+                os.environ[var] = before
         return False
