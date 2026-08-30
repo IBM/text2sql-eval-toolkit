@@ -35,7 +35,7 @@ import os
 import sqlite3
 import threading
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.ui import auth
@@ -50,11 +50,29 @@ SECRET_KEY_ENV = "TEXT2SQL_SECRET_KEY"
 #: name a provider the server never routes to.
 PROVIDERS = ("wxai", "anthropic", "openai", "gemini")
 
+#: Provider -> the environment variables its credential maps onto. The second
+#: entry, where present, is a required companion value rather than an optional
+#: extra: watsonx refuses to build a client without a project id, so storing the
+#: key alone would produce a credential that looks saved and cannot be used.
+PROVIDER_FIELDS: Dict[str, Tuple[str, Optional[str]]] = {
+    "wxai": ("WATSONX_APIKEY", "WATSONX_PROJECTID"),
+    "anthropic": ("ANTHROPIC_API_KEY", None),
+    "openai": ("OPENAI_API_KEY", None),
+    "gemini": ("GEMINI_API_KEY", None),
+}
+
+#: Human label for the companion field, shown by the UI when one is needed.
+SECONDARY_LABELS: Dict[str, str] = {"wxai": "watsonx project ID"}
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS user_keys (
     email       TEXT NOT NULL,
     provider    TEXT NOT NULL,
     ciphertext  BLOB NOT NULL,
+    -- A second encrypted value, for providers that need more than a key.
+    -- watsonx needs a project id alongside its key, and a credential that is
+    -- only half present is the same as absent.
+    ciphertext2 BLOB,
     label       TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now')),
     last_used_at TEXT,
@@ -124,12 +142,29 @@ class UserKeyStore:
             self._local.conn = conn
         return conn
 
-    def store(self, email: str, provider: str, api_key: str, label: str = "") -> None:
+    def store(
+        self,
+        email: str,
+        provider: str,
+        api_key: str,
+        label: str = "",
+        secondary: str = "",
+    ) -> None:
         """
         Encrypt and save *api_key*, replacing any existing key for that provider.
 
+        Args:
+            email: The signed-in caller.
+            provider: One of :data:`PROVIDERS`.
+            api_key: The credential.
+            label: A note for the owner, shown in place of the key.
+            secondary: The companion value for providers that need one --
+                watsonx's project id. Required there, because a key without it
+                builds a client that fails for an unrelated-looking reason.
+
         Raises:
-            ValueError: For an unknown provider or an empty key.
+            ValueError: For an unknown provider, an empty key, or a missing
+                companion value.
             SecretsUnavailable: When no master key is configured.
         """
         provider = (provider or "").strip().lower()
@@ -140,20 +175,42 @@ class UserKeyStore:
         if not (api_key or "").strip():
             raise ValueError("An API key is required.")
 
-        ciphertext = _fernet().encrypt(api_key.strip().encode("utf-8"))
+        _, secondary_var = PROVIDER_FIELDS[provider]
+        if secondary_var and not (secondary or "").strip():
+            raise ValueError(
+                f"{provider} also needs a "
+                f"{SECONDARY_LABELS.get(provider, secondary_var)}. Storing the key "
+                "alone would look saved and refuse to work."
+            )
+
+        fernet = _fernet()
+        ciphertext = fernet.encrypt(api_key.strip().encode("utf-8"))
+        ciphertext2 = (
+            fernet.encrypt(secondary.strip().encode("utf-8"))
+            if secondary_var and secondary.strip()
+            else None
+        )
         with self._connect() as conn:
             conn.execute(
-                "INSERT INTO user_keys (email, provider, ciphertext, label) "
-                "VALUES (?, ?, ?, ?) ON CONFLICT(email, provider) DO UPDATE SET "
-                "ciphertext = excluded.ciphertext, label = excluded.label, "
+                "INSERT INTO user_keys "
+                "(email, provider, ciphertext, ciphertext2, label) "
+                "VALUES (?, ?, ?, ?, ?) ON CONFLICT(email, provider) DO UPDATE SET "
+                "ciphertext = excluded.ciphertext, "
+                "ciphertext2 = excluded.ciphertext2, label = excluded.label, "
                 "created_at = datetime('now'), last_used_at = NULL",
-                (email.strip().lower(), provider, ciphertext, (label or "").strip()),
+                (
+                    email.strip().lower(),
+                    provider,
+                    ciphertext,
+                    ciphertext2,
+                    (label or "").strip(),
+                ),
             )
         # The identity is hashed and the key never appears. This log line exists
         # so an operator can see that a key was replaced without seeing either.
         logger.info("Stored a %s key for %s", provider, auth.hash_identity(email))
 
-    def reveal_for_request(self, email: str, provider: str) -> Optional[str]:
+    def reveal_for_request(self, email: str, provider: str) -> Optional[Dict[str, str]]:
         """
         Decrypt a key for immediate use in one request.
 
@@ -162,7 +219,10 @@ class UserKeyStore:
         returned to a client, or stored anywhere else.
 
         Returns:
-            str | None: The key, or ``None`` when none is stored or the master
+            dict[str, str] | None: Environment-variable names mapped to their
+            values -- one entry for most providers, two for watsonx, whose client
+            needs a project id alongside the key. ``None`` when none is stored,
+            when the credential is incomplete, or when the master
             key cannot decrypt it -- which happens if ``TEXT2SQL_SECRET_KEY``
             changed, and is treated as "no key" rather than an error, so a
             rotated master key degrades to re-entry instead of a broken server.
@@ -170,15 +230,34 @@ class UserKeyStore:
         row = (
             self._connect()
             .execute(
-                "SELECT ciphertext FROM user_keys WHERE email = ? AND provider = ?",
+                "SELECT ciphertext, ciphertext2 FROM user_keys "
+                "WHERE email = ? AND provider = ?",
                 (email.strip().lower(), (provider or "").strip().lower()),
             )
             .fetchone()
         )
         if row is None:
             return None
+        provider_key = (provider or "").strip().lower()
+        primary_var, secondary_var = PROVIDER_FIELDS.get(provider_key, ("", None))
         try:
-            plaintext = _fernet().decrypt(row["ciphertext"]).decode("utf-8")
+            fernet = _fernet()
+            values = {primary_var: fernet.decrypt(row["ciphertext"]).decode("utf-8")}
+            if secondary_var and row["ciphertext2"] is not None:
+                values[secondary_var] = fernet.decrypt(row["ciphertext2"]).decode(
+                    "utf-8"
+                )
+            elif secondary_var:
+                # Half a credential is not a credential. Falling back to the
+                # server's is better than failing with a confusing provider error.
+                logger.warning(
+                    "A stored %s credential for %s has no %s; using the server "
+                    "credential instead.",
+                    provider_key,
+                    auth.hash_identity(email),
+                    secondary_var,
+                )
+                return None
         except Exception:
             logger.warning(
                 "A stored key for %s could not be decrypted; treating it as absent. "
@@ -193,7 +272,7 @@ class UserKeyStore:
                 "WHERE email = ? AND provider = ?",
                 (email.strip().lower(), (provider or "").strip().lower()),
             )
-        return plaintext
+        return values
 
     def describe(self, email: str) -> List[Dict[str, object]]:
         """

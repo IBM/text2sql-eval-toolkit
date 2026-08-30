@@ -45,7 +45,9 @@ class TestEncryptionAtRest:
 
     def test_it_round_trips_through_decryption(self, store):
         store.store(USER, "anthropic", CANARY)
-        assert store.reveal_for_request(USER, "anthropic") == CANARY
+        assert store.reveal_for_request(USER, "anthropic") == {
+            "ANTHROPIC_API_KEY": CANARY
+        }
 
     def test_a_changed_master_key_degrades_to_absent(self, store, monkeypatch):
         """
@@ -118,12 +120,16 @@ class TestLifecycle:
     def test_a_key_survives_reopening_the_store(self, tmp_path, master_key):
         path = tmp_path / "k.sqlite"
         UserKeyStore(path).store(USER, "anthropic", CANARY)
-        assert UserKeyStore(path).reveal_for_request(USER, "anthropic") == CANARY
+        assert UserKeyStore(path).reveal_for_request(USER, "anthropic") == {
+            "ANTHROPIC_API_KEY": CANARY
+        }
 
     def test_storing_again_replaces_rather_than_duplicates(self, store):
         store.store(USER, "anthropic", "first")
         store.store(USER, "anthropic", "second")
-        assert store.reveal_for_request(USER, "anthropic") == "second"
+        assert store.reveal_for_request(USER, "anthropic") == {
+            "ANTHROPIC_API_KEY": "second"
+        }
         assert len(store.describe(USER)) == 1
 
     def test_deleting_removes_it(self, store):
@@ -220,3 +226,42 @@ class TestStoredKeysAreOptional:
 
         assert _user_api_key(None, "wxai:model") is None
         assert _user_api_key(USER, "model-without-a-prefix") is None
+
+
+class TestProvidersNeedingMoreThanAKey:
+    """
+    watsonx needs a project id alongside its key. Storing only the key produced
+    a credential that looked saved and then failed inside the provider client,
+    with an error about the environment rather than about what was missing.
+    """
+
+    def test_watsonx_refuses_a_key_without_a_project_id(self, store):
+        with pytest.raises(ValueError) as excinfo:
+            store.store(USER, "wxai", CANARY)
+        assert "project" in str(excinfo.value).lower()
+
+    def test_watsonx_reveals_both_halves(self, store):
+        store.store(USER, "wxai", CANARY, secondary="proj-123")
+        assert store.reveal_for_request(USER, "wxai") == {
+            "WATSONX_APIKEY": CANARY,
+            "WATSONX_PROJECTID": "proj-123",
+        }
+
+    def test_the_project_id_is_encrypted_too(self, store):
+        store.store(USER, "wxai", CANARY, secondary="proj-secret-value")
+        assert b"proj-secret-value" not in store._path.read_bytes()
+
+    def test_providers_needing_one_value_are_unaffected(self, store):
+        store.store(USER, "anthropic", CANARY)
+        assert store.reveal_for_request(USER, "anthropic") == {
+            "ANTHROPIC_API_KEY": CANARY
+        }
+
+    def test_neither_half_reaches_the_log(self, store, caplog):
+        import logging
+
+        with caplog.at_level(logging.DEBUG):
+            store.store(USER, "wxai", CANARY, secondary="proj-secret-value")
+            store.reveal_for_request(USER, "wxai")
+        assert CANARY not in caplog.text
+        assert "proj-secret-value" not in caplog.text
