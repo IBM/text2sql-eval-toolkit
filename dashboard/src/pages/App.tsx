@@ -843,7 +843,10 @@ export const App: React.FC = () => {
           style={{ marginLeft: "auto", display: "flex", alignItems: "center" }}
         >
           <SessionBar />
-          <CopyShortLinkButton />
+          {/* The playground has its own Export menu, which offers this and
+              more. Two controls doing the same thing on one page is worse
+              than either. */}
+          {activeView !== "runEvaluation" && <CopyShortLinkButton />}
           <Button
             kind="ghost"
             size="sm"
