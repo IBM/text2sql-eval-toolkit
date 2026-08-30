@@ -111,6 +111,29 @@ def normalize_mysql_connection_string(
 
     connect_args = {}
 
+    # Execution is asyncio, so the URL has to name an async driver. Only
+    # `mysql://` used to be rewritten, which meant a connection string written
+    # as `mysql+pymysql://` -- the form most MySQL documentation shows, and a
+    # perfectly good sync driver -- passed straight through into an async engine
+    # and failed with "The asyncio extension requires an async driver to be
+    # used". That names the symptom and not the fix, so the sync drivers are
+    # translated here instead.
+    for sync_driver in (
+        "mysql+pymysql://",
+        "mysql+mysqldb://",
+        "mysql+mysqlconnector://",
+    ):
+        if connection_string.startswith(sync_driver):
+            logger.info(
+                "Rewriting %s to mysql+aiomysql:// -- execution is asyncio and "
+                "needs an async driver.",
+                sync_driver.rstrip(":/"),
+            )
+            connection_string = (
+                "mysql+aiomysql://" + connection_string[len(sync_driver) :]
+            )
+            break
+
     # Handle mysql:// with SSL parameters like your example
     if connection_string.startswith("mysql://"):
         # For async, we'll try aiomysql first, then fall back to asyncio-mysql
@@ -119,6 +142,7 @@ def normalize_mysql_connection_string(
             "mysql://", "mysql+aiomysql://", 1
         )
 
+    if connection_string.startswith("mysql+aiomysql://"):
         # Parse the URL to modify the database part only if db_id is provided
         if db_id:
             parsed = urlparse(connection_string)
