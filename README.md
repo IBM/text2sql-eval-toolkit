@@ -37,7 +37,7 @@ Whether you're building new models, comparing existing ones, or diagnosing perfo
 - **[Documentation site](https://text2sql-eval-toolkit.readthedocs.io/)** — the
   guide (installation, the five stages, the data model, benchmarks, models,
   LLM-as-judge, the CLI and configuration) and the
-  [API reference](https://text2sql-eval-toolkit.readthedocs.io/reference/) for
+  [API reference](https://text2sql-eval-toolkit.readthedocs.io/en/latest/reference/) for
   every exported function and class.
 - **[docs/dashboard/](https://github.com/IBM/text2sql-eval-toolkit/tree/main/docs/dashboard)** — the evaluation dashboard: features,
   shareable links, the query index, capability tiers, and deployment.
@@ -239,7 +239,7 @@ agentic.run_pipeline(
 )
 ```
 
-Every exported function and class is documented in the **[API reference](https://text2sql-eval-toolkit.readthedocs.io/reference/)**, generated from the docstrings.
+Every exported function and class is documented in the **[API reference](https://text2sql-eval-toolkit.readthedocs.io/en/latest/reference/)**, generated from the docstrings.
 
 ### Running Experiments
 
