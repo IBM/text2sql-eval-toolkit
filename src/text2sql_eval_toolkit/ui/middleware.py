@@ -38,7 +38,9 @@ from text2sql_eval_toolkit.ui.capabilities import (
     iter_routes,
     required_tier,
     resolve_tier,
+    requires_admin,
 )
+from text2sql_eval_toolkit.ui.roles import ROLE_TIERS, Role, effective_role
 
 
 def _route_template(request: Request) -> Optional[str]:
@@ -87,11 +89,28 @@ async def enforce_capability_tier(request: Request, call_next):
     # resolve the template ourselves. Matching the template rather than the
     # concrete path means ids in the URL cannot be used to dodge a rule.
     template = _route_template(request) or path
+    email = runtime.current_user_email(request)
+    role = effective_role(email, runtime.get_user_store(), runtime.get_admin_emails())
+
+    # Admin is asked before the tier, and separately: user management must work
+    # on a judge-mode host, where the ceiling denies full.
+    #
+    # A `full` deployment is the local operator tool, and they already control
+    # the process -- the same reasoning that makes resolve_tier grant full there
+    # without a sign-in. Requiring TEXT2SQL_ADMIN_EMAILS to use the console on a
+    # laptop would be ceremony, not security.
+    is_admin = role is Role.ADMIN or (
+        runtime.get_mode() is Tier.FULL and not runtime.is_remote_deployment()
+    )
+    if requires_admin(request.method, template) and not is_admin:
+        return JSONResponse(
+            status_code=403,
+            content={"detail": "This endpoint requires an administrator."},
+        )
+
     needed = required_tier(request.method, template)
     granted = resolve_tier(
-        runtime.get_mode(),
-        runtime.current_user_email(request),
-        runtime.get_judge_allowlist(),
+        runtime.get_mode(), email, ROLE_TIERS[role], runtime.is_remote_deployment()
     )
 
     if granted < needed:

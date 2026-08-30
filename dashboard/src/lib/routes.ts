@@ -21,6 +21,9 @@ export type ViewName =
   | "pipelineCompare"
   | "profileCompare"
   | "llmJudge"
+  | "benchmarks"
+  | "users"
+  | "myKeys"
   | "runEvaluation";
 
 /** Filter state for the error-analysis view, all optional. */
@@ -63,7 +66,8 @@ const BENCHMARK_SEGMENT = "benchmark";
 
 export const routes = {
   home: (): string => "/",
-  benchmark: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}`,
+  benchmark: (benchmarkId: string): string =>
+    `/benchmark/${encode(benchmarkId)}`,
   pipeline: (benchmarkId: string, pipelineId: string): string =>
     `/benchmark/${encode(benchmarkId)}/pipeline/${encode(pipelineId)}`,
   /**
@@ -76,20 +80,57 @@ export const routes = {
   pipelineRecord: (
     benchmarkId: string,
     pipelineId: string,
-    recordId: string
+    recordId: string,
   ): string =>
     `/benchmark/${encode(benchmarkId)}/pipeline/${encode(
-      pipelineId
+      pipelineId,
     )}/record/${encode(recordId)}`,
   errors: (benchmarkId: string, filters?: ErrorFilters): string =>
     `/benchmark/${encode(benchmarkId)}/errors${buildQuery(filters)}`,
-  insights: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}/insights`,
-  compare: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}/compare`,
+  insights: (benchmarkId: string): string =>
+    `/benchmark/${encode(benchmarkId)}/insights`,
+  compare: (benchmarkId: string): string =>
+    `/benchmark/${encode(benchmarkId)}/compare`,
   profileCompare: (benchmarkId: string): string =>
     `/benchmark/${encode(benchmarkId)}/compare/profile`,
   llmJudge: (configName?: string): string =>
     configName ? `/llm-judge/${encode(configName)}` : "/llm-judge",
-  run: (): string => "/run",
+  /**
+   * The Eval Playground, optionally at one benchmark and record.
+   *
+   * Benchmark and record are path segments because they say which thing is open,
+   * the way `/benchmark/{id}/pipeline/{p}/record/{r}` does. The pipeline is a
+   * query parameter: it chooses which prediction to look at within an
+   * already-identified record, which is a choice about the view rather than
+   * about what the view is showing. `judge` is the same kind of choice -- which
+   * judge config's verdict is being shown.
+   */
+  run: (
+    benchmarkId?: string | null,
+    recordId?: string | null,
+    pipeline?: string | null,
+    judgeConfig?: string | null,
+  ): string => {
+    let path = "/run";
+    if (benchmarkId) {
+      path += `/${encode(benchmarkId)}`;
+      if (recordId) path += `/record/${encode(recordId)}`;
+    }
+    const params = new URLSearchParams();
+    if (pipeline) params.set("pipeline", pipeline);
+    // Present only once a verdict is actually on screen. It names the config
+    // rather than carrying the verdict itself: the verdict is cached against
+    // the record, pipeline and config contents, so the name is enough to bring
+    // the same answer back, and a URL cannot be edited into claiming a verdict
+    // the judge never gave.
+    if (judgeConfig) params.set("judge", judgeConfig);
+    const query = params.toString();
+    return query ? `${path}?${query}` : path;
+  },
+  /** Every benchmark, as a page rather than a slide-out panel. */
+  benchmarks: (): string => "/benchmarks",
+  users: (): string => "/users",
+  myKeys: (): string => "/my-keys",
 };
 
 /**
@@ -131,7 +172,9 @@ export function parseQuery(search: string | URLSearchParams): ErrorFilters {
     const raw = params.get(key);
     if (raw == null || raw === "") return fallback;
     const parsed = Number(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+    return Number.isFinite(parsed) && parsed > 0
+      ? Math.floor(parsed)
+      : fallback;
   };
 
   return {
@@ -191,8 +234,39 @@ export function parseLocation(pathname: string): RouteMatch {
 
   if (segments.length === 0) return { ...EMPTY };
 
-  if (segments[0] === "run" && segments.length === 1) {
-    return { ...EMPTY, view: "runEvaluation" };
+  if (segments[0] === "run") {
+    // /run
+    if (segments.length === 1) {
+      return { ...EMPTY, view: "runEvaluation" };
+    }
+    // /run/{benchmarkId}
+    if (segments.length === 2) {
+      return { ...EMPTY, view: "runEvaluation", benchmarkId: segments[1] };
+    }
+    // /run/{benchmarkId}/record/{recordId}
+    if (segments.length === 4 && segments[2] === "record") {
+      return {
+        ...EMPTY,
+        view: "runEvaluation",
+        benchmarkId: segments[1],
+        recordId: segments[3],
+      };
+    }
+    // Anything else under /run is a link that has been mangled; say so rather
+    // than silently opening the playground on a different record.
+    return { ...EMPTY, view: "runEvaluation", notFound: true };
+  }
+
+  if (segments[0] === "benchmarks" && segments.length === 1) {
+    return { ...EMPTY, view: "benchmarks" };
+  }
+
+  if (segments[0] === "users" && segments.length === 1) {
+    return { ...EMPTY, view: "users" };
+  }
+
+  if (segments[0] === "my-keys" && segments.length === 1) {
+    return { ...EMPTY, view: "myKeys" };
   }
 
   if (segments[0] === "llm-judge" && segments.length <= 2) {

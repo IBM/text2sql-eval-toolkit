@@ -12,6 +12,9 @@ filtered error-analysis query, or a single record can be linked to directly.
 /benchmark/{id}/insights                                 metric insights
 /benchmark/{id}/compare                                  pipeline comparison
 /benchmark/{id}/compare/profile                          profile comparison
+/run                                                     eval playground
+/run/{id}                                                …at one benchmark
+/run/{id}/record/{record}?pipeline=…                     …at one record
 ```
 
 Filters, page number, page size and the open record are all carried in the query

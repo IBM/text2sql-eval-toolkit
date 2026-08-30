@@ -5,8 +5,10 @@
 
 import asyncio
 import json
+import threading
 import pandas as pd
 from pathlib import Path
+from typing import Any, Dict
 from tqdm.asyncio import tqdm_asyncio
 from text2sql_eval_toolkit.metrics.text2sql_utils import (
     compare_result_dfs,
@@ -35,6 +37,10 @@ from text2sql_eval_toolkit.evaluation.llm_as_judge import (
 from text2sql_eval_toolkit.logging import get_logger
 
 logger = get_logger(__name__)
+
+#: Key under which a summary records the judge that produced its verdicts.
+#: It sits alongside pipeline ids; see [`split_summary`][text2sql_eval_toolkit.split_summary].
+JUDGE_CONFIG_KEY = "llm_judge_config"
 
 
 def evaluate_prediction(
@@ -393,7 +399,68 @@ def evaluate_prediction(
     return result
 
 
+def split_summary(summary):
+    """
+    Separate a summary's pipeline entries from its judge-config entry.
+
+    [`compute_summary`][text2sql_eval_toolkit.compute_summary] returns a mapping keyed by ``pipeline_id``, with one
+    exception: ``"llm_judge_config"`` entry recording which judge produced
+    the verdicts. Every consumer therefore has to know to skip that key, and one
+    that does not silently treats it as a pipeline.
+
+    The shape itself is not changed, because it is the published artifact format:
+    every ``*_eval_summary.json`` on the Hub carries that key, and re-shaping it
+    would stop existing snapshots being readable. This is the supported way to
+    take it apart.
+
+    Args:
+        summary (dict): A mapping from [`compute_summary`][text2sql_eval_toolkit.compute_summary], or the parsed
+            contents of a ``*_eval_summary.json`` file.
+
+    Returns:
+        tuple[dict, dict | None]: The pipeline entries keyed by ``pipeline_id``,
+        and the judge config (``None`` when the judge did not run).
+
+    Example:
+        ```python
+        >>> pipelines, judge = split_summary(summary)
+        >>> sorted(pipelines)
+        ['modelA-greedy-zero-shot-chatapi', 'modelB-greedy-zero-shot-chatapi']
+        ```
+    """
+    if not isinstance(summary, dict):
+        return {}, None
+    judge_config = summary.get(JUDGE_CONFIG_KEY)
+    pipelines = {k: v for k, v in summary.items() if k != JUDGE_CONFIG_KEY}
+    return pipelines, judge_config
+
+
 def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=None):
+    """
+    Aggregate per-record metrics into a per-pipeline summary.
+
+    Averages are taken over records that could be evaluated, so a benchmark where
+    some records failed to execute still yields a meaningful score rather than
+    one dragged toward zero by errors. Failure counts are reported alongside, and
+    should be read together with the averages -- a high score over few evaluated
+    records is not the same claim as a high score over all of them.
+
+    Note:
+        The returned mapping carries a ``"llm_judge_config"`` key alongside the
+        pipeline ids, recording which judge produced the verdicts. Consumers
+        iterating pipelines must skip it -- [`print_summary`][text2sql_eval_toolkit.print_summary] and
+        [`summary_to_df_csv`][text2sql_eval_toolkit.summary_to_df_csv] both do.
+
+    Args:
+        metrics_by_model (dict): Per-record metric dicts, keyed by ``pipeline_id``.
+        llm_judge_config (dict | None): The judge config used. Recorded in the
+            result so a summary says which judge produced its verdicts.
+        token_usage_by_model (dict | None): Token counts keyed by ``pipeline_id``,
+            folded into the summary when present.
+
+    Returns:
+        dict: ``pipeline_id`` to metrics, plus the ``"llm_judge_config"`` entry.
+    """
     summary = {}
     for model, records in metrics_by_model.items():
         num_records = len(records)
@@ -503,6 +570,22 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
 
 
 def summary_to_df_csv(summary, output_path, use_llm):
+    """
+    Render a summary as a DataFrame and write it to CSV.
+
+    The ``"llm_judge_config"`` entry is skipped, so each row is one pipeline.
+
+    Args:
+        summary (dict): A mapping from [`compute_summary`][text2sql_eval_toolkit.compute_summary].
+        output_path (str | Path): Where to write the CSV. Written with ``index=False``.
+        use_llm (bool): Whether to include LLM-judge columns. When ``False`` the judge
+            columns are filled with ``"N/A"`` rather than omitted, so the column
+            set is stable across runs with and without the judge.
+
+    Returns:
+        pandas.DataFrame: The same table that was written, for callers that want
+        it in memory as well as on disk.
+    """
     rows = []
     for model, metrics in summary.items():
         if model == "llm_judge_config":
@@ -564,6 +647,21 @@ def summary_to_df_csv(summary, output_path, use_llm):
 
 
 def print_summary(summary, use_llm):
+    """
+    Print a summary to stdout in a human-readable form.
+
+    For terminal use; [`summary_to_df_csv`][text2sql_eval_toolkit.summary_to_df_csv] is the machine-readable
+    equivalent. The ``"llm_judge_config"`` entry is skipped.
+
+    Args:
+        summary (dict): A mapping from [`compute_summary`][text2sql_eval_toolkit.compute_summary].
+        use_llm (bool): Whether to include LLM-judge columns. Pass ``False`` when
+            the judge did not run, or its rows will read as zeros rather than as
+            absent.
+
+    Returns:
+        None: Output goes to stdout.
+    """
     print("\n=== Evaluation Summary ===")
     for pipeline, metrics in summary.items():
         if pipeline == "llm_judge_config":
@@ -677,6 +775,37 @@ async def async_evaluate_predictions(
     force_rerun_llm_judge: bool = False,
     force_rerun: bool = False,
 ):
+    """
+    Evaluate a predictions file, awaitable.
+
+    What [`evaluate_predictions`][text2sql_eval_toolkit.evaluate_predictions] wraps. Await this from code that already
+    runs an event loop; the synchronous wrapper would raise there.
+
+    Records are evaluated concurrently behind a semaphore of *max_concurrency*.
+    Raising it increases pressure on whatever the judge model's endpoint will
+    tolerate, not on local CPU.
+
+    Args:
+        input_file: Path to a predictions JSON file.
+        output_file: Evaluation artifact path. Defaults to *input_file* with
+            ``_eval`` inserted before the extension.
+        summary_file: JSON summary path. Defaults to the output path with
+            ``_summary.json``.
+        csv_summary_file: CSV summary path. Defaults to the output path with
+            ``_summary.csv``.
+        llm_judge_config: An already-loaded judge config, as returned by
+            [`load_llm_judge_config`][text2sql_eval_toolkit.load_llm_judge_config]. ``None`` skips the judge. Note that
+            this takes the config itself, where the synchronous wrapper takes a
+            path.
+        max_concurrency: Records evaluated at once.
+        force_rerun_llm_judge: Re-run the judge for records that already have a
+            verdict.
+        force_rerun: Re-evaluate everything, ignoring stored results.
+
+    Returns:
+        tuple[dict, pandas.DataFrame]: The full evaluation data, and the
+        per-pipeline summary table.
+    """
     output_file = output_file or get_default_eval_filename(input_file)
     summary_file = summary_file or add_summary_json_suffix(output_file)
     csv_summary_file = csv_summary_file or add_summary_csv_suffix(output_file)
@@ -769,6 +898,36 @@ async def async_evaluate_predictions(
     return data, summary_df
 
 
+def _run_coroutine(coro):
+    """
+    Run *coro* to completion from synchronous code, loop or no loop.
+
+    ``asyncio.run`` raises when a loop is already running in this thread, which
+    made the synchronous entry points unusable from notebooks and from any async
+    server. Handing the coroutine to a worker thread with its own loop keeps one
+    synchronous signature that works in both settings.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    result: Dict[str, Any] = {}
+
+    def _worker() -> None:
+        try:
+            result["value"] = asyncio.run(coro)
+        except BaseException as exc:  # re-raised on the calling thread below
+            result["error"] = exc
+
+    thread = threading.Thread(target=_worker, name="text2sql-eval", daemon=True)
+    thread.start()
+    thread.join()
+    if "error" in result:
+        raise result["error"]
+    return result["value"]
+
+
 def evaluate_predictions(
     input_file: str,
     output_file: str = None,
@@ -779,10 +938,50 @@ def evaluate_predictions(
     force_rerun_llm_judge: bool = False,
     force_rerun: bool = False,
 ):
+    """
+    Evaluate a predictions file and write the evaluation and summary artifacts.
+
+    The synchronous entry point, and the one most callers want.
+
+    Safe to call from inside a running event loop: it detects one and runs the
+    work on a worker thread with its own loop. Async callers should still prefer
+    awaiting [`async_evaluate_predictions`][text2sql_eval_toolkit.async_evaluate_predictions] directly, which avoids the extra
+    thread.
+
+    Evaluation is resumable: records that already carry results are left alone
+    unless *force_rerun* is set.
+
+    Args:
+        input_file: Path to a predictions JSON file.
+        output_file: Where to write the evaluation artifact. Defaults to the
+            input path with ``_eval`` inserted before the extension.
+        summary_file: Where to write the JSON summary. Defaults to the output
+            path with ``_summary.json``.
+        csv_summary_file: Where to write the CSV summary. Defaults to the output
+            path with ``_summary.csv``.
+        use_llm: Also run LLM-as-judge.
+        llm_judge_config_path: Path to a judge config YAML. Passing this loads a
+            judge config even when *use_llm* is ``False``.
+        force_rerun_llm_judge: Re-run the judge for records that already have a
+            verdict.
+        force_rerun: Re-evaluate everything, ignoring stored results.
+
+    Returns:
+        tuple[dict, pandas.DataFrame]: The full evaluation data, and the
+        per-pipeline summary table.
+
+    Example:
+        ```python
+        >>> data, summary_df = evaluate_predictions(
+        ...     "data/results/my-benchmark-predictions.json"
+        ... )
+        >>> summary_df.head()
+        ```
+    """
     llm_judge_config = None
     if use_llm or llm_judge_config_path is not None:
         llm_judge_config = load_llm_judge_config(llm_judge_config_path)
-    return asyncio.run(
+    return _run_coroutine(
         async_evaluate_predictions(
             input_file,
             output_file,
@@ -803,6 +1002,38 @@ def run_evaluation(
     force_rerun_llm_judge: bool = False,
     force_rerun: bool = False,
 ):
+    """
+    Evaluate a registered benchmark's predictions.
+
+    The registry-aware entry point: it resolves the predictions path for
+    *benchmark_id* and hands off to [`evaluate_predictions`][text2sql_eval_toolkit.evaluate_predictions]. Use that one
+    directly to evaluate a file that is not part of a registered benchmark.
+
+    Args:
+        benchmark_id: A benchmark from ``benchmarks.json`` or
+            ``test-benchmarks.json``. See [`get_available_benchmarks`][text2sql_eval_toolkit.get_available_benchmarks].
+        use_llm: Also run LLM-as-judge. Requires credentials for the model named
+            in the judge config.
+        llm_judge_config_path: Path to a judge config YAML. Passing this loads a
+            judge config even when *use_llm* is ``False``.
+        force_rerun_llm_judge: Re-run the judge for records that already carry a
+            verdict.
+        force_rerun: Re-evaluate everything, ignoring stored results. Implies
+            *force_rerun_llm_judge*.
+
+    Returns:
+        tuple[dict, pandas.DataFrame]: The full evaluation data, and the
+        per-pipeline summary table.
+
+    Raises:
+        ValueError: If *benchmark_id* is in neither registry.
+
+    Example:
+        ```python
+        >>> data, summary_df = run_evaluation("bird_mini_dev_sqlite")
+        >>> summary_df[["subset_non_empty_execution_accuracy_avg"]]
+        ```
+    """
     benchmark_info = get_benchmark_info(benchmark_id)
     predictions_path = str(Path(benchmark_info["predictions_path"]))
     return evaluate_predictions(

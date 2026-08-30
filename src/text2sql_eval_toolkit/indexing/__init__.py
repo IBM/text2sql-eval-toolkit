@@ -6,7 +6,7 @@
 """
 Derived indices over evaluation artifacts.
 
-See :mod:`text2sql_eval_toolkit.indexing.builder` for what is stored and why.
+See `builder` for what is stored and why.
 Indices live in ``<results>/.index/`` and are safe to delete at any time.
 """
 

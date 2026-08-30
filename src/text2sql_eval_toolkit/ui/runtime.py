@@ -26,7 +26,8 @@ from typing import Optional
 from fastapi import Request
 
 from text2sql_eval_toolkit.logging import get_logger
-from text2sql_eval_toolkit.ui.capabilities import Tier, parse_allowlist
+from text2sql_eval_toolkit.ui.capabilities import Tier
+from text2sql_eval_toolkit.ui.roles import admin_emails_from_env
 
 logger = get_logger(__name__)
 
@@ -77,8 +78,22 @@ def _mode_from_env() -> Tier:
 # deployment lowers the ceiling and no sign-in can raise it back.
 _MODE: Tier = _mode_from_env()
 
-# Emails allowed to reach the judge tier, from TEXT2SQL_JUDGE_ALLOWLIST.
-_JUDGE_ALLOWLIST: set = parse_allowlist(os.getenv("TEXT2SQL_JUDGE_ALLOWLIST"))
+# Addresses that always hold admin, from TEXT2SQL_ADMIN_EMAILS. Read at every
+# startup and never overridden by a stored row: this is the recovery path for a
+# deployment whose role table is wrong, and removing TEXT2SQL_JUDGE_ALLOWLIST
+# left it as the only one.
+_ADMIN_EMAILS: set = admin_emails_from_env()
+
+# The role table. None until a deployment configures one, in which case only
+# TEXT2SQL_ADMIN_EMAILS grants anything above read-only.
+_USER_STORE = None
+
+# Whether this deployment is reachable beyond loopback. Decides whether `full`
+# means "the operator, who controls this process" or "anyone who finds the URL".
+_REMOTE_DEPLOYMENT = False
+
+# Encrypted per-user provider credentials. None until configured.
+_USER_KEY_STORE = None
 
 
 def get_mode() -> Tier:
@@ -90,13 +105,44 @@ def set_mode(mode: Tier) -> None:
     _MODE = mode
 
 
-def get_judge_allowlist() -> set:
-    return _JUDGE_ALLOWLIST
+def get_admin_emails() -> set:
+    """Addresses that always hold admin, from the environment."""
+    return _ADMIN_EMAILS
 
 
-def set_judge_allowlist(allowlist: set) -> None:
-    global _JUDGE_ALLOWLIST
-    _JUDGE_ALLOWLIST = allowlist
+def is_remote_deployment() -> bool:
+    """Whether this process is bound beyond loopback."""
+    return _REMOTE_DEPLOYMENT
+
+
+def set_remote_deployment(remote: bool) -> None:
+    global _REMOTE_DEPLOYMENT
+    _REMOTE_DEPLOYMENT = bool(remote)
+
+
+def get_user_key_store():
+    """The per-user credential store, or ``None`` when none is configured."""
+    return _USER_KEY_STORE
+
+
+def set_user_key_store(store) -> None:
+    global _USER_KEY_STORE
+    _USER_KEY_STORE = store
+
+
+def get_user_store():
+    """The role table, or ``None`` when none is configured."""
+    return _USER_STORE
+
+
+def set_user_store(store) -> None:
+    global _USER_STORE
+    _USER_STORE = store
+
+
+def set_admin_emails(allowlist: set) -> None:
+    global _ADMIN_EMAILS
+    _ADMIN_EMAILS = allowlist
 
 
 def current_user_email(request: Request) -> Optional[str]:

@@ -296,3 +296,72 @@ def test_usage_thresholds(spent, budget, exhausted, warning):
 def test_remaining_never_goes_negative():
     usage = Usage(month="2026-08", spent_usd=80.0, budget_usd=50.0, calls=3)
     assert usage.remaining_usd == 0.0
+
+
+# --- restoring a shared verdict -------------------------------------------
+#
+# A playground link carries the judge config it was run with, and the reader's
+# browser asks for that verdict on load. That lookup must never start an
+# inference: the sender is sharing an answer, not authorising the reader to
+# spend against the budget -- or, once per-user keys are in play, against the
+# reader's own provider account.
+
+
+def test_cached_only_returns_nothing_and_calls_no_model(client, fake_llm):
+    api, _ = client
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={"record_id": "r1", "pipeline": PIPE, "cached_only": True},
+    )
+    assert resp.status_code == 204, resp.text
+    assert resp.content == b""
+    assert fake_llm == [], "a cached-only lookup started an inference"
+
+
+def test_cached_only_returns_a_stored_verdict(client, fake_llm):
+    api, _ = client
+    first = api.post(
+        "/api/benchmarks/demo/judge", json={"record_id": "r1", "pipeline": PIPE}
+    )
+    assert first.status_code == 200
+    assert len(fake_llm) == 1
+
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={"record_id": "r1", "pipeline": PIPE, "cached_only": True},
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["verdict"] == "Yes"
+    assert body["cached"] is True
+    assert len(fake_llm) == 1, "restoring a shared verdict re-ran the model"
+
+
+def test_cached_only_does_not_spend_when_the_budget_is_exhausted(
+    client, fake_llm, monkeypatch
+):
+    """An exhausted budget must not turn a shared link into a 429."""
+    api, _ = client
+    api.post("/api/benchmarks/demo/judge", json={"record_id": "r1", "pipeline": PIPE})
+
+    monkeypatch.setenv("TEXT2SQL_JUDGE_BUDGET_USD", "0")
+    routers_judge.reset_judge_store()
+    try:
+        resp = api.post(
+            "/api/benchmarks/demo/judge",
+            json={"record_id": "r1", "pipeline": PIPE, "cached_only": True},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["cached"] is True
+    finally:
+        routers_judge.reset_judge_store()
+
+
+def test_cached_only_is_off_by_default(client, fake_llm):
+    """Omitting the flag must keep the ordinary Run judge behaviour."""
+    api, _ = client
+    resp = api.post(
+        "/api/benchmarks/demo/judge", json={"record_id": "r1", "pipeline": PIPE}
+    )
+    assert resp.status_code == 200
+    assert len(fake_llm) == 1

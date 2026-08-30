@@ -62,7 +62,7 @@ DB access uses `POSTGRES_CONNECTION_STRING`, `MYSQL_CONNECTION_STRING`,
 `DB2_CONNECTION_STRING`, `PRESTO_CONNECTION_STRING`; SQLite benchmarks read local db folders
 (not in git — see `data/benchmarks/dbs/README.md`).
 
-Pre-computed results (~7 GB) are not in the repo: `text2sql-eval-toolkit results fetch`.
+Pre-computed results (~4 GB) are not in the repo: `text2sql-eval-toolkit results fetch`.
 
 ## Commands
 

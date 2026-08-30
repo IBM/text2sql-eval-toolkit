@@ -30,7 +30,7 @@ def client(monkeypatch):
         yield TestClient(server.app)
     finally:
         server.set_mode(original)
-        server.set_judge_allowlist(set())
+        server.set_admin_emails(set())
 
 
 # --- the verified-email rule ---------------------------------------------
@@ -70,11 +70,18 @@ def test_unverified_or_malformed_claims_are_refused(claims):
 
 
 def test_an_unverified_address_cannot_reach_the_judge_tier():
-    """The end-to-end consequence of the rule above."""
+    """
+    The end-to-end consequence of the rule above.
+
+    The requested tier is ``JUDGE`` deliberately: the point is that a stored
+    role saying "this address may judge" counts for nothing when the address was
+    never verified. Passing ``PUBLIC`` here would prove only that public
+    resolves to public.
+    """
     claims = {"email": ALLOWED, "email_verified": False}
     email = auth.extract_verified_email(claims)
     assert email is None
-    assert resolve_tier(Tier.JUDGE, email, {ALLOWED}) is Tier.PUBLIC
+    assert resolve_tier(Tier.JUDGE, email, Tier.JUDGE) is Tier.PUBLIC
 
 
 # --- identity hygiene -----------------------------------------------------

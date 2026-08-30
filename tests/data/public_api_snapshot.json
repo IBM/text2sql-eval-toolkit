@@ -1,0 +1,688 @@
+{
+  "AgenticSQLGenerationPipeline": {
+    "kind": "class",
+    "params": [
+      {
+        "default": "3",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "max_attempts"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "use_baseline_prompt"
+      },
+      {
+        "default": "'v1'",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "version"
+      }
+    ]
+  },
+  "DEFAULT_REPO_ID": {
+    "kind": "value"
+  },
+  "DEFAULT_REVISION": {
+    "kind": "value"
+  },
+  "LLMSQLGenerationPipeline": {
+    "kind": "class",
+    "params": []
+  },
+  "LLMSQLGenerationPipelineSimple": {
+    "kind": "class",
+    "params": []
+  },
+  "__version__": {
+    "kind": "value"
+  },
+  "add_summary_csv_suffix": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "path"
+      }
+    ]
+  },
+  "add_summary_json_suffix": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "path"
+      }
+    ]
+  },
+  "async_evaluate_predictions": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "input_file"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "output_file"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "summary_file"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "csv_summary_file"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "llm_judge_config"
+      },
+      {
+        "default": "16",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "max_concurrency"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "force_rerun_llm_judge"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "force_rerun"
+      }
+    ]
+  },
+  "clear_cache": {
+    "kind": "function",
+    "params": [
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "data_root"
+      },
+      {
+        "default": "True",
+        "kind": "KEYWORD_ONLY",
+        "name": "confirm"
+      }
+    ]
+  },
+  "compare_dfs_bird_eval_logic": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "df1"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "df2"
+      }
+    ]
+  },
+  "compare_result_dfs": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "gold_df"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "pred_df"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "gold_sql"
+      }
+    ]
+  },
+  "compute_summary": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "metrics_by_model"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "llm_judge_config"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "token_usage_by_model"
+      }
+    ]
+  },
+  "evaluate_prediction": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "record"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "prediction"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "llm_judge_config"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "force_rerun_llm_judge"
+      }
+    ]
+  },
+  "evaluate_predictions": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "input_file"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "output_file"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "summary_file"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "csv_summary_file"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "use_llm"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "llm_judge_config_path"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "force_rerun_llm_judge"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "force_rerun"
+      }
+    ]
+  },
+  "evaluate_sql_prediction_with_llm": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "question"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "ground_truth_sql"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "ground_truth_df"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "predicted_sql"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "predicted_df"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "generation_prompt"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "llm_judge_config"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "api_key"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "on_usage"
+      }
+    ]
+  },
+  "fetch_results": {
+    "kind": "function",
+    "params": [
+      {
+        "default": "None",
+        "kind": "KEYWORD_ONLY",
+        "name": "benchmarks"
+      },
+      {
+        "default": "None",
+        "kind": "KEYWORD_ONLY",
+        "name": "pipelines"
+      },
+      {
+        "default": "None",
+        "kind": "KEYWORD_ONLY",
+        "name": "models"
+      },
+      {
+        "default": "'text2sql-eval-toolkit/text2sql-eval-results'",
+        "kind": "KEYWORD_ONLY",
+        "name": "repo_id"
+      },
+      {
+        "default": "None",
+        "kind": "KEYWORD_ONLY",
+        "name": "revision"
+      },
+      {
+        "default": "None",
+        "kind": "KEYWORD_ONLY",
+        "name": "data_root"
+      },
+      {
+        "default": "False",
+        "kind": "KEYWORD_ONLY",
+        "name": "force"
+      },
+      {
+        "default": "True",
+        "kind": "KEYWORD_ONLY",
+        "name": "show_progress"
+      }
+    ]
+  },
+  "get_available_benchmarks": {
+    "kind": "function",
+    "params": [
+      {
+        "default": "True",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "include_test"
+      }
+    ]
+  },
+  "get_benchmark_info": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "benchmark_id"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "is_test"
+      }
+    ]
+  },
+  "get_benchmarks_info": {
+    "kind": "function",
+    "params": [
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "is_test"
+      }
+    ]
+  },
+  "get_default_eval_filename": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "predictions_file"
+      }
+    ]
+  },
+  "get_gt_sqls": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "record"
+      }
+    ]
+  },
+  "get_question": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "record"
+      }
+    ]
+  },
+  "get_question_id": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "record"
+      }
+    ]
+  },
+  "get_utterance": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "record"
+      }
+    ]
+  },
+  "is_sqlglot_parsable": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "sql"
+      },
+      {
+        "default": "'sqlite'",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "db_type"
+      }
+    ]
+  },
+  "is_sqlparse_parsable": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "sql"
+      }
+    ]
+  },
+  "list_available_results": {
+    "kind": "function",
+    "params": [
+      {
+        "default": "'text2sql-eval-toolkit/text2sql-eval-results'",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "repo_id"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "revision"
+      }
+    ]
+  },
+  "load_llm_judge_config": {
+    "kind": "function",
+    "params": [
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "config_path"
+      }
+    ]
+  },
+  "normalize_record": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "record"
+      }
+    ]
+  },
+  "parse_dataframe": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "json_str"
+      }
+    ]
+  },
+  "print_summary": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "summary"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "use_llm"
+      }
+    ]
+  },
+  "run_evaluation": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "benchmark_id"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "use_llm"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "llm_judge_config_path"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "force_rerun_llm_judge"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "force_rerun"
+      }
+    ]
+  },
+  "run_execution": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "benchmark_id"
+      },
+      {
+        "default": "16",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "num_threads"
+      },
+      {
+        "default": "False",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "force_rerun"
+      }
+    ]
+  },
+  "run_with_timeout": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "func"
+      },
+      {
+        "default": "90",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "timeout"
+      },
+      {
+        "default": "2",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "retries"
+      },
+      {
+        "default": "3",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "wait"
+      },
+      {
+        "kind": "VAR_POSITIONAL",
+        "name": "args"
+      },
+      {
+        "kind": "VAR_KEYWORD",
+        "name": "kwargs"
+      }
+    ]
+  },
+  "run_with_timeout_async": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "task"
+      },
+      {
+        "default": "90",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "base_timeout"
+      },
+      {
+        "default": "2",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "retries"
+      },
+      {
+        "default": "3",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "wait"
+      }
+    ]
+  },
+  "split_summary": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "summary"
+      }
+    ]
+  },
+  "sql_exact_match": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "sql1"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "sql2"
+      }
+    ]
+  },
+  "sqlglot_optimized_equivalence": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "expected"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "generated"
+      },
+      {
+        "default": "''",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "dialect"
+      }
+    ]
+  },
+  "sqlglot_parsed_queries_equivalent": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "sql1"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "sql2"
+      },
+      {
+        "default": "''",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "dialect"
+      }
+    ]
+  },
+  "sqlparse_queries_equivalent": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "sql1"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "sql2"
+      }
+    ]
+  },
+  "summary_to_df_csv": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "summary"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "output_path"
+      },
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "use_llm"
+      }
+    ]
+  },
+  "truncate_dataframe": {
+    "kind": "function",
+    "params": [
+      {
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "df"
+      },
+      {
+        "default": "10",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "head"
+      },
+      {
+        "default": "10",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "tail"
+      }
+    ]
+  }
+}

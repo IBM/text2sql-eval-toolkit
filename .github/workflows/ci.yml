@@ -7,8 +7,11 @@
 name: CI
 
 on:
+  # Every branch, so work in progress is checked before a PR exists. Without
+  # this, a branch with no PR open gets no CI at all -- which is how two commits
+  # reached this repository unverified.
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
   workflow_dispatch:
 
@@ -23,6 +26,10 @@ env:
 jobs:
   lint:
     name: Lint and format
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +53,10 @@ jobs:
     # Two files in this repo are generated from another; both have silently
     # drifted before. Checking is cheaper than noticing later.
     name: Generated files in sync
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,6 +88,10 @@ jobs:
 
   typecheck:
     name: Type check
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -95,6 +110,10 @@ jobs:
 
   test:
     name: Tests (py${{ matrix.python-version }})
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -129,6 +148,10 @@ jobs:
 
   e2e:
     name: End-to-end (shareable links)
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -175,6 +198,10 @@ jobs:
     # Non-blocking early warning for the next interpreter. Promote into `test`
     # once dependency wheels (psycopg2-binary, ibm_watsonx_ai) are confirmed.
     name: Tests (py3.14, advisory)
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -194,6 +221,10 @@ jobs:
     # The deployment image is unverified until something builds it. Compose
     # config is validated too, so a typo there fails here rather than on the VM.
     name: Container image
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -220,9 +251,16 @@ jobs:
       - name: Smoke test the image
         # Public mode needs no credentials and no data, so this checks the image
         # actually starts and serves rather than merely compiles.
+        #
+        # TEXT2SQL_ADMIN_EMAILS is required from 1.4.0: a shared deployment
+        # refuses to start without one, because nobody could grant a role and
+        # there would be no other way in. This job caught that the first time it
+        # ran, which is the same failure an operator hits upgrading without
+        # reading the release notes.
         run: |
           docker run -d --name dash -p 8000:8000 \
             -e TEXT2SQL_DASHBOARD_MODE=public \
+            -e TEXT2SQL_ADMIN_EMAILS=ci@example.com \
             text2sql-dashboard:ci
           for _ in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8000/api/me > /tmp/me.json; then break; fi
@@ -330,6 +368,10 @@ jobs:
 
   frontend:
     name: Dashboard build
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -391,8 +433,57 @@ jobs:
             echo "$changed"
           fi
 
+  docs:
+    name: Documentation
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[docs]"
+      - name: Build the site
+        # --strict turns a warning into a failure. The one that matters is an
+        # unresolved cross-reference: without this it renders as a blank section
+        # on the published page rather than failing anywhere visible.
+        run: mkdocs build --strict
+      - name: Every exported symbol must appear in the reference
+        # The reference pages list symbols explicitly rather than globbing a
+        # module, which keeps them grouped by pipeline stage but means a new
+        # export can be added to __all__ and silently never documented.
+        run: |
+          python - <<'PY'
+          import sys
+          from pathlib import Path
+          import text2sql_eval_toolkit as t
+
+          html = "\n".join(
+              p.read_text(errors="ignore") for p in Path("site/reference").rglob("*.html")
+          )
+          missing = [
+              n for n in t.__all__
+              if f'id="text2sql_eval_toolkit.{n}"' not in html and f">{n}<" not in html
+          ]
+          for n in missing:
+              print(f"::error::{n} is exported but does not appear in the API reference")
+          print(f"{len(t.__all__) - len(missing)}/{len(t.__all__)} exported symbols documented")
+          sys.exit(1 if missing else 0)
+          PY
+
   packaging:
     name: Wheel contents
+    # Skipped for pull requests from this repository: the push event above
+    # already covered that commit. Fork PRs have no push event here, so they
+    # still run.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

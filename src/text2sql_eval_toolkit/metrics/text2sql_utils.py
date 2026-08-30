@@ -513,7 +513,77 @@ class SQLNonExecutionMetricResult:
     sql_syntactic_equivalence: int
 
 
+def _upper_outside_string_literals(sql: str) -> str:
+    """
+    Upper-case *sql* while leaving quoted string literals alone.
+
+    Case-folding the whole statement makes ``WHERE name = 'bob'`` equal to
+    ``WHERE name = 'BOB'``, which on a case-sensitive column is a false match.
+    Doubled quotes inside a literal (``'it''s'``) stay part of that literal.
+    """
+    out, i, n = [], 0, len(sql)
+    while i < n:
+        ch = sql[i]
+        if ch in ("'", '"'):
+            quote, j = ch, i + 1
+            while j < n:
+                if sql[j] == quote:
+                    if j + 1 < n and sql[j + 1] == quote:
+                        j += 2
+                        continue
+                    break
+                j += 1
+            out.append(sql[i : j + 1])
+            i = j + 1
+        else:
+            out.append(ch.upper())
+            i += 1
+    return "".join(out)
+
+
+def _strip_string_literals(sql: str) -> str:
+    """Blank the contents of quoted literals, so keyword searches cannot match inside one."""
+    out, i, n = [], 0, len(sql)
+    while i < n:
+        ch = sql[i]
+        if ch in ("'", '"'):
+            quote, j = ch, i + 1
+            while j < n:
+                if sql[j] == quote:
+                    if j + 1 < n and sql[j + 1] == quote:
+                        j += 2
+                        continue
+                    break
+                j += 1
+            out.append(quote * 2)
+            i = j + 1
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
+
 def is_sqlglot_parsable(sql: str, db_type="sqlite") -> bool:
+    """
+    Report whether sqlglot can parse *sql* in the given dialect.
+
+    Used to separate "the model produced something that is not SQL" from "the
+    model produced SQL that is wrong", which are different failure modes in error
+    analysis.
+
+    ``db_type="db2"`` is read as ``postgres``: sqlglot has no Db2 dialect, and
+    Postgres is the closest of those it supports. Db2-specific syntax may
+    therefore parse when it should not, or fail when it is valid.
+
+    Args:
+        sql (str): The statement to check.
+        db_type (str): sqlglot dialect name. ``"db2"`` is mapped to ``"postgres"``.
+
+    Returns:
+        bool: ``False`` for empty or whitespace-only input, and for anything
+        sqlglot rejects. Never raises -- parse failures are the answer, not an
+        error.
+    """
     from sqlglot import parse
 
     if not sql.strip():
@@ -529,6 +599,21 @@ def is_sqlglot_parsable(sql: str, db_type="sqlite") -> bool:
 
 
 def is_sqlparse_parsable(sql: str) -> bool:
+    """
+    Report whether sqlparse can tokenise *sql* without producing error tokens.
+
+    A **weaker** check than [`is_sqlglot_parsable`][text2sql_eval_toolkit.is_sqlglot_parsable]. sqlparse is a
+    non-validating tokeniser: it accepts a great deal that no database would run,
+    so a ``True`` here means considerably less than a ``True`` there. Useful
+    mainly as a first filter, or where a dialect is unknown.
+
+    Args:
+        sql: The statement to check.
+
+    Returns:
+        bool: ``False`` for empty or whitespace-only input, and if any token is
+        an error token. Never raises.
+    """
     from sqlparse import parse
     from sqlparse.tokens import Error
 
@@ -549,6 +634,31 @@ def is_sqlparse_parsable(sql: str) -> bool:
 def sqlglot_optimized_equivalence(
     expected: str, generated: str, dialect: str = ""
 ) -> int:
+    """
+    Compare two statements after sqlglot's optimizer has normalised both.
+
+    The strongest of the syntactic comparisons here: the optimizer canonicalises
+    aliases, predicate order and other rewrites, so queries that differ in
+    spelling but not in meaning can still match. It remains a *syntactic* check --
+    two queries that always return the same rows may still compare unequal.
+
+    Warning:
+        This returns ``int`` (``0`` or ``1``), unlike
+        [`sqlglot_parsed_queries_equivalent`][text2sql_eval_toolkit.sqlglot_parsed_queries_equivalent], [`sqlparse_queries_equivalent`][text2sql_eval_toolkit.sqlparse_queries_equivalent]
+        and [`sql_exact_match`][text2sql_eval_toolkit.sql_exact_match], which return ``bool``. The inconsistency is
+        preserved for backwards compatibility. ``if result:`` behaves the same
+        either way; ``result is True`` does not.
+
+    Args:
+        expected: Ground-truth statement.
+        generated: Predicted statement.
+        dialect: sqlglot dialect name. Empty means sqlglot's default.
+
+    Returns:
+        int: ``1`` if the optimised trees are equal, otherwise ``0``. A parse or
+        optimizer failure on either side also yields ``0``, so a ``0`` means
+        "not shown to be equivalent" rather than "shown to differ".
+    """
     from sqlglot import parse_one
     from sqlglot.optimizer import optimize
 
@@ -661,6 +771,23 @@ def extract_select_info(sql: str):
 
 
 def sqlparse_queries_equivalent(sql1: str, sql2: str) -> bool:
+    """
+    Compare two SELECT statements clause by clause, ignoring whitespace and case.
+
+    Extracts the select list and the ``FROM``, ``WHERE``, ``GROUP``, ``HAVING``
+    and ``ORDER`` clauses from each, then compares them as strings with
+    whitespace removed and case folded. Because the comparison is textual, a
+    reordered ``WHERE`` or a different alias makes two equivalent queries
+    disagree; [`sqlglot_optimized_equivalence`][text2sql_eval_toolkit.sqlglot_optimized_equivalence] is more tolerant.
+
+    Args:
+        sql1: First statement.
+        sql2: Second statement.
+
+    Returns:
+        bool: ``True`` only if every extracted clause matches. ``False`` if
+        either statement cannot be parsed as a SELECT. Never raises.
+    """
     try:
         info1 = extract_select_info(sql1)
         info2 = extract_select_info(sql2)
@@ -681,24 +808,70 @@ def sqlparse_queries_equivalent(sql1: str, sql2: str) -> bool:
 
 
 def sqlglot_parsed_queries_equivalent(sql1: str, sql2: str, dialect: str = "") -> bool:
-    from sqlglot import exp, parse_one
+    """
+    Compare two statements by sqlglot AST equality, without optimising.
+
+    Stricter than [`sqlglot_optimized_equivalence`][text2sql_eval_toolkit.sqlglot_optimized_equivalence], which normalises both
+    trees first: here, a difference in alias or predicate order is a difference.
+
+    Any statement kind is compared, not only ``SELECT``. Two statements of
+    different kinds are never equivalent.
+
+    Args:
+        sql1: First statement.
+        sql2: Second statement.
+        dialect: sqlglot dialect name. Empty means sqlglot's default.
+
+    Returns:
+        bool: ``True`` if both parse as SELECT and their trees are equal.
+        ``False`` on any parse failure. Never raises.
+    """
+    from sqlglot import parse_one
 
     try:
         ast1 = parse_one(sql1, read=dialect)
         ast2 = parse_one(sql2, read=dialect)
     except Exception:
         return False
-    if not (isinstance(ast1, exp.Select) and isinstance(ast2, exp.Select)):
+    if ast1 is None or ast2 is None:
+        return False
+    # Statements of different kinds are never equivalent, but two of the same
+    # kind are compared on their trees whatever that kind is. This used to
+    # require both sides to be SELECT, which meant two byte-identical INSERTs
+    # compared unequal.
+    if type(ast1) is not type(ast2):
         return False
 
     return ast1 == ast2
 
 
 def sql_exact_match(sql1: str, sql2: str) -> bool:
+    """
+    Compare two statements as normalised text.
+
+    Normalisation strips surrounding whitespace and any trailing semicolon,
+    collapses internal whitespace runs to single spaces, and upper-cases. No
+    parsing is involved, so this is the weakest and cheapest of the comparisons
+    here -- two queries that differ only in formatting match, and two that differ
+    in any other way do not.
+
+    Warning:
+        Upper-casing applies to the whole statement, **string literals
+        included**, so ``WHERE name = 'bob'`` matches ``WHERE NAME = 'BOB'``.
+        On a case-sensitive column that is a false match.
+
+    Args:
+        sql1: First statement.
+        sql2: Second statement.
+
+    Returns:
+        bool: ``True`` if the normalised forms are identical.
+    """
+
     def normalize_sql(s: str) -> str:
         s = s.strip().rstrip(";")
         s = re.sub(r"\s+", " ", s)
-        return s.upper()
+        return _upper_outside_string_literals(s)
 
     return normalize_sql(sql1) == normalize_sql(sql2)
 
@@ -833,6 +1006,30 @@ def compare_dfs_ignore_colnames_subset(
 
 
 def compare_dfs_bird_eval_logic(df1: pd.DataFrame, df2: pd.DataFrame):
+    """
+    Compare two result sets using BIRD's published evaluation logic.
+
+    Reproduced so that scores from this toolkit can be lined up against numbers
+    reported by BIRD. Each frame becomes a set of row tuples with every value
+    cast to ``str``, and the sets are compared.
+
+    Three consequences of that, all inherited from BIRD rather than chosen here:
+
+    - **Row order is ignored**, since sets are unordered.
+    - **Duplicate rows collapse.** A query returning the same row three times
+      matches one returning it once.
+    - **Values are compared as text.** ``1`` and ``"1"`` match; ``1`` and ``1.0``
+      do not, because they render as ``"1"`` and ``"1.0"``.
+
+    Column *names* are ignored, but column *order* within a row is significant.
+
+    Args:
+        df1: First result set.
+        df2: Second result set.
+
+    Returns:
+        int: ``1`` if the row sets are equal, else ``0``.
+    """
     df1_set = {tuple(row) for row in df1.values.astype(str)}
     df2_set = {tuple(row) for row in df2.values.astype(str)}
     return int(df1_set == df2_set)
@@ -843,9 +1040,49 @@ def compare_result_dfs(
     pred_df: pd.DataFrame,
     gold_sql: str,
 ) -> Tuple[int, int, int]:
+    """
+    Compare a predicted result set against the ground truth three ways.
+
+    This is where the toolkit's three headline execution metrics come from, and
+    it exists because a strict comparison misjudges legitimate answers: column
+    names are ignored throughout, so a query asked for "the customers" is not
+    marked wrong for labelling the column differently.
+
+    Row order is significant only when the ground-truth SQL orders its output.
+    That is decided by looking for ``ORDER BY`` in *gold_sql*.
+
+    Warning:
+        That check is a case-insensitive substring test, not a parse. A gold
+        query containing the text ``ORDER BY`` inside a string literal or an
+        identifier is treated as ordered, and comparison becomes stricter than
+        intended.
+
+    Args:
+        gold_df: Result of the ground-truth SQL.
+        pred_df: Result of the predicted SQL.
+        gold_sql: The ground-truth statement, read only to decide whether row
+            order matters.
+
+    Returns:
+        tuple[int, int, int]: ``(match, non_empty_match, subset_match)``, each
+        ``0`` or ``1``, feeding ``execution_accuracy``,
+        ``non_empty_execution_accuracy`` and
+        ``subset_non_empty_execution_accuracy`` respectively.
+
+        ``match`` is full equality ignoring column names. The other two are
+        ``0`` whenever either frame is empty -- which is the point of them: a
+        query returning nothing trivially "matches" another returning nothing,
+        and that flatters a model that has learned to return nothing.
+        ``subset_match`` additionally allows the prediction to carry extra
+        columns, so answering with id *and* name where only name was required
+        still counts.
+    """
     subset_match = 0
     non_empty_match = 0
-    if "ORDER BY" in gold_sql.upper():
+    # Literals are blanked first: a gold query selecting the text 'order by'
+    # is not an ordered query, and treating it as one silently applies a
+    # stricter comparison than the benchmark intends.
+    if "ORDER BY" in _strip_string_literals(gold_sql).upper():
         match = int(compare_dfs_ignore_colnames_ordered_rows(pred_df, gold_df))
         if not gold_df.empty and not pred_df.empty:
             non_empty_match = match

@@ -23,6 +23,7 @@ from fastapi import (
     APIRouter,
     HTTPException,
     Request,
+    Response,
 )
 
 import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
@@ -31,7 +32,7 @@ from text2sql_eval_toolkit.evaluation.llm_as_judge import (
     evaluate_sql_prediction_with_llm,
     load_llm_judge_config,
 )
-from text2sql_eval_toolkit.ui import auth
+from text2sql_eval_toolkit.ui import auth, runtime
 from text2sql_eval_toolkit.ui.models import (
     JudgeRequest,
     JudgeResponse,
@@ -60,30 +61,79 @@ router = APIRouter()
 
 
 def _judge_config_dir() -> Path:
+    """
+    The packaged judge configs, shipped read-only inside the installed package.
+    """
     from text2sql_eval_toolkit.evaluation import llm_as_judge
 
     return Path(llm_as_judge.__file__).parent / "llm_judge_config"
 
 
+def _user_judge_config_dir() -> Path:
+    """
+    Where configs written through the dashboard are kept.
+
+    Not the package directory. Writing there needs the installed tree to be
+    writable by the server process, which it generally is not -- in a container
+    the package is root-owned and the app runs unprivileged, and even where the
+    permissions happen to allow it, a pip upgrade discards the edit. The data
+    root is the writable, persistent location the deployment already mounts.
+    """
+    return get_data_root() / "llm_judge_config"
+
+
+def _validate_config_name(name: str) -> str:
+    """
+    Accept a config name, or raise ``FileNotFoundError``.
+
+    A plain stem cannot traverse, cannot name a dotfile, and cannot be empty.
+    Callers still assert containment on the resolved path, so this stays the
+    first line of defence rather than the only one.
+    """
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", name or ""):
+        raise FileNotFoundError(name)
+    return name
+
+
+def _contained(base: Path, name: str) -> Path:
+    """
+    ``base/name.yaml``, asserted to still be directly inside *base*.
+    """
+    base = base.resolve()
+    candidate = (base / f"{name}.yaml").resolve()
+    if candidate.parent != base:
+        raise FileNotFoundError(name)
+    return candidate
+
+
+def _judge_config_write_path(name: str) -> Path:
+    """
+    Where a write of *name* lands: always the user directory, never the package.
+    """
+    return _contained(_user_judge_config_dir(), _validate_config_name(name))
+
+
 def _resolve_judge_config_path(name: str) -> Path:
     """
-    Path of a judge config, refusing anything that escapes the config directory.
+    Path a judge config is read from, refusing anything that escapes its
+    directory.
+
+    A user copy shadows the packaged config of the same name, so editing a
+    shipped config through the dashboard takes effect without the packaged file
+    ever being touched -- and deleting the copy restores the original. A name
+    with no user copy resolves to the packaged path, whether or not that file
+    exists; the caller reports the miss.
 
     ``name`` arrives from a URL segment or request body. FastAPI will not match
     a raw ``/`` into a single path parameter, but percent-encoded separators and
     ``..`` segments are decoded before they reach here, so containment is
     asserted on the resolved path rather than assumed from the routing.
     """
-    # Constrain the shape first: a plain stem cannot traverse, cannot name a
-    # dotfile, and cannot be empty. Containment below stays as a second line of
-    # defence rather than the only one.
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", name or ""):
-        raise FileNotFoundError(name)
-    base = _judge_config_dir().resolve()
-    candidate = (base / f"{name}.yaml").resolve()
-    if candidate.parent != base:
-        raise FileNotFoundError(name)
-    return candidate
+    _validate_config_name(name)
+    override = _contained(_user_judge_config_dir(), name)
+    if override.is_file():
+        return override
+    return _contained(_judge_config_dir(), name)
 
 
 def _load_judge_config_by_name(name: str) -> Dict[str, Any]:
@@ -134,6 +184,31 @@ def _judge_usage_model(usage: Any) -> JudgeUsage:
         calls=usage.calls,
         warning=usage.warning,
     )
+
+
+def _user_api_key(email: Optional[str], model: str) -> Optional[Dict[str, str]]:
+    """
+    The signed-in caller's stored credential for this model's provider, if any.
+
+    A mapping of environment-variable name to value rather than a bare key:
+    watsonx needs a project id alongside the key, so one credential can be more
+    than one variable.
+
+    Returns ``None`` for an anonymous caller, when no key store is configured, or
+    when nothing is stored -- in which case the request falls back to the
+    server-held credential exactly as before.
+    """
+    store = runtime.get_user_key_store()
+    if store is None or not email:
+        return None
+    provider = model.split(":", 1)[0] if ":" in model else ""
+    if not provider:
+        return None
+    try:
+        return store.reveal_for_request(email, provider)
+    except Exception:  # pragma: no cover - a key problem must not fail the run
+        logger.warning("Could not read a stored key; using the server credential")
+        return None
 
 
 @router.post("/api/benchmarks/{benchmark_id}/judge", response_model=JudgeResponse)
@@ -187,6 +262,12 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
             usage=_judge_usage_model(store.usage()),
         )
 
+    if req.cached_only:
+        # Asked for a stored verdict and there is none. 204 rather than 404: the
+        # request was understood and nothing is wrong, there is simply nothing
+        # to show yet, and the caller offers the button instead.
+        return Response(status_code=204)
+
     try:
         store.check_budget()
     except BudgetExceeded as exc:
@@ -232,6 +313,11 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
                 prediction.get("predicted_df") or "",
                 prediction.get("prompt") or "",
                 judge_config,
+                # The caller's own key when they have stored one, so the request
+                # bills their provider account rather than the server's. Tier
+                # decided whether they may run a judge at all; this only decides
+                # who pays.
+                api_key=_user_api_key(email, model),
             )
         except ValueError as exc:
             raise HTTPException(

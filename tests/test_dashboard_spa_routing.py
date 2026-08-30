@@ -68,6 +68,13 @@ def spa_client(tmp_path, monkeypatch):
         "/llm-judge",
         "/llm-judge/default",
         "/run",
+        # The playground carries its benchmark and record in the path, so these
+        # are the addresses people paste into issues.
+        "/run/bird_mini_dev_sqlite",
+        "/run/bird_mini_dev_sqlite/record/1490",
+        "/benchmarks",
+        "/users",
+        "/my-keys",
     ],
 )
 def test_deep_links_serve_the_app_shell(spa_client, path):

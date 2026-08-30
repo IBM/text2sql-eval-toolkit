@@ -23,9 +23,17 @@ The mode is a **ceiling** set at startup. Signing in can never raise it.
 | `judge` | Signed in **and** on the allowlist | Adds on-demand LLM-as-judge |
 | `full` | Local operator on loopback | Everything: SQL execution, evaluation runs, registry writes |
 
-`full` refuses a non-loopback bind without `--allow-remote-full`. **Never use
-that flag for a shared deployment** — it exposes SQL execution against whatever
-database credentials the server holds.
+`full` refuses a non-loopback bind without `--allow-remote-full`.
+
+That flag **raises the ceiling and grants nothing**. On a reachable host, `full`
+requires a signed-in caller holding the `full` or `admin` role; anonymous callers
+still resolve to `public`. A local (loopback) deployment is different and
+deliberately so: there `full` is granted without a sign-in, because the operator
+already controls the process.
+
+Use it only where you intend specific, named people to run SQL against the
+databases this server can reach — and grant them the role from the Users
+console.
 
 Confirm the running mode at any time:
 
@@ -80,8 +88,10 @@ curl -s https://<domain>/api/me | jq '{tier, mode, can_mutate}'
      back to `main`, and the public dataset would change under shared links.
    - `TEXT2SQL_SESSION_SECRET` — at least 32 characters, or startup refuses it.
      Generate with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
-   - `TEXT2SQL_JUDGE_ALLOWLIST` — the addresses allowed to spend LLM budget.
-     Everyone else is read-only, signed in or not.
+   - `TEXT2SQL_ADMIN_EMAILS` — administrators. **Required**: a shared
+     deployment refuses to start without one, because nobody could grant a role
+     and there is no other way in. Read at every startup and never overridden by
+     a stored role, so it is also the way back if the role table is wrong.
 
    Leave `TEXT2SQL_TRUSTED_PROXIES` **empty**. It was once needed to name the
    Caddy container so `X-Forwarded-For` was believed; the app now trusts the
@@ -198,12 +208,27 @@ curl -s $DOMAIN/api/benchmarks/spider_dev/pipeline-aliases | jq '.aliases | leng
    ```
 5. Confirm the new stamp shows in `/api/deployment` and in the UI strip.
 
-### Change the judge allowlist
+### Grant or revoke a role
 
-Edit `TEXT2SQL_JUDGE_ALLOWLIST` in `deploy/.env`, then
-`docker compose up -d --force-recreate app`. No rebuild. Startup logs the
-allowlist **size** (never the addresses); an unexpected count means the variable
-did not parse.
+From the dashboard, signed in as an administrator: **Users** lists everyone with
+a role and lets you grant `admin`, `full`, `judge` or `read_only`. No redeploy —
+this replaced `TEXT2SQL_JUDGE_ALLOWLIST`, which needed an edit to `deploy/.env`
+and a container recreate.
+
+Two things to expect:
+
+- **A grant above the deployment's mode is recorded but inert.** The mode is a
+  ceiling, so granting `full` on a `judge` host stores the role and shows it as
+  inactive, with the reason. It takes effect if you later raise the ceiling.
+- **Addresses named in `TEXT2SQL_ADMIN_EMAILS` cannot be revoked here.** They are
+  the recovery path and are deliberately changeable only with shell access.
+
+The address must be exactly what the identity provider returns for that user.
+Gmail's dot and `+tag` variants reach the same inbox but are different strings,
+and only the verified `email` claim is matched.
+
+Startup logs the administrator **count**, never the addresses; an unexpected
+count means the variable did not parse.
 
 ### Stop LLM-judge spending immediately
 
