@@ -215,6 +215,33 @@ class TestSpendCapsUnderConcurrency:
         ledger.set_user_cap("alice", 0.01)
         assert ledger.reserve("bob", 100.0) is True
 
+    def test_the_cap_is_read_under_the_lock_that_decides(self, ledger):
+        """
+        Reading the cap outside the lock decides against a stale ceiling.
+
+        ``set_user_cap`` writes under this same lock, so a read taken before
+        acquiring it can be overtaken: an administrator lowers a cap, and the
+        reservation already in flight is still granted against the old one. The
+        read and the decision have to be one atomic step, which means the cap
+        must be read while the lock is held.
+        """
+        seen = []
+        real_user_cap = ledger.user_cap
+
+        def watched(user_hash):
+            seen.append(ledger._lock.locked())
+            return real_user_cap(user_hash)
+
+        ledger.set_user_cap("alice", 1.00)
+        ledger.user_cap = watched
+        try:
+            ledger.reserve("alice", 0.10)
+        finally:
+            del ledger.user_cap
+
+        assert seen, "reserve() did not read the cap at all"
+        assert all(seen), "the cap was read outside the lock that decides on it"
+
 
 class TestStoredKeysAreOptional:
     def test_the_judge_falls_back_to_the_server_credential(self):
