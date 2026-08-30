@@ -26,6 +26,25 @@ export interface ExportableRecord {
   predictedTable: TableData | null;
   predictionError: string | null;
   metrics: MetricRow[];
+  /**
+   * The stored judge's explanation from the published evaluation, if the record
+   * carries one. It is excluded from `metrics` because the view renders it as
+   * prose rather than as a table cell -- which also meant it was silently
+   * absent from every export.
+   */
+  storedJudgeExplanation?: string | null;
+  /** A verdict from the Judge Playground, when one is on screen. */
+  judge?: JudgeVerdict | null;
+}
+
+/** What the on-demand judge said about this prediction. */
+export interface JudgeVerdict {
+  verdict: string;
+  score: number | null;
+  explanation: string | null;
+  model: string;
+  configName: string;
+  cached: boolean;
 }
 
 export interface TableData {
@@ -181,6 +200,26 @@ export function toMarkdown(record: ExportableRecord): string {
     parts.push(`_${NO_METRICS_NOTE}_`);
   }
   parts.push("");
+
+  if (record.storedJudgeExplanation?.trim()) {
+    parts.push("## LLM judge explanation (from the evaluation)", "");
+    parts.push(record.storedJudgeExplanation.trim(), "");
+  }
+
+  if (record.judge) {
+    const j = record.judge;
+    parts.push("## LLM judge (on demand)", "");
+    parts.push(
+      `**Verdict.** ${j.verdict}${j.score === null ? "" : ` (score ${j.score})`}`,
+    );
+    parts.push(`**Config.** \`${j.configName}\``);
+    parts.push(`**Model.** \`${j.model}\``);
+    parts.push("");
+    if (j.explanation?.trim()) {
+      parts.push(j.explanation.trim(), "");
+    }
+  }
+
   return parts.join("\n");
 }
 
@@ -205,6 +244,29 @@ export function toHtml(record: ExportableRecord): string {
     : record.predictedTable
       ? htmlTable(record.predictedTable)
       : "<p><em>no result</em></p>";
+
+  const storedJudgeBlock = record.storedJudgeExplanation?.trim()
+    ? `<h2>LLM judge explanation (from the evaluation)</h2><p class="judge-text">${escapeHtml(
+        record.storedJudgeExplanation.trim(),
+      )}</p>`
+    : "";
+
+  const judgeBlock = record.judge
+    ? `<h2>LLM judge (on demand)</h2>
+<p class="meta">
+  <strong>Verdict.</strong> ${escapeHtml(record.judge.verdict)}${
+    record.judge.score === null
+      ? ""
+      : ` (score ${escapeHtml(String(record.judge.score))})`
+  }<br>
+  <strong>Config.</strong> <code>${escapeHtml(record.judge.configName)}</code><br>
+  <strong>Model.</strong> <code>${escapeHtml(record.judge.model)}</code>
+</p>${
+        record.judge.explanation?.trim()
+          ? `<p class="judge-text">${escapeHtml(record.judge.explanation.trim())}</p>`
+          : ""
+      }`
+    : "";
 
   const metricRows = record.metrics
     .map(
@@ -233,6 +295,7 @@ export function toHtml(record: ExportableRecord): string {
   th, td { border: 1px solid #e0e0e0; padding: 0.35rem 0.5rem; text-align: left; vertical-align: top; }
   th { background: #f4f4f4; }
   .note, .error { color: #525252; font-size: 0.875rem; }
+  .judge-text { white-space: pre-wrap; }
   .error { color: #da1e28; }
   @media print { body { margin: 0; max-width: none; } h2 { break-after: avoid; } table { break-inside: auto; } }
 </style>
@@ -252,6 +315,8 @@ ${gtTables}
 ${predictedBlock}
 <h2>Metrics</h2>
 ${metricRows ? `<table><thead><tr><th>Metric</th><th>Value</th><th>What it means</th></tr></thead><tbody>${metricRows}</tbody></table>` : `<p class="note">${escapeHtml(NO_METRICS_NOTE)}</p>`}
+${storedJudgeBlock}
+${judgeBlock}
 </body>
 </html>`;
 }

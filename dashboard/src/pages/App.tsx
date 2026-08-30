@@ -163,6 +163,14 @@ export const App: React.FC = () => {
     [location.search],
   );
 
+  // Read straight from the query string rather than through parseQuery: that
+  // parser is the error-analysis filter set, and the judge config is not one of
+  // its filters.
+  const judgeConfigFromUrl = useMemo(
+    () => new URLSearchParams(location.search).get("judge"),
+    [location.search],
+  );
+
   // A shared link may name a pipeline by its short alias rather than its full
   // id. The readable form stays canonical, so an alias is expanded on arrival
   // and the address rewritten -- which means every view below this point only
@@ -221,11 +229,13 @@ export const App: React.FC = () => {
       benchmarkId: string | null;
       recordId: string | null;
       pipeline: string | null;
+      judgeConfig: string | null;
     }) => {
       const next = routes.run(
         state.benchmarkId,
         state.recordId,
         state.pipeline,
+        state.judgeConfig,
       );
       const current = `${location.pathname}${location.search}`;
       if (next === current) return;
@@ -745,6 +755,7 @@ export const App: React.FC = () => {
           initialBenchmarkId={match.benchmarkId}
           initialRecordId={match.recordId}
           initialPipeline={urlFilters.pipeline ?? null}
+          initialJudgeConfig={judgeConfigFromUrl}
           onStateChange={onPlaygroundStateChange}
         />
       );

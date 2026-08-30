@@ -102,19 +102,30 @@ export const routes = {
    * the way `/benchmark/{id}/pipeline/{p}/record/{r}` does. The pipeline is a
    * query parameter: it chooses which prediction to look at within an
    * already-identified record, which is a choice about the view rather than
-   * about what the view is showing.
+   * about what the view is showing. `judge` is the same kind of choice -- which
+   * judge config's verdict is being shown.
    */
   run: (
     benchmarkId?: string | null,
     recordId?: string | null,
     pipeline?: string | null,
+    judgeConfig?: string | null,
   ): string => {
     let path = "/run";
     if (benchmarkId) {
       path += `/${encode(benchmarkId)}`;
       if (recordId) path += `/record/${encode(recordId)}`;
     }
-    return pipeline ? `${path}?pipeline=${encodeURIComponent(pipeline)}` : path;
+    const params = new URLSearchParams();
+    if (pipeline) params.set("pipeline", pipeline);
+    // Present only once a verdict is actually on screen. It names the config
+    // rather than carrying the verdict itself: the verdict is cached against
+    // the record, pipeline and config contents, so the name is enough to bring
+    // the same answer back, and a URL cannot be edited into claiming a verdict
+    // the judge never gave.
+    if (judgeConfig) params.set("judge", judgeConfig);
+    const query = params.toString();
+    return query ? `${path}?${query}` : path;
   },
   /** Every benchmark, as a page rather than a slide-out panel. */
   benchmarks: (): string => "/benchmarks",

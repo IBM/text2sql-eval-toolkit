@@ -23,6 +23,7 @@ from fastapi import (
     APIRouter,
     HTTPException,
     Request,
+    Response,
 )
 
 import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
@@ -256,6 +257,12 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
             cached=True,
             usage=_judge_usage_model(store.usage()),
         )
+
+    if req.cached_only:
+        # Asked for a stored verdict and there is none. 204 rather than 404: the
+        # request was understood and nothing is wrong, there is simply nothing
+        # to show yet, and the caller offers the button instead.
+        return Response(status_code=204)
 
     try:
         store.check_budget()

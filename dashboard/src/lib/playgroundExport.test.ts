@@ -153,3 +153,69 @@ describe("filenames", () => {
     expect(exportFilename(awkward, "html")).toBe("spider_dev-6627-65-2a.html");
   });
 });
+
+describe("judge results in the export", () => {
+  const judged: ExportableRecord = {
+    ...record,
+    storedJudgeExplanation:
+      "The prediction counts all singers rather than those in Gentleman.",
+    judge: {
+      verdict: "No",
+      score: 0,
+      explanation:
+        "The predicted SQL ignores the album filter.\nSo it is wrong.",
+      model: "anthropic:claude-sonnet-4-5",
+      configName: "llm_judge_claude",
+      cached: true,
+    },
+  };
+
+  it("carries the on-demand verdict into Markdown", () => {
+    const md = toMarkdown(judged);
+    expect(md).toContain("## LLM judge (on demand)");
+    expect(md).toContain("**Verdict.** No (score 0)");
+    expect(md).toContain("llm_judge_claude");
+    expect(md).toContain("anthropic:claude-sonnet-4-5");
+    expect(md).toContain("The predicted SQL ignores the album filter.");
+  });
+
+  it("carries the on-demand verdict into HTML", () => {
+    const html = toHtml(judged);
+    expect(html).toContain("LLM judge (on demand)");
+    expect(html).toContain("No (score 0)");
+    expect(html).toContain("llm_judge_claude");
+    expect(html).toContain("The predicted SQL ignores the album filter.");
+  });
+
+  it("carries the stored explanation, which no metric row holds", () => {
+    // The view renders this as prose instead of as a metric, so it used to be
+    // absent from exports even when the record had been judged.
+    expect(toMarkdown(judged)).toContain(
+      "The prediction counts all singers rather than those in Gentleman.",
+    );
+    expect(toHtml(judged)).toContain(
+      "The prediction counts all singers rather than those in Gentleman.",
+    );
+  });
+
+  it("says nothing about a judge when none has run", () => {
+    expect(toMarkdown(record)).not.toContain("LLM judge");
+    expect(toHtml(record)).not.toContain("LLM judge");
+  });
+
+  it("escapes judge prose rather than letting it into the HTML", () => {
+    const hostile: ExportableRecord = {
+      ...judged,
+      judge: { ...judged.judge!, explanation: "<script>alert(1)</script>" },
+    };
+    const html = toHtml(hostile);
+    expect(html).not.toContain("<script>alert(1)</script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("keeps the line breaks in a multi-paragraph explanation", () => {
+    // Judge explanations are written as prose with newlines; collapsing them
+    // turns a structured argument into a wall of text.
+    expect(toHtml(judged)).toContain("white-space: pre-wrap");
+  });
+});

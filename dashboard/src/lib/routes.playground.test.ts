@@ -84,3 +84,36 @@ describe("benchmarks page", () => {
     expect(parseLocation("/benchmarks").benchmarkId).toBeNull();
   });
 });
+
+describe("judge config in the playground address", () => {
+  it("is absent until a verdict is showing", () => {
+    expect(routes.run("archer_en_dev", "6627652a7532", "wxai:m-greedy")).toBe(
+      "/run/archer_en_dev/record/6627652a7532?pipeline=wxai%3Am-greedy",
+    );
+  });
+
+  it("rides alongside the pipeline once one is", () => {
+    const url = routes.run(
+      "archer_en_dev",
+      "6627652a7532",
+      "wxai:m-greedy",
+      "llm_judge_claude",
+    );
+    expect(url).toContain("pipeline=wxai%3Am-greedy");
+    expect(url).toContain("judge=llm_judge_claude");
+    expect(new URL(url, "https://x.test").searchParams.get("judge")).toBe(
+      "llm_judge_claude",
+    );
+  });
+
+  it("survives a config name that needs encoding", () => {
+    const url = routes.run("b", "r", null, "judge config/v2");
+    expect(new URL(url, "https://x.test").searchParams.get("judge")).toBe(
+      "judge config/v2",
+    );
+  });
+
+  it("can name a judge with no pipeline chosen", () => {
+    expect(routes.run("b", "r", null, "cfg")).toBe("/run/b/record/r?judge=cfg");
+  });
+});
