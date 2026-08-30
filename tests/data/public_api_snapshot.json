@@ -258,6 +258,16 @@
       {
         "kind": "POSITIONAL_OR_KEYWORD",
         "name": "llm_judge_config"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "api_key"
+      },
+      {
+        "default": "None",
+        "kind": "POSITIONAL_OR_KEYWORD",
+        "name": "on_usage"
       }
     ]
   },

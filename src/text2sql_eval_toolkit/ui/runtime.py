@@ -88,6 +88,9 @@ _ADMIN_EMAILS: set = admin_emails_from_env()
 # TEXT2SQL_ADMIN_EMAILS grants anything above read-only.
 _USER_STORE = None
 
+# Encrypted per-user provider credentials. None until configured.
+_USER_KEY_STORE = None
+
 
 def get_mode() -> Tier:
     return _MODE
@@ -101,6 +104,16 @@ def set_mode(mode: Tier) -> None:
 def get_admin_emails() -> set:
     """Addresses that always hold admin, from the environment."""
     return _ADMIN_EMAILS
+
+
+def get_user_key_store():
+    """The per-user credential store, or ``None`` when none is configured."""
+    return _USER_KEY_STORE
+
+
+def set_user_key_store(store) -> None:
+    global _USER_KEY_STORE
+    _USER_KEY_STORE = store
 
 
 def get_user_store():

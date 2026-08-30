@@ -81,17 +81,22 @@ different thing.
 
 ## Identity
 
-Google sign-in exists for exactly one purpose: deciding whether a caller is on
-which role a caller holds. Nothing else is per-user and no profile beyond that
-role is stored — the
-session holds a verified email address and nothing more, so signing out is
-clearing a cookie and there is no user database to secure.
+Google sign-in exists to decide which role a caller holds. The session itself
+still carries nothing but a verified email address.
+
+**This deployment does now hold per-user state**, and the documentation used to
+say otherwise. Until 1.4.0 there was no user database and a public host held no
+credentials at all, so even a total failure of tier enforcement reached nothing.
+Two tables ended that: roles, and — where `TEXT2SQL_SECRET_KEY` is configured —
+users' own provider API keys. The second is the one that matters: it is other
+people's billable credentials, which is a different class of system from serving
+pre-computed results. See [Per-user API keys](#per-user-api-keys).
 
 Two details that are easy to get wrong and are enforced:
 
 - **The `email` claim alone is not trusted.** Google also returns
-  `email_verified`; an unverified address must never match the allowlist, or the
-  allowlist means nothing.
+  `email_verified`; an unverified address must never match a role, or roles mean
+  nothing.
 - **The session cookie is `SameSite=Lax`, not `Strict`.** The OAuth callback is a
   cross-site redirect back to the app, and `Strict` would withhold the cookie and
   break the `state` check.
@@ -106,3 +111,32 @@ survives restarts — an in-memory counter would reset and the ceiling would not
 bind. Verdicts are cached, so a repeated request costs nothing.
 
 `TEXT2SQL_JUDGE_DISABLED=true` is the kill switch.
+
+## Per-user API keys
+
+A signed-in user may store their own provider key, so a request bills their
+account rather than the server's. Optional in both directions: a deployment
+without `TEXT2SQL_SECRET_KEY` stores none, and a user without one falls back to
+the server credential.
+
+The rule that keeps this coherent: **tier governs who may start a workload; the
+key governs whose account pays.** Storing a key grants no capability.
+
+What the design commits to, and what is tested:
+
+- **Encrypted at rest, master key outside the database.** From
+  `TEXT2SQL_SECRET_KEY`, so the SQLite file alone is worthless. Rotating it means
+  users re-enter their keys, not a broken server.
+- **Write-only.** No endpoint returns a stored key — not masked, not truncated,
+  not the last four characters, not to the user who saved it. There is no handler
+  that reads one, which a test enforces by reading the source.
+- **Never logged.** Identities are hashed and a test greps the log for a canary.
+- **No user-supplied base URL.** LiteLLM accepts one, and a caller-chosen
+  endpoint would make the server an open outbound proxy. Custom endpoints belong
+  in server configuration.
+- **Per-user caps, set by an admin.** Reserved before the call and reconciled
+  after, because evaluation runs sixteen coroutines against one semaphore and
+  check-then-spend would overshoot a cap by up to fifteen calls.
+
+A cap bounds spend **through this server only**. The key keeps working
+everywhere else, and the UI says so rather than implying otherwise.

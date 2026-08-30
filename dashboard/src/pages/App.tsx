@@ -47,6 +47,11 @@ const UsersView = lazy(() =>
     default: m.UsersView,
   })),
 );
+const MyKeysView = lazy(() =>
+  import("../views/MyKeysView").then((m) => ({
+    default: m.MyKeysView,
+  })),
+);
 const RunEvaluationView = lazy(() =>
   import("../views/RunEvaluationView").then((m) => ({
     default: m.RunEvaluationView,
@@ -413,15 +418,19 @@ export const App: React.FC = () => {
     benchmarkForNav && goto(routes.errors(benchmarkForNav));
   const openLLMJudge = () => goto(routes.llmJudge());
   const openUsers = () => goto(routes.users());
+  const openMyKeys = () => goto(routes.myKeys());
 
   // Whether to offer the user console at all. Showing a control that 403s is
   // the failure this whole area is trying to avoid.
   const [canManageUsers, setCanManageUsers] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   useEffect(() => {
     let cancelled = false;
     void fetchSession()
       .then((info) => {
-        if (!cancelled) setCanManageUsers(Boolean(info.can_manage_users));
+        if (cancelled) return;
+        setCanManageUsers(Boolean(info.can_manage_users));
+        setSignedIn(Boolean(info.signed_in));
       })
       .catch(() => {
         /* the nav simply omits the entry */
@@ -690,6 +699,10 @@ export const App: React.FC = () => {
       return <UsersView />;
     }
 
+    if (activeView === "myKeys") {
+      return <MyKeysView />;
+    }
+
     if (activeView === "runEvaluation") {
       return <RunEvaluationView benchmarks={benchmarks} />;
     }
@@ -909,6 +922,16 @@ export const App: React.FC = () => {
               >
                 LLM Judge
               </Button>
+              {signedIn && (
+                <Button
+                  kind="ghost"
+                  size="sm"
+                  onClick={openMyKeys}
+                  style={{ width: "100%", justifyContent: "flex-start" }}
+                >
+                  My API keys
+                </Button>
+              )}
               {canManageUsers && (
                 <Button
                   kind="ghost"
