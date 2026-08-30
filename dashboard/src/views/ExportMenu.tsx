@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import { CheckmarkFilled, Export, WarningFilled } from "@carbon/icons-react";
 
 import {
   type ExportableRecord,
@@ -11,10 +12,15 @@ import {
 /**
  * Export one playground record.
  *
- * This replaced "Copy short link" here. That control exists to shorten an
- * address carrying two long pipeline ids, which is a comparison-view problem;
- * on the playground the address is already short, and what people actually want
- * to take away is the record itself.
+ * This replaced "Copy short link" on this view. That control exists to shorten
+ * an address carrying two long pipeline ids, which is a comparison-view problem;
+ * the playground's address is already short, and what people want to take away
+ * is the record.
+ *
+ * The playground is where a disagreement about a score gets settled, and those
+ * arguments happen in issues, reviews and papers rather than in the tool -- so
+ * the export carries the question, both statements, both result sets and every
+ * metric, and links back to the address it came from.
  */
 
 interface Props {
@@ -32,7 +38,7 @@ function download(filename: string, contents: string, mime: string): void {
   anchor.click();
   document.body.removeChild(anchor);
   // Revoked on the next tick: revoking synchronously can cancel the download in
-  // some browsers before it has read the blob.
+  // some browsers before they have read the blob.
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
@@ -56,22 +62,18 @@ async function copyText(text: string): Promise<void> {
 export const ExportMenu: React.FC<Props> = ({ record }) => {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
 
-  const label =
-    state === "copied"
-      ? "URL copied"
-      : state === "failed"
-        ? "Copy failed"
-        : "Export";
+  const flash = (next: "copied" | "failed") => {
+    setState(next);
+    window.setTimeout(() => setState("idle"), 1800);
+  };
 
   const copyUrl = async () => {
     if (!record) return;
     try {
       await copyText(record.url);
-      setState("copied");
-      window.setTimeout(() => setState("idle"), 1800);
+      flash("copied");
     } catch {
-      setState("failed");
-      window.setTimeout(() => setState("idle"), 1800);
+      flash("failed");
     }
   };
 
@@ -85,41 +87,37 @@ export const ExportMenu: React.FC<Props> = ({ record }) => {
     download(exportFilename(record, "html"), toHtml(record), "text/html");
   };
 
-  const printPdf = () => {
-    if (!record) return;
-    // The browser's own print-to-PDF, rather than a ~300 KB PDF writer bundled
-    // to reproduce it. Opened in a new window so printing does not take the
-    // dashboard's own layout with it.
-    const win = window.open("", "_blank", "noopener,width=900,height=700");
-    if (!win) {
-      setState("failed");
-      window.setTimeout(() => setState("idle"), 2500);
-      return;
-    }
-    win.document.write(toHtml(record));
-    win.document.close();
-    win.focus();
-    // After load, or the window may print an empty document.
-    win.onload = () => win.print();
-  };
+  // The icon doubles as the outcome of the last action, because an overflow
+  // menu closes on click and there is nowhere else to say whether the copy
+  // worked.
+  const Icon =
+    state === "copied"
+      ? CheckmarkFilled
+      : state === "failed"
+        ? WarningFilled
+        : Export;
+  const label =
+    state === "copied"
+      ? "URL copied to clipboard"
+      : state === "failed"
+        ? "Could not copy — copy it from the address bar"
+        : "Export this record";
 
   return (
     <OverflowMenu
-      renderIcon={() => <span style={{ fontSize: "0.8125rem" }}>{label}</span>}
-      aria-label="Export this record"
+      renderIcon={Icon}
+      iconDescription={label}
+      aria-label={label}
+      title={label}
       flipped
       disabled={!record}
-      size="sm"
-      // Carbon sizes the menu to its trigger, and "Copy URL to clipboard" is
-      // wider than "Export" -- so without this the first item truncates to
-      // "Copy URL to clipb...".
       menuOptionsClass="playground-export-menu"
+      size="sm"
     >
       <OverflowMenuItem
         itemText="Copy URL to clipboard"
         onClick={() => void copyUrl()}
       />
-      <OverflowMenuItem itemText="PDF (via print)" onClick={printPdf} />
       <OverflowMenuItem itemText="Markdown (.md)" onClick={saveMarkdown} />
       <OverflowMenuItem itemText="HTML (.html)" onClick={saveHtml} />
     </OverflowMenu>
