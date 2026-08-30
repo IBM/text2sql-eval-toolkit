@@ -16,7 +16,9 @@ describe("eval playground routes", () => {
   });
 
   it("builds a record address", () => {
-    expect(routes.run("spider_dev", "1490")).toBe("/run/spider_dev/record/1490");
+    expect(routes.run("spider_dev", "1490")).toBe(
+      "/run/spider_dev/record/1490",
+    );
   });
 
   it("carries the pipeline in the query string", () => {
@@ -66,5 +68,19 @@ describe("eval playground routes", () => {
   it("still parses the bare view", () => {
     expect(parseLocation("/run").view).toBe("runEvaluation");
     expect(parseLocation("/run").benchmarkId).toBeNull();
+  });
+});
+
+describe("benchmarks page", () => {
+  it("has an address of its own", () => {
+    // It was a slide-out panel, so there was nothing to link to or open in a
+    // new tab.
+    expect(routes.benchmarks()).toBe("/benchmarks");
+    expect(parseLocation("/benchmarks").view).toBe("benchmarks");
+  });
+
+  it("does not collide with a single benchmark", () => {
+    expect(parseLocation("/benchmark/spider_dev").view).toBe("benchmark");
+    expect(parseLocation("/benchmarks").benchmarkId).toBeNull();
   });
 });
