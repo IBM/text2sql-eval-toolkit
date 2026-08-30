@@ -109,6 +109,15 @@ services:
       WATSONX_API_BASE: ${WATSONX_API_BASE:-}
       WATSONX_PROJECTID: ${WATSONX_PROJECTID:-}
 
+      # The other providers the judge and the inference pipelines can reach.
+      # Absent here until 1.4.0 merged the four dispatch tables, when watsonx
+      # stopped being the only thing a deployment could use -- a judge config
+      # naming anthropic: would otherwise fail for want of a variable that was
+      # sitting in deploy/.env, unread.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+
       # Read-only database access, internal hostnames only. Absent by default:
       # a browse-only deployment holds no database credentials at all, so a
       # tier-enforcement bug has nothing to reach.
