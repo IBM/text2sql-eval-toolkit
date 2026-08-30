@@ -22,6 +22,7 @@ from pydantic import BaseModel
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.ui import runtime
 from text2sql_eval_toolkit.ui.user_keys import (
+    PROVIDER_FIELDS,
     PROVIDERS,
     SECONDARY_LABELS,
     SecretsUnavailable,
@@ -73,6 +74,9 @@ def list_my_keys(request: Request) -> Dict[str, Any]:
         # So the form can ask for a project id where one is needed, rather than
         # accepting a credential the server will then refuse.
         "secondary_labels": SECONDARY_LABELS,
+        "secondary_required": {
+            provider: fields[2] for provider, fields in PROVIDER_FIELDS.items()
+        },
     }
 
 
