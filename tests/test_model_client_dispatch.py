@@ -36,6 +36,7 @@ class FakeClient:
         self.model_name = model_name
 
     def generate_sql(self, prompt, postprocess=True):
+        FakeClient.last_prompt = prompt
         return ("SELECT 1" if postprocess else "```sql\nSELECT 1\n```"), {
             "prompt_tokens": 3,
             "completion_tokens": 4,
@@ -88,6 +89,20 @@ class TestUniformInterface:
         sql, usage = resolve_client("wxai:x", {}).generate_sql(object())
         assert sql == "SELECT 1"
         assert usage["prompt_tokens"] == 3
+
+    def test_a_string_prompt_becomes_a_chat_message(self, fake_every_provider):
+        """
+        The judge builds its prompt from a template, so it hands over a string.
+        The chat clients accept only a prompt object or a message list, and
+        merging the dispatch tables routed the judge through one of them.
+        """
+        resolve_client("wxai:x", {}).generate_text("judge this")
+        assert FakeClient.last_prompt == [{"role": "user", "content": "judge this"}]
+
+    def test_a_message_list_is_passed_through_untouched(self, fake_every_provider):
+        messages = [{"role": "user", "content": "already a list"}]
+        resolve_client("wxai:x", {}).generate_sql(messages)
+        assert FakeClient.last_prompt == messages
 
     def test_generate_text_skips_sql_postprocessing(self, fake_every_provider):
         """The judge's reply is prose; post-processing would edit it."""
