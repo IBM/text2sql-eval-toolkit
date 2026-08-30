@@ -6,7 +6,7 @@
 from pathlib import Path
 import yaml
 from text2sql_eval_toolkit.logging import get_logger
-from typing import Dict, Any, Optional
+from typing import Callable, Dict, Any, Optional
 from text2sql_eval_toolkit.inference.model_clients import resolve_client
 
 logger = get_logger(__name__)
@@ -58,6 +58,8 @@ def evaluate_sql_prediction_with_llm(
     predicted_df: Any,
     generation_prompt: str,
     llm_judge_config: dict,
+    api_key: Optional[str] = None,
+    on_usage: Optional[Callable] = None,
 ) -> Dict[str, Any]:
     """
     Ask an LLM whether a predicted query answers the question.
@@ -79,6 +81,13 @@ def evaluate_sql_prediction_with_llm(
         generation_prompt: The prompt the prediction was generated from. Shown
             to the judge as context.
         llm_judge_config: A config from :func:`load_llm_judge_config`.
+        api_key: Use this credential instead of the provider's environment
+            variable. Omitted -- as every library, CLI and notebook call does --
+            the client reads the environment exactly as before. This is what lets
+            the dashboard bill a request to the signed-in user's own key.
+        on_usage: Called as ``on_usage(model_name, usage)`` after the request.
+            The library never interprets it; it is how the dashboard meters spend
+            without quota logic living here.
 
     Returns:
         dict: With keys
@@ -122,7 +131,9 @@ def evaluate_sql_prediction_with_llm(
 
     # One dispatch table, shared with both inference pipelines: a model string
     # that works there works here. This used to accept only "wxai:".
-    client = resolve_client(evaluator_model, model_parameters)
+    client = resolve_client(
+        evaluator_model, model_parameters, api_key=api_key, on_usage=on_usage
+    )
 
     # Format prompt
     prompt_template = llm_judge_config.get("prompt_template", "")

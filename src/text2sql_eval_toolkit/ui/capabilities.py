@@ -90,6 +90,11 @@ ROUTE_TIERS: Dict[Tuple[str, str], Tier] = {
     # host, and a FULL requirement here would deny exactly that. Nothing reaches
     # these without passing the admin check first.
     ("POST", "/api/users"): Tier.PUBLIC,
+    # A signed-in user's own credentials. PUBLIC because the handler scopes
+    # every operation to the caller and refuses an anonymous one: a higher tier
+    # would stop a read-only user storing the key that is theirs to spend.
+    ("POST", "/api/my/keys"): Tier.PUBLIC,
+    ("DELETE", "/api/my/keys/{provider}"): Tier.PUBLIC,
     ("DELETE", "/api/users/{email}"): Tier.PUBLIC,
     # Downloads gigabytes to the data root.
     ("POST", "/api/results/fetch"): Tier.FULL,

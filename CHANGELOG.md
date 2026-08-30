@@ -21,6 +21,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Per-user API keys.** A signed-in user may store their own provider key, so
+  requests they run bill their account rather than the server's. Encrypted with
+  `TEXT2SQL_SECRET_KEY`, write-only (no endpoint returns a stored key), never
+  logged, and optional in both directions. Admins can set per-user monthly
+  spending caps, reserved before a call and reconciled after so concurrent
+  evaluation cannot overshoot them.
+
+  This means the deployment now holds per-user state, including other people's
+  billable credentials. `docs/dashboard/capability-tiers.md` no longer claims
+  otherwise.
+- **One dispatch table for models.** Baseline inference, agentic inference and
+  the LLM judge accept the same `provider:model` strings; the judge was
+  previously watsonx-only. `litellm` is an optional extra for anything the
+  built-in prefixes do not cover.
 - **User management.** `admin`, `full`, `judge` and `read_only` roles, granted
   and revoked from the dashboard by an administrator. `TEXT2SQL_ADMIN_EMAILS`
   always holds admin and is read at every startup, so it is the recovery path if

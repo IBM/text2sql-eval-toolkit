@@ -22,6 +22,11 @@ from text2sql_eval_toolkit.ui.capabilities import (
     Tier,
     resolve_tier,
 )
+from text2sql_eval_toolkit.ui.user_keys import (
+    SECRET_KEY_ENV,
+    UserKeyStore,
+    secrets_available,
+)
 from text2sql_eval_toolkit.ui.roles import (
     ADMIN_EMAILS_ENV,
     REMOVED_ALLOWLIST_ENV,
@@ -50,6 +55,7 @@ from text2sql_eval_toolkit.ui import (
     routers_judge,
     routers_judge_configs,
     routers_users,
+    routers_keys,
     static_files,
 )
 from text2sql_eval_toolkit.ui.indexes import (  # noqa: F401
@@ -112,6 +118,7 @@ for _router in (
     routers_compare.router,
     routers_judge_configs.router,
     routers_users.router,
+    routers_keys.router,
     static_files.router,
 ):
     app.include_router(_router)
@@ -291,6 +298,16 @@ def main(argv: Optional[List[str]] = None) -> None:
     set_mode(mode)
     set_admin_emails(admin_emails_from_env())
     _runtime.set_user_store(UserStore(get_data_root() / "users" / "roles.sqlite"))
+    if secrets_available():
+        _runtime.set_user_key_store(
+            UserKeyStore(get_data_root() / "users" / "keys.sqlite")
+        )
+    elif mode is not Tier.FULL:
+        logger.info(
+            "%s is not set, so users cannot store their own provider keys; "
+            "requests use the server credential.",
+            SECRET_KEY_ENV,
+        )
     configure_cors(mode)
 
     if auth.is_configured():

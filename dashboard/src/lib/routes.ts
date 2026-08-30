@@ -22,6 +22,7 @@ export type ViewName =
   | "profileCompare"
   | "llmJudge"
   | "users"
+  | "myKeys"
   | "runEvaluation";
 
 /** Filter state for the error-analysis view, all optional. */
@@ -95,6 +96,7 @@ export const routes = {
     configName ? `/llm-judge/${encode(configName)}` : "/llm-judge",
   run: (): string => "/run",
   users: (): string => "/users",
+  myKeys: (): string => "/my-keys",
 };
 
 /**
@@ -204,6 +206,10 @@ export function parseLocation(pathname: string): RouteMatch {
 
   if (segments[0] === "users" && segments.length === 1) {
     return { ...EMPTY, view: "users" };
+  }
+
+  if (segments[0] === "my-keys" && segments.length === 1) {
+    return { ...EMPTY, view: "myKeys" };
   }
 
   if (segments[0] === "llm-judge" && segments.length <= 2) {

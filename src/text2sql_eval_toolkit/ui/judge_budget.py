@@ -188,6 +188,11 @@ CREATE TABLE IF NOT EXISTS spend (
 );
 CREATE INDEX IF NOT EXISTS idx_spend_month ON spend (month);
 
+CREATE TABLE IF NOT EXISTS user_caps (
+    user_hash TEXT PRIMARY KEY,
+    cap_usd   REAL NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS verdicts (
     cache_key    TEXT PRIMARY KEY,
     benchmark_id TEXT NOT NULL,
@@ -214,6 +219,10 @@ class JudgeStore:
     """
 
     def __init__(self, path: Path) -> None:
+        # Amounts claimed but not yet committed, per user. In memory on
+        # purpose: a reservation is only meaningful for the life of the
+        # request that made it, and a crash must not leave one stuck.
+        self._reserved: Dict[str, float] = {}
         self._path = Path(path)
         self._path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
@@ -252,6 +261,78 @@ class JudgeStore:
                 "start of next month."
             )
         return current
+
+    # --- per-user caps ---------------------------------------------------
+    #
+    # A user spending their own key is a different question from the global
+    # ceiling on the server-held one: it is their provider account. The cap is
+    # what this server will spend on their behalf, and the UI must say so --
+    # the key keeps working everywhere else.
+
+    def set_user_cap(self, user_hash: str, cap_usd: Optional[float]) -> None:
+        """Set a monthly ceiling for one user, or ``None`` to remove it."""
+        with self._lock, self._connect() as conn:
+            if cap_usd is None:
+                conn.execute("DELETE FROM user_caps WHERE user_hash = ?", (user_hash,))
+            else:
+                conn.execute(
+                    "INSERT INTO user_caps (user_hash, cap_usd) VALUES (?, ?) "
+                    "ON CONFLICT(user_hash) DO UPDATE SET cap_usd = excluded.cap_usd",
+                    (user_hash, float(cap_usd)),
+                )
+
+    def user_cap(self, user_hash: str) -> Optional[float]:
+        row = (
+            self._connect()
+            .execute("SELECT cap_usd FROM user_caps WHERE user_hash = ?", (user_hash,))
+            .fetchone()
+        )
+        return None if row is None else float(row["cap_usd"])
+
+    def user_spent(self, user_hash: str, month: Optional[str] = None) -> float:
+        row = (
+            self._connect()
+            .execute(
+                "SELECT COALESCE(SUM(cost_usd), 0) AS total FROM spend "
+                "WHERE user_hash = ? AND month = ?",
+                (user_hash, month or current_month()),
+            )
+            .fetchone()
+        )
+        return float(row["total"] or 0.0)
+
+    def reserve(self, user_hash: str, estimate_usd: float) -> bool:
+        """
+        Claim *estimate_usd* against this user's cap before spending it.
+
+        Checking and then spending overshoots: evaluation runs sixteen coroutines
+        against one semaphore, so sixteen of them can each read a cap that is
+        still under budget and then all spend. Reserving under the same lock that
+        reads the total makes the in-flight amount visible to the others.
+
+        Returns:
+            bool: Whether the reservation fit under the cap. ``True`` when the
+            user has no cap.
+        """
+        cap = self.user_cap(user_hash)
+        if cap is None:
+            return True
+        with self._lock:
+            committed = self.user_spent(user_hash)
+            pending = self._reserved.get(user_hash, 0.0)
+            if committed + pending + estimate_usd > cap:
+                return False
+            self._reserved[user_hash] = pending + estimate_usd
+            return True
+
+    def release(self, user_hash: str, estimate_usd: float) -> None:
+        """Give back a reservation once the real cost is known, or on failure."""
+        with self._lock:
+            remaining = self._reserved.get(user_hash, 0.0) - estimate_usd
+            if remaining > 0:
+                self._reserved[user_hash] = remaining
+            else:
+                self._reserved.pop(user_hash, None)
 
     def record_spend(
         self,

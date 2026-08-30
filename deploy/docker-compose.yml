@@ -87,6 +87,7 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       TEXT2SQL_SESSION_SECRET: ${TEXT2SQL_SESSION_SECRET:-}
       TEXT2SQL_ADMIN_EMAILS: ${TEXT2SQL_ADMIN_EMAILS:-}
+      TEXT2SQL_SECRET_KEY: ${TEXT2SQL_SECRET_KEY:-}
 
       # Judge budget. Rates are an estimate until calibrated against a real
       # invoice; keep an independent budget alert on the watsonx account too.

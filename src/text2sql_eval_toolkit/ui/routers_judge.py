@@ -31,7 +31,7 @@ from text2sql_eval_toolkit.evaluation.llm_as_judge import (
     evaluate_sql_prediction_with_llm,
     load_llm_judge_config,
 )
-from text2sql_eval_toolkit.ui import auth
+from text2sql_eval_toolkit.ui import auth, runtime
 from text2sql_eval_toolkit.ui.models import (
     JudgeRequest,
     JudgeResponse,
@@ -136,6 +136,27 @@ def _judge_usage_model(usage: Any) -> JudgeUsage:
     )
 
 
+def _user_api_key(email: Optional[str], model: str) -> Optional[str]:
+    """
+    The signed-in caller's stored key for this model's provider, if any.
+
+    Returns ``None`` for an anonymous caller, when no key store is configured, or
+    when nothing is stored -- in which case the request falls back to the
+    server-held credential exactly as before.
+    """
+    store = runtime.get_user_key_store()
+    if store is None or not email:
+        return None
+    provider = model.split(":", 1)[0] if ":" in model else ""
+    if not provider:
+        return None
+    try:
+        return store.reveal_for_request(email, provider)
+    except Exception:  # pragma: no cover - a key problem must not fail the run
+        logger.warning("Could not read a stored key; using the server credential")
+        return None
+
+
 @router.post("/api/benchmarks/{benchmark_id}/judge", response_model=JudgeResponse)
 async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
     """
@@ -232,6 +253,11 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
                 prediction.get("predicted_df") or "",
                 prediction.get("prompt") or "",
                 judge_config,
+                # The caller's own key when they have stored one, so the request
+                # bills their provider account rather than the server's. Tier
+                # decided whether they may run a judge at all; this only decides
+                # who pays.
+                api_key=_user_api_key(email, model),
             )
         except ValueError as exc:
             raise HTTPException(

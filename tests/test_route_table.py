@@ -64,6 +64,11 @@ EXPECTED = {
     "GET /api/users",
     "POST /api/users",
     "DELETE /api/users/{email}",
+    # A signed-in user's own provider credentials, added in 1.4.0. Scoped to
+    # the caller; nothing here returns key material.
+    "GET /api/my/keys",
+    "POST /api/my/keys",
+    "DELETE /api/my/keys/{provider}",
 }
 
 
