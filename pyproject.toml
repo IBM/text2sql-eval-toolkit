@@ -104,7 +104,7 @@ text2sql-eval-toolkit = "text2sql_eval_toolkit.cli:main"
 # PyPI renders README.md as the project page and shows these in its sidebar; it
 # does not host API documentation, so the reference is hosted and linked.
 Homepage = "https://github.com/IBM/text2sql-eval-toolkit"
-Documentation = "https://ibm.github.io/text2sql-eval-toolkit/"
+Documentation = "https://text2sql-eval-toolkit.readthedocs.io/"
 Repository = "https://github.com/IBM/text2sql-eval-toolkit"
 Changelog = "https://github.com/IBM/text2sql-eval-toolkit/blob/main/CHANGELOG.md"
 Issues = "https://github.com/IBM/text2sql-eval-toolkit/issues"

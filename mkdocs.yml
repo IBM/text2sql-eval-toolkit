@@ -9,7 +9,7 @@
 
 site_name: Text-to-SQL Evaluation Toolkit
 site_description: Evaluating text-to-SQL systems — inference, execution, evaluation, profiling, analysis.
-site_url: https://ibm.github.io/text2sql-eval-toolkit/
+site_url: https://text2sql-eval-toolkit.readthedocs.io/
 repo_url: https://github.com/IBM/text2sql-eval-toolkit
 repo_name: IBM/text2sql-eval-toolkit
 edit_uri: edit/main/docs/
