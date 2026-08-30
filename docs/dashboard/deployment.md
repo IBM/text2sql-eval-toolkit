@@ -23,9 +23,17 @@ The mode is a **ceiling** set at startup. Signing in can never raise it.
 | `judge` | Signed in **and** on the allowlist | Adds on-demand LLM-as-judge |
 | `full` | Local operator on loopback | Everything: SQL execution, evaluation runs, registry writes |
 
-`full` refuses a non-loopback bind without `--allow-remote-full`. **Never use
-that flag for a shared deployment** — it exposes SQL execution against whatever
-database credentials the server holds.
+`full` refuses a non-loopback bind without `--allow-remote-full`.
+
+That flag **raises the ceiling and grants nothing**. On a reachable host, `full`
+requires a signed-in caller holding the `full` or `admin` role; anonymous callers
+still resolve to `public`. A local (loopback) deployment is different and
+deliberately so: there `full` is granted without a sign-in, because the operator
+already controls the process.
+
+Use it only where you intend specific, named people to run SQL against the
+databases this server can reach — and grant them the role from the Users
+console.
 
 Confirm the running mode at any time:
 
