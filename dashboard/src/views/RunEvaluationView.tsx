@@ -26,6 +26,18 @@ import { apiUrl } from "../lib/api";
 
 interface Props {
   benchmarks: BenchmarkSummary[];
+  /** Benchmark named in the address, if any. The URL is the source of truth. */
+  initialBenchmarkId?: string | null;
+  /** Record named in the address, if any. */
+  initialRecordId?: string | null;
+  /** Pipeline named in the query string, if any. */
+  initialPipeline?: string | null;
+  /** Reports the open benchmark, record and pipeline so the address can follow. */
+  onStateChange?: (state: {
+    benchmarkId: string | null;
+    recordId: string | null;
+    pipeline: string | null;
+  }) => void;
 }
 
 interface MetricDefinition {
@@ -260,9 +272,23 @@ function DataFramePreview({
   );
 }
 
-export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
+export const RunEvaluationView: React.FC<Props> = ({
+  benchmarks,
+  initialBenchmarkId = null,
+  initialRecordId = null,
+  initialPipeline = null,
+  onStateChange,
+}) => {
   const [selectedBenchmark, setSelectedBenchmark] =
-    useState<BenchmarkSummary | null>(benchmarks[0] ?? null);
+    useState<BenchmarkSummary | null>(
+      // A shared link names its benchmark; fall back to the first only when the
+      // address does not say.
+      (initialBenchmarkId
+        ? benchmarks.find((b) => b.benchmark_id === initialBenchmarkId)
+        : null) ??
+        benchmarks[0] ??
+        null,
+    );
 
   useEffect(() => {
     if (benchmarks.length === 0) return;
@@ -665,7 +691,29 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
       preferredPipelineName: DEFAULT_PLAYGROUND_PIPELINE,
       autoEvaluate: true,
     });
-  }, [selectedBenchmark?.benchmark_id, recordItems]);
+  }, [
+    selectedBenchmark?.benchmark_id,
+    recordItems,
+    initialRecordId,
+    initialPipeline,
+  ]);
+
+  // Report what is open so the address can follow it. `loadedRecordId` rather
+  // than the selection, so the URL names a record that is actually showing --
+  // a link built from a half-finished selection would open on something else.
+  useEffect(() => {
+    if (!onStateChange) return;
+    onStateChange({
+      benchmarkId: selectedBenchmark?.benchmark_id ?? null,
+      recordId: loadedRecordId || null,
+      pipeline: selectedPipelineName ?? null,
+    });
+  }, [
+    onStateChange,
+    selectedBenchmark?.benchmark_id,
+    loadedRecordId,
+    selectedPipelineName,
+  ]);
 
   const pickRandomRecord = () => {
     if (recordItems.length === 0) return;

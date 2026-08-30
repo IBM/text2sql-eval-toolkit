@@ -215,6 +215,28 @@ export const App: React.FC = () => {
   // Turning a page or opening a record must: those are the deliberate steps a
   // reader expects to walk back through, and replacing them meant "back" left
   // the view entirely from page 2.
+  const onPlaygroundStateChange = useCallback(
+    (state: {
+      benchmarkId: string | null;
+      recordId: string | null;
+      pipeline: string | null;
+    }) => {
+      const next = routes.run(
+        state.benchmarkId,
+        state.recordId,
+        state.pipeline,
+      );
+      const current = `${location.pathname}${location.search}`;
+      if (next === current) return;
+      // Replace while the same record is being re-examined, push when the record
+      // changes: the back button should step between records rather than undo
+      // every pipeline toggle.
+      const stepped = (state.recordId ?? null) !== (match.recordId ?? null);
+      navigate(next, { replace: !stepped });
+    },
+    [location.pathname, location.search, match.recordId, navigate],
+  );
+
   const onErrorAnalysisStateChange = useCallback(
     (state: {
       filters: Record<string, unknown>;
@@ -704,7 +726,15 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "runEvaluation") {
-      return <RunEvaluationView benchmarks={benchmarks} />;
+      return (
+        <RunEvaluationView
+          benchmarks={benchmarks}
+          initialBenchmarkId={match.benchmarkId}
+          initialRecordId={match.recordId}
+          initialPipeline={urlFilters.pipeline ?? null}
+          onStateChange={onPlaygroundStateChange}
+        />
+      );
     }
 
     if (activeView === "toolkitInsights") {
