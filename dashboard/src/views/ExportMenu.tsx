@@ -109,8 +109,11 @@ export const ExportMenu: React.FC<Props> = ({ record }) => {
       aria-label="Export this record"
       flipped
       disabled={!record}
-      menuOptionsClass="playground-export-menu"
       size="sm"
+      // Carbon sizes the menu to its trigger, and "Copy URL to clipboard" is
+      // wider than "Export" -- so without this the first item truncates to
+      // "Copy URL to clipb...".
+      menuOptionsClass="playground-export-menu"
     >
       <OverflowMenuItem
         itemText="Copy URL to clipboard"
