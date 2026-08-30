@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   Checkbox,
@@ -98,7 +104,8 @@ const LLM_EXPLANATION_KEY = "llm_explanation";
 
 /** Eval Playground defaults: record and pipeline to load and auto-run on first open. */
 const DEFAULT_PLAYGROUND_RECORD_ID = "1490";
-const DEFAULT_PLAYGROUND_PIPELINE = "wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi";
+const DEFAULT_PLAYGROUND_PIPELINE =
+  "wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi";
 
 /** One-line context for each metric group (aligned with toolkit metric_definitions). */
 const METRIC_GROUP_INTRO: Record<string, string> = {
@@ -108,14 +115,18 @@ const METRIC_GROUP_INTRO: Record<string, string> = {
     "String and parser-based checks that predicted SQL is equivalent to ground truth without executing.",
   Parsing: "Whether the predicted SQL parses cleanly with SQLGlot or sqlparse.",
   "LLM judge": "Scores and notes from the optional LLM-as-judge when enabled.",
-  "Timing and tokens": "Token counts and timings copied from the prediction record when available.",
-  Errors: "Flags and messages when execution, dataframe handling, or evaluation fails.",
+  "Timing and tokens":
+    "Token counts and timings copied from the prediction record when available.",
+  Errors:
+    "Flags and messages when execution, dataframe handling, or evaluation fails.",
   "Ground truth (when matched)":
     "Which ground-truth SQL and result snapshot were used when a subset-style match succeeded.",
   Other: "Metrics not listed in the toolkit definitions (e.g. newer fields).",
 };
 
-function hasPlaygroundCachedEvaluation(pl: PipelinePlaygroundInfo | null | undefined): boolean {
+function hasPlaygroundCachedEvaluation(
+  pl: PipelinePlaygroundInfo | null | undefined,
+): boolean {
   const ev = pl?.evaluation;
   return ev != null && typeof ev === "object" && Object.keys(ev).length > 0;
 }
@@ -149,7 +160,9 @@ function formatCellValue(v: unknown): string {
 }
 
 /** Pandas `orient="split"` JSON (columns + data rows). */
-function parseSplitDfJson(dfJson: string | null | undefined): { columns: string[]; data: unknown[][] } | null {
+function parseSplitDfJson(
+  dfJson: string | null | undefined,
+): { columns: string[]; data: unknown[][] } | null {
   if (!dfJson || !String(dfJson).trim()) return null;
   try {
     const o = JSON.parse(dfJson) as unknown;
@@ -185,15 +198,34 @@ function DataFramePreview({
   if (!parsed) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-        <p style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 600 }}>{title}</p>
-        <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--cds-text-secondary)" }}>{emptyMessage}</p>
+        <p style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 600 }}>
+          {title}
+        </p>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "0.8125rem",
+            color: "var(--cds-text-secondary)",
+          }}
+        >
+          {emptyMessage}
+        </p>
       </div>
     );
   }
   const { columns, data } = parsed;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", minWidth: 0 }}>
-      <p style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 600 }}>{title}</p>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.35rem",
+        minWidth: 0,
+      }}
+    >
+      <p style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 600 }}>
+        {title}
+      </p>
       <TableContainer style={DF_PREVIEW_SCROLL_STYLE}>
         <Table size="sm">
           <TableHead>
@@ -229,15 +261,16 @@ function DataFramePreview({
 }
 
 export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
-  const [selectedBenchmark, setSelectedBenchmark] = useState<BenchmarkSummary | null>(
-    benchmarks[0] ?? null
-  );
+  const [selectedBenchmark, setSelectedBenchmark] =
+    useState<BenchmarkSummary | null>(benchmarks[0] ?? null);
 
   useEffect(() => {
     if (benchmarks.length === 0) return;
     setSelectedBenchmark((prev) => {
       if (prev) {
-        const match = benchmarks.find((b) => b.benchmark_id === prev.benchmark_id);
+        const match = benchmarks.find(
+          (b) => b.benchmark_id === prev.benchmark_id,
+        );
         return match ?? prev;
       }
       return benchmarks[0];
@@ -256,15 +289,20 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
   const [groundTruthSqls, setGroundTruthSqls] = useState<string[]>([""]);
   const [predictedSql, setPredictedSql] = useState("");
   const [pipelines, setPipelines] = useState<PipelinePlaygroundInfo[]>([]);
-  const [selectedPipelineName, setSelectedPipelineName] = useState<string | null>(null);
+  const [selectedPipelineName, setSelectedPipelineName] = useState<
+    string | null
+  >(null);
   const [benchPipelineNames, setBenchPipelineNames] = useState<string[]>([]);
   const [loadedRecordId, setLoadedRecordId] = useState("");
   /** GT row counts from eval file (init) or last successful playground evaluate. */
-  const [savedGroundTruthRowCounts, setSavedGroundTruthRowCounts] = useState<number[]>([]);
+  const [savedGroundTruthRowCounts, setSavedGroundTruthRowCounts] = useState<
+    number[]
+  >([]);
   /** GT dataframe JSON strings (split) from eval file (init) or last evaluate. */
   const [savedGroundTruthDfs, setSavedGroundTruthDfs] = useState<string[]>([]);
 
-  const [playgroundResult, setPlaygroundResult] = useState<PlaygroundEvaluateResponse | null>(null);
+  const [playgroundResult, setPlaygroundResult] =
+    useState<PlaygroundEvaluateResponse | null>(null);
   const [playgroundError, setPlaygroundError] = useState<string | null>(null);
   const [recordIdsError, setRecordIdsError] = useState<string | null>(null);
   const [playgroundLoading, setPlaygroundLoading] = useState(false);
@@ -273,12 +311,20 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
   const [useLLMPlayground, setUseLLMPlayground] = useState(true);
   const [llmConfigPathPlayground, setLlmConfigPathPlayground] = useState("");
   const [forceRerunLLMPlayground, setForceRerunLLMPlayground] = useState(false);
-  const [llmJudgeConfigs, setLlmJudgeConfigs] = useState<LLMJudgeConfigItem[]>([]);
+  const [llmJudgeConfigs, setLlmJudgeConfigs] = useState<LLMJudgeConfigItem[]>(
+    [],
+  );
 
-  const llmConfigDefaultItem = useMemo(() => ({ name: "Default (built-in)", path: "" }), []);
+  const llmConfigDefaultItem = useMemo(
+    () => ({ name: "Default (built-in)", path: "" }),
+    [],
+  );
 
   const llmJudgeComboItems = useMemo(() => {
-    const items: LLMJudgeConfigItem[] = [llmConfigDefaultItem, ...llmJudgeConfigs];
+    const items: LLMJudgeConfigItem[] = [
+      llmConfigDefaultItem,
+      ...llmJudgeConfigs,
+    ];
     const p = llmConfigPathPlayground.trim();
     if (p && !items.some((i) => i.path === p)) {
       const tail = p.split("/").pop() || p;
@@ -289,8 +335,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
 
   const selectedLlmConfigItem = useMemo(
     () =>
-      llmJudgeComboItems.find((i) => i.path === llmConfigPathPlayground) ?? llmConfigDefaultItem,
-    [llmJudgeComboItems, llmConfigPathPlayground, llmConfigDefaultItem]
+      llmJudgeComboItems.find((i) => i.path === llmConfigPathPlayground) ??
+      llmConfigDefaultItem,
+    [llmJudgeComboItems, llmConfigPathPlayground, llmConfigDefaultItem],
   );
 
   const autoLoadedForBenchRef = useRef<string | null>(null);
@@ -301,10 +348,18 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
 
   const selectedRecordItem = useMemo(() => {
     if (!selectedRecordId) return null;
-    return recordItems.find((r) => String(r.record_id) === String(selectedRecordId)) ?? null;
+    return (
+      recordItems.find(
+        (r) => String(r.record_id) === String(selectedRecordId),
+      ) ?? null
+    );
   }, [recordItems, selectedRecordId]);
 
-  const effectiveRecordId = (recordIdManual.trim() || selectedRecordId || "").trim();
+  const effectiveRecordId = (
+    recordIdManual.trim() ||
+    selectedRecordId ||
+    ""
+  ).trim();
 
   useEffect(() => {
     let cancelled = false;
@@ -352,7 +407,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
     }
     setRecordIdsError(null);
     try {
-      const res = await fetch(apiUrl(`/api/benchmarks/${encodeURIComponent(bid)}/record-ids`));
+      const res = await fetch(
+        apiUrl(`/api/benchmarks/${encodeURIComponent(bid)}/record-ids`),
+      );
       if (!res.ok) {
         const txt = await res.text();
         setRecordIdsError(txt || `HTTP ${res.status}`);
@@ -362,7 +419,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
       const json = await res.json();
       setRecordItems(json.items || []);
     } catch (e: unknown) {
-      setRecordIdsError(e instanceof Error ? e.message : "Failed to load record IDs");
+      setRecordIdsError(
+        e instanceof Error ? e.message : "Failed to load record IDs",
+      );
       setRecordItems([]);
     }
   }, [selectedBenchmark?.benchmark_id]);
@@ -381,7 +440,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(apiUrl(`/api/benchmarks/${encodeURIComponent(bid)}/summary`));
+        const res = await fetch(
+          apiUrl(`/api/benchmarks/${encodeURIComponent(bid)}/summary`),
+        );
         if (!res.ok) {
           if (!cancelled) {
             setBenchPipelineNames([]);
@@ -395,8 +456,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
           .sort((a: string, b: string) => a.localeCompare(b));
         if (!cancelled) {
           setBenchPipelineNames(names);
-          const preferred =
-            names.includes(DEFAULT_PLAYGROUND_PIPELINE) ? DEFAULT_PLAYGROUND_PIPELINE : (names[0] ?? null);
+          const preferred = names.includes(DEFAULT_PLAYGROUND_PIPELINE)
+            ? DEFAULT_PLAYGROUND_PIPELINE
+            : (names[0] ?? null);
           setSelectedPipelineName(preferred);
         }
       } catch {
@@ -420,7 +482,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
 
   const selectedPipelineItem: PipelinePickItem | null = useMemo(() => {
     if (!selectedPipelineName) return null;
-    return pipelineComboItems.find((p) => p.name === selectedPipelineName) ?? null;
+    return (
+      pipelineComboItems.find((p) => p.name === selectedPipelineName) ?? null
+    );
   }, [pipelineComboItems, selectedPipelineName]);
 
   const defByName = useMemo(() => {
@@ -448,12 +512,14 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
           force_rerun_llm_judge: forceRerunLLMPlayground,
         };
         const res = await fetch(
-          apiUrl(`/api/benchmarks/${encodeURIComponent(selectedBenchmark.benchmark_id)}/playground/evaluate`),
+          apiUrl(
+            `/api/benchmarks/${encodeURIComponent(selectedBenchmark.benchmark_id)}/playground/evaluate`,
+          ),
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
-          }
+          },
         );
         if (!res.ok) {
           const txt = await res.text();
@@ -464,7 +530,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
         setSavedGroundTruthRowCounts(json.ground_truth_row_counts ?? []);
         setSavedGroundTruthDfs(json.ground_truth_dfs ?? []);
       } catch (e: unknown) {
-        setPlaygroundError(e instanceof Error ? e.message : "Evaluation failed");
+        setPlaygroundError(
+          e instanceof Error ? e.message : "Evaluation failed",
+        );
       } finally {
         setPlaygroundLoading(false);
       }
@@ -474,13 +542,16 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
       useLLMPlayground,
       llmConfigPathPlayground,
       forceRerunLLMPlayground,
-    ]
+    ],
   );
 
   const loadPlaygroundForRecordId = useCallback(
     async (
       recordId: string,
-      options?: { preferredPipelineName?: string | null; autoEvaluate?: boolean }
+      options?: {
+        preferredPipelineName?: string | null;
+        autoEvaluate?: boolean;
+      },
     ) => {
       if (!selectedBenchmark?.benchmark_id || !recordId.trim()) return;
       try {
@@ -488,8 +559,8 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
         setPlaygroundError(null);
         const res = await fetch(
           apiUrl(
-            `/api/benchmarks/${encodeURIComponent(selectedBenchmark.benchmark_id)}/playground/${encodeURIComponent(recordId.trim())}`
-          )
+            `/api/benchmarks/${encodeURIComponent(selectedBenchmark.benchmark_id)}/playground/${encodeURIComponent(recordId.trim())}`,
+          ),
         );
         if (!res.ok) {
           const txt = await res.text();
@@ -499,7 +570,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
         setLoadedRecordId(json.record_id);
         setQuestionText(json.question || "");
         setDbIdText(json.db_id != null ? String(json.db_id) : "");
-        const gts = json.ground_truth_sqls?.length ? json.ground_truth_sqls : [""];
+        const gts = json.ground_truth_sqls?.length
+          ? json.ground_truth_sqls
+          : [""];
         setGroundTruthSqls(gts);
 
         const pls = json.pipelines || [];
@@ -512,7 +585,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
             ? options.preferredPipelineName
             : selectedPipelineName;
         const match =
-          (pref ? pls.find((p) => p.name === pref) : undefined) || pls[0] || null;
+          (pref ? pls.find((p) => p.name === pref) : undefined) ||
+          pls[0] ||
+          null;
         setSelectedPipelineName(match?.name ?? null);
         setPredictedSql(match?.predicted_sql ?? "");
 
@@ -547,12 +622,14 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
           }
         }
       } catch (e: unknown) {
-        setPlaygroundError(e instanceof Error ? e.message : "Failed to load record");
+        setPlaygroundError(
+          e instanceof Error ? e.message : "Failed to load record",
+        );
       } finally {
         setInitLoading(false);
       }
     },
-    [selectedBenchmark, selectedPipelineName, executePlaygroundEvaluate]
+    [selectedBenchmark, selectedPipelineName, executePlaygroundEvaluate],
   );
 
   const loadPlayground = useCallback(() => {
@@ -570,15 +647,21 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
     if (!bid || recordItems.length === 0) return;
     if (autoLoadedForBenchRef.current === bid) return;
     autoLoadedForBenchRef.current = bid;
-    const hasDefault = recordItems.some((r) => String(r.record_id) === DEFAULT_PLAYGROUND_RECORD_ID);
-    if (hasDefault) {
-      setSelectedRecordId(DEFAULT_PLAYGROUND_RECORD_ID);
-      setRecordIdManual("");
-    } else {
-      setSelectedRecordId(null);
-      setRecordIdManual(DEFAULT_PLAYGROUND_RECORD_ID);
-    }
-    void loadPlaygroundRef.current(DEFAULT_PLAYGROUND_RECORD_ID, {
+    // The default record id only exists in some benchmarks. This used to check
+    // that and then load it regardless, so opening the playground on any other
+    // benchmark greeted you with "Record not found in benchmark data" -- an
+    // error about an id you never asked for. Fall back to the first record the
+    // benchmark actually has.
+    const hasDefault = recordItems.some(
+      (r) => String(r.record_id) === DEFAULT_PLAYGROUND_RECORD_ID,
+    );
+    const initialRecordId = hasDefault
+      ? DEFAULT_PLAYGROUND_RECORD_ID
+      : String(recordItems[0].record_id);
+
+    setSelectedRecordId(initialRecordId);
+    setRecordIdManual("");
+    void loadPlaygroundRef.current(initialRecordId, {
       preferredPipelineName: DEFAULT_PLAYGROUND_PIPELINE,
       autoEvaluate: true,
     });
@@ -598,7 +681,12 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
     if (name && pipelines.length > 0) {
       const pl = pipelines.find((p) => p.name === name);
       if (pl?.predicted_sql != null) setPredictedSql(pl.predicted_sql);
-      if (pl && hasPlaygroundCachedEvaluation(pl) && selectedBenchmark && loadedRecordId) {
+      if (
+        pl &&
+        hasPlaygroundCachedEvaluation(pl) &&
+        selectedBenchmark &&
+        loadedRecordId
+      ) {
         setPlaygroundResult({
           benchmark_id: selectedBenchmark.benchmark_id,
           record_id: loadedRecordId,
@@ -644,12 +732,20 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
     const ev = playgroundResult.evaluation as Record<string, unknown>;
     const orderedNames: string[] = [];
     metricDefs.forEach((d) => {
-      if (d.name in ev && !TEXT_DETAIL_KEYS.has(d.name) && d.name !== LLM_EXPLANATION_KEY) {
+      if (
+        d.name in ev &&
+        !TEXT_DETAIL_KEYS.has(d.name) &&
+        d.name !== LLM_EXPLANATION_KEY
+      ) {
         orderedNames.push(d.name);
       }
     });
     Object.keys(ev).forEach((k) => {
-      if (!TEXT_DETAIL_KEYS.has(k) && k !== LLM_EXPLANATION_KEY && !orderedNames.includes(k)) {
+      if (
+        !TEXT_DETAIL_KEYS.has(k) &&
+        k !== LLM_EXPLANATION_KEY &&
+        !orderedNames.includes(k)
+      ) {
         orderedNames.push(k);
       }
     });
@@ -720,10 +816,12 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       <h3 style={{ margin: 0 }}>Eval Playground</h3>
       <p style={{ margin: 0, maxWidth: "52rem", lineHeight: 1.45 }}>
-        Pick a benchmark and pipeline, then load a record (a random one is loaded automatically when possible). Edit
-        ground-truth and predicted SQL and run per-record metrics. Metrics below include short descriptions from the
-        toolkit. <strong>logic_execution_accuracy</strong> only uses <code>logic_df</code> when that field is present
-        (e.g. from merged pipeline context); otherwise it follows subset match.
+        Pick a benchmark and pipeline, then load a record (a random one is
+        loaded automatically when possible). Edit ground-truth and predicted SQL
+        and run per-record metrics. Metrics below include short descriptions
+        from the toolkit. <strong>logic_execution_accuracy</strong> only uses{" "}
+        <code>logic_df</code> when that field is present (e.g. from merged
+        pipeline context); otherwise it follows subset match.
       </p>
 
       {recordIdsError && (
@@ -735,7 +833,12 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
         />
       )}
       {playgroundError && (
-        <InlineNotification kind="error" title="Eval Playground" subtitle={playgroundError} lowContrast />
+        <InlineNotification
+          kind="error"
+          title="Eval Playground"
+          subtitle={playgroundError}
+          lowContrast
+        />
       )}
 
       <section
@@ -760,7 +863,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
             itemToString={(item) => (item ? item.benchmark_id : "")}
             selectedItem={
               selectedBenchmark
-                ? benchmarks.find((b) => b.benchmark_id === selectedBenchmark.benchmark_id) ?? selectedBenchmark
+                ? (benchmarks.find(
+                    (b) => b.benchmark_id === selectedBenchmark.benchmark_id,
+                  ) ?? selectedBenchmark)
                 : null
             }
             onChange={(e) => {
@@ -781,7 +886,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
             items={pipelineComboItems}
             itemToString={(item) => (item ? item.name : "")}
             selectedItem={selectedPipelineItem}
-            onChange={(e) => onPipelinePick(e.selectedItem as PipelinePickItem | null)}
+            onChange={(e) =>
+              onPipelinePick(e.selectedItem as PipelinePickItem | null)
+            }
             placeholder={
               benchPipelineNames.length === 0 && pipelines.length === 0
                 ? "Load a record for pipelines"
@@ -799,7 +906,11 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
               const item = e.selectedItem as RecordIdItem | null;
               setSelectedRecordId(item != null ? String(item.record_id) : null);
             }}
-            placeholder={recordItems.length === 0 ? "No records (check benchmark data)" : "Pick a record"}
+            placeholder={
+              recordItems.length === 0
+                ? "No records (check benchmark data)"
+                : "Pick a record"
+            }
             disabled={recordItems.length === 0}
           />
           <TextInput
@@ -816,20 +927,36 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
           >
             {initLoading ? "Loading…" : "Load record"}
           </Button>
-          <Button kind="secondary" onClick={() => void pickRandomRecord()} disabled={initLoading || recordItems.length === 0}>
+          <Button
+            kind="secondary"
+            onClick={() => void pickRandomRecord()}
+            disabled={initLoading || recordItems.length === 0}
+          >
             Random record
           </Button>
         </div>
 
         {benchPipelineNames.length === 0 && selectedBenchmark && (
-          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--cds-text-secondary)" }}>
-            No summary file found for this benchmark yet; pipeline names appear after you have evaluation results, or
-            from the loaded record below.
+          <p
+            style={{
+              margin: 0,
+              fontSize: "0.8125rem",
+              color: "var(--cds-text-secondary)",
+            }}
+          >
+            No summary file found for this benchmark yet; pipeline names appear
+            after you have evaluation results, or from the loaded record below.
           </p>
         )}
 
         {questionText && (
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--cds-text-secondary)" }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: "0.875rem",
+              color: "var(--cds-text-secondary)",
+            }}
+          >
             <strong>Question:</strong> {questionText}
             {dbIdText ? (
               <>
@@ -848,12 +975,21 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
             alignItems: "stretch",
           }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+              minWidth: 0,
+            }}
+          >
             {groundTruthSqls.map((sql, idx) => (
               <TextArea
                 key={`gt-${idx}`}
                 labelText={
-                  groundTruthSqls.length > 1 ? `Ground truth SQL (${idx + 1})` : "Ground truth SQL"
+                  groundTruthSqls.length > 1
+                    ? `Ground truth SQL (${idx + 1})`
+                    : "Ground truth SQL"
                 }
                 value={sql}
                 onChange={(e) => {
@@ -862,18 +998,33 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                   setGroundTruthSqls(next);
                 }}
                 rows={8}
-                style={{ resize: "vertical", minHeight: "8rem", fontFamily: "monospace" }}
+                style={{
+                  resize: "vertical",
+                  minHeight: "8rem",
+                  fontFamily: "monospace",
+                }}
               />
             ))}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", minWidth: 0 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+              minWidth: 0,
+            }}
+          >
             <TextArea
               id="pg-pred-sql"
               labelText="Predicted SQL"
               value={predictedSql}
               onChange={(e) => setPredictedSql(e.target.value)}
               rows={8}
-              style={{ resize: "vertical", minHeight: "8rem", fontFamily: "monospace" }}
+              style={{
+                resize: "vertical",
+                minHeight: "8rem",
+                fontFamily: "monospace",
+              }}
             />
           </div>
         </div>
@@ -889,7 +1040,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
             gap: "0.75rem",
           }}
         >
-          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>LLM judge</p>
+          <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>
+            LLM judge
+          </p>
           <div
             style={{
               display: "flex",
@@ -899,7 +1052,13 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
               gap: "1rem",
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}
+            >
               <Checkbox
                 id="pg-use-llm"
                 labelText="Use LLM-as-judge"
@@ -911,10 +1070,18 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                 labelText="Force rerun LLM judge"
                 checked={forceRerunLLMPlayground}
                 disabled={!useLLMPlayground}
-                onChange={(_, { checked }) => setForceRerunLLMPlayground(checked)}
+                onChange={(_, { checked }) =>
+                  setForceRerunLLMPlayground(checked)
+                }
               />
             </div>
-            <div style={{ flex: "1 1 16rem", maxWidth: "28rem", minWidth: "min(100%, 14rem)" }}>
+            <div
+              style={{
+                flex: "1 1 16rem",
+                maxWidth: "28rem",
+                minWidth: "min(100%, 14rem)",
+              }}
+            >
               <ComboBox
                 id="pg-llm-config"
                 titleText="LLM judge config (optional)"
@@ -926,7 +1093,11 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                   setLlmConfigPathPlayground(item?.path ?? "");
                 }}
                 disabled={!useLLMPlayground}
-                placeholder={llmJudgeConfigs.length === 0 ? "Default or load configs…" : "Select config"}
+                placeholder={
+                  llmJudgeConfigs.length === 0
+                    ? "Default or load configs…"
+                    : "Select config"
+                }
               />
             </div>
           </div>
@@ -943,7 +1114,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
         </div>
 
         {playgroundResult && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}
+          >
             {playgroundResult.prediction_error != null && (
               <InlineNotification
                 kind="warning"
@@ -954,18 +1127,21 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
             )}
             {playgroundResult.ground_truth_row_counts?.length ? (
               <p style={{ margin: 0, fontSize: "0.875rem" }}>
-                <strong>GT result row counts:</strong> {playgroundResult.ground_truth_row_counts.join(", ")}
+                <strong>GT result row counts:</strong>{" "}
+                {playgroundResult.ground_truth_row_counts.join(", ")}
                 {playgroundResult.prediction_row_count != null && (
                   <>
                     {" "}
-                    <strong>Predicted rows/cols:</strong> {playgroundResult.prediction_row_count} /{" "}
+                    <strong>Predicted rows/cols:</strong>{" "}
+                    {playgroundResult.prediction_row_count} /{" "}
                     {playgroundResult.prediction_column_count ?? "—"}
                   </>
                 )}
               </p>
             ) : null}
 
-            {(playgroundResult.ground_truth_dfs?.length ?? 0) > 0 || playgroundResult.predicted_df != null ? (
+            {(playgroundResult.ground_truth_dfs?.length ?? 0) > 0 ||
+            playgroundResult.predicted_df != null ? (
               <div
                 style={{
                   border: "1px solid var(--cds-border-subtle-01)",
@@ -978,7 +1154,9 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                 }}
               >
                 <div>
-                  <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>Result dataframes</h4>
+                  <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>
+                    Result dataframes
+                  </h4>
                   <p
                     style={{
                       margin: "0.35rem 0 0",
@@ -988,36 +1166,74 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                       maxWidth: "52rem",
                     }}
                   >
-                    Ground-truth and predicted result tables (pandas orient=&quot;split&quot;). Scroll when large.
+                    Ground-truth and predicted result tables (pandas
+                    orient=&quot;split&quot;). Scroll when large.
                   </p>
                 </div>
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 22rem), 1fr))",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(min(100%, 22rem), 1fr))",
                     gap: "1.25rem",
                     alignItems: "start",
                   }}
                 >
-                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem", minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>Ground truth dataframe(s)</p>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "1rem",
+                      minWidth: 0,
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Ground truth dataframe(s)
+                    </p>
                     {(playgroundResult.ground_truth_dfs ?? []).length === 0 ? (
-                      <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--cds-text-secondary)" }}>
-                        No serialized ground-truth dataframe in this response (run evaluation to compute from SQL).
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "0.8125rem",
+                          color: "var(--cds-text-secondary)",
+                        }}
+                      >
+                        No serialized ground-truth dataframe in this response
+                        (run evaluation to compute from SQL).
                       </p>
                     ) : (
-                      (playgroundResult.ground_truth_dfs ?? []).map((dfJson, i) => (
-                        <DataFramePreview
-                          key={`gt-df-${i}`}
-                          title={groundTruthSqls.length > 1 ? `Ground truth ${i + 1}` : "Ground truth"}
-                          dfJson={dfJson}
-                          emptyMessage="Could not parse dataframe JSON."
-                        />
-                      ))
+                      (playgroundResult.ground_truth_dfs ?? []).map(
+                        (dfJson, i) => (
+                          <DataFramePreview
+                            key={`gt-df-${i}`}
+                            title={
+                              groundTruthSqls.length > 1
+                                ? `Ground truth ${i + 1}`
+                                : "Ground truth"
+                            }
+                            dfJson={dfJson}
+                            emptyMessage="Could not parse dataframe JSON."
+                          />
+                        ),
+                      )
                     )}
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ margin: "0 0 1rem", fontSize: "0.875rem", fontWeight: 600 }}>Prediction dataframe</p>
+                    <p
+                      style={{
+                        margin: "0 0 1rem",
+                        fontSize: "0.875rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Prediction dataframe
+                    </p>
                     <DataFramePreview
                       title="Predicted SQL result"
                       dfJson={playgroundResult.predicted_df}
@@ -1032,11 +1248,26 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
               </div>
             ) : null}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>Evaluation metrics</h4>
-              <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--cds-text-secondary)", maxWidth: "48rem" }}>
-                Each section groups related scores. The toolkit name is shown in monospace; the description explains how to
-                read the value.
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}
+            >
+              <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: 600 }}>
+                Evaluation metrics
+              </h4>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.8125rem",
+                  color: "var(--cds-text-secondary)",
+                  maxWidth: "48rem",
+                }}
+              >
+                Each section groups related scores. The toolkit name is shown in
+                monospace; the description explains how to read the value.
               </p>
             </div>
 
@@ -1054,7 +1285,15 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                 }}
               >
                 <div>
-                  <h5 style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>{group}</h5>
+                  <h5
+                    style={{
+                      margin: 0,
+                      fontSize: "0.9375rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {group}
+                  </h5>
                   {intro ? (
                     <p
                       style={{
@@ -1073,9 +1312,13 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                   <Table size="sm">
                     <TableHead>
                       <TableRow>
-                        <TableHeader style={{ width: "26%" }}>Metric</TableHeader>
+                        <TableHeader style={{ width: "26%" }}>
+                          Metric
+                        </TableHeader>
                         <TableHeader style={{ width: "10%" }}>Type</TableHeader>
-                        <TableHeader style={{ width: "14%" }}>Value</TableHeader>
+                        <TableHeader style={{ width: "14%" }}>
+                          Value
+                        </TableHeader>
                         <TableHeader>What it means</TableHeader>
                       </TableRow>
                     </TableHead>
@@ -1122,8 +1365,22 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                   </Table>
                 </TableContainer>
                 {group === "LLM judge" && llmExplanationText ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-                    <p style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 600 }}>LLM explanation</p>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.35rem",
+                    }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: "0.8125rem",
+                        fontWeight: 600,
+                      }}
+                    >
+                      LLM explanation
+                    </p>
                     <p
                       style={{
                         margin: 0,
@@ -1170,7 +1427,15 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                 }}
               >
                 <div>
-                  <h5 style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600 }}>Text and debug fields</h5>
+                  <h5
+                    style={{
+                      margin: 0,
+                      fontSize: "0.9375rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Text and debug fields
+                  </h5>
                   <p
                     style={{
                       margin: "0.35rem 0 0",
@@ -1180,15 +1445,18 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                       maxWidth: "52rem",
                     }}
                   >
-                    Long-form strings from evaluation (errors, serialized ground-truth data). The LLM explanation
-                    appears under the LLM judge section above when present.
+                    Long-form strings from evaluation (errors, serialized
+                    ground-truth data). The LLM explanation appears under the
+                    LLM judge section above when present.
                   </p>
                 </div>
                 <TableContainer>
                   <Table size="sm">
                     <TableHead>
                       <TableRow>
-                        <TableHeader style={{ width: "22%" }}>Field</TableHeader>
+                        <TableHeader style={{ width: "22%" }}>
+                          Field
+                        </TableHeader>
                         <TableHeader>Content</TableHeader>
                       </TableRow>
                     </TableHead>
@@ -1204,7 +1472,13 @@ export const RunEvaluationView: React.FC<Props> = ({ benchmarks }) => {
                           >
                             {t.key}
                           </TableCell>
-                          <TableCell style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", verticalAlign: "top" }}>
+                          <TableCell
+                            style={{
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-word",
+                              verticalAlign: "top",
+                            }}
+                          >
                             {t.value}
                           </TableCell>
                         </TableRow>
