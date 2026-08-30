@@ -1,0 +1,15 @@
+/*
+ * App-level overrides on top of Carbon.
+ *
+ * Kept deliberately small: anything that can be a component style should be,
+ * and a growing global sheet is how a design system stops being one.
+ */
+
+/*
+ * Carbon sizes an overflow menu's list to its trigger. The export trigger reads
+ * "Export" while its widest item is "Copy URL to clipboard", so without this the
+ * first item renders as "Copy URL to clipb...".
+ */
+.playground-export-menu {
+  min-width: 15rem;
+}
