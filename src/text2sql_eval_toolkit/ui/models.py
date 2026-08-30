@@ -316,6 +316,11 @@ class JudgeRequest(BaseModel):
     record_id: str
     pipeline: str
     config_name: Optional[str] = None
+    #: Return a stored verdict if there is one, and otherwise nothing at all --
+    #: never start an inference. A shared link carries the config it was judged
+    #: with and reopens the verdict on load; without this that link would bill
+    #: whoever opened it, which is not what sharing a result should mean.
+    cached_only: bool = False
 
 
 class JudgeUsage(BaseModel):

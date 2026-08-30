@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button, ComboBox, InlineNotification, Tag, Tile } from "@carbon/react";
 
 import { apiFetch, apiUrl } from "../lib/api";
@@ -21,9 +21,19 @@ interface Props {
   recordId: string | null;
   pipeline: string | null;
   configs: { name: string; path: string }[];
+  /** Judge config named in the address, if any. Its verdict is restored on load. */
+  initialConfigName?: string | null;
+  /**
+   * Reports the verdict on screen, or null when there is none.
+   *
+   * The parent owns the address and the export, and both need to know what the
+   * judge said -- so this component holds the result but does not keep it to
+   * itself.
+   */
+  onResultChange?: (result: JudgeResult | null) => void;
 }
 
-interface JudgeResult {
+export interface JudgeResult {
   verdict: string;
   score: number | null;
   explanation: string | null;
@@ -32,6 +42,8 @@ interface JudgeResult {
   cached: boolean;
   usage?: { month: string; spent_usd: number; budget_usd?: number } | null;
 }
+
+const DEFAULT_CONFIG_NAME = "llm_judge_default_config";
 
 const VERDICT_TAGS: Record<string, "green" | "red" | "purple" | "gray"> = {
   Yes: "green",
@@ -45,9 +57,11 @@ export const JudgePlayground: React.FC<Props> = ({
   recordId,
   pipeline,
   configs,
+  initialConfigName,
+  onResultChange,
 }) => {
   const [configName, setConfigName] = useState<string>(
-    "llm_judge_default_config",
+    initialConfigName || DEFAULT_CONFIG_NAME,
   );
   const [result, setResult] = useState<JudgeResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,11 +69,19 @@ export const JudgePlayground: React.FC<Props> = ({
 
   const ready = Boolean(benchmarkId && recordId && pipeline);
 
-  const run = async () => {
-    if (!ready) return;
-    setRunning(true);
-    setError(null);
-    try {
+  const publish = useCallback(
+    (next: JudgeResult | null) => {
+      setResult(next);
+      onResultChange?.(next);
+    },
+    [onResultChange],
+  );
+
+  const judge = useCallback(
+    async (
+      config: string,
+      cachedOnly: boolean,
+    ): Promise<JudgeResult | null> => {
       const res = await apiFetch(
         apiUrl(
           `/api/benchmarks/${encodeURIComponent(benchmarkId as string)}/judge`,
@@ -70,22 +92,72 @@ export const JudgePlayground: React.FC<Props> = ({
           body: JSON.stringify({
             record_id: recordId,
             pipeline,
-            config_name: configName,
+            config_name: config,
+            cached_only: cachedOnly,
           }),
         },
       );
-      setResult(await res.json());
+      // 204: asked for a stored verdict, there is none.
+      return res.status === 204 ? null : ((await res.json()) as JudgeResult);
+    },
+    [benchmarkId, recordId, pipeline],
+  );
+
+  const run = async () => {
+    if (!ready) return;
+    setRunning(true);
+    setError(null);
+    try {
+      publish(await judge(configName, false));
     } catch (e) {
-      setResult(null);
+      publish(null);
       setError(e instanceof Error ? e.message : "The judge could not be run");
     } finally {
       setRunning(false);
     }
   };
 
+  // A shared link names the config it was judged with; restore that verdict.
+  //
+  // Cached-only, always. Opening a link someone sent must not start an
+  // inference: the sender is sharing an answer, not authorising the reader to
+  // spend on their behalf. If the verdict has since aged out of the cache the
+  // reader gets the button, with the right config already selected.
+  const restoreKey = `${benchmarkId}|${recordId}|${pipeline}|${initialConfigName ?? ""}`;
+  const restoredRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialConfigName || !ready) return;
+    if (restoredRef.current === restoreKey) return;
+    restoredRef.current = restoreKey;
+    setConfigName(initialConfigName);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const found = await judge(initialConfigName, true);
+        if (!cancelled && found) publish(found);
+      } catch {
+        // A restore is best-effort: the button is still there.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialConfigName, ready, restoreKey, judge, publish]);
+
+  // The verdict belongs to the record and pipeline it was given for; when
+  // either changes it is no longer about what is on screen.
+  const subjectKey = `${benchmarkId}|${recordId}|${pipeline}`;
+  const subjectRef = useRef(subjectKey);
+  useEffect(() => {
+    if (subjectRef.current === subjectKey) return;
+    subjectRef.current = subjectKey;
+    publish(null);
+    setError(null);
+  }, [subjectKey, publish]);
+
   const configNames = configs.length
     ? configs.map((c) => c.name)
-    : ["llm_judge_default_config"];
+    : [DEFAULT_CONFIG_NAME];
 
   return (
     <section
@@ -137,9 +209,7 @@ export const JudgePlayground: React.FC<Props> = ({
             itemToString={(item) => (item as string) ?? ""}
             selectedItem={configName}
             onChange={({ selectedItem }) =>
-              setConfigName(
-                (selectedItem as string) ?? "llm_judge_default_config",
-              )
+              setConfigName((selectedItem as string) ?? DEFAULT_CONFIG_NAME)
             }
           />
         </div>

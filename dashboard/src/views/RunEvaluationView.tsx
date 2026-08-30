@@ -25,7 +25,7 @@ import type { BenchmarkSummary } from "../types/benchmark";
 import { apiUrl } from "../lib/api";
 import { type ExportableRecord } from "../lib/playgroundExport";
 import { ExportMenu } from "./ExportMenu";
-import { JudgePlayground } from "./JudgePlayground";
+import { JudgePlayground, type JudgeResult } from "./JudgePlayground";
 
 interface Props {
   benchmarks: BenchmarkSummary[];
@@ -35,11 +35,17 @@ interface Props {
   initialRecordId?: string | null;
   /** Pipeline named in the query string, if any. */
   initialPipeline?: string | null;
-  /** Reports the open benchmark, record and pipeline so the address can follow. */
+  /** Judge config named in the query string, if any. */
+  initialJudgeConfig?: string | null;
+  /**
+   * Reports the open benchmark, record, pipeline and judge config so the
+   * address can follow.
+   */
   onStateChange?: (state: {
     benchmarkId: string | null;
     recordId: string | null;
     pipeline: string | null;
+    judgeConfig: string | null;
   }) => void;
 }
 
@@ -280,6 +286,7 @@ export const RunEvaluationView: React.FC<Props> = ({
   initialBenchmarkId = null,
   initialRecordId = null,
   initialPipeline = null,
+  initialJudgeConfig = null,
   onStateChange,
 }) => {
   const [selectedBenchmark, setSelectedBenchmark] =
@@ -701,6 +708,10 @@ export const RunEvaluationView: React.FC<Props> = ({
     initialPipeline,
   ]);
 
+  // Held here rather than inside JudgePlayground: the address and the export
+  // both need it, and neither can reach into a child's state.
+  const [judgeResult, setJudgeResult] = useState<JudgeResult | null>(null);
+
   // Report what is open so the address can follow it. `loadedRecordId` rather
   // than the selection, so the URL names a record that is actually showing --
   // a link built from a half-finished selection would open on something else.
@@ -710,12 +721,16 @@ export const RunEvaluationView: React.FC<Props> = ({
       benchmarkId: selectedBenchmark?.benchmark_id ?? null,
       recordId: loadedRecordId || null,
       pipeline: selectedPipelineName ?? null,
+      // Only once a verdict is showing. Naming a config that has not been run
+      // would promise the reader a result the link cannot deliver.
+      judgeConfig: judgeResult?.config_name ?? null,
     });
   }, [
     onStateChange,
     selectedBenchmark?.benchmark_id,
     loadedRecordId,
     selectedPipelineName,
+    judgeResult?.config_name,
   ]);
 
   const pickRandomRecord = () => {
@@ -834,6 +849,14 @@ export const RunEvaluationView: React.FC<Props> = ({
     }));
   }, [metricRows, metricGroupsOrder]);
 
+  const llmExplanationText = useMemo(() => {
+    if (!playgroundResult?.evaluation) return "";
+    const ev = playgroundResult.evaluation as Record<string, unknown>;
+    const v = ev[LLM_EXPLANATION_KEY];
+    if (v === undefined || v === null || v === "") return "";
+    return formatCellValue(v);
+  }, [playgroundResult]);
+
   // Everything the export needs, assembled from what is on screen. Null while
   // nothing is loaded, which is what disables the menu.
   const exportableRecord = useMemo<ExportableRecord | null>(() => {
@@ -866,6 +889,19 @@ export const RunEvaluationView: React.FC<Props> = ({
         group: row.group,
         description: row.description,
       })),
+      // Rendered as prose rather than as a metric row, which is why it needs
+      // naming separately -- it was missing from exports entirely.
+      storedJudgeExplanation: llmExplanationText || null,
+      judge: judgeResult
+        ? {
+            verdict: judgeResult.verdict,
+            score: judgeResult.score,
+            explanation: judgeResult.explanation,
+            model: judgeResult.model,
+            configName: judgeResult.config_name,
+            cached: judgeResult.cached,
+          }
+        : null,
     };
   }, [
     selectedBenchmark,
@@ -877,15 +913,9 @@ export const RunEvaluationView: React.FC<Props> = ({
     selectedPipelineName,
     playgroundResult,
     metricRows,
+    llmExplanationText,
+    judgeResult,
   ]);
-
-  const llmExplanationText = useMemo(() => {
-    if (!playgroundResult?.evaluation) return "";
-    const ev = playgroundResult.evaluation as Record<string, unknown>;
-    const v = ev[LLM_EXPLANATION_KEY];
-    if (v === undefined || v === null || v === "") return "";
-    return formatCellValue(v);
-  }, [playgroundResult]);
 
   const textDetails = useMemo(() => {
     if (!playgroundResult?.evaluation) return [];
@@ -1611,6 +1641,8 @@ export const RunEvaluationView: React.FC<Props> = ({
           recordId={loadedRecordId || null}
           pipeline={selectedPipelineName ?? null}
           configs={llmJudgeConfigs}
+          initialConfigName={initialJudgeConfig ?? null}
+          onResultChange={setJudgeResult}
         />
       </div>
     </div>
