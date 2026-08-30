@@ -40,6 +40,30 @@ if [ -d "$DEFAULT_LOGOS" ]; then
     fi
   done
   log "seeded ${seeded} default logo(s) into ${DATA_ROOT}/benchmarks/logos"
+
+# Seed benchmark definitions and schemas, for the same reason and with the same
+# rule: never overwrite. The registry is placed in the data root so that the
+# `data` and `schema` paths inside it resolve there too -- relative to the
+# registry file's own directory -- rather than into the installed package, which
+# is read-only and replaced on every rebuild.
+DEFAULT_DATA="/opt/text2sql/default-data"
+if [ -d "${DEFAULT_DATA}" ]; then
+  mkdir -p "${DATA_ROOT}/benchmarks"
+  if [ ! -f "${DATA_ROOT}/benchmarks.json" ] && [ -f "${DEFAULT_DATA}/benchmarks.json" ]; then
+    cp "${DEFAULT_DATA}/benchmarks.json" "${DATA_ROOT}/benchmarks.json"
+    log "seeded the benchmark registry into ${DATA_ROOT}"
+  fi
+  seeded_data=0
+  for f in "${DEFAULT_DATA}"/benchmarks/*.json; do
+    [ -e "$f" ] || continue
+    target="${DATA_ROOT}/benchmarks/$(basename "$f")"
+    if [ ! -f "$target" ]; then
+      cp "$f" "$target"
+      seeded_data=$((seeded_data + 1))
+    fi
+  done
+  log "seeded ${seeded_data} benchmark definition file(s)"
+fi
 fi
 
 if [ -f "$MARKER" ]; then

@@ -71,6 +71,15 @@ RUN chmod +x /usr/local/bin/text2sql-provision
 # and take precedence by simply being there.
 COPY data/benchmarks/logos/ /opt/text2sql/default-logos/
 
+# Benchmark definitions and schemas. Same reasoning as the logos above, and the
+# same trap: the published snapshot ships `results/` and nothing else, and the
+# wheel packages only `data/*.json` -- so a deployment had the results but not
+# the questions, and every view that reads a benchmark's records (the Eval
+# Playground, the record detail) failed with "Benchmark data file not found".
+# 8 MB, seeded into the data root by provision.sh.
+COPY data/benchmarks.json /opt/text2sql/default-data/benchmarks.json
+COPY data/benchmarks/*.json /opt/text2sql/default-data/benchmarks/
+
 RUN mkdir -p /data && chown -R app:app /data /app
 USER app
 
