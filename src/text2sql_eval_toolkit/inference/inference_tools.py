@@ -8,7 +8,7 @@ import re
 import time
 import random
 import requests
-from typing import Any
+from typing import Any, Optional
 from ibm_watsonx_ai import Credentials
 from ibm_watsonx_ai.foundation_models import ModelInference
 from text2sql_eval_toolkit.logging import get_logger
@@ -470,7 +470,7 @@ class VLLMClientChatAPI:
             )
 
         # Make the API request
-        response = self._make_chat_request(messages)
+        response = self._make_chat_request(messages, for_sql=postprocess)
         logger.debug(f"Raw response: {response}\n")
 
         try:
@@ -536,6 +536,12 @@ class ClaudeClientChatAPI:
             "x-api-key": self.api_key,
             "anthropic-version": "2023-06-01",  # API version
         }
+        # An identity-linked key belongs to a person rather than a workspace, and
+        # the API refuses it without being told which workspace the request acts
+        # in. Workspace-scoped keys carry that implicitly and need nothing here.
+        workspace_id = os.environ.get("ANTHROPIC_WORKSPACE_ID", "").strip()
+        if workspace_id:
+            self.headers["anthropic-workspace-id"] = workspace_id
 
     def _build_messages(self, prompt_text: str) -> list[dict[str, str]]:
         """
@@ -544,30 +550,41 @@ class ClaudeClientChatAPI:
         """
         return [{"role": "user", "content": prompt_text}]
 
-    def _build_system_message(self) -> str:
+    def _build_system_message(self, for_sql: bool = True) -> Optional[str]:
         """
         Claude handles system messages separately from the messages array.
+
+        Only sent when the caller wants SQL. The judge asks this same client for
+        a verdict, and telling a model to "convert natural language questions
+        into accurate SQL queries" while the prompt asks it to score a query is
+        a contradiction the model has to resolve -- which is not something an
+        evaluation should leave to chance.
         """
+        if not for_sql:
+            return None
         return (
             "You are a SQL expert. Your task is to convert natural language questions "
             "into accurate SQL queries using the given database schema and instructions."
         )
 
-    def _make_chat_request(self, messages: list[dict[str, str]]) -> dict:
+    def _make_chat_request(
+        self, messages: list[dict[str, str]], for_sql: bool = True
+    ) -> dict:
         """
         Make a request to Claude's messages endpoint.
         """
         url = f"{self.base_url}/v1/messages"
 
-        # Prepare the request payload for Claude
         payload = {
             "model": self.model_name,
             "messages": messages,
-            "system": self._build_system_message(),
             **self.model_parameters,
         }
+        system = self._build_system_message(for_sql)
+        if system:
+            payload["system"] = system
 
-        print(f"\n\n\n ******** \n payload:{payload} \n\n\n\n")
+        logger.debug("Claude request payload: %s", payload)
 
         try:
             response = requests.post(

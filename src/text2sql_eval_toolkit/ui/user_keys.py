@@ -54,15 +54,25 @@ PROVIDERS = ("wxai", "anthropic", "openai", "gemini")
 #: entry, where present, is a required companion value rather than an optional
 #: extra: watsonx refuses to build a client without a project id, so storing the
 #: key alone would produce a credential that looks saved and cannot be used.
-PROVIDER_FIELDS: Dict[str, Tuple[str, Optional[str]]] = {
-    "wxai": ("WATSONX_APIKEY", "WATSONX_PROJECTID"),
-    "anthropic": ("ANTHROPIC_API_KEY", None),
-    "openai": ("OPENAI_API_KEY", None),
-    "gemini": ("GEMINI_API_KEY", None),
+PROVIDER_FIELDS: Dict[str, Tuple[str, Optional[str], bool]] = {
+    # (primary variable, companion variable, is the companion required?)
+    #
+    # Required and optional are different things, and conflating them breaks one
+    # case or the other. watsonx will not build a client without a project id.
+    # An Anthropic workspace id is needed only for an identity-linked key --
+    # workspace-scoped keys carry it implicitly -- so demanding one would refuse
+    # a credential that works.
+    "wxai": ("WATSONX_APIKEY", "WATSONX_PROJECTID", True),
+    "anthropic": ("ANTHROPIC_API_KEY", "ANTHROPIC_WORKSPACE_ID", False),
+    "openai": ("OPENAI_API_KEY", None, False),
+    "gemini": ("GEMINI_API_KEY", None, False),
 }
 
 #: Human label for the companion field, shown by the UI when one is needed.
-SECONDARY_LABELS: Dict[str, str] = {"wxai": "watsonx project ID"}
+SECONDARY_LABELS: Dict[str, str] = {
+    "wxai": "watsonx project ID",
+    "anthropic": "Anthropic workspace ID (only for identity-linked keys)",
+}
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS user_keys (
@@ -175,8 +185,8 @@ class UserKeyStore:
         if not (api_key or "").strip():
             raise ValueError("An API key is required.")
 
-        _, secondary_var = PROVIDER_FIELDS[provider]
-        if secondary_var and not (secondary or "").strip():
+        _, secondary_var, secondary_required = PROVIDER_FIELDS[provider]
+        if secondary_required and not (secondary or "").strip():
             raise ValueError(
                 f"{provider} also needs a "
                 f"{SECONDARY_LABELS.get(provider, secondary_var)}. Storing the key "
@@ -239,7 +249,9 @@ class UserKeyStore:
         if row is None:
             return None
         provider_key = (provider or "").strip().lower()
-        primary_var, secondary_var = PROVIDER_FIELDS.get(provider_key, ("", None))
+        primary_var, secondary_var, secondary_required = PROVIDER_FIELDS.get(
+            provider_key, ("", None, False)
+        )
         try:
             fernet = _fernet()
             values = {primary_var: fernet.decrypt(row["ciphertext"]).decode("utf-8")}
@@ -247,9 +259,10 @@ class UserKeyStore:
                 values[secondary_var] = fernet.decrypt(row["ciphertext2"]).decode(
                     "utf-8"
                 )
-            elif secondary_var:
-                # Half a credential is not a credential. Falling back to the
-                # server's is better than failing with a confusing provider error.
+            elif secondary_required:
+                # Half a credential is not a credential, but only where the
+                # companion is required. Falling back to the server's is better
+                # than failing with a confusing provider error.
                 logger.warning(
                     "A stored %s credential for %s has no %s; using the server "
                     "credential instead.",
