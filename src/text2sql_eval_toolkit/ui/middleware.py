@@ -99,7 +99,9 @@ async def enforce_capability_tier(request: Request, call_next):
     # the process -- the same reasoning that makes resolve_tier grant full there
     # without a sign-in. Requiring TEXT2SQL_ADMIN_EMAILS to use the console on a
     # laptop would be ceremony, not security.
-    is_admin = role is Role.ADMIN or runtime.get_mode() is Tier.FULL
+    is_admin = role is Role.ADMIN or (
+        runtime.get_mode() is Tier.FULL and not runtime.is_remote_deployment()
+    )
     if requires_admin(request.method, template) and not is_admin:
         return JSONResponse(
             status_code=403,
@@ -107,7 +109,9 @@ async def enforce_capability_tier(request: Request, call_next):
         )
 
     needed = required_tier(request.method, template)
-    granted = resolve_tier(runtime.get_mode(), email, ROLE_TIERS[role])
+    granted = resolve_tier(
+        runtime.get_mode(), email, ROLE_TIERS[role], runtime.is_remote_deployment()
+    )
 
     if granted < needed:
         return JSONResponse(
