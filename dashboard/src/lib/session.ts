@@ -24,6 +24,9 @@ export interface SessionInfo {
   signed_in: boolean;
   can_run_judge: boolean;
   can_mutate: boolean;
+  /** Admin is a separate gate from the tier, so it has its own field. */
+  role?: string;
+  can_manage_users?: boolean;
   judge_usage?: JudgeUsage | null;
 }
 
@@ -60,7 +63,9 @@ export function signInHref(returnTo: string): string {
  * Human-readable "data as of". Falls back to the raw value rather than showing
  * nothing, since an unparseable stamp is still information.
  */
-export function formatSnapshot(deployment: DeploymentInfo | null): string | null {
+export function formatSnapshot(
+  deployment: DeploymentInfo | null,
+): string | null {
   if (!deployment) return null;
   const { data_revision, data_provisioned_at } = deployment;
   if (!data_revision && !data_provisioned_at) return null;

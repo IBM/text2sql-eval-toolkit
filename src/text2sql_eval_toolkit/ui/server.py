@@ -26,6 +26,7 @@ from text2sql_eval_toolkit.ui.roles import (
     ADMIN_EMAILS_ENV,
     REMOVED_ALLOWLIST_ENV,
     ROLE_TIERS,
+    Role,
     UserStore,
     admin_emails_from_env,
     effective_role,
@@ -154,6 +155,10 @@ def get_session_info(request: Request) -> SessionInfo:
             logger.warning("Could not read judge usage: %s", exc)
 
     return SessionInfo(
+        role=role.value,
+        # Mirrors the middleware gate: a full-mode operator already controls the
+        # process, so the console is theirs without configuration.
+        can_manage_users=(role is Role.ADMIN or get_mode() is Tier.FULL),
         tier=tier.name.lower(),
         mode=get_mode().name.lower(),
         email=email,

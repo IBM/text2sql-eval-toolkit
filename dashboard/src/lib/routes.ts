@@ -21,6 +21,7 @@ export type ViewName =
   | "pipelineCompare"
   | "profileCompare"
   | "llmJudge"
+  | "users"
   | "runEvaluation";
 
 /** Filter state for the error-analysis view, all optional. */
@@ -63,7 +64,8 @@ const BENCHMARK_SEGMENT = "benchmark";
 
 export const routes = {
   home: (): string => "/",
-  benchmark: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}`,
+  benchmark: (benchmarkId: string): string =>
+    `/benchmark/${encode(benchmarkId)}`,
   pipeline: (benchmarkId: string, pipelineId: string): string =>
     `/benchmark/${encode(benchmarkId)}/pipeline/${encode(pipelineId)}`,
   /**
@@ -76,20 +78,23 @@ export const routes = {
   pipelineRecord: (
     benchmarkId: string,
     pipelineId: string,
-    recordId: string
+    recordId: string,
   ): string =>
     `/benchmark/${encode(benchmarkId)}/pipeline/${encode(
-      pipelineId
+      pipelineId,
     )}/record/${encode(recordId)}`,
   errors: (benchmarkId: string, filters?: ErrorFilters): string =>
     `/benchmark/${encode(benchmarkId)}/errors${buildQuery(filters)}`,
-  insights: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}/insights`,
-  compare: (benchmarkId: string): string => `/benchmark/${encode(benchmarkId)}/compare`,
+  insights: (benchmarkId: string): string =>
+    `/benchmark/${encode(benchmarkId)}/insights`,
+  compare: (benchmarkId: string): string =>
+    `/benchmark/${encode(benchmarkId)}/compare`,
   profileCompare: (benchmarkId: string): string =>
     `/benchmark/${encode(benchmarkId)}/compare/profile`,
   llmJudge: (configName?: string): string =>
     configName ? `/llm-judge/${encode(configName)}` : "/llm-judge",
   run: (): string => "/run",
+  users: (): string => "/users",
 };
 
 /**
@@ -131,7 +136,9 @@ export function parseQuery(search: string | URLSearchParams): ErrorFilters {
     const raw = params.get(key);
     if (raw == null || raw === "") return fallback;
     const parsed = Number(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : fallback;
+    return Number.isFinite(parsed) && parsed > 0
+      ? Math.floor(parsed)
+      : fallback;
   };
 
   return {
@@ -193,6 +200,10 @@ export function parseLocation(pathname: string): RouteMatch {
 
   if (segments[0] === "run" && segments.length === 1) {
     return { ...EMPTY, view: "runEvaluation" };
+  }
+
+  if (segments[0] === "users" && segments.length === 1) {
+    return { ...EMPTY, view: "users" };
   }
 
   if (segments[0] === "llm-judge" && segments.length <= 2) {
