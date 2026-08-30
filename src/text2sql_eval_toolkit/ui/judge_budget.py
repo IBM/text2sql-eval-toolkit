@@ -310,14 +310,20 @@ class JudgeStore:
         still under budget and then all spend. Reserving under the same lock that
         reads the total makes the in-flight amount visible to the others.
 
+        The cap is read under that lock too, not before it. ``set_user_cap``
+        writes under the same lock, so reading outside it decided against a
+        value an administrator may already have changed -- lower the cap while a
+        reservation is in flight and that one reservation would be granted
+        against the old ceiling.
+
         Returns:
             bool: Whether the reservation fit under the cap. ``True`` when the
             user has no cap.
         """
-        cap = self.user_cap(user_hash)
-        if cap is None:
-            return True
         with self._lock:
+            cap = self.user_cap(user_hash)
+            if cap is None:
+                return True
             committed = self.user_spent(user_hash)
             pending = self._reserved.get(user_hash, 0.0)
             if committed + pending + estimate_usd > cap:
