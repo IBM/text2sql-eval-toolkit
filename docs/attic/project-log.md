@@ -100,11 +100,17 @@ as a PR. The `TEXT2SQL_JUDGE_ALLOWLIST` removal is the breaking change of this
 release and its release notes are unwritten. OpenAI, Gemini and the `litellm:`
 prefix are covered by tests but have never been called for real.
 
-And one that would ship a visible defect: `[project.urls]` advertises
-`https://ibm.github.io/text2sql-eval-toolkit/`, which **404s today** — Pages
-publishes on push to `main` only, and its source still has to be set to "GitHub
-Actions" once in repository settings. Releasing before both are true puts a dead
+And one that would ship a visible defect: the documentation site is not
+published. GitHub Pages turned out to be unavailable on this organisation, so
+the Pages workflow is gone and `[project.urls]` points at Read the Docs
+instead — configured and verified against a clean build, but the RTD project
+does not exist yet, so the URL still 404s. Releasing before it does puts a dead
 link in PyPI's sidebar, on the page that is the project's front door.
+
+Pointing PyPI at the repository instead is not the escape it looks like:
+`docs/reference/*.md` are mkdocstrings directives, so GitHub renders the API
+reference as literal `::: text2sql_eval_toolkit.foo` lines. The guide would read
+fine and the reference would be unusable.
 
 ---
 
