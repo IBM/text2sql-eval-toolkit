@@ -1,4 +1,5 @@
 import importlib
+from pathlib import Path
 
 
 def test_top_level_import_and_symbols():
@@ -58,6 +59,17 @@ def test_every_exported_symbol_is_documented():
     for name in mod.__all__:
         obj = getattr(mod, name, None)
         assert obj is not None, f"{name} is exported in __all__ but not importable"
+
+        # Only functions and classes carry a docstring of their own. Asking
+        # inspect.getdoc for an exported *value* returns the docstring of its
+        # type -- str's, for all three of ours -- which is multi-line and
+        # unrelated, so every check below would pass on documentation the
+        # export does not have. Values are covered by the test that follows.
+        if not (
+            inspect.isfunction(obj) or inspect.isclass(obj) or inspect.ismethod(obj)
+        ):
+            continue
+
         doc = inspect.getdoc(obj) or ""
         if not doc.strip():
             undocumented.append(name)
@@ -68,6 +80,35 @@ def test_every_exported_symbol_is_documented():
 
     assert not undocumented, f"Exported symbols with no docstring: {undocumented}"
     assert not thin, f"Exported symbols with a one-line docstring: {thin}"
+
+
+def test_exported_values_are_documented_in_the_reference():
+    """
+    Exported values need documenting somewhere a reader will find it.
+
+    They have no docstring to inspect -- see the note above -- so the reference
+    page is the only place their meaning can live, and this is what stops a new
+    constant being added to ``__all__`` with nothing said about it anywhere.
+    """
+    import inspect
+
+    mod = importlib.import_module("text2sql_eval_toolkit")
+    reference = Path(__file__).resolve().parents[1] / "docs" / "reference"
+    pages = "\n".join(p.read_text(encoding="utf-8") for p in reference.glob("*.md"))
+
+    missing = []
+    for name in mod.__all__:
+        obj = getattr(mod, name)
+        if inspect.isfunction(obj) or inspect.isclass(obj) or inspect.ismethod(obj):
+            continue
+        # The directive renders the name and its value; the prose beside it is
+        # what actually explains the thing.
+        if f"::: text2sql_eval_toolkit.{name}" not in pages:
+            missing.append(f"{name} (no reference directive)")
+        elif name not in pages.replace(f"::: text2sql_eval_toolkit.{name}", ""):
+            missing.append(f"{name} (directive only, no prose)")
+
+    assert not missing, f"Exported values with no documentation: {missing}"
 
 
 def test_documented_arguments_match_real_signatures():

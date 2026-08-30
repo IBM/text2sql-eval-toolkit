@@ -25,7 +25,7 @@ client reads the environment exactly as it always has.
 from __future__ import annotations
 
 import os
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Mapping, Optional, Tuple, Union
 
 from text2sql_eval_toolkit.inference.inference_tools import (  # noqa: F401 — resolved by name from NATIVE_PREFIXES
     ClaudeClientChatAPI,
@@ -64,6 +64,14 @@ PROVIDER_ENV_VARS: Dict[str, str] = {
     "anthropic:": "ANTHROPIC_API_KEY",
     "openai:": "OPENAI_API_KEY",
 }
+
+
+#: A caller-supplied credential. Usually one key for one environment variable,
+#: but watsonx needs a project id alongside the key, so a mapping already keyed
+#: by variable name is equally valid -- which is what a stored watsonx
+#: credential looks like. Annotating this as ``str`` was wrong in both the
+#: judge and the dashboard's key store, which pass the mapping form.
+Credential = Union[str, Mapping[str, str]]
 
 
 class UnsupportedModel(NotImplementedError):
@@ -202,7 +210,9 @@ class _LiteLLMClient:
         return (postprocess_sql(content) if postprocess else content), usage
 
 
-def _credential_values(prefix: str, api_key) -> Optional[Dict[str, str]]:
+def _credential_values(
+    prefix: str, api_key: Optional[Credential]
+) -> Optional[Dict[str, str]]:
     """
     Normalise *api_key* into environment variables to set while building a client.
 
@@ -222,7 +232,7 @@ def resolve_client(
     model_name: str,
     model_parameters: Optional[dict] = None,
     *,
-    api_key: Optional[str] = None,
+    api_key: Optional[Credential] = None,
     on_usage: Optional[Callable] = None,
 ) -> ModelClient:
     """

@@ -28,7 +28,7 @@ Three things, in one distribution:
   results, comparing pipelines and doing error analysis. It ships built inside
   the wheel, so `pip install` is all it takes.
 
-Plus the benchmark registry and roughly 7 GB of pre-computed results, which are
+Plus the benchmark registry and about 4 GB of pre-computed results, which are
 fetched on demand rather than shipped.
 
 ## The shape of the thing

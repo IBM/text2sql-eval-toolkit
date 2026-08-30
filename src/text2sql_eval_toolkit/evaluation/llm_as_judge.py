@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 from text2sql_eval_toolkit.logging import get_logger
 from typing import Callable, Dict, Any, Optional
-from text2sql_eval_toolkit.inference.model_clients import resolve_client
+from text2sql_eval_toolkit.inference.model_clients import Credential, resolve_client
 
 logger = get_logger(__name__)
 
@@ -58,7 +58,7 @@ def evaluate_sql_prediction_with_llm(
     predicted_df: Any,
     generation_prompt: str,
     llm_judge_config: dict,
-    api_key: Optional[str] = None,
+    api_key: Optional[Credential] = None,
     on_usage: Optional[Callable] = None,
 ) -> Dict[str, Any]:
     """
@@ -103,8 +103,12 @@ def evaluate_sql_prediction_with_llm(
           rather than treating it as zero.
 
     Raises:
-        NotImplementedError: If the configured model is not a ``wxai:`` model.
-            Only watsonx is wired up on this path today.
+        UnsupportedModel: If no provider prefix matches the configured model and
+            LiteLLM is not installed to route it. A subclass of
+            ``NotImplementedError``. Any prefix the installation supports works
+            here -- ``wxai:``, ``anthropic:``, ``openai:``, ``gemini:``,
+            ``vllm:``, ``ollama:``, and ``litellm:`` with that extra installed.
+            The judge is no longer watsonx-only.
 
     Example:
         ```python
