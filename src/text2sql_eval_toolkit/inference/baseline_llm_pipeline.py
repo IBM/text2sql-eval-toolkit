@@ -48,12 +48,12 @@ class LLMSQLGenerationPipelineSimple(BasePipeline):
     """
     Sequential zero-shot SQL generation, with a caller-chosen pipeline id.
 
-    The simple counterpart to :class:`LLMSQLGenerationPipeline`. It processes
+    The simple counterpart to [`LLMSQLGenerationPipeline`][text2sql_eval_toolkit.LLMSQLGenerationPipeline]. It processes
     records one at a time and takes ``pipeline_id`` as an argument rather than
     deriving it, which suits small runs, debugging a prompt, and any case where
     the results must be filed under an id of your choosing.
 
-    For full benchmarks prefer :class:`LLMSQLGenerationPipeline`, which runs
+    For full benchmarks prefer [`LLMSQLGenerationPipeline`][text2sql_eval_toolkit.LLMSQLGenerationPipeline], which runs
     concurrently and retries failed inferences.
 
     Example:
@@ -184,7 +184,7 @@ class LLMSQLGenerationPipeline(BasePipeline):
         ``f"{model_name}-greedy-zero-shot-chatapi"``. That id is the unit of
         comparison everywhere downstream -- summaries, the dashboard, shareable
         links -- so results for a given model always file under the same id.
-        Use :class:`LLMSQLGenerationPipelineSimple` to choose the id yourself.
+        Use [`LLMSQLGenerationPipelineSimple`][text2sql_eval_toolkit.LLMSQLGenerationPipelineSimple] to choose the id yourself.
 
     Example:
         ```python

@@ -342,7 +342,7 @@ def clear_cache(
     Parameters
     ----------
     data_root:
-        Root directory.  Resolved the same way as in :func:`fetch_results`.
+        Root directory.  Resolved the same way as in [`fetch_results`][text2sql_eval_toolkit.fetch_results].
     confirm:
         When ``True`` *and* stdin is a TTY, prompt the user before deleting.
         Pass ``confirm=False`` for non-interactive / scripted use.

@@ -602,7 +602,7 @@ def is_sqlparse_parsable(sql: str) -> bool:
     """
     Report whether sqlparse can tokenise *sql* without producing error tokens.
 
-    A **weaker** check than :func:`is_sqlglot_parsable`. sqlparse is a
+    A **weaker** check than [`is_sqlglot_parsable`][text2sql_eval_toolkit.is_sqlglot_parsable]. sqlparse is a
     non-validating tokeniser: it accepts a great deal that no database would run,
     so a ``True`` here means considerably less than a ``True`` there. Useful
     mainly as a first filter, or where a dialect is unknown.
@@ -644,8 +644,8 @@ def sqlglot_optimized_equivalence(
 
     Warning:
         This returns ``int`` (``0`` or ``1``), unlike
-        :func:`sqlglot_parsed_queries_equivalent`, :func:`sqlparse_queries_equivalent`
-        and :func:`sql_exact_match`, which return ``bool``. The inconsistency is
+        [`sqlglot_parsed_queries_equivalent`][text2sql_eval_toolkit.sqlglot_parsed_queries_equivalent], [`sqlparse_queries_equivalent`][text2sql_eval_toolkit.sqlparse_queries_equivalent]
+        and [`sql_exact_match`][text2sql_eval_toolkit.sql_exact_match], which return ``bool``. The inconsistency is
         preserved for backwards compatibility. ``if result:`` behaves the same
         either way; ``result is True`` does not.
 
@@ -778,7 +778,7 @@ def sqlparse_queries_equivalent(sql1: str, sql2: str) -> bool:
     and ``ORDER`` clauses from each, then compares them as strings with
     whitespace removed and case folded. Because the comparison is textual, a
     reordered ``WHERE`` or a different alias makes two equivalent queries
-    disagree; :func:`sqlglot_optimized_equivalence` is more tolerant.
+    disagree; [`sqlglot_optimized_equivalence`][text2sql_eval_toolkit.sqlglot_optimized_equivalence] is more tolerant.
 
     Args:
         sql1: First statement.
@@ -811,7 +811,7 @@ def sqlglot_parsed_queries_equivalent(sql1: str, sql2: str, dialect: str = "") -
     """
     Compare two statements by sqlglot AST equality, without optimising.
 
-    Stricter than :func:`sqlglot_optimized_equivalence`, which normalises both
+    Stricter than [`sqlglot_optimized_equivalence`][text2sql_eval_toolkit.sqlglot_optimized_equivalence], which normalises both
     trees first: here, a difference in alias or predicate order is a difference.
 
     Any statement kind is compared, not only ``SELECT``. Two statements of

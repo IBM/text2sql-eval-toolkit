@@ -80,7 +80,7 @@ def evaluate_sql_prediction_with_llm(
         predicted_df: The model's result, in the same form as *ground_truth_df*.
         generation_prompt: The prompt the prediction was generated from. Shown
             to the judge as context.
-        llm_judge_config: A config from :func:`load_llm_judge_config`.
+        llm_judge_config: A config from [`load_llm_judge_config`][text2sql_eval_toolkit.load_llm_judge_config].
         api_key: Use this credential instead of the provider's environment
             variable. Omitted -- as every library, CLI and notebook call does --
             the client reads the environment exactly as before. This is what lets

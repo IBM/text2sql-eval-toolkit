@@ -272,7 +272,7 @@ async def run_with_timeout_async(task, base_timeout=90, retries=2, wait=3):
 
     The timeout **escalates**: attempt *n* is allowed ``base_timeout * (n + 1)``
     seconds, so the default gives 90s, then 180s, then 270s. This differs from the
-    synchronous :func:`run_with_timeout`, which applies the same timeout every
+    synchronous [`run_with_timeout`][text2sql_eval_toolkit.run_with_timeout], which applies the same timeout every
     attempt. Escalation suits work whose first attempt is slow because a resource
     is cold rather than because it is stuck.
 
@@ -380,8 +380,8 @@ def normalize_record(record):
     inference looks records up by ``record["id"]`` when resuming, so the
     normalisation has to happen before a record is written.
 
-    The readers (:func:`get_question_id`, :func:`get_utterance`,
-    :func:`get_gt_sqls`) used to do this as a side effect of being called, which
+    The readers ([`get_question_id`][text2sql_eval_toolkit.get_question_id], [`get_utterance`][text2sql_eval_toolkit.get_utterance],
+    [`get_gt_sqls`][text2sql_eval_toolkit.get_gt_sqls]) used to do this as a side effect of being called, which
     meant a caller who only wanted to read a value silently modified the record
     they were given. Call this instead, where normalising is what you mean.
 
@@ -414,7 +414,7 @@ def get_question_id(record):
     Benchmarks disagree on what the id field is called, so the first of ``id``,
     ``question_id``, ``qid`` and ``_id`` that is present wins.
 
-    Reading is side-effect free. Use :func:`normalize_record` to write the
+    Reading is side-effect free. Use [`normalize_record`][text2sql_eval_toolkit.normalize_record] to write the
     canonical keys onto a record before storing it.
 
     Args:
@@ -442,10 +442,10 @@ def get_utterance(record):
 
     Tries ``utterance``, then ``page_content``, then ``question``.
 
-    Reading is side-effect free; see :func:`normalize_record` to normalise.
+    Reading is side-effect free; see [`normalize_record`][text2sql_eval_toolkit.normalize_record] to normalise.
 
     See Also:
-        :func:`get_question`, which reads the same content but tries the keys in
+        [`get_question`][text2sql_eval_toolkit.get_question], which reads the same content but tries the keys in
         the opposite order and raises ``KeyError`` rather than ``ValueError``.
 
     Args:
@@ -478,7 +478,7 @@ def get_gt_sqls(record):
     keep a structured representation of the query under the same key, and that is
     not executable SQL.
 
-    Reading is side-effect free; see :func:`normalize_record` to normalise.
+    Reading is side-effect free; see [`normalize_record`][text2sql_eval_toolkit.normalize_record] to normalise.
 
     Args:
         record (dict): A benchmark question record.
@@ -509,7 +509,7 @@ def get_question(record):
     Read the question text, preferring ``page_content``.
 
     See Also:
-        :func:`get_utterance`, which reads the same content but prefers
+        [`get_utterance`][text2sql_eval_toolkit.get_utterance], which reads the same content but prefers
         ``utterance``, normalises the record as a side effect, and raises
         ``ValueError`` instead of ``KeyError``. Prefer that one in new code; this
         exists for callers that predate it.

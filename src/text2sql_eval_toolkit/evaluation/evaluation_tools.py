@@ -39,7 +39,7 @@ from text2sql_eval_toolkit.logging import get_logger
 logger = get_logger(__name__)
 
 #: Key under which a summary records the judge that produced its verdicts.
-#: It sits alongside pipeline ids; see :func:`split_summary`.
+#: It sits alongside pipeline ids; see [`split_summary`][text2sql_eval_toolkit.split_summary].
 JUDGE_CONFIG_KEY = "llm_judge_config"
 
 
@@ -403,7 +403,7 @@ def split_summary(summary):
     """
     Separate a summary's pipeline entries from its judge-config entry.
 
-    :func:`compute_summary` returns a mapping keyed by ``pipeline_id``, with one
+    [`compute_summary`][text2sql_eval_toolkit.compute_summary] returns a mapping keyed by ``pipeline_id``, with one
     exception: ``"llm_judge_config"`` entry recording which judge produced
     the verdicts. Every consumer therefore has to know to skip that key, and one
     that does not silently treats it as a pipeline.
@@ -414,7 +414,7 @@ def split_summary(summary):
     take it apart.
 
     Args:
-        summary (dict): A mapping from :func:`compute_summary`, or the parsed
+        summary (dict): A mapping from [`compute_summary`][text2sql_eval_toolkit.compute_summary], or the parsed
             contents of a ``*_eval_summary.json`` file.
 
     Returns:
@@ -448,8 +448,8 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
     Note:
         The returned mapping carries a ``"llm_judge_config"`` key alongside the
         pipeline ids, recording which judge produced the verdicts. Consumers
-        iterating pipelines must skip it -- :func:`print_summary` and
-        :func:`summary_to_df_csv` both do.
+        iterating pipelines must skip it -- [`print_summary`][text2sql_eval_toolkit.print_summary] and
+        [`summary_to_df_csv`][text2sql_eval_toolkit.summary_to_df_csv] both do.
 
     Args:
         metrics_by_model (dict): Per-record metric dicts, keyed by ``pipeline_id``.
@@ -576,7 +576,7 @@ def summary_to_df_csv(summary, output_path, use_llm):
     The ``"llm_judge_config"`` entry is skipped, so each row is one pipeline.
 
     Args:
-        summary (dict): A mapping from :func:`compute_summary`.
+        summary (dict): A mapping from [`compute_summary`][text2sql_eval_toolkit.compute_summary].
         output_path (str | Path): Where to write the CSV. Written with ``index=False``.
         use_llm (bool): Whether to include LLM-judge columns. When ``False`` the judge
             columns are filled with ``"N/A"`` rather than omitted, so the column
@@ -650,11 +650,11 @@ def print_summary(summary, use_llm):
     """
     Print a summary to stdout in a human-readable form.
 
-    For terminal use; :func:`summary_to_df_csv` is the machine-readable
+    For terminal use; [`summary_to_df_csv`][text2sql_eval_toolkit.summary_to_df_csv] is the machine-readable
     equivalent. The ``"llm_judge_config"`` entry is skipped.
 
     Args:
-        summary (dict): A mapping from :func:`compute_summary`.
+        summary (dict): A mapping from [`compute_summary`][text2sql_eval_toolkit.compute_summary].
         use_llm (bool): Whether to include LLM-judge columns. Pass ``False`` when
             the judge did not run, or its rows will read as zeros rather than as
             absent.
@@ -778,7 +778,7 @@ async def async_evaluate_predictions(
     """
     Evaluate a predictions file, awaitable.
 
-    What :func:`evaluate_predictions` wraps. Await this from code that already
+    What [`evaluate_predictions`][text2sql_eval_toolkit.evaluate_predictions] wraps. Await this from code that already
     runs an event loop; the synchronous wrapper would raise there.
 
     Records are evaluated concurrently behind a semaphore of *max_concurrency*.
@@ -794,7 +794,7 @@ async def async_evaluate_predictions(
         csv_summary_file: CSV summary path. Defaults to the output path with
             ``_summary.csv``.
         llm_judge_config: An already-loaded judge config, as returned by
-            :func:`load_llm_judge_config`. ``None`` skips the judge. Note that
+            [`load_llm_judge_config`][text2sql_eval_toolkit.load_llm_judge_config]. ``None`` skips the judge. Note that
             this takes the config itself, where the synchronous wrapper takes a
             path.
         max_concurrency: Records evaluated at once.
@@ -945,7 +945,7 @@ def evaluate_predictions(
 
     Safe to call from inside a running event loop: it detects one and runs the
     work on a worker thread with its own loop. Async callers should still prefer
-    awaiting :func:`async_evaluate_predictions` directly, which avoids the extra
+    awaiting [`async_evaluate_predictions`][text2sql_eval_toolkit.async_evaluate_predictions] directly, which avoids the extra
     thread.
 
     Evaluation is resumable: records that already carry results are left alone
@@ -1006,12 +1006,12 @@ def run_evaluation(
     Evaluate a registered benchmark's predictions.
 
     The registry-aware entry point: it resolves the predictions path for
-    *benchmark_id* and hands off to :func:`evaluate_predictions`. Use that one
+    *benchmark_id* and hands off to [`evaluate_predictions`][text2sql_eval_toolkit.evaluate_predictions]. Use that one
     directly to evaluate a file that is not part of a registered benchmark.
 
     Args:
         benchmark_id: A benchmark from ``benchmarks.json`` or
-            ``test-benchmarks.json``. See :func:`get_available_benchmarks`.
+            ``test-benchmarks.json``. See [`get_available_benchmarks`][text2sql_eval_toolkit.get_available_benchmarks].
         use_llm: Also run LLM-as-judge. Requires credentials for the model named
             in the judge config.
         llm_judge_config_path: Path to a judge config YAML. Passing this loads a

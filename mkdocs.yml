@@ -72,6 +72,16 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Guide:
+      - Overview: guide/index.md
+      - Getting started: guide/getting-started.md
+      - The five stages: guide/stages.md
+      - Data model: guide/data-model.md
+      - Benchmarks: guide/benchmarks.md
+      - Models and providers: guide/models.md
+      - LLM-as-judge: guide/llm-judge.md
+      - Command line: guide/cli.md
+      - Configuration: guide/configuration.md
   - API reference:
       - Overview: reference/index.md
       - Benchmarks: reference/benchmarks.md
