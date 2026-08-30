@@ -37,6 +37,13 @@ interface StoredKey {
 export const MyKeysView: React.FC = () => {
   const [keys, setKeys] = useState<StoredKey[]>([]);
   const [providers, setProviders] = useState<string[]>([]);
+  // Provider -> what its companion field is called, when it needs one. watsonx
+  // takes a project id alongside its key, and a key without it is not a
+  // credential: the server refuses to store half of one.
+  const [secondaryLabels, setSecondaryLabels] = useState<
+    Record<string, string>
+  >({});
+  const [secondary, setSecondary] = useState("");
   const [provider, setProvider] = useState("anthropic");
   const [apiKey, setApiKey] = useState("");
   const [label, setLabel] = useState("");
@@ -50,6 +57,7 @@ export const MyKeysView: React.FC = () => {
       const body = await res.json();
       setKeys(body.keys ?? []);
       setProviders(body.providers ?? []);
+      setSecondaryLabels(body.secondary_labels ?? {});
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load your keys");
@@ -68,12 +76,13 @@ export const MyKeysView: React.FC = () => {
       await apiFetch(apiUrl("/api/my/keys"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider, api_key: apiKey, label }),
+        body: JSON.stringify({ provider, api_key: apiKey, label, secondary }),
       });
       // Clear immediately: there is no reason for it to stay in the DOM, and no
       // way to get it back afterwards by design.
       setApiKey("");
       setLabel("");
+      setSecondary("");
       setNotice(`Saved your ${provider} key. It cannot be displayed again.`);
       await load();
       setError(null);
@@ -158,9 +167,10 @@ export const MyKeysView: React.FC = () => {
             items={providers}
             itemToString={(item) => (item as string) ?? ""}
             selectedItem={provider}
-            onChange={({ selectedItem }) =>
-              setProvider((selectedItem as string) ?? "anthropic")
-            }
+            onChange={({ selectedItem }) => {
+              setProvider((selectedItem as string) ?? "anthropic");
+              setSecondary("");
+            }}
           />
         </div>
         <div style={{ flex: "2 1 18rem", minWidth: "min(100%, 14rem)" }}>
@@ -175,6 +185,18 @@ export const MyKeysView: React.FC = () => {
             autoComplete="off"
           />
         </div>
+        {secondaryLabels[provider] && (
+          <div style={{ flex: "1 1 14rem", minWidth: "min(100%, 12rem)" }}>
+            <TextInput
+              id="key-secondary"
+              labelText={secondaryLabels[provider]}
+              placeholder="Required for this provider"
+              value={secondary}
+              onChange={(e) => setSecondary(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+        )}
         <div style={{ flex: "1 1 10rem", minWidth: "min(100%, 9rem)" }}>
           <TextInput
             id="key-label"
