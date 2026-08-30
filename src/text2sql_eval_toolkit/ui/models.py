@@ -347,6 +347,10 @@ class SessionInfo(BaseModel):
     signed_in: bool = False
     can_run_judge: bool = False
     can_mutate: bool = False
+    # The caller's role, and whether they may reach the user console. Admin
+    # is not a tier -- it is a separate gate -- so it needs its own field.
+    role: str = "read_only"
+    can_manage_users: bool = False
     # Remaining budget, so a user sees the ceiling approaching rather than
     # meeting it as an opaque error.
     judge_usage: Optional["JudgeUsage"] = None
