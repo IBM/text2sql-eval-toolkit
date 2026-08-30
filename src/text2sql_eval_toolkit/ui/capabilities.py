@@ -83,8 +83,10 @@ ROUTE_TIERS: Dict[Tuple[str, str], Tier] = {
     ("POST", "/api/benchmarks"): Tier.FULL,
     ("PUT", "/api/benchmarks/{benchmark_id}"): Tier.FULL,
     ("POST", "/api/benchmarks/logo-upload"): Tier.FULL,
-    # Writes YAML into the installed package directory.
+    # Writes YAML into the data root, shadowing the packaged config of the same
+    # name; the delete removes that copy and restores the packaged original.
     ("PUT", "/api/llm-judge/configs/{name}"): Tier.FULL,
+    ("DELETE", "/api/llm-judge/configs/{name}"): Tier.FULL,
     # User management. The tier is PUBLIC because the real gate is ADMIN_ROUTES,
     # checked separately: an admin must be able to grant roles on a judge-mode
     # host, and a FULL requirement here would deny exactly that. Nothing reaches

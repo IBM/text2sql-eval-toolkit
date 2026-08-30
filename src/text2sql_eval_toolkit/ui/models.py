@@ -182,6 +182,10 @@ class CrossPipelineBinaryMetricConfusionResponse(BaseModel):
 class LLMJudgeConfigInfo(BaseModel):
     name: str
     path: str
+    #: True when a dashboard-written copy is what this name resolves to. A
+    #: packaged config stays False until it is edited, at which point the copy
+    #: shadows it and this flips -- which is what lets the UI offer "revert".
+    user_defined: bool = False
 
 
 class LLMJudgeConfigListResponse(BaseModel):
