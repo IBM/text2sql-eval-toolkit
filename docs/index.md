@@ -32,6 +32,9 @@ are reused unless you force a re-run.
 
 ## Where to go next
 
+- **[Guide](guide/index.md)** — what the toolkit is made of, how the stages fit
+  together, and how to configure it. Start at
+  [Getting started](guide/getting-started.md).
 - **[API reference](reference/index.md)** — every exported function and class.
 - **[Dashboard](dashboard/README.md)** — browsing results, comparing pipelines,
   error analysis, and running it for other people.

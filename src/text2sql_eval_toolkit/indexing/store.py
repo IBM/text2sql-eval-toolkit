@@ -65,7 +65,7 @@ class EvalIndex:
     """
     Query handle for one benchmark's index.
 
-    Open with :meth:`for_benchmark`, which builds or rebuilds the index when it
+    Open with `for_benchmark`, which builds or rebuilds the index when it
     is missing or stale.
     """
 

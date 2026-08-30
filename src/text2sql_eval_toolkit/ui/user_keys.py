@@ -165,7 +165,7 @@ class UserKeyStore:
 
         Args:
             email: The signed-in caller.
-            provider: One of :data:`PROVIDERS`.
+            provider: One of `PROVIDERS`.
             api_key: The credential.
             label: A note for the owner, shown in place of the key.
             secondary: The companion value for providers that need one --

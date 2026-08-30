@@ -35,7 +35,7 @@ from typing import Dict, Iterable, Optional, Set
 #: Hex characters kept from the digest.  At 40 bits, a benchmark would need
 #: roughly a million pipelines before a collision became likely; the largest
 #: today has fewer than fifty.  Collisions are still *detected* rather than
-#: assumed away -- see :func:`resolve_pipeline_ref`.
+#: assumed away -- see `resolve_pipeline_ref`.
 ALIAS_LENGTH = 10
 
 #: What an alias looks like in a URL.  A full pipeline id can never match this:

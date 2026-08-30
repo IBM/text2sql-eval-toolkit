@@ -101,7 +101,7 @@ class ModelClient:
     The wrapped clients do not agree on their own: five return
     ``(sql, token_usage)`` from ``generate_sql`` while the legacy watsonx client
     returns a bare string, which is a trap for anything calling more than one.
-    This normalises that, and adds :meth:`generate_text` for callers that want
+    This normalises that, and adds `generate_text` for callers that want
     what the model said rather than SQL extracted from it -- the judge, whose
     verdict would otherwise be run through SQL post-processing.
     """
@@ -160,7 +160,7 @@ class ModelClient:
         Generate text for *prompt*, without SQL post-processing.
 
         The judge needs this: its reply is a verdict and an explanation, and
-        running that through :func:`postprocess_sql` would strip fenced blocks
+        running that through `postprocess_sql` would strip fenced blocks
         and trailing punctuation from prose.
 
         Returns:

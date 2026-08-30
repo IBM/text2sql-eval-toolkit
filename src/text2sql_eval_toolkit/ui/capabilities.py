@@ -152,7 +152,7 @@ def iter_routes(target: Any, _depth: int = 0) -> Iterator[Any]:
 
 def unclassified_routes(app: "FastAPI") -> List[Tuple[str, str]]:
     """
-    Mutating routes with no entry in :data:`ROUTE_TIERS`.
+    Mutating routes with no entry in `ROUTE_TIERS`.
 
     Such a route still fails closed, but silently defaulting is how a route
     meant for the judge tier ends up unreachable in production, so a test
