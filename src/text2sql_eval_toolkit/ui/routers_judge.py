@@ -60,30 +60,79 @@ router = APIRouter()
 
 
 def _judge_config_dir() -> Path:
+    """
+    The packaged judge configs, shipped read-only inside the installed package.
+    """
     from text2sql_eval_toolkit.evaluation import llm_as_judge
 
     return Path(llm_as_judge.__file__).parent / "llm_judge_config"
 
 
+def _user_judge_config_dir() -> Path:
+    """
+    Where configs written through the dashboard are kept.
+
+    Not the package directory. Writing there needs the installed tree to be
+    writable by the server process, which it generally is not -- in a container
+    the package is root-owned and the app runs unprivileged, and even where the
+    permissions happen to allow it, a pip upgrade discards the edit. The data
+    root is the writable, persistent location the deployment already mounts.
+    """
+    return get_data_root() / "llm_judge_config"
+
+
+def _validate_config_name(name: str) -> str:
+    """
+    Accept a config name, or raise ``FileNotFoundError``.
+
+    A plain stem cannot traverse, cannot name a dotfile, and cannot be empty.
+    Callers still assert containment on the resolved path, so this stays the
+    first line of defence rather than the only one.
+    """
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", name or ""):
+        raise FileNotFoundError(name)
+    return name
+
+
+def _contained(base: Path, name: str) -> Path:
+    """
+    ``base/name.yaml``, asserted to still be directly inside *base*.
+    """
+    base = base.resolve()
+    candidate = (base / f"{name}.yaml").resolve()
+    if candidate.parent != base:
+        raise FileNotFoundError(name)
+    return candidate
+
+
+def _judge_config_write_path(name: str) -> Path:
+    """
+    Where a write of *name* lands: always the user directory, never the package.
+    """
+    return _contained(_user_judge_config_dir(), _validate_config_name(name))
+
+
 def _resolve_judge_config_path(name: str) -> Path:
     """
-    Path of a judge config, refusing anything that escapes the config directory.
+    Path a judge config is read from, refusing anything that escapes its
+    directory.
+
+    A user copy shadows the packaged config of the same name, so editing a
+    shipped config through the dashboard takes effect without the packaged file
+    ever being touched -- and deleting the copy restores the original. A name
+    with no user copy resolves to the packaged path, whether or not that file
+    exists; the caller reports the miss.
 
     ``name`` arrives from a URL segment or request body. FastAPI will not match
     a raw ``/`` into a single path parameter, but percent-encoded separators and
     ``..`` segments are decoded before they reach here, so containment is
     asserted on the resolved path rather than assumed from the routing.
     """
-    # Constrain the shape first: a plain stem cannot traverse, cannot name a
-    # dotfile, and cannot be empty. Containment below stays as a second line of
-    # defence rather than the only one.
-    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", name or ""):
-        raise FileNotFoundError(name)
-    base = _judge_config_dir().resolve()
-    candidate = (base / f"{name}.yaml").resolve()
-    if candidate.parent != base:
-        raise FileNotFoundError(name)
-    return candidate
+    _validate_config_name(name)
+    override = _contained(_user_judge_config_dir(), name)
+    if override.is_file():
+        return override
+    return _contained(_judge_config_dir(), name)
 
 
 def _load_judge_config_by_name(name: str) -> Dict[str, Any]:

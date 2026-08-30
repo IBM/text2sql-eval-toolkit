@@ -59,6 +59,7 @@ EXPECTED = {
     "POST /api/results/fetch",
     "PUT /api/benchmarks/{benchmark_id}",
     "PUT /api/llm-judge/configs/{name}",
+    "DELETE /api/llm-judge/configs/{name}",
     # User management, added in 1.4.0. Admin-only, enforced by
     # capabilities.ADMIN_ROUTES rather than by tier.
     "GET /api/users",
