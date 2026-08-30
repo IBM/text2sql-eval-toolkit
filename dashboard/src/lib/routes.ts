@@ -94,7 +94,27 @@ export const routes = {
     `/benchmark/${encode(benchmarkId)}/compare/profile`,
   llmJudge: (configName?: string): string =>
     configName ? `/llm-judge/${encode(configName)}` : "/llm-judge",
-  run: (): string => "/run",
+  /**
+   * The Eval Playground, optionally at one benchmark and record.
+   *
+   * Benchmark and record are path segments because they say which thing is open,
+   * the way `/benchmark/{id}/pipeline/{p}/record/{r}` does. The pipeline is a
+   * query parameter: it chooses which prediction to look at within an
+   * already-identified record, which is a choice about the view rather than
+   * about what the view is showing.
+   */
+  run: (
+    benchmarkId?: string | null,
+    recordId?: string | null,
+    pipeline?: string | null,
+  ): string => {
+    let path = "/run";
+    if (benchmarkId) {
+      path += `/${encode(benchmarkId)}`;
+      if (recordId) path += `/record/${encode(recordId)}`;
+    }
+    return pipeline ? `${path}?pipeline=${encodeURIComponent(pipeline)}` : path;
+  },
   users: (): string => "/users",
   myKeys: (): string => "/my-keys",
 };
@@ -200,8 +220,27 @@ export function parseLocation(pathname: string): RouteMatch {
 
   if (segments.length === 0) return { ...EMPTY };
 
-  if (segments[0] === "run" && segments.length === 1) {
-    return { ...EMPTY, view: "runEvaluation" };
+  if (segments[0] === "run") {
+    // /run
+    if (segments.length === 1) {
+      return { ...EMPTY, view: "runEvaluation" };
+    }
+    // /run/{benchmarkId}
+    if (segments.length === 2) {
+      return { ...EMPTY, view: "runEvaluation", benchmarkId: segments[1] };
+    }
+    // /run/{benchmarkId}/record/{recordId}
+    if (segments.length === 4 && segments[2] === "record") {
+      return {
+        ...EMPTY,
+        view: "runEvaluation",
+        benchmarkId: segments[1],
+        recordId: segments[3],
+      };
+    }
+    // Anything else under /run is a link that has been mangled; say so rather
+    // than silently opening the playground on a different record.
+    return { ...EMPTY, view: "runEvaluation", notFound: true };
   }
 
   if (segments[0] === "users" && segments.length === 1) {
