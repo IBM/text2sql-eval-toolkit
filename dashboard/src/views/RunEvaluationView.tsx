@@ -23,6 +23,8 @@ import {
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
 import { apiUrl } from "../lib/api";
+import { type ExportableRecord } from "../lib/playgroundExport";
+import { ExportMenu } from "./ExportMenu";
 
 interface Props {
   benchmarks: BenchmarkSummary[];
@@ -831,6 +833,51 @@ export const RunEvaluationView: React.FC<Props> = ({
     }));
   }, [metricRows, metricGroupsOrder]);
 
+  // Everything the export needs, assembled from what is on screen. Null while
+  // nothing is loaded, which is what disables the menu.
+  const exportableRecord = useMemo<ExportableRecord | null>(() => {
+    if (!selectedBenchmark || !loadedRecordId) return null;
+    const toTable = (dfJson: string | null | undefined) => {
+      const parsed = parseSplitDfJson(dfJson ?? null);
+      return parsed ? { columns: parsed.columns, rows: parsed.data } : null;
+    };
+    return {
+      benchmarkId: selectedBenchmark.benchmark_id,
+      recordId: loadedRecordId,
+      question: questionText,
+      dbId: dbIdText,
+      groundTruthSqls,
+      predictedSql,
+      pipeline: selectedPipelineName ?? null,
+      // The address as it stands, so the exported document links back to the
+      // exact view it was taken from.
+      url: window.location.href,
+      groundTruthTables: (playgroundResult?.ground_truth_dfs ?? [])
+        .map(toTable)
+        .filter(
+          (t): t is { columns: string[]; rows: unknown[][] } => t !== null,
+        ),
+      predictedTable: toTable(playgroundResult?.predicted_df),
+      predictionError: playgroundResult?.prediction_error ?? null,
+      metrics: metricRows.map((row) => ({
+        name: row.name,
+        value: row.value,
+        group: row.group,
+        description: row.description,
+      })),
+    };
+  }, [
+    selectedBenchmark,
+    loadedRecordId,
+    questionText,
+    dbIdText,
+    groundTruthSqls,
+    predictedSql,
+    selectedPipelineName,
+    playgroundResult,
+    metricRows,
+  ]);
+
   const llmExplanationText = useMemo(() => {
     if (!playgroundResult?.evaluation) return "";
     const ev = playgroundResult.evaluation as Record<string, unknown>;
@@ -862,7 +909,17 @@ export const RunEvaluationView: React.FC<Props> = ({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <h3 style={{ margin: 0 }}>Eval Playground</h3>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
+      >
+        <h3 style={{ margin: 0 }}>Eval Playground</h3>
+        <ExportMenu record={exportableRecord} />
+      </div>
       <p style={{ margin: 0, maxWidth: "52rem", lineHeight: 1.45 }}>
         Pick a benchmark and pipeline, then load a record (a random one is
         loaded automatically when possible). Edit ground-truth and predicted SQL
