@@ -174,3 +174,46 @@ class TestRuntimeWiring:
             assert runtime.get_admin_emails() == {ADMIN}
         finally:
             runtime.set_admin_emails(previous)
+
+
+class TestRemoteFullDoesNotGrantEveryone:
+    """
+    `full` means two different things, and conflating them is the most dangerous
+    mistake available here.
+
+    On a laptop it means "the operator", who already controls the process, and
+    granting it without a sign-in is right. On a host reachable from the
+    internet the same rule would hand arbitrary SQL execution, evaluation runs
+    and registry writes to anyone who finds the URL, anonymously.
+    """
+
+    def test_local_full_still_needs_no_sign_in(self):
+        assert resolve_tier(Tier.FULL, None, Tier.PUBLIC, False) is Tier.FULL
+
+    def test_remote_full_grants_anonymous_callers_nothing(self):
+        assert resolve_tier(Tier.FULL, None, Tier.FULL, True) is Tier.PUBLIC
+
+    def test_remote_full_ignores_a_role_claim_without_a_sign_in(self):
+        """A role cannot apply to a caller we cannot identify."""
+        assert (
+            resolve_tier(Tier.FULL, None, ROLE_TIERS[Role.ADMIN], True) is Tier.PUBLIC
+        )
+
+    def test_remote_full_grants_a_signed_in_full_role(self):
+        assert resolve_tier(Tier.FULL, USER, ROLE_TIERS[Role.FULL], True) is Tier.FULL
+
+    def test_remote_full_still_caps_a_read_only_user(self):
+        assert (
+            resolve_tier(Tier.FULL, USER, ROLE_TIERS[Role.READ_ONLY], True)
+            is Tier.PUBLIC
+        )
+
+    def test_remote_full_caps_a_judge_role_at_judge(self):
+        assert resolve_tier(Tier.FULL, USER, ROLE_TIERS[Role.JUDGE], True) is Tier.JUDGE
+
+    def test_a_lower_ceiling_is_unaffected_by_locality(self):
+        for remote in (True, False):
+            assert (
+                resolve_tier(Tier.PUBLIC, USER, ROLE_TIERS[Role.FULL], remote)
+                is Tier.PUBLIC
+            )

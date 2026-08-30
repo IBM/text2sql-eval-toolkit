@@ -153,7 +153,9 @@ def get_session_info(request: Request) -> SessionInfo:
     """
     email = current_user_email(request)
     role = effective_role(email, _runtime.get_user_store(), get_admin_emails())
-    tier = resolve_tier(get_mode(), email, ROLE_TIERS[role])
+    tier = resolve_tier(
+        get_mode(), email, ROLE_TIERS[role], _runtime.is_remote_deployment()
+    )
     judge_usage = None
     if tier >= Tier.JUDGE and not judge_disabled():
         try:
@@ -165,7 +167,10 @@ def get_session_info(request: Request) -> SessionInfo:
         role=role.value,
         # Mirrors the middleware gate: a full-mode operator already controls the
         # process, so the console is theirs without configuration.
-        can_manage_users=(role is Role.ADMIN or get_mode() is Tier.FULL),
+        can_manage_users=(
+            role is Role.ADMIN
+            or (get_mode() is Tier.FULL and not _runtime.is_remote_deployment())
+        ),
         tier=tier.name.lower(),
         mode=get_mode().name.lower(),
         email=email,
@@ -288,12 +293,24 @@ def main(argv: Optional[List[str]] = None) -> None:
     mode = Tier.parse(args.mode)
     # The dangerous configuration should take deliberate effort, not a default.
     loopback = args.host in {"127.0.0.1", "localhost", "::1"}
+    # Recorded so authorization can tell the two meanings of `full` apart:
+    # on a laptop it is the operator, who already controls this process; on a
+    # reachable host it must mean "signed in and granted the role", or it would
+    # hand SQL execution to anyone who finds the URL.
+    _runtime.set_remote_deployment(not loopback)
     if mode is Tier.FULL and not loopback and not args.allow_remote_full:
         parser.error(
             f"--mode full refuses to bind {args.host}: it exposes SQL execution "
             "against configured database credentials, evaluation runs, and "
             "registry writes to anyone who can reach the port. Use --mode public "
             "for a shared deployment, or --allow-remote-full if you are certain."
+        )
+    if mode is Tier.FULL and not loopback:
+        logger.warning(
+            "Running --mode full on %s. The ceiling is raised, but full is NOT "
+            "granted to anonymous callers here: a caller must be signed in and "
+            "hold the 'full' or 'admin' role. Grant it from the Users console.",
+            args.host,
         )
     set_mode(mode)
     set_admin_emails(admin_emails_from_env())

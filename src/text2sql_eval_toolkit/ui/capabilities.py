@@ -189,6 +189,7 @@ def resolve_tier(
     mode: Tier,
     email: Optional[str],
     requested: Tier = Tier.PUBLIC,
+    remote: bool = False,
 ) -> Tier:
     """
     Effective tier for one request.
@@ -203,12 +204,26 @@ def resolve_tier(
             for ``public``; a stored role may ask for more, and the ceiling
             decides whether it is honoured.
 
+    Args (continued):
+        remote: Whether this deployment is reachable beyond loopback. This is
+            what separates the two very different meanings of ``full``.
+
     Returns:
-        Tier: ``min(requested, mode)`` for a signed-in caller. A local operator
-        (``mode`` is ``full``) keeps ``full`` without signing in, which is what
-        makes the toolkit usable from a laptop.
+        Tier: ``min(requested, mode)`` for a signed-in caller.
+
+    On a **local** deployment, ``full`` grants ``full`` to the caller without a
+    sign-in: it is a single-operator tool on a laptop, the operator already
+    controls the process, and requiring them to authenticate to themselves would
+    be ceremony.
+
+    On a **remote** one that behaves the same way, ``full`` would hand arbitrary
+    SQL execution, evaluation runs and registry writes to anyone who finds the
+    URL -- anonymously. So when *remote* is set, ``full`` raises the ceiling and
+    nothing more: a caller still has to be signed in and hold a role that asks
+    for it. That is what ``--allow-remote-full`` is for, and it is the only way
+    the console's ``full`` grant can mean anything.
     """
-    if mode is Tier.FULL:
+    if mode is Tier.FULL and not remote:
         return Tier.FULL
     if not email:
         return Tier.PUBLIC

@@ -88,6 +88,10 @@ _ADMIN_EMAILS: set = admin_emails_from_env()
 # TEXT2SQL_ADMIN_EMAILS grants anything above read-only.
 _USER_STORE = None
 
+# Whether this deployment is reachable beyond loopback. Decides whether `full`
+# means "the operator, who controls this process" or "anyone who finds the URL".
+_REMOTE_DEPLOYMENT = False
+
 # Encrypted per-user provider credentials. None until configured.
 _USER_KEY_STORE = None
 
@@ -104,6 +108,16 @@ def set_mode(mode: Tier) -> None:
 def get_admin_emails() -> set:
     """Addresses that always hold admin, from the environment."""
     return _ADMIN_EMAILS
+
+
+def is_remote_deployment() -> bool:
+    """Whether this process is bound beyond loopback."""
+    return _REMOTE_DEPLOYMENT
+
+
+def set_remote_deployment(remote: bool) -> None:
+    global _REMOTE_DEPLOYMENT
+    _REMOTE_DEPLOYMENT = bool(remote)
 
 
 def get_user_key_store():
