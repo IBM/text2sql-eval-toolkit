@@ -4,11 +4,6 @@
 
 Benchmarks disagree on field names, so these accept the common spellings.
 
-!!! warning
-    `get_question_id`, `get_utterance` and `get_gt_sqls` **mutate the record**
-    they are given, normalising the key they matched. Pass a copy if the original
-    must stay untouched.
-
 ::: text2sql_eval_toolkit.get_question_id
 ::: text2sql_eval_toolkit.get_utterance
 ::: text2sql_eval_toolkit.get_question

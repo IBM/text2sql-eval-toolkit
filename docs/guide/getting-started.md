@@ -26,7 +26,7 @@ PostgreSQL and SQLite need no extra — their drivers are in the base install.
 ## Look at results without running anything
 
 The fastest way to see what the toolkit produces is to fetch results that have
-already been produced. Roughly 7 GB, from the Hugging Face Hub:
+already been produced. About 4 GB, from the Hugging Face Hub:
 
 ```bash
 text2sql-eval-toolkit results fetch

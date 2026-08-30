@@ -28,10 +28,15 @@ from text2sql_eval_toolkit._version import __version__ as _TOOLKIT_VERSION
 # Public constants
 # ---------------------------------------------------------------------------
 
+#: The Hugging Face dataset holding the pre-computed evaluation results, about
+#: 4 GB in total. Override per call with ``repo_id=`` to read from a fork.
 DEFAULT_REPO_ID: str = "text2sql-eval-toolkit/text2sql-eval-results"
 
-# Derived at import time from the installed toolkit version so downloads are
-# reproducible by default.  Override at call-time with revision= / --revision.
+#: The dataset revision fetched by default: ``v`` followed by the installed
+#: toolkit version, so a given release reads the results published for it and a
+#: download is reproducible. A release whose tag does not exist on the dataset
+#: yet falls back to ``main`` with a warning rather than failing. Override with
+#: ``revision=`` or ``--revision``.
 DEFAULT_REVISION: str = f"v{_TOOLKIT_VERSION}"
 
 # Guard so the "revision not found" warning is only printed once per process.

@@ -186,9 +186,13 @@ def _judge_usage_model(usage: Any) -> JudgeUsage:
     )
 
 
-def _user_api_key(email: Optional[str], model: str) -> Optional[str]:
+def _user_api_key(email: Optional[str], model: str) -> Optional[Dict[str, str]]:
     """
-    The signed-in caller's stored key for this model's provider, if any.
+    The signed-in caller's stored credential for this model's provider, if any.
+
+    A mapping of environment-variable name to value rather than a bare key:
+    watsonx needs a project id alongside the key, so one credential can be more
+    than one variable.
 
     Returns ``None`` for an anonymous caller, when no key store is configured, or
     when nothing is stored -- in which case the request falls back to the

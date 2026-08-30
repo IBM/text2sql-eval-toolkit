@@ -14,7 +14,7 @@ text2sql-eval-toolkit results list      # what the Hub manifest offers
 text2sql-eval-toolkit results clear     # remove the local copy
 ```
 
-The full set is around 7 GB, which is why it is fetched rather than shipped in
+The full set is about 4 GB, which is why it is fetched rather than shipped in
 the wheel. `list` reads the manifest without downloading anything, so it is the
 cheap way to see what a release contains.
 

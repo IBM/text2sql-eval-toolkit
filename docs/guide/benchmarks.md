@@ -78,7 +78,7 @@ SQLite benchmarks read local database folders that are **not in the repository**
 
 ## Pre-computed results
 
-Around 7 GB of results already exist and are fetched rather than shipped:
+About 4 GB of results already exist and are fetched rather than shipped:
 
 ```bash
 text2sql-eval-toolkit results fetch
