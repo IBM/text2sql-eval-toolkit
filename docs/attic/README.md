@@ -8,6 +8,8 @@ what changed, what it broke, and what that cost. Newest first.
 It is history, not reference. Read it to find out *why* something is the way it
 is; read [`../dashboard/`](../dashboard/) to find out how it works.
 
-[`plan/`](plan/) holds plans for work not yet done. They live here rather than in
-`docs/` because a plan stops being true the moment it is carried out: delete one
-once its release ships, or move what survived into the guides it belongs to.
+Plans live here too while work is in flight, and are deleted once the release
+ships — a plan stops being true the moment it is carried out. What survives a
+plan moves to where it will be met: the *why* into this log, ongoing rules into
+`CONTRIBUTING.md`, and anything a user needs into the guides. There is no plan
+in flight at the moment.

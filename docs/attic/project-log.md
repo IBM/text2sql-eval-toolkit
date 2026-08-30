@@ -12,12 +12,13 @@ finished.
 
 ## 2026-08-30 — 1.4.0 built. The features were the easy half.
 
-All five planned items are on branch `1.4.0` and running live at
+All five planned items shipped and are running live at
 `text2sql-eval-toolkit.oaklayer.dev`: documentation, test coverage, one dispatch
 table for every model call site, a user-management console, and per-user
-provider keys. The plan for those is in
-[`plan/1.4.0.md`](plan/1.4.0.md), with each item's outcome recorded against its
-own *Done when*.
+provider keys. The plan document has been deleted now the release is out, as the
+attic's own rule says it should be; what survived it is below, and the standing
+rule about the published surface moved to `CONTRIBUTING.md`, which is where
+someone will actually meet it.
 
 What is worth recording here is the other half of the branch, none of which was
 in the plan, and almost all of which was found by deploying the thing and then
@@ -95,10 +96,45 @@ ways that are easy to measure: writing docstrings surfaced five real defects
 while describing what functions did, and the characterisation tests caught two
 regressions in dashboard work that would otherwise have reached the deployment.
 
-**Not done.** The version is still `1.3.0` and the branch has never been opened
-as a PR. The `TEXT2SQL_JUDGE_ALLOWLIST` removal is the breaking change of this
-release and its release notes are unwritten. OpenAI, Gemini and the `litellm:`
-prefix are covered by tests but have never been called for real.
+### The decisions, and what they cost
+
+Taken 2026-08-26, before any of it was built. Each closed off an alternative
+that looked attractive again mid-implementation, which is why they were written
+down.
+
+| Question | Decision |
+|---|---|
+| Full over the web | The console may grant it; it takes effect only where the operator started with `--allow-remote-full`. Inert grants are shown as inert. |
+| Whose budget | Per-user caps set by an admin, alongside the global ceiling on the server-held key. |
+| Key lifetime | Persist until explicitly deleted. |
+| Legacy allowlist | `TEXT2SQL_JUDGE_ALLOWLIST` removed; the database is the only authority. |
+| Admin bootstrap | `TEXT2SQL_ADMIN_EMAILS`: addresses, not domains, matched against the verified login email. Read every startup, always grants admin — a standing recovery path, not a one-time seed. |
+| User-key scope | Any workload. Tier governs who may start one; the key only decides who pays. |
+| Library stability | The pip-installable surface does not change because of dashboard work. Optional parameters defaulting to today's behaviour are the only permitted addition. |
+| Where the quota lives | UI only. Library, CLI and notebook paths never touch it. |
+
+Two of these carried consequences worth restating, because both came true:
+
+- **Per-user caps are a quota subsystem, not a setting.** They needed per-model
+  costs, which is why they were sequenced after the dispatch-table work. They
+  were the largest single piece of the branch, as the plan predicted.
+- **Removing the allowlist deleted the escape hatch.** `TEXT2SQL_ADMIN_EMAILS`
+  is now the sole recovery path. It has not bitten, but it is one typo away from
+  locking an operator out of their own console — a failure mode that used to
+  have a shell-level answer and no longer does.
+
+The plan also predicted that documentation and tests first would make the rest
+safe to attempt, and asked to be judged on it. Writing docstrings surfaced five
+real defects; the characterisation tests caught two dashboard regressions before
+they reached the deployment. Neither would have been caught by the features'
+own tests, because both were regressions in code nobody was touching.
+
+**Still outstanding at the point the PR opened.** OpenAI, Gemini and the
+`litellm:` prefix share the dispatch table and are covered by tests, but nothing
+has called them against a real provider — only watsonx and Anthropic have been
+exercised end to end. And no packaged judge config names a non-watsonx model, so
+Claude is not selectable from the Judge Playground without creating a config
+first.
 
 And one that would ship a visible defect: the documentation site is not
 published. GitHub Pages turned out to be unavailable on this organisation, so
