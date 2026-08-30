@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] - 2026-08-30
 
 ### Changed — breaking
 
@@ -41,6 +41,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the role table is wrong.
 - A grant above the deployment's mode is recorded and shown as **inactive** with
   the reason, rather than looking effective and being refused.
+- **Documentation site.** A written guide — installation, the five stages, the
+  data model, benchmarks, models and providers, LLM-as-judge, the command line
+  and configuration — alongside the generated API reference, which now covers
+  all 43 exported symbols. Hosted on Read the Docs and linked from PyPI.
+- **Judge Playground.** Run LLM-as-judge on the record open in the Eval
+  Playground and see the verdict, with the config selectable. A verdict is
+  cached against the record, pipeline, config name and a digest of the config's
+  contents, so re-running an unchanged judge costs nothing.
+- **Shareable judge verdicts.** The playground address carries `?judge=<config>`
+  once a verdict is showing, and opening such a link restores it. Restoring
+  reads the cache only and never starts an inference: sharing a result does not
+  authorise the reader to spend against the budget, or against their own key.
+- **Export a playground record** as Markdown or HTML, including both the stored
+  judge explanation and any on-demand verdict.
+- **The Eval Playground is addressable** by benchmark, record and pipeline, and
+  every navigation item is a real link — so "open in new window" works.
+
+### Fixed
+
+- **The LLM judge could not run on any chat-API provider.** Unifying the
+  dispatch tables routed the judge through a chat client, which rejects the bare
+  string prompt the judge builds. Every run failed with "Incorrect prompt type".
+- **The judge was told it was a SQL expert on every request.** The Anthropic
+  client sent a SQL-generation system message unconditionally, including when
+  judging — a contradiction the model had to resolve, and a quiet bias on
+  verdicts. It is now sent only when the caller wants SQL.
+- **The Anthropic client printed its whole request payload to stdout**, prompt
+  and ground truth included, on every call.
+- **Judge configs saved from the dashboard were written into the installed
+  package**, which fails outright where the package tree is not writable by the
+  server, and is discarded by a `pip install --upgrade` where it is not. They
+  now go to `<data root>/llm_judge_config` and shadow the packaged config of the
+  same name; deleting the copy restores the original. The editor can also create
+  a config rather than only overwrite the selected one.
+- **Both spellings of the watsonx variables are accepted** — `WATSONX_APIKEY` /
+  `WATSONX_API_KEY`, `WATSONX_API_BASE` / `WATSONX_URL`, `WATSONX_PROJECTID` /
+  `WATSONX_PROJECT_ID` — and a missing-credential error names every accepted
+  spelling.
+- **A sync driver in a database connection string is translated** rather than
+  failing with "the asyncio extension requires an async driver".
+- **The stored LLM-judge explanation now appears in exports.** It is rendered as
+  prose rather than as a metric row, and the export only walked metric rows, so
+  it had been absent from every export since exports existed.
+- The dashboard no longer hides the session bar — and with it sign-out — on a
+  remote deployment running in `full` mode.
+
+### Security
+
+- **`full` mode no longer grants full capability to anonymous callers.** Tier
+  resolution short-circuited on the deployment mode before checking identity, so
+  enabling `full` on a reachable host would have granted it to everyone.
+  Anonymous callers now resolve to `public` regardless of mode.
 
 ## [1.3.0] - 2026-08-26
 
