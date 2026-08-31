@@ -36,6 +36,9 @@ needs no Node.js.
 
 - **Benchmark overview** — every benchmark with its description, database type,
   record count and pipeline count.
+- **Five views of a benchmark**, under a shared tab strip: the summary, metric
+  insights, pipeline compare, profile compare and error analysis. Each is its
+  own address, so any of the five can be linked to.
 - **Per-benchmark results** — pipeline-level metrics (execution-accuracy variants,
   LLM-judge score, token and latency statistics), sortable, and broken down by
   SQL feature category.

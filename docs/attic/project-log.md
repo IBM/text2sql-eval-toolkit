@@ -10,6 +10,33 @@ finished.
 
 ---
 
+## 2026-08-31 — five views of a benchmark, and one way between them
+
+The benchmark summary offered the other four views as ghost buttons in its
+header, next to the category dropdown. Three things wrong with that, and only
+the first is visual: they were buttons rather than links, so no address on
+hover, nothing to copy, no "open in new window"; they existed on the summary
+only, so moving from metric insights to error analysis meant going back through
+the summary; and they shared a row with a form control, which is why they were
+squeezed.
+
+A tab strip across all five replaces them -- Carbon's tab shape, built from
+anchors rather than from `Tabs`, because these are five addresses and not five
+panels of one page. Each carries `aria-current` when it is the one on screen,
+and the current tab's own click is swallowed: following it would remount the
+view and throw away its filters and scroll position for nothing.
+
+`BenchmarkDetail` loses four props and an import. That is the part worth
+noticing -- the summary had been the only view that knew about the other four,
+which is exactly why the navigation only worked in one direction.
+
+Profile compare is the exception again. Its canonical address names no
+benchmark, so at `/compare/profile` there is nothing for the tabs to point at
+and they are omitted rather than rendered pointing nowhere; reached as
+`/benchmark/{id}/compare/profile` from a tab strip, it gets one.
+
+---
+
 ## 2026-08-31 — a changelog entry had been rendering as product copy
 
 The Benchmarks page said: "Every benchmark with results on this deployment.

@@ -83,6 +83,7 @@ import { DataStampBar, SessionBar } from "../views/SessionBar";
 import { AboutPanel } from "../views/AboutPanel";
 import { NavLink } from "../views/NavLink";
 import { LinkTile, TileGrid } from "../views/LinkTile";
+import { BenchmarkViewTabs } from "../views/BenchmarkViewTabs";
 import { fetchSession } from "../lib/session";
 import { REFERENCE_URL, fetchDocs, type DocInfo } from "../services/docs";
 import {
@@ -103,6 +104,7 @@ import {
   parseLocation,
   parseQuery,
   routes,
+  type ViewName,
 } from "../lib/routes";
 import {
   expandUrl,
@@ -111,6 +113,31 @@ import {
 } from "../lib/pipelineAlias";
 
 type BenchmarkModalMode = "create" | "edit";
+
+/**
+ * One of the five views of a benchmark, under its tab strip.
+ *
+ * `benchmarkId` may be null, which happens on profile compare -- its canonical
+ * address names no benchmark. There is nothing for the tabs to point at then,
+ * so they are omitted rather than rendered pointing nowhere.
+ */
+const BenchmarkView: React.FC<{
+  benchmarkId: string | null;
+  active: ViewName;
+  onNavigate: (href: string) => void;
+  children: React.ReactNode;
+}> = ({ benchmarkId, active, onNavigate, children }) => (
+  <>
+    {benchmarkId && (
+      <BenchmarkViewTabs
+        benchmarkId={benchmarkId}
+        active={active}
+        onNavigate={onNavigate}
+      />
+    )}
+    {children}
+  </>
+);
 
 /**
  * The benchmark picker an analysis view shows when the address names none.
@@ -760,26 +787,18 @@ export const App: React.FC = () => {
         return <NotFound message="No benchmark in the URL." />;
       }
       return (
-        <BenchmarkDetail
+        <BenchmarkView
           benchmarkId={selectedBenchmark}
-          onSelectPipeline={(pipeline) =>
-            selectedBenchmark &&
-            navigate(routes.pipeline(selectedBenchmark, pipeline))
-          }
-          onOpenToolkitInsights={() =>
-            selectedBenchmark && navigate(routes.insights(selectedBenchmark))
-          }
-          onOpenPipelineCompare={() =>
-            selectedBenchmark && navigate(routes.compare(selectedBenchmark))
-          }
-          onOpenProfileCompare={() =>
-            selectedBenchmark &&
-            navigate(routes.profileCompare(selectedBenchmark))
-          }
-          onOpenErrorAnalysis={() =>
-            selectedBenchmark && navigate(routes.errors(selectedBenchmark))
-          }
-        />
+          active="benchmark"
+          onNavigate={goto}
+        >
+          <BenchmarkDetail
+            benchmarkId={selectedBenchmark}
+            onSelectPipeline={(pipeline) =>
+              navigate(routes.pipeline(selectedBenchmark, pipeline))
+            }
+          />
+        </BenchmarkView>
       );
     }
 
@@ -830,6 +849,11 @@ export const App: React.FC = () => {
         );
       }
       return (
+        <BenchmarkView
+          benchmarkId={effectiveBenchmarkId}
+          active="errorAnalysis"
+          onNavigate={goto}
+        >
         <ErrorAnalysis
           key={effectiveBenchmarkId}
           benchmarkId={effectiveBenchmarkId}
@@ -840,6 +864,7 @@ export const App: React.FC = () => {
           initialRecordId={urlFilters.record ?? undefined}
           onStateChange={onErrorAnalysisStateChange}
         />
+        </BenchmarkView>
       );
     }
 
@@ -914,14 +939,20 @@ export const App: React.FC = () => {
         );
       }
       return (
-        <ToolkitInsightsView
-          benchmarks={benchmarks}
+        <BenchmarkView
           benchmarkId={effectiveBenchmarkId}
-          onSelectBenchmark={(id) => navigate(routes.insights(id))}
-          onOpenErrorAnalysis={(filters) =>
-            navigate(routes.errors(effectiveBenchmarkId, filters))
-          }
-        />
+          active="toolkitInsights"
+          onNavigate={goto}
+        >
+          <ToolkitInsightsView
+            benchmarks={benchmarks}
+            benchmarkId={effectiveBenchmarkId}
+            onSelectBenchmark={(id) => navigate(routes.insights(id))}
+            onOpenErrorAnalysis={(filters) =>
+              navigate(routes.errors(effectiveBenchmarkId, filters))
+            }
+          />
+        </BenchmarkView>
       );
     }
 
@@ -937,12 +968,18 @@ export const App: React.FC = () => {
         );
       }
       return (
-        <PipelineCompareView
+        <BenchmarkView
           benchmarkId={effectiveBenchmarkId}
-          onOpenErrorAnalysis={(filters) =>
-            navigate(routes.errors(effectiveBenchmarkId, filters))
-          }
-        />
+          active="pipelineCompare"
+          onNavigate={goto}
+        >
+          <PipelineCompareView
+            benchmarkId={effectiveBenchmarkId}
+            onOpenErrorAnalysis={(filters) =>
+              navigate(routes.errors(effectiveBenchmarkId, filters))
+            }
+          />
+        </BenchmarkView>
       );
     }
 
@@ -951,11 +988,17 @@ export const App: React.FC = () => {
       // several at once, so a benchmark in the address only seeds that
       // selection. Its own address names none.
       return (
-        <ProfileCompareView
-          benchmarks={benchmarks}
+        <BenchmarkView
           benchmarkId={selectedBenchmark}
-          onSelectBenchmark={(id) => navigate(routes.profileCompare(id))}
-        />
+          active="profileCompare"
+          onNavigate={goto}
+        >
+          <ProfileCompareView
+            benchmarks={benchmarks}
+            benchmarkId={selectedBenchmark}
+            onSelectBenchmark={(id) => navigate(routes.profileCompare(id))}
+          />
+        </BenchmarkView>
       );
     }
 
