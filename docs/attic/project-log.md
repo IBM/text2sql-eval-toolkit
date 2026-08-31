@@ -10,6 +10,62 @@ finished.
 
 ---
 
+## 2026-08-30 — 1.5.0, item 1: the alerts were mostly bookkeeping, and one real finding
+
+158 open Dependabot alerts, 28 distinct packages, three manifests. The count was
+inflated three ways and the plan predicted two of them: the same package is
+counted once per manifest it appears in, and one package often carries several
+advisories. Deleting `requirements.txt` — a generated export of `uv.lock` that
+scanning read as a separate project — removed about a third of the alerts
+without changing a single dependency, exactly as the plan said it would.
+
+**The third inflation was not predicted, and it is the finding worth keeping.**
+The plan's "watch for" paragraph warned that `langgraph` and `langchain-core`
+are "the agentic pipeline's spine" and should be bumped deliberately. They are
+not the spine. They are not anything. `grep -rn "langgraph\|langchain" src/
+scripts/ tests/` returns two lines, both of them commented-out imports, above a
+comment reading "we're using a simpler state machine approach". The dependency
+has been declared and unimported since the module was written.
+
+Between them the two packages pulled thirteen more into every install —
+`langgraph-checkpoint`, `langgraph-sdk`, `langgraph-prebuilt`, `langsmith`,
+`orjson`, `ormsgpack`, `xxhash`, `zstandard` and the rest — and **six of the
+fifteen base-install packages with an open advisory were in that subtree**.
+Flooring them would have worked and would have been wrong: the correct fix for a
+vulnerable dependency you do not use is to stop declaring it. Removed. The
+docstring claiming a LangGraph agent, and `scripts/inference/README.md`'s
+troubleshooting entry telling people to `pip install langgraph`, were corrected
+at the same time — they had been describing a design that never shipped.
+
+**Nine packages are now named in `pyproject.toml` that this project does not
+import.** `pillow` via matplotlib, `urllib3` and `idna` via requests,
+`cryptography` and `pyasn1` via google-auth. This looks wrong and is not: a
+lockfile protects this repository and the container, and does nothing for
+`pip install text2sql-eval-toolkit`, which resolves fresh against the
+intermediate package's own floor — and those floors are years behind. Naming the
+patched version is the only mechanism that reaches that install. They are floors
+rather than pins, and the comment above them says when to delete each one.
+
+**`uv lock --upgrade` was the wrong tool and it took one run to find out.** It
+moved 60-odd packages including pandas 2.2 → 3.0, sqlglot 28 → 30, numpy 2.4 →
+2.5 and starlette 0.52 → 1.6. None of those belonged in a security fix, and
+pandas 3 under a project whose core data model is serialised dataframes is a
+week of its own. Reverted, and replaced with: raise the floors, plain `uv lock`,
+then `--upgrade-package` by name for the handful the floors could not reach.
+22 packages moved instead of 60.
+
+**Starlette 1.x was taken deliberately, and it is the one upgrade with risk in
+it.** The 0.x advisories are Host-header poisoning of `request.url.path` and
+`request.form()` limits being silently ignored; both are about a server facing
+the internet, which this one is. It needed FastAPI ≥ 0.141.1 to come with it.
+921 tests pass, but the suite exercises the API through the test client rather
+than a socket, so this is the item to watch on the deployment.
+
+The one *critical* alert — stored XSS in Jupyter Server's nbconvert handlers —
+was reachable only through the `notebook` extra. The plan offered dropping the
+extra or pinning it forward; a clean stack existed, so it is pinned forward and
+the notebooks still install with one command.
+
 ## 2026-08-30 — 1.4.0 built. The features were the easy half.
 
 All five planned items shipped and are running live at

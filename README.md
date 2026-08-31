@@ -363,8 +363,8 @@ text2sql-eval-toolkit
 │       ├── profiling/          # SQL profiling module
 │       └── ui/                 # Dashboard backend (FastAPI)
 ├── pyproject.toml              # Build system and project metadata
+├── uv.lock                     # Resolved dependency set (`uv export` for a pinned file)
 ├── README.md                   # Project documentation
-├── requirements.txt            # Pinned export of uv.lock (generated; see its header)
 └── LICENSE                     # License file
 
 ```

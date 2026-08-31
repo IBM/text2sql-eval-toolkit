@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-30
+
+### Changed — breaking
+
+- **`langgraph` and `langchain-core` are no longer dependencies.** Nothing in
+  the package imported them: `AgenticSQLGenerationPipeline` names LangGraph in
+  its docstring but runs a hand-written state machine, and the only
+  `from langgraph...` line in the tree has been commented out since the module
+  was written. They pulled thirteen further packages into every install,
+  including six that carried open security advisories.
+
+  **Upgrading:** nothing changes for callers of this package. If your own code
+  imported `langgraph` and relied on getting it transitively, declare it.
+- **`requirements.txt` is removed.** It was a generated export of `uv.lock`,
+  and a second manifest that security scanning read as a separate project — so
+  every advisory was reported twice. `uv.lock` and `pyproject.toml` are the
+  dependency sources of truth. Run
+  `uv export --format requirements-txt --no-hashes --no-dev --no-emit-project`
+  for a pinned file.
+
+### Security
+
+- **Every package in the base install with an open advisory is floored at its
+  patched version**, and the lockfile moved to match: `cryptography` 46 → 50
+  (it encrypts stored per-user provider keys), `sqlparse` 0.5.5 → 0.6.0,
+  `requests`, `urllib3`, `idna`, `pillow`, `pyasn1`, `python-dotenv` and
+  `setuptools`. Nine of these are named in `pyproject.toml` despite not being
+  imported directly: a lockfile protects this repository and the container, but
+  `pip install text2sql-eval-toolkit` resolves fresh, and the intermediate
+  packages' own floors are years behind.
+- **The dashboard's HTTP stack moved off Starlette 0.x** (FastAPI ≥ 0.141.1,
+  Starlette ≥ 1.3.1), which fixes Host-header poisoning of `request.url.path`
+  and `request.form()` size limits being silently ignored — both of which
+  matter for a deployment that faces the internet.
+- **The `notebook` extra resolves a clean Jupyter stack.** The one *critical*
+  advisory outstanding at 1.4.0 was a stored XSS in Jupyter Server's nbconvert
+  handlers, reachable only through this extra; the metapackage's own constraints
+  were wide enough to resolve onto it, so the floors are named here.
+- **`vite`, `postcss`, `nanoid` and `immutable` updated** in the dashboard
+  lockfile; `npm audit` reports no vulnerabilities.
+- **Dependabot version updates are on** for `uv.lock`, `dashboard/` and the
+  workflow actions, grouped so the pull requests are readable. Security alerts
+  were already enabled; what was missing is the half that opens a pull request
+  rather than waiting for someone to notice.
+
 ## [1.4.0] - 2026-08-30
 
 ### Changed — breaking
