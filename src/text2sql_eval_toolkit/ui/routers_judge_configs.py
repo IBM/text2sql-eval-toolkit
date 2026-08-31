@@ -20,6 +20,7 @@ version of this interpolated a URL segment straight into a path.
 
 from typing import Any, Dict, List
 
+import yaml
 from fastapi import (
     APIRouter,
     Body,
@@ -49,6 +50,32 @@ from text2sql_eval_toolkit.ui.routers_judge import (  # noqa: E402
 )
 
 router = APIRouter()
+
+
+class _BlockStyleDumper(yaml.SafeDumper):
+    """
+    A dumper that writes multi-line strings as block scalars.
+
+    ``yaml.safe_dump`` renders a long multi-line string as a single-quoted
+    folded scalar, where every line break becomes a blank line and the prose is
+    rewrapped at 80 columns. It round-trips correctly and it is close to
+    unreadable -- and ``prompt_template`` is the bulk of every judge config and
+    is always multi-line, so *every* save through the dashboard turned a file
+    that opened with ``prompt_template: |`` into one that did not.
+
+    Subclassed rather than registered on ``yaml.SafeDumper`` itself: this
+    process calls ``yaml.safe_dump`` elsewhere, and a global representer would
+    silently change all of it.
+    """
+
+
+def _represent_str(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+_BlockStyleDumper.add_representer(str, _represent_str)
 
 
 @router.get("/api/llm-judge/configs", response_model=LLMJudgeConfigListResponse)
@@ -94,8 +121,6 @@ def get_llm_judge_config(name: str):
     if not path.exists():
         raise HTTPException(status_code=404, detail="Config not found")
 
-    import yaml
-
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
@@ -118,11 +143,19 @@ def update_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
         raise HTTPException(status_code=400, detail="Invalid config name") from None
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    import yaml
-
     try:
         with path.open("w", encoding="utf-8") as f:
-            yaml.safe_dump(body, f, sort_keys=False, allow_unicode=True)
+            yaml.dump(
+                body,
+                f,
+                Dumper=_BlockStyleDumper,
+                sort_keys=False,
+                allow_unicode=True,
+                # Wide enough that nothing folds. A block scalar's line breaks
+                # are part of the prompt the judge is sent, so rewrapping one
+                # would change the prompt without anyone asking.
+                width=4096,
+            )
     except OSError as exc:
         # The data root is meant to be writable; if it is not, say so plainly.
         # This used to surface as a bare 500 with the traceback in the log and

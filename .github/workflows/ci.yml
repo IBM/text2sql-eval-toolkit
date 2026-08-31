@@ -422,6 +422,12 @@ jobs:
         run: |
           budget_entry=460
           budget_css=900
+          # A lazy chunk is not on the critical path, so it gets a far looser
+          # limit than the entry -- but not none. The judge-config editor's
+          # chunk is ~425 KB because CodeMirror is in it, which is the deal
+          # that keeps CodeMirror out of the entry bundle; a chunk growing past
+          # this is a sign something landed in the wrong place.
+          budget_lazy=520
           entry=$(du -k dist/assets/index-*.js | sort -rn | head -1 | cut -f1)
           css=$(du -ck dist/assets/*.css | tail -1 | cut -f1)
           lazy=$(find dist/assets -name "*.js" | wc -l | tr -d ' ')
@@ -436,6 +442,15 @@ jobs:
             echo "::error::CSS ${css} KB exceeds budget ${budget_css} KB"
             fail=1
           fi
+          # Every chunk that is not the entry.
+          for chunk in $(find dist/assets -name "*.js" ! -name "index-*.js"); do
+            size=$(du -k "$chunk" | cut -f1)
+            if [ "$size" -gt "$budget_lazy" ]; then
+              echo "::error::${chunk} is ${size} KB, over the ${budget_lazy} KB lazy-chunk budget"
+              fail=1
+            fi
+          done
+          echo "largest lazy chunk: $(du -k $(find dist/assets -name '*.js' ! -name 'index-*.js') | sort -rn | head -1)"
           exit $fail
       - name: Verify committed dist is current
         # dashboard/dist is committed and served by text2sql-eval-dashboard, so a

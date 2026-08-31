@@ -60,11 +60,26 @@ question, rather than whether it matches someone else's answer.
 
 ## Editing configs
 
-The dashboard has an editor for them. Configs written through it land in
-`<data root>/llm_judge_config/` and **shadow** the packaged config of the same
-name; deleting the copy restores the original. Nothing writes into the installed
-package, which would not survive a `pip install --upgrade` even where the
-permissions allow it.
+The dashboard has an editor for them, which edits the YAML directly — with
+syntax highlighting, bracket matching, a **Format** action that reflows the
+document, and a marker on the line and column of a syntax error rather than a
+message saying only that there is one. It presented JSON until 1.5.0, which
+meant the prompt template — the bulk of every config, and always multi-line —
+appeared as one very long line with `\n` escapes through it.
+
+Configs written through it land in `<data root>/llm_judge_config/` and
+**shadow** the packaged config of the same name; deleting the copy restores the
+original. Nothing writes into the installed package, which would not survive a
+`pip install --upgrade` even where the permissions allow it.
+
+A save is refused when `model.id` or `prompt_template` is missing. Highlighting
+makes malformed YAML visible; it does nothing about a config that parses cleanly
+and describes a useless judge.
+
+Comments are not preserved. The server parses the file and writes it back out,
+which has always been true; what changed in 1.5.0 is that it writes multi-line
+strings as block scalars again, so a saved file still opens with
+`prompt_template: |` rather than a folded quoted string.
 
 ## Cost
 

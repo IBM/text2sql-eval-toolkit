@@ -73,6 +73,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and CI now checks that it stays that way — so a pip install gets the reference
   and an explanation of where the notes are, rather than a blank page. The
   deployment image copies them in.
+- **A judge-config editor that is not painful.** Syntax highlighting, bracket
+  matching, line numbers, a **Format** action that reflows the document, and an
+  error marked at its line and column as you type instead of a "not valid"
+  message on save. Save stays refused when `model.id` or `prompt_template` is
+  missing — highlighting makes malformed input visible and says nothing about a
+  config that parses cleanly and describes a useless judge.
+
+  **The editor now edits YAML, which is what the file is.** It presented JSON,
+  so `prompt_template` — the bulk of every config, and always multi-line — was
+  one line of roughly fifteen hundred characters with `\n` escapes through it.
+  Highlighting does not make that editable; a different notation does. The
+  endpoint is unchanged and still takes JSON.
 - **The GitHub Release is created by the tag.** Pushing `vX.Y.Z` now builds,
   publishes to PyPI and creates the Release page with that version's changelog
   notes and the built wheel and sdist attached. The page used to be written by
@@ -80,6 +92,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when it was missed. A tag whose version has no `CHANGELOG.md` section fails
   the workflow *before* anything is published, rather than producing a release
   with an empty page.
+
+### Fixed
+
+- **Saving a judge config no longer mangles its formatting.** `yaml.safe_dump`
+  renders a long multi-line string as a single-quoted folded scalar — every
+  line break becomes a blank line and the prose is rewrapped at 80 columns — so
+  every save through the dashboard turned a file that opened with
+  `prompt_template: |` into one that did not. The value always round-tripped
+  correctly; the file was simply unreadable afterwards.
 
 ## [1.4.0] - 2026-08-30
 
