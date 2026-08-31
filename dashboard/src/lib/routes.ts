@@ -86,14 +86,33 @@ export const routes = {
     `/benchmark/${encode(benchmarkId)}/pipeline/${encode(
       pipelineId,
     )}/record/${encode(recordId)}`,
-  errors: (benchmarkId: string, filters?: ErrorFilters): string =>
-    `/benchmark/${encode(benchmarkId)}/errors${buildQuery(filters)}`,
-  insights: (benchmarkId: string): string =>
-    `/benchmark/${encode(benchmarkId)}/insights`,
-  compare: (benchmarkId: string): string =>
-    `/benchmark/${encode(benchmarkId)}/compare`,
-  profileCompare: (benchmarkId: string): string =>
-    `/benchmark/${encode(benchmarkId)}/compare/profile`,
+  /**
+   * The analysis views, with or without a benchmark.
+   *
+   * `/benchmark/{id}/errors` is a view of one benchmark; `/errors` is the same
+   * view with none chosen yet, which asks. Both are real addresses -- the
+   * second is what the home page and the navigation link to, so that arriving
+   * at a view does not silently pick a benchmark on the reader's behalf and
+   * show them numbers for something they did not ask about.
+   */
+  errors: (benchmarkId?: string | null, filters?: ErrorFilters): string =>
+    benchmarkId
+      ? `/benchmark/${encode(benchmarkId)}/errors${buildQuery(filters)}`
+      : `/errors${buildQuery(filters)}`,
+  insights: (benchmarkId?: string | null): string =>
+    benchmarkId ? `/benchmark/${encode(benchmarkId)}/insights` : "/insights",
+  compare: (benchmarkId?: string | null): string =>
+    benchmarkId ? `/benchmark/${encode(benchmarkId)}/compare` : "/compare",
+  /**
+   * Profile compare picks its own benchmarks, several at a time, so the
+   * canonical address names none. The benchmark-scoped form still resolves,
+   * because links to it were shared before this changed, and it seeds the
+   * view's selection.
+   */
+  profileCompare: (benchmarkId?: string | null): string =>
+    benchmarkId
+      ? `/benchmark/${encode(benchmarkId)}/compare/profile`
+      : "/compare/profile",
   llmJudge: (configName?: string): string =>
     configName ? `/llm-judge/${encode(configName)}` : "/llm-judge",
   /**
@@ -282,6 +301,26 @@ export function parseLocation(pathname: string): RouteMatch {
 
   if (segments[0] === "my-keys" && segments.length === 1) {
     return { ...EMPTY, view: "myKeys" };
+  }
+
+  // The analysis views with no benchmark named. `/compare/profile` is checked
+  // before `/compare`, or the two-segment path would match the one-segment
+  // rule and lose its second half.
+  if (
+    segments[0] === "compare" &&
+    segments[1] === "profile" &&
+    segments.length === 2
+  ) {
+    return { ...EMPTY, view: "profileCompare" };
+  }
+  if (segments[0] === "compare" && segments.length === 1) {
+    return { ...EMPTY, view: "pipelineCompare" };
+  }
+  if (segments[0] === "insights" && segments.length === 1) {
+    return { ...EMPTY, view: "toolkitInsights" };
+  }
+  if (segments[0] === "errors" && segments.length === 1) {
+    return { ...EMPTY, view: "errorAnalysis" };
   }
 
   if (segments[0] === "docs" && segments.length <= 2) {

@@ -39,7 +39,10 @@ also took 68 KB out of the entry bundle, since it was eagerly imported and
 every visitor paid for a table most never opened.
 
 The home page then became the way in to everything: three bands of tiles for
-benchmarks, the six analysis views, and the four documents. Administrative
+benchmarks, the six analysis views, and the four documents. The band headings
+were plain text above each card until it was pointed out that they matched
+nothing else in the dashboard; every other view titles a section with a blue
+heading *inside* a blue-bordered card, and they do that now too. Administrative
 routes are deliberately absent -- Users and sign-in stay in the header and the
 rail, because a landing page is for what the dashboard is *for*, not for
 running it.
@@ -51,11 +54,34 @@ either page. And `REFERENCE_URL` had to leave the documentation view: the home
 page offers the same link, and that view is lazily loaded, so a constant inside
 it is not reachable from the entry bundle without dragging the whole view in.
 
-The four analysis views that need a benchmark render inert with the reason when
-there is not one, which is the rule the navigation rail already applied. A tile
-that cannot be followed is still worth drawing -- it says the view exists and
-what it wants -- where hiding it would leave a reader wondering whether the
-dashboard has the feature at all.
+The four analysis views that need a benchmark were first drawn inert, with the
+reason, when there was not one -- the rule the navigation rail already applied.
+That turned out to be the wrong fix, and the right one came out of being told
+the views "open on bird_mini_dev_sqlite".
+
+They did, and had for a long time. A `useEffect` redirected any benchmark-less
+analysis view to `fallbackBenchmarkId`, so `/insights` silently became
+`/benchmark/bird_mini_dev_sqlite/insights`. The comment above it argued its case
+well -- the address bar should reflect what is on screen -- and the same
+paragraph noted that a benchmark the URL *names* is never swapped out, because
+showing someone numbers for something they did not ask about is worse than
+saying nothing. The redirect was doing exactly that, in the case where nothing
+had been asked for at all. A good reason, applied one step too far.
+
+`/insights`, `/compare` and `/errors` are addresses in their own right now and
+show a benchmark picker; choosing one moves to the scoped address, so what you
+land on is still linkable. `DEFAULT_BENCHMARK_ID` and `fallbackBenchmarkId` are
+both gone, and nothing else wanted them -- which is the tell that the fallback
+existed to paper over this one gap.
+
+Profile compare is the odd one out and the report was right about it: it selects
+benchmarks itself, several at a time, so being addressed by a single benchmark
+never made sense. `/compare/profile` is canonical; the scoped form still
+resolves, because links to it exist, and seeds the selection.
+
+The home tiles link to the bare forms, and so does the navigation rail -- which
+carries the benchmark you are already looking at when there is one, and asks
+otherwise. That is better than what it did before, which was to disable itself.
 
 **And one column for a document, instead of two widths.** Prose sat at 46rem
 inside a 72rem article, so every table, diagram and screenshot overhung the
