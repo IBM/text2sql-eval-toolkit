@@ -113,6 +113,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A benchmark's five views share a tab strip.** Summary, Metric Insights,
+  Pipeline Compare, Profile Compare and Error Analysis, across the top of all
+  five, with the current one marked. The summary offered the other four as
+  ghost buttons in its header — one-way, not links, and sharing a row with a
+  form control — so moving between two of them meant going back to the summary
+  first.
 - **An analysis view asks which benchmark, instead of guessing.** Opening
   Metric Insights, Pipeline Compare or Error Analysis without one redirected to
   whichever benchmark loaded first — in practice always `bird_mini_dev_sqlite`

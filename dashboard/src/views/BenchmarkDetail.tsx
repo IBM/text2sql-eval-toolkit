@@ -1,6 +1,5 @@
 import React, { CSSProperties, useEffect, useState } from "react";
 import {
-  Button,
   DataTable,
   DataTableHeader,
   Pagination,
@@ -22,10 +21,6 @@ interface Props {
   benchmarkId: string;
   style?: CSSProperties;
   onSelectPipeline?: (pipelineName: string) => void;
-  onOpenToolkitInsights?: () => void;
-  onOpenPipelineCompare?: () => void;
-  onOpenProfileCompare?: () => void;
-  onOpenErrorAnalysis?: () => void;
 }
 
 interface PipelineMetrics {
@@ -45,10 +40,6 @@ export const BenchmarkDetail: React.FC<Props> = ({
   benchmarkId,
   style,
   onSelectPipeline,
-  onOpenToolkitInsights,
-  onOpenPipelineCompare,
-  onOpenProfileCompare,
-  onOpenErrorAnalysis,
 }) => {
   const [data, setData] = useState<SummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -200,26 +191,9 @@ export const BenchmarkDetail: React.FC<Props> = ({
       <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
         <h3 style={{ margin: 0 }}>{benchmarkId} – Summary</h3>
         <div style={{ marginLeft: "auto", display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          {onOpenToolkitInsights && (
-            <Button kind="ghost" size="sm" onClick={() => onOpenToolkitInsights()}>
-              Metric Insights
-            </Button>
-          )}
-          {onOpenPipelineCompare && (
-            <Button kind="ghost" size="sm" onClick={() => onOpenPipelineCompare()}>
-              Pipeline Compare
-            </Button>
-          )}
-          {onOpenProfileCompare && (
-            <Button kind="ghost" size="sm" onClick={() => onOpenProfileCompare()}>
-              Profile Compare
-            </Button>
-          )}
-          {onOpenErrorAnalysis && (
-            <Button kind="ghost" size="sm" onClick={() => onOpenErrorAnalysis()}>
-              Error Analysis
-            </Button>
-          )}
+          {/* The other four views moved to the tab strip above this one --
+              they were buttons here, so they went one way only and were not
+              links, and they shared this row with a form control. */}
           <div style={{ minWidth: "220px" }}>
             <Dropdown
               id="category-dropdown"
