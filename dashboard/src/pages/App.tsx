@@ -113,6 +113,46 @@ import {
 type BenchmarkModalMode = "create" | "edit";
 
 /**
+ * The benchmark picker an analysis view shows when the address names none.
+ *
+ * Tiles rather than a dropdown, so it matches the home page and shows the same
+ * information -- engine, record count, description -- that a reader needs to
+ * choose between them.
+ */
+const ChooseBenchmark: React.FC<{
+  title: string;
+  benchmarks: BenchmarkSummary[];
+  onChoose: (benchmarkId: string) => void;
+}> = ({ title, benchmarks, onChoose }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+    <div>
+      <h3 style={{ margin: 0 }}>{title}</h3>
+      <p
+        style={{
+          margin: "0.35rem 0 0",
+          maxWidth: "52rem",
+          lineHeight: 1.45,
+          color: "var(--cds-text-secondary)",
+        }}
+      >
+        Choose a benchmark to continue. The address will name it, so the view
+        you end up on can be linked to.
+      </p>
+    </div>
+    {benchmarks.length === 0 ? (
+      <InlineNotification
+        kind="info"
+        title="Loading benchmarks…"
+        subtitle="Fetching available evaluation artifacts."
+        lowContrast
+      />
+    ) : (
+      <BenchmarkTiles items={benchmarks} onSelect={onChoose} />
+    )}
+  </div>
+);
+
+/**
  * A titled band of tiles on the home page.
  *
  * The home page is the way in to everything the dashboard does, so it is a
@@ -121,37 +161,23 @@ type BenchmarkModalMode = "create" | "edit";
  */
 const HomeSection: React.FC<{
   title: string;
-  subtitle?: string;
   children: React.ReactNode;
-}> = ({ title, subtitle, children }) => (
-  <section style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-    <div>
-      <h4 style={{ margin: 0, fontSize: "0.95rem" }}>{title}</h4>
-      {subtitle && (
-        <p
-          style={{
-            margin: "0.2rem 0 0",
-            opacity: 0.75,
-            fontSize: "0.8125rem",
-          }}
-        >
-          {subtitle}
-        </p>
-      )}
-    </div>
-    <div
-      style={{
-        border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: "8px",
-        padding: "0.75rem",
-        background: "rgba(255,255,255,0.015)",
-      }}
-    >
-      {children}
-    </div>
+}> = ({ title, children }) => (
+  // The bordered card with a blue heading inside it, which is how every other
+  // view in the dashboard titles a section -- see PipelineCompareView and
+  // ToolkitInsightsView. The first version put a plain heading above the card
+  // instead, which read as a different product.
+  <section
+    style={{
+      border: "1px solid rgba(15,98,254,0.2)",
+      borderRadius: "6px",
+      padding: "0.75rem",
+    }}
+  >
+    <h4 style={{ margin: "0 0 0.5rem 0", color: "#0f62fe" }}>{title}</h4>
+    {children}
   </section>
 );
-const DEFAULT_BENCHMARK_ID = "bird_mini_dev_sqlite";
 /** Left nav width when open; main content shifts right by this amount (no overlay). */
 const NAV_PANEL_WIDTH_PX = 200;
 
@@ -370,38 +396,12 @@ export const App: React.FC = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const fallbackBenchmarkId =
-    benchmarks.find((b) => b.benchmark_id === DEFAULT_BENCHMARK_ID)
-      ?.benchmark_id ??
-    benchmarks[0]?.benchmark_id ??
-    null;
-
-  // A view that needs a benchmark and was opened without one redirects to a
-  // default, so the address bar always reflects what is on screen.
-  //
-  // A benchmark the URL *names* is a different case and is not redirected. This
-  // is the situation shared links are most likely to hit -- the recipient's
-  // server has a different set of benchmarks -- and silently swapping in
-  // another one shows them numbers for something they did not ask about, with
-  // nothing to say the link failed.
-  useEffect(() => {
-    if (!fallbackBenchmarkId || benchmarks.length === 0) return;
-    if (selectedBenchmark) return;
-    const needsBenchmark =
-      activeView === "toolkitInsights" ||
-      activeView === "pipelineCompare" ||
-      activeView === "profileCompare" ||
-      activeView === "errorAnalysis";
-    if (needsBenchmark) {
-      navigate(routes.benchmark(fallbackBenchmarkId), { replace: true });
-    }
-  }, [
-    activeView,
-    benchmarks,
-    fallbackBenchmarkId,
-    selectedBenchmark,
-    navigate,
-  ]);
+  // A view opened without a benchmark used to redirect to whichever one came
+  // first, so `/insights` silently became `/benchmark/bird_mini_dev_sqlite/
+  // insights` and the reader was shown numbers for something they had not
+  // asked about. It asks now -- see `ChooseBenchmark` below -- which is the
+  // same reasoning that already applied to a benchmark the URL *names* and
+  // this server does not have: guessing is worse than saying.
 
   // Named, but not here.
   const unknownBenchmark =
@@ -483,15 +483,11 @@ export const App: React.FC = () => {
     [navigate],
   );
 
-  /** Target benchmark for views that require one, falling back when none is in the URL. */
-  const benchmarkForNav = selectedBenchmark ?? fallbackBenchmarkId;
-
   /**
    * The analysis views, for the home page's second band of tiles.
    *
-   * Four of the six need a benchmark and are inert until there is one, which
-   * is the same rule the left-hand navigation applies -- offering a link that
-   * cannot resolve is worse than showing why it cannot.
+   * None of them names a benchmark: the view asks when it needs one, rather
+   * than the link choosing on the reader's behalf.
    */
   const analysisTiles = useMemo(
     () => [
@@ -499,25 +495,25 @@ export const App: React.FC = () => {
         title: "Metric Insights",
         summary:
           "Confusion matrices between two binary metrics, per pipeline and across pipelines — where execution match and the judge disagree.",
-        href: benchmarkForNav ? routes.insights(benchmarkForNav) : null,
+        href: routes.insights(),
       },
       {
         title: "Pipeline Compare",
         summary:
           "Two pipelines side by side, with the count of records each gets right where the other does not.",
-        href: benchmarkForNav ? routes.compare(benchmarkForNav) : null,
+        href: routes.compare(),
       },
       {
         title: "Profile Compare",
         summary:
           "Metrics broken down by SQL feature, pooled across one or more benchmarks and weighted by sample size.",
-        href: benchmarkForNav ? routes.profileCompare(benchmarkForNav) : null,
+        href: routes.profileCompare(),
       },
       {
         title: "Error Analysis",
         summary:
           "Search and filter records, then open one to see both queries, both result tables and every metric.",
-        href: benchmarkForNav ? routes.errors(benchmarkForNav) : null,
+        href: routes.errors(),
       },
       {
         title: "LLM Judge",
@@ -532,7 +528,7 @@ export const App: React.FC = () => {
         href: routes.run(),
       },
     ],
-    [benchmarkForNav],
+    [],
   );
 
   // The home page lists the documentation alongside everything else, so it
@@ -715,14 +711,7 @@ export const App: React.FC = () => {
               />
             </HomeSection>
 
-            <HomeSection
-              title="Analysis"
-              subtitle={
-                benchmarkForNav
-                  ? `Views below open on ${benchmarkForNav}.`
-                  : undefined
-              }
-            >
+            <HomeSection title="Analysis">
               <TileGrid>
                 {analysisTiles.map((tile) => (
                   <LinkTile
@@ -830,14 +819,13 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "errorAnalysis") {
-      const effectiveBenchmarkId = selectedBenchmark ?? fallbackBenchmarkId;
+      const effectiveBenchmarkId = selectedBenchmark;
       if (!effectiveBenchmarkId) {
         return (
-          <InlineNotification
-            kind="info"
-            title="Select a benchmark"
-            subtitle="Choose a benchmark before running error analysis."
-            lowContrast
+          <ChooseBenchmark
+            title="Error analysis"
+            benchmarks={benchmarks}
+            onChoose={(id) => navigate(routes.errors(id))}
           />
         );
       }
@@ -915,14 +903,13 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "toolkitInsights") {
-      const effectiveBenchmarkId = selectedBenchmark ?? fallbackBenchmarkId;
+      const effectiveBenchmarkId = selectedBenchmark;
       if (!effectiveBenchmarkId) {
         return (
-          <InlineNotification
-            kind="info"
-            title="Loading benchmarks…"
-            subtitle="Fetching available evaluation artifacts."
-            lowContrast
+          <ChooseBenchmark
+            title="Metric insights"
+            benchmarks={benchmarks}
+            onChoose={(id) => navigate(routes.insights(id))}
           />
         );
       }
@@ -939,14 +926,13 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "pipelineCompare") {
-      const effectiveBenchmarkId = selectedBenchmark ?? fallbackBenchmarkId;
+      const effectiveBenchmarkId = selectedBenchmark;
       if (!effectiveBenchmarkId) {
         return (
-          <InlineNotification
-            kind="info"
-            title="Select a benchmark"
-            subtitle="Choose a benchmark to compare pipelines."
-            lowContrast
+          <ChooseBenchmark
+            title="Pipeline compare"
+            benchmarks={benchmarks}
+            onChoose={(id) => navigate(routes.compare(id))}
           />
         );
       }
@@ -961,10 +947,13 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "profileCompare") {
+      // No chooser and no fallback: this view selects benchmarks itself, and
+      // several at once, so a benchmark in the address only seeds that
+      // selection. Its own address names none.
       return (
         <ProfileCompareView
           benchmarks={benchmarks}
-          benchmarkId={selectedBenchmark ?? fallbackBenchmarkId}
+          benchmarkId={selectedBenchmark}
           onSelectBenchmark={(id) => navigate(routes.profileCompare(id))}
         />
       );
@@ -1091,32 +1080,25 @@ export const App: React.FC = () => {
               <NavLink href={routes.benchmarks()} onNavigate={goto}>
                 Benchmarks
               </NavLink>
+              {/* Carries the benchmark you are already looking at, and asks
+                  when there is not one -- rather than being disabled, or
+                  picking whichever benchmark happened to load first. */}
               <NavLink
-                href={benchmarkForNav ? routes.insights(benchmarkForNav) : null}
+                href={routes.insights(selectedBenchmark)}
                 onNavigate={goto}
               >
                 Metric Insights
               </NavLink>
               <NavLink
-                href={benchmarkForNav ? routes.compare(benchmarkForNav) : null}
+                href={routes.compare(selectedBenchmark)}
                 onNavigate={goto}
               >
                 Pipeline Compare
               </NavLink>
-              <NavLink
-                href={
-                  benchmarkForNav
-                    ? routes.profileCompare(benchmarkForNav)
-                    : null
-                }
-                onNavigate={goto}
-              >
+              <NavLink href={routes.profileCompare()} onNavigate={goto}>
                 Profile Compare
               </NavLink>
-              <NavLink
-                href={benchmarkForNav ? routes.errors(benchmarkForNav) : null}
-                onNavigate={goto}
-              >
+              <NavLink href={routes.errors(selectedBenchmark)} onNavigate={goto}>
                 Error Analysis
               </NavLink>
               <div

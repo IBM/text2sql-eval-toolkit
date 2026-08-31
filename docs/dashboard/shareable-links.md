@@ -11,7 +11,10 @@ filtered error-analysis query, or a single record can be linked to directly.
 /benchmark/{id}/errors?…&record={record}                 one record, open
 /benchmark/{id}/insights                                 metric insights
 /benchmark/{id}/compare                                  pipeline comparison
-/benchmark/{id}/compare/profile                          profile comparison
+/errors                                                  …with no benchmark chosen yet
+/insights                                                …
+/compare                                                 …
+/compare/profile                                         profile comparison
 /run                                                     eval playground
 /run/{id}                                                …at one benchmark
 /run/{id}/record/{record}?pipeline=…                     …at one record
@@ -22,6 +25,14 @@ filtered error-analysis query, or a single record can be linked to directly.
 Filters, page number, page size and the open record are all carried in the query
 string, so a link reproduces the exact view rather than the right page in a
 default state.
+
+The analysis views have two forms. `/benchmark/{id}/insights` is that view of
+that benchmark; `/insights` is the same view with none chosen yet, and asks.
+Opening the second used to redirect to whichever benchmark loaded first, which
+showed the reader numbers for something they had not asked about. Profile
+compare selects benchmarks itself, several at a time, so `/compare/profile` is
+its canonical address; the benchmark-scoped form still resolves and seeds that
+selection.
 
 **The address bar is the link.** There is no "copy this URL" button — it would
 duplicate something every browser already offers.

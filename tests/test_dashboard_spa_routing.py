@@ -80,6 +80,13 @@ def spa_client(tmp_path, monkeypatch):
         # so it won the match and this one was unreachable.
         "/docs",
         "/docs/state-of-the-art",
+        # The analysis views with no benchmark named, added in 1.5.0. Opening
+        # one used to redirect to whichever benchmark loaded first; these ask
+        # instead, so they are addresses in their own right.
+        "/insights",
+        "/compare",
+        "/compare/profile",
+        "/errors",
     ],
 )
 def test_deep_links_serve_the_app_shell(spa_client, path):
