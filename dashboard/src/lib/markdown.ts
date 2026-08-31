@@ -176,10 +176,25 @@ export function renderMarkdown(source: string): string {
  * the opened page gets a handle on this one through `window.opener`.
  */
 DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  if (!(node instanceof HTMLAnchorElement)) return;
-  const href = node.getAttribute("href") || "";
-  if (/^https?:\/\//i.test(href)) {
-    node.setAttribute("target", "_blank");
-    node.setAttribute("rel", "noopener noreferrer");
+  if (node instanceof HTMLAnchorElement) {
+    const href = node.getAttribute("href") || "";
+    if (/^https?:\/\//i.test(href)) {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
+    }
+    return;
+  }
+
+  // Notes reference their screenshots relatively, as `assets/foo.png`, so the
+  // same Markdown renders on GitHub. In the dashboard a relative path would
+  // resolve against `/docs/<name>` and 404, so it is rewritten to the endpoint
+  // that serves them. Only that one prefix: anything else -- an absolute path,
+  // another origin, a data: URI -- is left exactly as written, so this cannot
+  // become a way to point an image somewhere unexpected.
+  if (node instanceof HTMLImageElement) {
+    const src = node.getAttribute("src") || "";
+    if (src.startsWith("assets/")) {
+      node.setAttribute("src", `/api/docs/${src}`);
+    }
   }
 });

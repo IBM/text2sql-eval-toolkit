@@ -10,6 +10,60 @@ finished.
 
 ---
 
+## 2026-08-31 — the demo note was written for the presenter, not the reader
+
+`demo-walkthrough.md` was a script: what to show, in what order, how long it
+takes, what to have open beforehand. Useful to one person standing in front of a
+room, and no use at all to somebody who opens the docs and wants to know what
+the tool does. It is now `dashboard-tour.md` -- a showcase with screenshots of
+each view and links into the real thing.
+
+**The numbers in it were checked against the deployment before they were
+written, and two of them changed what the page says.**
+
+The comparison view turned out to have a better story than the one I would have
+invented: `llama-3-3-70b` and `llama-4-maverick` score *identically* on Spider
+Dev -- 0.816 each, a delta of exactly 0.000 -- while disagreeing on 86 of the
+1,034 records, 43 in each direction. Two systems that a leaderboard cannot tell
+apart, behaving differently on 8% of the benchmark.
+
+The metric-insights view gave the other: on BIRD Mini-Dev, execution accuracy
+and the LLM judge reach opposite verdicts on **184 of 500 records**. A 36.9%
+disagreement between two metrics reported by the same run is a stronger argument
+for reading records than any sentence I could write about it.
+
+**One example had to be thrown away for being untrue.** Record 1480 on the
+SQLite benchmark shows `execution_accuracy: 0` beside `llm_score: 1.0`, which
+reads as the judge overruling execution -- and I nearly wrote it up that way.
+The `llm_explanation` field says *"N/A (did not use LLM due to subset match)"*:
+the judge never ran, and the 1.0 is a short-circuit rather than a verdict. The
+same record on the PostgreSQL benchmark has a real explanation, so that is the
+one the note links to. Checking the field that explains a number, rather than
+the number, is the whole difference between a true claim and a plausible one.
+
+**Screenshots needed somewhere to live.** Notes reference them relatively, as
+`assets/foo.png`, so the Markdown still renders on GitHub; the dashboard
+rewrites that one prefix to `/api/docs/assets/{filename}`, which serves raster
+images out of `docs/notes/assets/` with the same stem validation and containment
+check the documents get. Anything else in that directory -- Markdown, scripts,
+SVG -- is refused, because the endpoint exists to serve screenshots and not to
+become a file server.
+
+Two layout things the screenshots exposed. They are captured at 2x, so their
+intrinsic width is 2880 pixels and the page scrolled sideways until `img` got a
+`max-width` -- the one thing wide content must never do, and it took a
+screenshot of a tour about the interface to find it. And Markdown wraps an image
+in a paragraph, so every screenshot was being held to the 46rem prose measure; a
+paragraph containing nothing but an image is not prose and now gets the whole
+column.
+
+In-document links into the dashboard are intercepted for single-page navigation
+rather than left as full page loads. The tour is mostly such links, and a white
+flash plus a bundle re-fetch for a route the app already has is a poor
+advertisement for the app.
+
+---
+
 ## 2026-08-31 — the docs view becomes an index, and the embed goes
 
 `/docs` is a page of tiles now: the API reference and one tile per note.

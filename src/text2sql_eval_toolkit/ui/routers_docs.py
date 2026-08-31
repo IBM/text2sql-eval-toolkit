@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.ui.models import DocInfo, DocListResponse, DocResponse
@@ -44,6 +45,19 @@ DOCS_SUBDIR = ("docs", "notes")
 #: A plain stem: no traversal, no dotfiles, no empty name. Mirrors
 #: ``_validate_config_name`` in ``routers_judge``.
 _NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}")
+
+#: Images a note may reference, kept in ``docs/notes/assets/``.
+#:
+#: Raster only. An SVG loaded through ``<img>`` cannot run script, but it is a
+#: document rather than a bitmap and the exception is not worth the paragraph
+#: it would need; screenshots are PNGs.
+_ASSET_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+}
 
 #: Not listed as documents. ``README.md`` is the directory's index for someone
 #: browsing the repository on GitHub -- it describes the other files rather
@@ -183,6 +197,43 @@ def list_docs() -> DocListResponse:
         )
     items.sort(key=lambda item: item.title.lower())
     return DocListResponse(items=items, available=True)
+
+
+@router.get("/api/docs/assets/{filename}")
+def get_doc_asset(filename: str) -> FileResponse:
+    """
+    Serve one image referenced by a note.
+
+    Registered before ``/api/docs/{name}`` matters not at all -- the paths have
+    different segment counts -- but the validation does: ``filename`` arrives
+    from a URL and is checked the same way a document name is, stem and
+    extension separately, with containment asserted on the resolved path.
+
+    Notes reference these relatively, as ``assets/foo.png``, so the Markdown
+    also renders on GitHub; the renderer rewrites the relative path to this
+    endpoint. See ``dashboard/src/lib/markdown.ts``.
+    """
+    suffix = Path(filename).suffix.lower()
+    media_type = _ASSET_TYPES.get(suffix)
+    if media_type is None or not _NAME.fullmatch(Path(filename).stem):
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    base = docs_dir()
+    if base is None:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    assets = (base / "assets").resolve()
+    candidate = (assets / filename).resolve()
+    if candidate.parent != assets or not candidate.is_file():
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    return FileResponse(
+        candidate,
+        media_type=media_type,
+        # Screenshots change only when the notes do, and the notes ship with
+        # the image; a week is short enough that a redeploy is not haunted by
+        # a stale one and long enough to be worth setting.
+        headers={"Cache-Control": "public, max-age=604800"},
+    )
 
 
 @router.get("/api/docs/{name}", response_model=DocResponse)

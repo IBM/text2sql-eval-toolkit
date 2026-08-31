@@ -288,6 +288,37 @@ const DocumentPage: React.FC<{
           ref={article}
           className="t2s-markdown"
           aria-label={title ?? "Document"}
+          // A note links into the rest of the dashboard -- the tour is mostly
+          // such links. Without this they are full page loads: correct, but a
+          // white flash and a re-fetch of the bundle for a route the app
+          // already has. Delegated from the article rather than bound per
+          // anchor, because the anchors arrive as sanitised HTML and there is
+          // nothing to attach a handler to.
+          onClick={(event) => {
+            const anchor = (event.target as HTMLElement).closest("a");
+            if (!anchor || !article.current?.contains(anchor)) return;
+            // Leave anything the browser handles better: modified clicks, the
+            // middle button, and any link opening in a new tab or another
+            // origin.
+            if (
+              event.defaultPrevented ||
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey ||
+              anchor.target === "_blank"
+            ) {
+              return;
+            }
+            const href = anchor.getAttribute("href") || "";
+            // Root-relative only. `#anchor` must keep its default behaviour or
+            // in-document navigation stops working, and an absolute URL is
+            // another site.
+            if (!href.startsWith("/")) return;
+            event.preventDefault();
+            onNavigate(href);
+          }}
           // Sanitised in `lib/markdown.ts`, which is the only place that renders
           // Markdown -- see that module for why the sanitising is not skipped
           // for files we wrote ourselves.

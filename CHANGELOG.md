@@ -65,7 +65,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   published API reference, which opens on Read the Docs, and the long-form
   notes now kept in `docs/notes/`: a survey of how text-to-SQL evaluation is
   done and where each metric misleads, a catalogue of the cases where two
-  metrics disagree, and a demo script. `/docs/{name}` opens one, full width.
+  metrics disagree, and a tour of the dashboard itself — screenshots and links
+  into the real views, so a first-time reader is shown what the tool does
+  rather than told. `/docs/{name}` opens one, full width.
   Each note has its own address, so a link opens the one being discussed.
   Read-only, public on every deployment mode, and adding a note needs no code
   change: the title comes out of the file.
@@ -74,6 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and CI now checks that it stays that way — so a pip install gets the reference
   and an explanation of where the notes are, rather than a blank page. The
   deployment image copies them in.
+
+  A note may reference screenshots from `docs/notes/assets/`, written as
+  relative paths so the Markdown also renders on GitHub.
 
   Beyond ordinary Markdown the view renders **Mermaid diagrams**, **LaTeX** —
   inline as `\(x\)` and display as `\[ ... \]` — and gives wide tables their

@@ -167,3 +167,30 @@ describe("fenced blocks", () => {
     expect(html).not.toContain("<script");
   });
 });
+
+describe("images", () => {
+  it("rewrites a note's relative screenshot path to the asset endpoint", () => {
+    // Notes write `assets/foo.png` so the same Markdown renders on GitHub; in
+    // the dashboard that would resolve against /docs/<name> and 404.
+    const html = renderMarkdown("![A screenshot](assets/home.png)\n");
+    expect(html).toContain('src="/api/docs/assets/home.png"');
+    expect(html).toContain('alt="A screenshot"');
+  });
+
+  it("leaves every other kind of source exactly as written", () => {
+    // Only the one prefix is rewritten, so this cannot become a way to point
+    // an image somewhere unexpected.
+    for (const src of [
+      "/api/static/benchmarks/logos/generic.png",
+      "https://example.invalid/x.png",
+      "data:image/gif;base64,R0lGOD",
+    ]) {
+      expect(renderMarkdown(`![x](${src})\n`)).toContain(`src="${src}"`);
+    }
+  });
+
+  it("does not rewrite a link that merely points at assets/", () => {
+    const html = renderMarkdown("[the folder](assets/)\n");
+    expect(html).not.toContain("/api/docs/assets/");
+  });
+});
