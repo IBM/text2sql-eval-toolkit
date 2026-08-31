@@ -113,9 +113,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Adding a benchmark lives on the Benchmarks page.** The home page is where
-  you pick one; the Benchmarks page shows the same tiles plus the control to
-  add another. It was a table before, and the *Add New Benchmark* tile was on
+- **The home page is the way in to everything.** Three bands of tiles:
+  benchmarks, the six analysis views (Metric Insights, Pipeline Compare,
+  Profile Compare, Error Analysis, LLM Judge, Eval Playground), and the four
+  documents. Each tile says what the view is for. The analysis views that need
+  a benchmark say so when there is not one, rather than offering a link that
+  cannot resolve. Administrative routes — Users, signing in and out — stay out
+  of it and remain in the header and the navigation rail.
+- **Adding and editing a benchmark live on the Benchmarks page.** The home page
+  is where you pick one; the Benchmarks page shows the same tiles plus the
+  controls to add and edit. It was a table before, and both controls were on
   the home page.
 
 ### Fixed

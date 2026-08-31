@@ -31,10 +31,31 @@ does not change, why the environment administrators cannot be edited from the
 console, what a snapshot means for a shared link. Those are worth keeping and
 are a different thing.
 
-**Two page changes alongside it.** Adding a benchmark has moved to the
-Benchmarks page, which now shows the same tiles as the home page rather than a
-table; the home page is where you pick a benchmark, and managing them is a
-different job. `BenchmarkList` had no other caller and is deleted.
+**Two page changes alongside it.** Adding *and editing* a benchmark have moved
+to the Benchmarks page, which now shows the same tiles as the home page rather
+than a table; the home page is where you pick a benchmark, and managing them is
+a different job. `BenchmarkList` had no other caller and is deleted -- which
+also took 68 KB out of the entry bundle, since it was eagerly imported and
+every visitor paid for a table most never opened.
+
+The home page then became the way in to everything: three bands of tiles for
+benchmarks, the six analysis views, and the four documents. Administrative
+routes are deliberately absent -- Users and sign-in stay in the header and the
+rail, because a landing page is for what the dashboard is *for*, not for
+running it.
+
+Two things fell out of building it. The tile markup existed twice by then, in
+the documentation index and about to be copied onto the home page, so it is one
+`LinkTile` with its own stylesheet, imported by the component rather than by
+either page. And `REFERENCE_URL` had to leave the documentation view: the home
+page offers the same link, and that view is lazily loaded, so a constant inside
+it is not reachable from the entry bundle without dragging the whole view in.
+
+The four analysis views that need a benchmark render inert with the reason when
+there is not one, which is the rule the navigation rail already applied. A tile
+that cannot be followed is still worth drawing -- it says the view exists and
+what it wants -- where hiding it would leave a reader wondering whether the
+dashboard has the feature at all.
 
 **And one column for a document, instead of two widths.** Prose sat at 46rem
 inside a 72rem article, so every table, diagram and screenshot overhung the

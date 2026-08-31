@@ -1,22 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { InlineNotification, SkeletonText } from "@carbon/react";
-import { ArrowLeft, Launch } from "@carbon/icons-react";
-import { fetchDoc, fetchDocs, type DocInfo } from "../services/docs";
+import { ArrowLeft } from "@carbon/icons-react";
+import {
+  REFERENCE_URL,
+  fetchDoc,
+  fetchDocs,
+  type DocInfo,
+} from "../services/docs";
 import { renderMarkdown } from "../lib/markdown";
 import { ZOOM_ATTRIBUTE, enhance } from "../lib/richContent";
 import { routes } from "../lib/routes";
+import { LinkTile, TileGrid } from "./LinkTile";
 import "./DocsView.css";
 
-/**
- * The published API reference.
- *
- * A link out rather than an embed. It was framed inside the dashboard until
- * the docs view became an index of tiles, at which point a tile that opens a
- * frame of somebody else's site -- which cannot be styled from here, and which
- * needed a `frame-src` exception in our own CSP to display at all -- was doing
- * more work than a link for the same result.
- */
-const REFERENCE_URL = "https://text2sql-eval-toolkit.readthedocs.io/en/latest/";
 
 interface Props {
   /** Document stem from `/docs/{name}`, or null for the index. */
@@ -83,14 +79,8 @@ const DocsIndex: React.FC<{ onNavigate: (href: string) => void }> = ({
         />
       )}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))",
-          gap: "0.75rem",
-        }}
-      >
-        <Tile
+      <TileGrid>
+        <LinkTile
           eyebrow="Reference"
           title="API reference"
           summary="Every exported symbol, generated from the docstrings. Opens on Read the Docs."
@@ -100,7 +90,7 @@ const DocsIndex: React.FC<{ onNavigate: (href: string) => void }> = ({
         {docs === null
           ? [0, 1, 2].map((i) => <TileSkeleton key={i} />)
           : docs.map((doc) => (
-              <Tile
+              <LinkTile
                 key={doc.name}
                 eyebrow="Note"
                 title={doc.title}
@@ -109,63 +99,15 @@ const DocsIndex: React.FC<{ onNavigate: (href: string) => void }> = ({
                 onNavigate={onNavigate}
               />
             ))}
-      </div>
+      </TileGrid>
 
       {docs !== null && docs.length === 0 && <EmptyState available={available} />}
     </div>
   );
 };
 
-/**
- * One tile.
- *
- * An anchor, not a div with a click handler: these are links, and a link is
- * what makes "open in a new tab", middle-click and copy-address work. The
- * plain left click is intercepted for single-page navigation and every other
- * gesture is handed back to the browser -- the same bargain `NavLink` strikes.
- */
-const Tile: React.FC<{
-  eyebrow: string;
-  title: string;
-  summary: string;
-  href: string;
-  external?: boolean;
-  onNavigate?: (href: string) => void;
-}> = ({ eyebrow, title, summary, href, external = false, onNavigate }) => (
-  <a
-    className="t2s-doc-tile"
-    href={href}
-    {...(external
-      ? { target: "_blank", rel: "noopener noreferrer" }
-      : {
-          onClick: (event: React.MouseEvent<HTMLAnchorElement>) => {
-            if (
-              !onNavigate ||
-              event.defaultPrevented ||
-              event.button !== 0 ||
-              event.metaKey ||
-              event.ctrlKey ||
-              event.shiftKey ||
-              event.altKey
-            ) {
-              return;
-            }
-            event.preventDefault();
-            onNavigate(href);
-          },
-        })}
-  >
-    <span className="t2s-doc-tile__eyebrow">
-      {eyebrow}
-      {external && <Launch size={14} aria-label="opens in a new tab" />}
-    </span>
-    <span className="t2s-doc-tile__title">{title}</span>
-    {summary && <span className="t2s-doc-tile__summary">{summary}</span>}
-  </a>
-);
-
 const TileSkeleton: React.FC = () => (
-  <div className="t2s-doc-tile t2s-doc-tile--skeleton" aria-hidden>
+  <div className="t2s-tile t2s-tile--inert" aria-hidden>
     <SkeletonText paragraph lineCount={3} />
   </div>
 );
