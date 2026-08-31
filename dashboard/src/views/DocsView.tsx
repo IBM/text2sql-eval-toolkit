@@ -246,44 +246,101 @@ const Document: React.FC<{
   );
 };
 
-const Reference: React.FC = () => (
-  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "flex-end",
-      }}
-    >
-      <a
-        href={REFERENCE_URL}
-        target="_blank"
-        rel="noopener noreferrer"
+/** How long a cold load may take before the wait is worth explaining. */
+const SLOW_LOAD_MS = 6000;
+
+const Reference: React.FC = () => {
+  const [loaded, setLoaded] = useState(false);
+  const [slow, setSlow] = useState(false);
+
+  // The published site sits behind a CDN, and a cold fetch of it took several
+  // seconds on the deployment -- during which the frame is a blank white box
+  // with nothing to say it is working. That reads as broken, which in a demo
+  // is worse than reading as slow.
+  useEffect(() => {
+    if (loaded) return;
+    const timer = setTimeout(() => setSlow(true), SLOW_LOAD_MS);
+    return () => clearTimeout(timer);
+  }, [loaded]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <a
+          href={REFERENCE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.35rem",
+            fontSize: "0.8125rem",
+          }}
+        >
+          Open on Read the Docs <Launch size={16} />
+        </a>
+      </div>
+      <div
         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.35rem",
-          fontSize: "0.8125rem",
+          position: "relative",
+          height: "calc(100vh - 16rem)",
+          minHeight: "32rem",
+          border: "1px solid var(--cds-border-subtle)",
+          background: "var(--cds-layer)",
         }}
       >
-        Open on Read the Docs <Launch size={16} />
-      </a>
+        {!loaded && (
+          <div
+            // Behind the frame rather than in front of it: the moment the docs
+            // site paints, it covers this, so there is no flash of the message
+            // being removed.
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "0.5rem",
+              padding: "2rem",
+              textAlign: "center",
+              color: "var(--cds-text-secondary)",
+              fontSize: "0.875rem",
+            }}
+          >
+            <span>Loading the published reference…</span>
+            {slow && (
+              <span style={{ fontSize: "0.8125rem" }}>
+                It is taking longer than usual.{" "}
+                <a href={REFERENCE_URL} target="_blank" rel="noopener noreferrer">
+                  Open it on Read the Docs
+                </a>{" "}
+                instead.
+              </span>
+            )}
+          </div>
+        )}
+        <iframe
+          src={REFERENCE_URL}
+          title="Text-to-SQL Evaluation Toolkit API reference"
+          // The frame is another origin, so nothing here can reach into it and
+          // nothing in it can reach out. The sandbox is narrowed to what the
+          // docs site needs to work: its own scripts for search and navigation,
+          // and links that open in a new tab.
+          sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms"
+          referrerPolicy="no-referrer"
+          onLoad={() => setLoaded(true)}
+          style={{
+            position: "relative",
+            width: "100%",
+            height: "100%",
+            border: "none",
+            // Transparent until it has painted, so the placeholder behind it
+            // shows through rather than being hidden by an empty white page.
+            background: loaded ? "var(--cds-layer)" : "transparent",
+          }}
+        />
+      </div>
     </div>
-    <iframe
-      src={REFERENCE_URL}
-      title="Text-to-SQL Evaluation Toolkit API reference"
-      // The frame is another origin, so nothing here can reach into it and
-      // nothing in it can reach out. The sandbox is narrowed to what the docs
-      // site needs to work: its own scripts for search and navigation, and
-      // links that open in a new tab.
-      sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms"
-      referrerPolicy="no-referrer"
-      style={{
-        width: "100%",
-        height: "calc(100vh - 16rem)",
-        minHeight: "32rem",
-        border: "1px solid var(--cds-border-subtle)",
-        background: "var(--cds-layer)",
-      }}
-    />
-  </div>
-);
+  );
+};
