@@ -22,7 +22,8 @@ in the dashboard — which rewrites the path to the endpoint that serves them.
 PNG, JPEG, WebP and GIF; no SVG.
 
 Write a `.md` file here. That is the whole process — there is no registry and no
-code change. The dashboard reads the file's first `#` heading as its title and
+code change. It appears in the middle of the index; only if its position
+actually matters does it need a rank in `_ORDER` in `ui/routers_docs.py`. The dashboard reads the file's first `#` heading as its title and
 its first paragraph as the summary in the list, and it becomes addressable at
 `/docs/<filename-without-the-extension>`.
 
@@ -37,7 +38,9 @@ Two constraints, both enforced by the server:
 
 Beyond ordinary Markdown, the dashboard renders:
 
-- **Mermaid diagrams**, in ` ```mermaid ` fenced blocks.
+- **Mermaid diagrams**, in ` ```mermaid ` fenced blocks. A diagram is scaled to
+  fit the column, and a **View full size** control on each one opens it at its
+  natural size when it is too small to read.
 - **LaTeX**, inline as `\(x\)` and display as `\[ ... \]`. These delimiters
   rather than `$...$`, because a lone `$` is common in prose and would turn
   half a paragraph into an equation.

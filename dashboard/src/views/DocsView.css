@@ -271,15 +271,21 @@
   padding: 1rem;
   border: 1px solid var(--cds-border-subtle);
   background: var(--cds-layer);
-  /* A flowchart is often wider than 46rem of prose. Let it use the column it
-     is in, and scroll if it still does not fit. */
+}
+
+/* The scrolling is on this inner element rather than on the figure, so the
+   control below it cannot be scrolled out of view. A flowchart is often wider
+   than 46rem of prose: it uses the column it is in, and scrolls if it still
+   does not fit. */
+.t2s-markdown .t2s-diagram__scroll {
   overflow-x: auto;
   text-align: center;
 }
 
 .t2s-markdown .t2s-diagram svg {
-  /* Width is set per diagram in richContent.ts: natural size, so a wide
-     flowchart scrolls rather than shrinking until its labels are illegible. */
+  /* Width, max-width and min-width are set per diagram in richContent.ts:
+     natural size, shrunk to fit the column, but not past a legibility floor.
+     `height: auto` is what keeps the aspect ratio while it scales. */
   height: auto;
 }
 
@@ -306,4 +312,76 @@
 
 .t2s-markdown .math-error {
   color: var(--cds-text-error);
+}
+
+/* --- the full-size diagram dialog ---------------------------------------- */
+
+/* Below the diagram, in normal flow, at the left. Absolutely positioned inside
+   the scrolling element it slid out of view with the content -- on exactly the
+   wide diagrams it exists for. In flow it is always where the reader left it,
+   and never covers the figure. */
+.t2s-diagram__zoom {
+  display: block;
+  margin: 0.5rem 0 0;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  color: var(--cds-link-primary);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.t2s-diagram__zoom:hover {
+  background: var(--cds-layer-hover);
+  border-color: var(--cds-border-strong);
+}
+
+.t2s-diagram__zoom:focus-visible {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: 1px;
+}
+
+.t2s-diagram-dialog {
+  position: fixed;
+  inset: 0;
+  /* Above Carbon's header, which sits at 8000. */
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  /* Deliberately darker than Carbon's overlay token, which is light enough
+     that the header behind reads through and competes with the diagram. */
+  background: rgba(22, 22, 22, 0.88);
+}
+
+.t2s-diagram-dialog__bar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem;
+  flex-shrink: 0;
+}
+
+.t2s-diagram-dialog__close {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--cds-border-inverse, #f4f4f4);
+  background: var(--cds-layer);
+  color: var(--cds-text-primary);
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.t2s-diagram-dialog__close:hover {
+  background: var(--cds-layer-hover);
+}
+
+.t2s-diagram-dialog__canvas {
+  flex: 1;
+  min-height: 0;
+  margin: 0 0.75rem 0.75rem;
+  padding: 1rem;
+  /* Natural size here, so both axes may need to scroll. */
+  overflow: auto;
+  background: var(--cds-layer);
+  border: 1px solid var(--cds-border-subtle);
 }

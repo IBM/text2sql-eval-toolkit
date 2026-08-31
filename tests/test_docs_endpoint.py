@@ -79,11 +79,35 @@ def test_the_summary_skips_headings_and_code(repo, client):
     assert item["summary"] == "The paragraph."
 
 
-def test_documents_are_sorted_by_title_not_filename(repo, client):
+def test_unranked_documents_are_sorted_by_title_not_filename(repo, client):
     _write(repo, "zebra", "# Alpha\n\nx\n")
     _write(repo, "alpha", "# Zebra\n\nx\n")
     titles = [i["title"] for i in client.get("/api/docs").json()["items"]]
     assert titles == ["Alpha", "Zebra"]
+
+
+def test_a_ranked_document_takes_its_place_regardless_of_title(repo, client):
+    # The survey sorts last despite an "S" title, and the tour first despite
+    # an "A" one -- reading order, not the alphabet.
+    _write(repo, "text-to-sql-evaluation-survey", "# State of the art\n\nx\n")
+    _write(repo, "dashboard-tour", "# A tour\n\nx\n")
+    _write(repo, "worked-examples", "# Worked examples\n\nx\n")
+    names = [i["name"] for i in client.get("/api/docs").json()["items"]]
+    assert names == [
+        "dashboard-tour",
+        "worked-examples",
+        "text-to-sql-evaluation-survey",
+    ]
+
+
+def test_an_unranked_document_lands_between_the_ranked_ones(repo, client):
+    # Adding a note needs no code change; it sorts into the middle, which is a
+    # reasonable place for something nobody has ranked.
+    _write(repo, "text-to-sql-evaluation-survey", "# State of the art\n\nx\n")
+    _write(repo, "dashboard-tour", "# A tour\n\nx\n")
+    _write(repo, "brand-new", "# Something new\n\nx\n")
+    names = [i["name"] for i in client.get("/api/docs").json()["items"]]
+    assert names == ["dashboard-tour", "brand-new", "text-to-sql-evaluation-survey"]
 
 
 def test_a_file_whose_name_is_not_addressable_is_not_offered(repo, client):

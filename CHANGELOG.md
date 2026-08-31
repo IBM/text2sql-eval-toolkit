@@ -80,6 +80,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A note may reference screenshots from `docs/notes/assets/`, written as
   relative paths so the Markdown also renders on GitHub.
 
+  Diagrams are scaled to fit the column rather than scrolling sideways, down to
+  a floor below which they would stop being readable, and each carries a **View
+  full size** control that opens it at its natural size over the page. The
+  index is in reading order rather than alphabetical — the tour, then the
+  worked examples, then the survey.
+
   Beyond ordinary Markdown the view renders **Mermaid diagrams**, **LaTeX** —
   inline as `\(x\)` and display as `\[ ... \]` — and gives wide tables their
   own horizontal scroller instead of squeezing them into the prose measure.

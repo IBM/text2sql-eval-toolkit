@@ -119,7 +119,10 @@ async function drawDiagrams(root: HTMLElement): Promise<void> {
         `t2s-mermaid-${index}-${source.length}`,
         source,
       );
-      figure.innerHTML = DOMPurify.sanitize(svg, {
+      const scroller = document.createElement("div");
+      scroller.className = "t2s-diagram__scroll";
+      figure.appendChild(scroller);
+      scroller.innerHTML = DOMPurify.sanitize(svg, {
         // SVG only. Mermaid is configured above to keep its labels in SVG
         // <text>, so there is no HTML in here that needs admitting.
         USE_PROFILES: { svg: true, svgFilters: true },
@@ -129,6 +132,7 @@ async function drawDiagrams(root: HTMLElement): Promise<void> {
         ADD_TAGS: ["style"],
       });
       sizeDiagram(figure);
+      addZoomControl(figure);
       pre.replaceWith(figure);
     } catch (error) {
       // A diagram that will not parse should not cost the reader the source.
@@ -143,28 +147,78 @@ async function drawDiagrams(root: HTMLElement): Promise<void> {
 }
 
 /**
- * Let a diagram be its natural size, and scroll if it does not fit.
+ * How far a diagram may be scaled down to fit its column.
  *
- * Mermaid emits `width="100%"` with an inline `max-width` equal to the
- * diagram's natural width, which makes an SVG shrink to fit its container. For
- * a tall diagram that is fine. For a wide left-to-right flowchart it is not:
- * one of the survey's is 2082px wide naturally, and squeezed into a 736px
- * column it rendered 32 pixels tall -- present, correct, and impossible to
- * read.
+ * Fitting to the column is what a reader wants: the whole figure visible, no
+ * sideways scrolling. Fitting *unconditionally* is not, because Mermaid draws
+ * some flowcharts very wide and very short -- one in the survey is 1922 by 84
+ * pixels, an aspect ratio of 23:1 -- and squeezing that into a narrow column
+ * once rendered it 32 pixels tall, with labels far too small to read.
  *
- * Sizing to the natural width instead means a wide diagram overflows the
- * figure, which scrolls. Scrolling to read a diagram is a mild cost; shrinking
- * one until its labels vanish is not a lesser one.
+ * So: scale down to fit, but never past this. Below it the diagram keeps this
+ * size and its figure scrolls instead. The value is measured rather than
+ * guessed -- every diagram in the survey needs at most 0.53 to fit the article
+ * column, so at a normal window all of them fit and nothing scrolls; the floor
+ * only comes into play on a narrow one.
+ */
+const MIN_DIAGRAM_SCALE = 0.5;
+
+/**
+ * Fit a diagram to its column, down to a legibility floor.
+ *
+ * Mermaid emits `width="100%"` with an inline `max-width` equal to the natural
+ * width. That attribute is what carries the size, so it is read off before
+ * being replaced.
+ *
+ * The three properties do the work between them: `width` is the natural size,
+ * so a diagram narrower than the column is never blown up; `max-width` lets a
+ * wider one shrink to the column; and `min-width` stops the shrinking at the
+ * floor above. `height: auto` in the stylesheet keeps the aspect ratio.
  */
 function sizeDiagram(figure: HTMLElement): void {
   const svg = figure.querySelector("svg");
   if (!svg) return;
   const natural = Number.parseFloat(svg.style.maxWidth);
   svg.removeAttribute("width");
-  svg.style.maxWidth = "none";
-  if (Number.isFinite(natural) && natural > 0) {
-    svg.style.width = `${Math.round(natural)}px`;
+  if (!Number.isFinite(natural) || natural <= 0) {
+    svg.style.maxWidth = "100%";
+    return;
   }
+  svg.style.width = `${Math.round(natural)}px`;
+  svg.style.maxWidth = "100%";
+  svg.style.minWidth = `${Math.round(natural * MIN_DIAGRAM_SCALE)}px`;
+}
+
+/** Marks the button that opens a diagram at full size. */
+export const ZOOM_ATTRIBUTE = "data-diagram-zoom";
+
+/**
+ * Add a "View full size" control to a diagram.
+ *
+ * Fitting to the column means the widest diagrams are drawn at around half
+ * size, and on a narrow window they hit the floor above and are clipped. Both
+ * are reasonable defaults and neither is a way to read a dense figure, so
+ * there is a way out of them.
+ *
+ * It sits below the diagram, outside the element that scrolls. Inside it, and
+ * absolutely positioned, it scrolled away with the content on exactly the
+ * diagrams that are too wide to fit -- which are the ones it exists for.
+ *
+ * A real `<button>` rather than a click handler on the figure: the figure
+ * scrolls, and making the whole of it a click target means dragging to scroll
+ * opens a dialog. It is also the difference between something reachable by
+ * keyboard and something that is not.
+ *
+ * Added here rather than in the view because this is where the figure is
+ * built; the view listens for it, since the dialog is React's.
+ */
+function addZoomControl(figure: HTMLElement): void {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "t2s-diagram__zoom";
+  button.setAttribute(ZOOM_ATTRIBUTE, "");
+  button.textContent = "View full size";
+  figure.appendChild(button);
 }
 
 /**
