@@ -155,6 +155,61 @@ def test_a_missing_document_is_404(repo, client):
     assert client.get("/api/docs/absent").status_code == 404
 
 
+# --- images ----------------------------------------------------------------
+
+
+PNG = bytes.fromhex("89504e470d0a1a0a") + b"stub"
+
+
+def _asset(repo, filename, data=PNG):
+    assets = repo / "assets"
+    assets.mkdir(exist_ok=True)
+    (assets / filename).write_bytes(data)
+
+
+def test_a_screenshot_is_served_with_its_media_type(repo, client):
+    _asset(repo, "home.png")
+    resp = client.get("/api/docs/assets/home.png")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "image/png"
+    assert resp.content == PNG
+
+
+def test_a_missing_image_is_404(repo, client):
+    assert client.get("/api/docs/assets/absent.png").status_code == 404
+
+
+def test_an_unsupported_type_is_refused(repo, client):
+    # Notes reference screenshots. Anything else in that directory is not a
+    # reason to turn the endpoint into a general file server.
+    for name in ("notes.md", "script.js", "diagram.svg", "archive.zip"):
+        _asset(repo, name, b"x")
+        assert client.get(f"/api/docs/assets/{name}").status_code == 404, name
+
+
+def test_an_image_cannot_escape_the_assets_directory(repo, client):
+    outside = repo.parent.parent / "secret.png"
+    outside.write_bytes(b"not for the API")
+    for attempt in ("../../secret.png", "..%2F..%2Fsecret.png", "....//secret.png"):
+        resp = client.get(f"/api/docs/assets/{attempt}")
+        assert resp.status_code != 200, attempt
+        assert b"not for the API" not in resp.content
+
+
+def test_assets_do_not_shadow_a_document_named_assets(repo, client):
+    # `/api/docs/assets` is one segment and `/api/docs/assets/x.png` is two, so
+    # the two routes cannot collide -- asserted because it looks like they
+    # should.
+    _write(repo, "assets", "# Assets\n\nA document that happens to be called that.\n")
+    assert client.get("/api/docs/assets").json()["title"] == "Assets"
+
+
+def test_no_documents_directory_means_no_assets(tmp_path, monkeypatch, client):
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    assert client.get("/api/docs/assets/home.png").status_code == 404
+
+
 # --- containment -----------------------------------------------------------
 
 

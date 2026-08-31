@@ -75,6 +75,8 @@ EXPECTED = {
     # Both are GET, so capabilities.py already treats them as PUBLIC.
     "GET /api/docs",
     "GET /api/docs/{name}",
+    # Images a note references, from docs/notes/assets/.
+    "GET /api/docs/assets/{filename}",
     # The OpenAPI schema. Moved off the framework default of /openapi.json in
     # 1.5.0, when /docs became the dashboard's documentation view and Swagger
     # UI had to give up the path. Both HTTP methods appear because Starlette's

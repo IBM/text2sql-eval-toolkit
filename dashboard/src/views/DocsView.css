@@ -38,6 +38,14 @@
   max-width: 46rem;
 }
 
+/* Markdown wraps an image in a paragraph, which would hold a screenshot to the
+   prose measure -- and on a tour of the interface the screenshots are the
+   point. A paragraph that is nothing but an image is not prose, so it gets the
+   whole column like a table or a diagram. */
+.t2s-markdown > p:has(> img:only-child) {
+  max-width: none;
+}
+
 .t2s-markdown > *:first-child {
   margin-top: 0;
 }
@@ -155,6 +163,19 @@
 .t2s-markdown th {
   background: var(--cds-layer-accent);
   font-weight: 600;
+}
+
+/* Screenshots are captured at 2x, so their intrinsic width is twice the
+   viewport they were taken in -- without this the page scrolls sideways, which
+   is the one thing wide content must never do. The border and ground make a
+   screenshot read as a screenshot rather than as part of the page. */
+.t2s-markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.25rem 0;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
 }
 
 .t2s-markdown hr {

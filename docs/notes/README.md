@@ -12,9 +12,14 @@ from docstrings and describes the code.
 |---|---|
 | [text-to-sql-evaluation-survey.md](text-to-sql-evaluation-survey.md) | *State of the art in Text-to-SQL Evaluation* — metrics, benchmarks, frameworks and emerging methodologies, with diagrams and a reference list |
 | [worked-examples.md](worked-examples.md) | The recurring shapes where two metrics disagree, what each one means, and what to do about it |
-| [demo-walkthrough.md](demo-walkthrough.md) | Six screens, in order, and the point each one makes |
+| [dashboard-tour.md](dashboard-tour.md) | A showcase of the dashboard: what each view answers, with screenshots and links into the real thing |
 
 ## Adding one
+
+Screenshots go in `assets/` and are referenced relatively, as
+`![alt](assets/name.png)`, so the same Markdown renders both here on GitHub and
+in the dashboard — which rewrites the path to the endpoint that serves them.
+PNG, JPEG, WebP and GIF; no SVG.
 
 Write a `.md` file here. That is the whole process — there is no registry and no
 code change. The dashboard reads the file's first `#` heading as its title and
