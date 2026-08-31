@@ -15,6 +15,8 @@ filtered error-analysis query, or a single record can be linked to directly.
 /run                                                     eval playground
 /run/{id}                                                …at one benchmark
 /run/{id}/record/{record}?pipeline=…                     …at one record
+/docs                                                    the published API reference
+/docs/{name}                                             one long-form note
 ```
 
 Filters, page number, page size and the open record are all carried in the query

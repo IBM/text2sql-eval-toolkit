@@ -1,0 +1,51 @@
+/*
+ * Copyright IBM Corp. 2025 - 2026
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Carbon's colours for mkdocs-material.
+ *
+ * The dashboard embeds this site in an iframe, and a cross-origin frame cannot
+ * be restyled from the page that frames it -- so if the reference is to look
+ * like the product it documents, the theming has to happen here. It also means
+ * someone arriving straight at Read the Docs sees the same thing, which is the
+ * better half of the deal.
+ *
+ * Values are IBM Carbon v11 tokens, spelled out rather than imported: pulling
+ * Carbon's stylesheet into a docs build to read nine colours out of it would be
+ * a megabyte for nine colours.
+ */
+
+:root {
+  --md-primary-fg-color: #0f62fe; /* Blue 60  -- Carbon interactive */
+  --md-primary-fg-color--light: #4589ff; /* Blue 50 */
+  --md-primary-fg-color--dark: #0043ce; /* Blue 70 */
+  --md-accent-fg-color: #0043ce; /* Blue 70  -- hover */
+  --md-typeset-a-color: #0f62fe;
+}
+
+/* Slate is mkdocs-material's dark scheme; Carbon's Gray 100 layer set. */
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #0f62fe;
+  --md-accent-fg-color: #78a9ff; /* Blue 40 -- readable on a dark ground */
+  --md-typeset-a-color: #78a9ff;
+  --md-default-bg-color: #161616; /* Gray 100 */
+  --md-code-bg-color: #262626; /* Gray 90 */
+}
+
+/*
+ * Carbon does not round anything. Square corners are most of the difference
+ * between "looks like our product" and "looks like a docs site".
+ */
+.md-typeset code,
+.md-typeset pre,
+.md-typeset .admonition,
+.md-typeset details,
+.md-typeset table:not([class]) th,
+.md-typeset table:not([class]) td {
+  border-radius: 0;
+}
+
+/* Carbon marks a code block with a left rule rather than a border all round. */
+.md-typeset pre > code {
+  border-left: 3px solid var(--md-primary-fg-color);
+}

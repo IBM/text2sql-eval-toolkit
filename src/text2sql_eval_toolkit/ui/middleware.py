@@ -277,10 +277,9 @@ async def add_security_headers(request: Request, call_next):
     """
     Baseline response hardening.
 
-    The dashboard is self-contained -- its own bundle, its own API, no third
-    party scripts or frames -- so a restrictive policy costs nothing here and
-    removes a class of injection. Carbon injects styles at runtime, hence
-    'unsafe-inline' for style-src only.
+    The dashboard is self-contained -- its own bundle, its own API -- so a
+    restrictive policy costs nothing here and removes a class of injection.
+    Carbon injects styles at runtime, hence 'unsafe-inline' for style-src only.
     """
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -293,6 +292,12 @@ async def add_security_headers(request: Request, call_next):
         "style-src 'self' 'unsafe-inline'; "
         "script-src 'self'; "
         "connect-src 'self'; "
+        # The docs view embeds the published API reference. `frame-src` falls
+        # back to `default-src`, so without naming the origin here the browser
+        # blocks the iframe -- Read the Docs consents to being framed (it sends
+        # neither X-Frame-Options nor frame-ancestors); the refusal was ours.
+        # Named explicitly, never a wildcard.
+        "frame-src https://text2sql-eval-toolkit.readthedocs.io; "
         # Carbon's stylesheet references IBM Plex from IBM's CDN in 120 places.
         # Without this the policy blocks every one of them and the UI silently
         # falls back to system fonts -- which is what happened when the CSP was
@@ -300,9 +305,10 @@ async def add_security_headers(request: Request, call_next):
         # it the visitor IPs disclosed to that CDN; until then it is allowed
         # explicitly rather than by loosening default-src.
         "font-src 'self' data: https://1.www.s81c.com; "
-        "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self'",
+        # Unrelated to `frame-src` above, and easy to conflate: this and
+        # X-Frame-Options govern *this* site being framed by someone else. They
+        # stay exactly as they are.
+        "frame-ancestors 'none'; " "base-uri 'self'; " "form-action 'self'",
     )
     return response
 

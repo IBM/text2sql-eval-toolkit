@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `uv export --format requirements-txt --no-hashes --no-dev --no-emit-project`
   for a pinned file.
 
+### Changed
+
+- **FastAPI's interactive documentation pages are off, and its schema moved to
+  `/api/openapi.json`.** `/docs` is the dashboard's documentation view now, and
+  Swagger UI held that path. Moving it surfaced the reason not to keep it: both
+  it and ReDoc load their assets from a CDN that this app's own
+  `script-src 'self'` blocks, so both have rendered blank since the CSP was
+  added. The schema needs no CDN and is the half that was ever usable.
+
 ### Security
 
 - **Every package in the base install with an open advisory is floored at its
@@ -52,6 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A docs view in the dashboard.** `/docs` embeds the published API reference;
+  `/docs/{name}` opens one of the long-form notes now kept in `docs/notes/` — a
+  survey of how text-to-SQL evaluation is done and where each metric misleads,
+  a catalogue of the cases where two metrics disagree, and a demo script. Each
+  note has its own address, so a link opens the one being discussed. Read-only,
+  public on every deployment mode, and adding a note needs no code change: the
+  title comes out of the file.
+
+  The notes are not packaged. `docs/` ships in neither the wheel nor the sdist,
+  and CI now checks that it stays that way — so a pip install gets the reference
+  and an explanation of where the notes are, rather than a blank page. The
+  deployment image copies them in.
 - **The GitHub Release is created by the tag.** Pushing `vX.Y.Z` now builds,
   publishes to PyPI and creates the Release page with that version's changelog
   notes and the built wheel and sdist attached. The page used to be written by

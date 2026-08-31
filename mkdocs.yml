@@ -20,6 +20,11 @@ docs_dir: docs
 # describe why things changed, which dates badly on a reference site.
 exclude_docs: |
   attic/
+  # Long-form notes read inside the dashboard's docs view. They are about
+  # evaluation methodology and how to demonstrate this toolkit, not about its
+  # API, so they would sit oddly in a generated reference site -- and the
+  # dashboard renders them from the repository directly.
+  notes/
   # Plans describe work not yet done; publishing one on a reference site means
   # advertising features that do not exist. Deleted once their release ships.
   plan/
@@ -30,18 +35,37 @@ exclude_docs: |
 
 theme:
   name: material
+  # Carbon's palette, because the dashboard's docs view embeds this site in an
+  # iframe. A cross-origin frame cannot be restyled by the page that frames it
+  # -- the same-origin policy forbids reaching into it -- so "make it look like
+  # the dashboard" has to be done *here* or not at all. Doing it here is also
+  # the better outcome: it matches for people who visit Read the Docs directly.
+  #
+  # `primary`/`accent` take named colours only, hence `custom` plus the
+  # stylesheet below, which sets the actual Carbon Blue 60 (#0f62fe).
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
+      primary: custom
+      accent: custom
       toggle: { icon: material/weather-night, name: Switch to dark mode }
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
+      primary: custom
+      accent: custom
       toggle: { icon: material/weather-sunny, name: Switch to light mode }
+  font:
+    # What the dashboard uses. Falls back to the theme's default if unavailable.
+    text: IBM Plex Sans
+    code: IBM Plex Mono
   features:
     - navigation.sections
     - navigation.top
     - content.code.copy
     - search.suggest
+
+extra_css:
+  - stylesheets/carbon.css
 
 plugins:
   - search

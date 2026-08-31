@@ -80,6 +80,14 @@ COPY data/benchmarks/logos/ /opt/text2sql/default-logos/
 COPY data/benchmarks.json /opt/text2sql/default-data/benchmarks.json
 COPY data/benchmarks/*.json /opt/text2sql/default-data/benchmarks/
 
+# The long-form notes the dashboard's docs view reads. Deliberately *not* in the
+# wheel -- `docs/` ships in neither the wheel nor the sdist, so the notes stay
+# in the repository rather than going to PyPI -- but the image is built from the
+# repository, so it can carry them. The server finds them by walking up from its
+# working directory for a `pyproject.toml`, which is /app here, so they go
+# beside the one already copied above rather than needing any configuration.
+COPY docs/notes/ ./docs/notes/
+
 RUN mkdir -p /data && chown -R app:app /data /app
 USER app
 

@@ -70,6 +70,22 @@ EXPECTED = {
     "GET /api/my/keys",
     "POST /api/my/keys",
     "DELETE /api/my/keys/{provider}",
+    # The docs view, added in 1.5.0. Read-only and public: documentation is
+    # readable by anyone who can reach the dashboard, on any deployment mode.
+    # Both are GET, so capabilities.py already treats them as PUBLIC.
+    "GET /api/docs",
+    "GET /api/docs/{name}",
+    # The OpenAPI schema. Moved off the framework default of /openapi.json in
+    # 1.5.0, when /docs became the dashboard's documentation view and Swagger
+    # UI had to give up the path. Both HTTP methods appear because Starlette's
+    # own route helper registers HEAD alongside GET; the routers above use
+    # FastAPI's decorators, which do not.
+    #
+    # The Swagger UI and ReDoc pages are off entirely -- they load their assets
+    # from a CDN that this app's `script-src 'self'` blocks, so both rendered
+    # blank. See server.py.
+    "GET /api/openapi.json",
+    "HEAD /api/openapi.json",
 }
 
 

@@ -72,6 +72,12 @@ const ProfileCompareView = lazy(() =>
     default: m.ProfileCompareView,
   })),
 );
+// Lazy for the usual reason and one more: it pulls in a Markdown renderer and a
+// sanitiser, which do not fit the entry bundle's 460 KB budget. Splitting on the
+// route boundary puts both in this view's own chunk.
+const DocsView = lazy(() =>
+  import("../views/DocsView").then((m) => ({ default: m.DocsView })),
+);
 import { FetchResultsBanner } from "../views/FetchResultsBanner";
 import { CopyShortLinkButton } from "../views/CopyShortLinkButton";
 import { DataStampBar, SessionBar } from "../views/SessionBar";
@@ -748,6 +754,12 @@ export const App: React.FC = () => {
       return <MyKeysView />;
     }
 
+    if (activeView === "docs") {
+      // `configName` is the route's "which named thing" slot; here it is the
+      // document stem, and null means /docs -- the embedded API reference.
+      return <DocsView name={match.configName} onNavigate={goto} />;
+    }
+
     if (activeView === "runEvaluation") {
       return (
         <RunEvaluationView
@@ -973,6 +985,9 @@ export const App: React.FC = () => {
               )}
               <NavLink href={routes.run()} onNavigate={goto}>
                 Eval Playground
+              </NavLink>
+              <NavLink href={routes.docs()} onNavigate={goto}>
+                Docs
               </NavLink>
             </nav>
           </div>
