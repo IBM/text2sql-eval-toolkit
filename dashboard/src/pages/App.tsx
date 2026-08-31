@@ -910,12 +910,27 @@ export const App: React.FC = () => {
               : "none",
             display: "flex",
             flexDirection: "column",
+            // Pinned below the fixed 3rem header, so the navigation is still
+            // there after scrolling down a long page -- the survey runs to
+            // 27,000 pixels, and the rail used to be gone within one screen.
+            //
+            // Sticky has to be on this element rather than on anything inside
+            // it: `overflow: hidden` above (which the width animation needs)
+            // makes this a scroll container, and a sticky descendant would
+            // position against *it* and never move. `alignSelf` matters for
+            // the same reason -- the row is `align-items: stretch`, and a flex
+            // item stretched to the full height of the page has no room left
+            // to stick within.
+            position: "sticky",
+            top: "3rem",
+            alignSelf: "flex-start",
+            height: "calc(100vh - 3rem)",
           }}
         >
           <div
             style={{
               width: NAV_PANEL_WIDTH_PX,
-              minHeight: "calc(100vh - 3rem)",
+              height: "100%",
               display: "flex",
               flexDirection: "column",
               flexShrink: 0,
@@ -986,17 +1001,15 @@ export const App: React.FC = () => {
               <NavLink href={routes.run()} onNavigate={goto}>
                 Eval Playground
               </NavLink>
-              {/* Docs is pinned to the foot of the rail, below a spacer that
-                  takes up whatever height is left. Everything above it acts on
-                  the results loaded here; this one is reading material, and
-                  grouping it with the analysis pages made it look like another
-                  one of them. */}
-              <div style={{ flex: 1, minHeight: "1rem" }} />
+              {/* Its own section, immediately below the rest rather than at the
+                  foot of the rail: everything above acts on the results loaded
+                  here, and this one is reading material. A divider says that;
+                  a gap the height of the viewport just looked like a mistake. */}
               <div
                 style={{
                   height: "1px",
                   background: "rgba(255,255,255,0.12)",
-                  margin: "0 0 0.5rem",
+                  margin: "0.5rem 0",
                 }}
               />
               <NavLink href={routes.docs()} onNavigate={goto}>
