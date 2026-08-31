@@ -10,7 +10,7 @@ from docstrings and describes the code.
 
 | Document | What it is |
 |---|---|
-| [state-of-the-art.md](state-of-the-art.md) | How text-to-SQL systems are measured, what each family of metrics tells you, and where each one lies to you |
+| [text-to-sql-evaluation-survey.md](text-to-sql-evaluation-survey.md) | A survey of the field: metrics, benchmarks, frameworks and emerging methodologies, with diagrams and a reference list |
 | [worked-examples.md](worked-examples.md) | The recurring shapes where two metrics disagree, what each one means, and what to do about it |
 | [demo-walkthrough.md](demo-walkthrough.md) | Six screens, in order, and the point each one makes |
 
@@ -29,6 +29,18 @@ Two constraints, both enforced by the server:
 - Raw HTML in the Markdown is sanitised before rendering. Scripts, iframes,
   forms, styles and event handlers are stripped, so a document can display text
   and nothing more.
+
+Beyond ordinary Markdown, the dashboard renders:
+
+- **Mermaid diagrams**, in ` ```mermaid ` fenced blocks.
+- **LaTeX**, inline as `\(x\)` and display as `\[ ... \]`. These delimiters
+  rather than `$...$`, because a lone `$` is common in prose and would turn
+  half a paragraph into an equation.
+- **Wide tables**, which get their own horizontal scroller rather than being
+  squeezed into the prose measure.
+
+Both renderers are fetched only by documents that use them, so a note of plain
+prose costs neither.
 
 ## Where they are, and are not
 

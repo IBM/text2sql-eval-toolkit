@@ -10,6 +10,60 @@ finished.
 
 ---
 
+## 2026-08-31 — the survey arrives, and "renders properly" turns out to mean four things
+
+The generated `state-of-the-art.md` is replaced by a real 667-line survey with
+30 references. It uses three things the renderer did not have, and finding them
+took a browser rather than a test suite.
+
+**Markdown ate the maths before anything could render it.** The survey writes
+inline maths as `\(q\)`, and `(` and `)` are escapable punctuation in
+CommonMark -- so by the time the renderer sees them the delimiters are gone and
+`\(q\)` is the literal text `(q)`. Nothing errors; the equation simply is not
+there. It needs a tokenizer that runs before the escape rule.
+
+**The sanitiser was removing the only thing that identified a diagram.** The
+allow-list did not include `class`, so `<code class="language-mermaid">` came
+through as an anonymous code block and there was no way to tell a diagram from
+any other fence. `class` is now allowed: it cannot execute, and the worst a
+document can do with it is apply a style the page already has.
+
+**Then the diagrams drew as empty boxes.** Mermaid puts its labels in HTML
+inside a `<foreignObject>`, and sanitising the result as SVG strips the HTML --
+so ten diagrams rendered with every node correctly placed and entirely blank.
+Two fixes work; `htmlLabels: false` is the one taken, because it means the SVG
+is genuinely SVG and there is no HTML in it to have an opinion about. I first
+attributed a tall gap in the timeline to that setting and wrote it in a comment;
+rendering it both ways showed the timeline is identical either way, and the gap
+is just Mermaid reserving height for its longest column. The comment was wrong
+and is fixed. A confident explanation in a comment is worth about as much as
+the check that was not run behind it.
+
+**The "wide content escapes the prose measure" rule did nothing.** The measure
+was on the article, and tables and figures were then given a larger
+`max-width` -- which cannot work, because a child is not allowed to be wider
+than its parent. It looked like it worked because the tables were legible
+anyway. The measure now sits on the prose elements and the article is as wide
+as its column, which is the arrangement that was intended all along. Checked at
+1400, 1024 and 768 pixels: the page never scrolls sideways, and wide diagrams
+scroll inside their own figure rather than shrinking -- one of the survey's
+flowcharts is 2082 pixels wide naturally and had been rendering 32 pixels tall.
+
+**None of this was visible from the tests, and the browser pane's screenshots
+stopped working halfway through.** Playwright is already a dev dependency for
+the e2e suite; driving it directly gave real screenshots and, more usefully, a
+way to measure layout at several widths. Four of the five defects above were
+found by looking at pixels, and the fifth by measuring `scrollWidth`.
+
+Two smaller things, both reported rather than found: the welcome text still
+told the reader to use a *Benchmarks* button in the top-right corner, which
+moved to a menu at the top left some releases ago; and **Docs** sat in the
+nav among the analysis pages, where it read as another one of them. It is
+pinned to the foot of the rail now, below a divider -- everything above it acts
+on the loaded results, and this one is reading material.
+
+---
+
 ## 2026-08-31 — 1.5.0 deployed, and the iframe was not finished
 
 The branch is live at `text2sql-eval-toolkit.oaklayer.dev`, built from the

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { InlineNotification, SkeletonText } from "@carbon/react";
 import { Launch } from "@carbon/icons-react";
 import { fetchDoc, fetchDocs, type DocInfo } from "../services/docs";
 import { renderMarkdown } from "../lib/markdown";
+import { enhance } from "../lib/richContent";
 import { isRealDocumentLoad } from "../lib/iframeLoad";
 import { routes } from "../lib/routes";
 import { NavLink } from "./NavLink";
@@ -221,6 +222,23 @@ const Document: React.FC<{
   loading: boolean;
   error: string | null;
 }> = ({ title, html, loading, error }) => {
+  const article = useRef<HTMLElement | null>(null);
+
+  // Maths and diagrams are drawn from the DOM after the sanitised HTML is in
+  // place -- see lib/richContent.ts for why that is the right order, and why
+  // neither library is fetched for a document that has no use for it.
+  useEffect(() => {
+    if (!article.current || html === null) return;
+    let cancelled = false;
+    void enhance(article.current, () => cancelled).catch(() => {
+      // The prose is already on screen. A failure here costs the diagrams and
+      // the equations, and should not blank the page that carries them.
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [html]);
+
   if (error) {
     return (
       <InlineNotification
@@ -237,6 +255,7 @@ const Document: React.FC<{
   }
   return (
     <article
+      ref={article}
       className="t2s-markdown"
       aria-label={title ?? "Document"}
       // Sanitised in `lib/markdown.ts`, which is the only place that renders

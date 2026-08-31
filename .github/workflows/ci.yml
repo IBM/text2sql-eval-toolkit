@@ -422,12 +422,14 @@ jobs:
         run: |
           budget_entry=460
           budget_css=900
-          # A lazy chunk is not on the critical path, so it gets a far looser
-          # limit than the entry -- but not none. The judge-config editor's
-          # chunk is ~425 KB because CodeMirror is in it, which is the deal
-          # that keeps CodeMirror out of the entry bundle; a chunk growing past
-          # this is a sign something landed in the wrong place.
-          budget_lazy=520
+          # A lazy chunk is not on the critical path, so this is a runaway
+          # detector rather than a design constraint. The largest are third
+          # party and fetched only by the page that needs them: Mermaid's core
+          # (~670 KB) and its per-diagram-type chunks, KaTeX (~260 KB), and
+          # CodeMirror inside the judge editor (~425 KB) -- which is the deal
+          # that keeps CodeMirror out of the entry bundle. The five largest are
+          # printed on every run, so growth is visible well before this fires.
+          budget_lazy=1024
           entry=$(du -k dist/assets/index-*.js | sort -rn | head -1 | cut -f1)
           css=$(du -ck dist/assets/*.css | tail -1 | cut -f1)
           lazy=$(find dist/assets -name "*.js" | wc -l | tr -d ' ')
@@ -450,7 +452,9 @@ jobs:
               fail=1
             fi
           done
-          echo "largest lazy chunk: $(du -k $(find dist/assets -name '*.js' ! -name 'index-*.js') | sort -rn | head -1)"
+          echo "largest lazy chunks (KB):"
+          du -k $(find dist/assets -name '*.js' ! -name 'index-*.js') \
+            | sort -rn | head -5 | sed 's/^/  /'
           exit $fail
       - name: Verify committed dist is current
         # dashboard/dist is committed and served by text2sql-eval-dashboard, so a

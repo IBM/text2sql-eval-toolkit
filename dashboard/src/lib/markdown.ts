@@ -23,6 +23,68 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 
+/**
+ * LaTeX, kept out of the reach of Markdown's escape rule.
+ *
+ * The survey writes inline math as `\(q\)` and display math as `\[ ... \]`.
+ * CommonMark treats a backslash before punctuation as an escape, so by the time
+ * the default renderer sees them the delimiters are gone and `\(q\)` has become
+ * the literal text `(q)`. Tokenizing them here happens first, so the TeX
+ * survives intact.
+ *
+ * Nothing is rendered at this stage. The TeX is emitted as the text content of
+ * a marked element and typeset later, from the DOM, after sanitisation --
+ * see `lib/richContent.ts`. Emitting KaTeX's HTML here would mean either
+ * sanitising it away or trusting a generator's markup, and it would pull KaTeX
+ * into this module for every document, including the ones with no maths in
+ * them.
+ */
+const escapeHtml = (text: string): string =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+marked.use({
+  extensions: [
+    {
+      name: "mathBlock",
+      level: "block",
+      start: (src: string) => src.indexOf("\\["),
+      tokenizer(src: string) {
+        const match = /^\\\[([\s\S]+?)\\\]\s*/.exec(src);
+        if (!match) return undefined;
+        return {
+          type: "mathBlock",
+          raw: match[0],
+          text: match[1].trim(),
+        };
+      },
+      // marked types a custom token as its own `Generic`, which carries no
+      // `text`; the tokenizer above is what puts one there.
+      renderer: (token) =>
+        `<div class="math-block">${escapeHtml(String(token.text ?? ""))}</div>\n`,
+    },
+    {
+      name: "mathInline",
+      level: "inline",
+      start: (src: string) => src.indexOf("\\("),
+      tokenizer(src: string) {
+        const match = /^\\\(([\s\S]+?)\\\)/.exec(src);
+        if (!match) return undefined;
+        return {
+          type: "mathInline",
+          raw: match[0],
+          text: match[1].trim(),
+        };
+      },
+      renderer: (token) =>
+        `<span class="math-inline">${escapeHtml(String(token.text ?? ""))}</span>`,
+    },
+  ],
+});
+
 marked.setOptions({
   // GitHub-flavoured line breaks are off: these documents are prose with hard
   // wraps at 80 columns, and treating each wrap as a <br> would shred every
@@ -82,7 +144,22 @@ export function renderMarkdown(source: string): string {
   return DOMPurify.sanitize(html, {
     // Anything not on this list is dropped. `id` stays so in-document anchors
     // work; `href`, `src`, `alt` and `title` are what the content needs.
-    ALLOWED_ATTR: ["href", "src", "alt", "title", "id", "align", "colspan"],
+    //
+    // `class` is here because two things downstream are found by it: a fenced
+    // block's `language-*`, which is how a Mermaid diagram is told from any
+    // other code block, and the `math-*` markers above. It carries no ability
+    // to execute; the worst a document can do with it is apply a style that
+    // already exists on the page.
+    ALLOWED_ATTR: [
+      "href",
+      "src",
+      "alt",
+      "title",
+      "id",
+      "class",
+      "align",
+      "colspan",
+    ],
     // No <iframe>, <object>, <form> or <style>: nothing in an authored note
     // needs them, and each is a way for a future document to do more than
     // display text.

@@ -80,9 +80,10 @@ than into the installed package.
 
 ## 6. Docs — where the argument is written down
 
-Close here. `state-of-the-art.md` for the survey, `worked-examples.md` for the
-catalogue of disagreements, the embedded API reference for anyone who wants to
-run it themselves.
+Close here. `text-to-sql-evaluation-survey.md` for the survey of the field --
+worth scrolling to a diagram or a comparison table, because they render --
+`worked-examples.md` for the catalogue of metric disagreements, and the
+embedded API reference for anyone who wants to run it themselves.
 
 The closing line, if one is wanted: every screen in this demo is addressable.
 Everything shown can be linked to, in an issue or a paper, and it will open on

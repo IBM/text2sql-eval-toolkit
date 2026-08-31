@@ -73,6 +73,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and CI now checks that it stays that way — so a pip install gets the reference
   and an explanation of where the notes are, rather than a blank page. The
   deployment image copies them in.
+
+  Beyond ordinary Markdown the view renders **Mermaid diagrams**, **LaTeX** —
+  inline as `\(x\)` and display as `\[ ... \]` — and gives wide tables their
+  own horizontal scroller instead of squeezing them into the prose measure.
+  Both renderers are fetched only by documents that use them, so a note of
+  plain prose costs neither, and the entry bundle is unchanged.
 - **A judge-config editor that is not painful.** Syntax highlighting, bracket
   matching, line numbers, a **Format** action that reflows the document, and an
   error marked at its line and column as you type instead of a "not valid"
@@ -95,6 +101,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The dashboard's welcome text pointed at a control that is not there.** It
+  told the reader to use a *Benchmarks* button in the top-right corner; the
+  navigation moved to a menu at the top left, and the sentence did not.
 - **Saving a judge config no longer mangles its formatting.** `yaml.safe_dump`
   renders a long multi-line string as a single-quoted folded scalar — every
   line break becomes a blank line and the prose is rewrapped at 80 columns — so

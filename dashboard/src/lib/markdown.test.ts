@@ -112,3 +112,58 @@ describe("heading anchors", () => {
     expect(renderMarkdown("## Use `SELECT`\n")).toContain('id="use-select"');
   });
 });
+
+describe("maths", () => {
+  it("keeps inline TeX that Markdown's escape rule would otherwise eat", () => {
+    // `\(` and `\)` are escapable punctuation in CommonMark, so without the
+    // tokenizer `\(q\)` renders as the literal text "(q)".
+    const html = renderMarkdown("Let \\(q\\) denote a question.\n");
+    expect(html).toContain('<span class="math-inline">q</span>');
+    expect(html).not.toContain("(q)");
+  });
+
+  it("keeps a display block", () => {
+    const html = renderMarkdown("\\[\nA = B\n\\]\n");
+    expect(html).toContain('<div class="math-block">A = B</div>');
+  });
+
+  it("does not render the TeX itself", () => {
+    // Typesetting happens from the DOM after sanitisation; emitting KaTeX's
+    // markup here would mean sanitising it away or trusting it.
+    const html = renderMarkdown("\\[\\text{a} \\neq \\text{b}\\]\n");
+    expect(html).toContain("\\text{a} \\neq \\text{b}");
+    expect(html).not.toContain("katex");
+  });
+
+  it("escapes TeX that looks like markup", () => {
+    const html = renderMarkdown("\\(a < b\\)\n");
+    expect(html).toContain("&lt;");
+    expect(html).not.toContain("<b>");
+  });
+
+  it("leaves ordinary parentheses and brackets alone", () => {
+    const html = renderMarkdown("A (note) and [a link](https://example.invalid).\n");
+    expect(html).toContain("(note)");
+    expect(html).not.toContain("math-inline");
+  });
+
+  it("does not treat a Markdown link's brackets as display maths", () => {
+    const html = renderMarkdown("See [1] and [2].\n");
+    expect(html).not.toContain("math-block");
+  });
+});
+
+describe("fenced blocks", () => {
+  it("keeps the language class, which is how a diagram is recognised", () => {
+    // The sanitiser drops every attribute not on its allow-list; without
+    // `class` there is no way to tell a Mermaid block from any other code.
+    const html = renderMarkdown("```mermaid\nflowchart LR\n  A-->B\n```\n");
+    expect(html).toContain('class="language-mermaid"');
+    expect(html).toContain("flowchart LR");
+  });
+
+  it("still escapes the contents of a fenced block", () => {
+    const html = renderMarkdown("```\n<script>alert(1)</script>\n```\n");
+    expect(html).not.toContain("<script");
+  });
+});
