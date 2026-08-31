@@ -192,6 +192,32 @@ class LLMJudgeConfigListResponse(BaseModel):
     items: List[LLMJudgeConfigInfo]
 
 
+class DocInfo(BaseModel):
+    """One document in the docs view's list."""
+
+    #: Addressable stem: ``/docs/{name}`` in the UI, ``/api/docs/{name}`` here.
+    name: str
+    #: The document's first H1, so adding a file registers it nowhere.
+    title: str
+    #: Its opening paragraph, for the list. May be empty.
+    summary: str = ""
+
+
+class DocListResponse(BaseModel):
+    items: List[DocInfo]
+    #: False when there is no documents directory at all -- which is what a pip
+    #: install sees, since ``docs/`` is not packaged. The view needs to tell
+    #: that apart from a directory that is simply empty.
+    available: bool = True
+
+
+class DocResponse(BaseModel):
+    name: str
+    title: str
+    #: Unrendered. The browser renders and sanitises it; see routers_docs.
+    markdown: str
+
+
 class EvaluateRequest(BaseModel):
     use_llm: bool = False
     llm_judge_config_path: Optional[str] = None

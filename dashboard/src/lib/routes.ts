@@ -24,6 +24,7 @@ export type ViewName =
   | "benchmarks"
   | "users"
   | "myKeys"
+  | "docs"
   | "runEvaluation";
 
 /** Filter state for the error-analysis view, all optional. */
@@ -129,6 +130,20 @@ export const routes = {
   },
   /** Every benchmark, as a page rather than a slide-out panel. */
   benchmarks: (): string => "/benchmarks",
+  /**
+   * Documentation.
+   *
+   * `/docs` is the published API reference, embedded. `/docs/{name}` is one of
+   * the long-form notes from the repository's `docs/notes/`. Naming the
+   * document in the path is the point: in a demo you want to send someone the
+   * exact thing being discussed, not the docs view and directions.
+   *
+   * The bare `/docs` deliberately shows the reference rather than the first
+   * note -- it is the one thing that is present on every install, including a
+   * pip install, where `docs/` is not packaged and there are no notes to show.
+   */
+  docs: (name?: string | null): string =>
+    name ? `/docs/${encode(name)}` : "/docs",
   users: (): string => "/users",
   myKeys: (): string => "/my-keys",
 };
@@ -267,6 +282,14 @@ export function parseLocation(pathname: string): RouteMatch {
 
   if (segments[0] === "my-keys" && segments.length === 1) {
     return { ...EMPTY, view: "myKeys" };
+  }
+
+  if (segments[0] === "docs" && segments.length <= 2) {
+    // `configName` carries the document stem. It is the existing "which named
+    // thing is this view showing" slot -- adding a second identically-shaped
+    // field would mean every consumer of RouteMatch has to know which views use
+    // which one.
+    return { ...EMPTY, view: "docs", configName: segments[1] ?? null };
   }
 
   if (segments[0] === "llm-judge" && segments.length <= 2) {

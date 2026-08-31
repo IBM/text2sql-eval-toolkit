@@ -49,6 +49,14 @@ needs no Node.js.
 - **Comparison** — two summary files side by side with per-pipeline deltas.
 - **LLM-judge configuration** — view and edit the judge prompt YAML.
 - **Run evaluations** — trigger a run and follow job status. Local mode only.
+- **Docs** — the published API reference, embedded, plus the long-form notes in
+  [`docs/notes/`](https://github.com/IBM/text2sql-eval-toolkit/tree/main/docs/notes) — a survey of how text-to-SQL evaluation is done,
+  a catalogue of the cases where the metrics disagree, and a demo script. Each
+  note has its own address, so a link opens the one being discussed.
+
+  These are read from the repository. `docs/` ships in neither the wheel nor the
+  sdist, so a pip install has the reference and no notes, and the view says so
+  rather than rendering a blank page. The deployment image copies them in.
 
 Result tables are previewed rather than rendered whole: a query can return
 86,502 rows, and the panel says how many of them it is showing.

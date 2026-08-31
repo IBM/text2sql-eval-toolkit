@@ -18,6 +18,14 @@ interface Props {
   href: string | null;
   onNavigate: (href: string) => void;
   disabled?: boolean;
+  /**
+   * Marks this item as the one currently open.
+   *
+   * Only lists that sit beside their content need it -- the docs view's
+   * document list, where "which one am I reading" is not otherwise visible.
+   * The main navigation leaves it off: there, the page itself says.
+   */
+  active?: boolean;
   children: React.ReactNode;
 }
 
@@ -25,6 +33,7 @@ export const NavLink: React.FC<Props> = ({
   href,
   onNavigate,
   disabled = false,
+  active = false,
   children,
 }) => {
   const inert = disabled || !href;
@@ -61,7 +70,19 @@ export const NavLink: React.FC<Props> = ({
       // Carbon types Button's handler as a button event even when it renders
       // an anchor; the event itself is the anchor's.
       onClick={handleClick as React.MouseEventHandler<HTMLButtonElement>}
-      style={{ width: "100%", justifyContent: "flex-start" }}
+      // aria-current, not only a colour: a screen reader gets the same
+      // information the highlight carries.
+      aria-current={active ? "page" : undefined}
+      style={{
+        width: "100%",
+        justifyContent: "flex-start",
+        ...(active
+          ? {
+              background: "var(--cds-layer-selected)",
+              fontWeight: 600,
+            }
+          : null),
+      }}
     >
       {children}
     </Button>

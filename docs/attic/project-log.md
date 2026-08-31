@@ -10,6 +10,66 @@ finished.
 
 ---
 
+## 2026-08-30 — 1.5.0, item 3: the docs view, and what `/docs` was already for
+
+The view is what the plan asked for: `/docs` embeds the published reference,
+`/docs/{name}` opens a note from `docs/notes/`, the list is built from the files
+so adding one is writing one. Three notes are written — the survey, the
+catalogue of metric disagreements, and the demo script.
+
+**The route was taken.** `/docs` is where FastAPI mounts Swagger UI, and a real
+route beats the SPA fallback, so the new view was unreachable at exactly the
+address the plan specified — while `/docs/state-of-the-art` worked perfectly,
+because nothing else claimed *that*. A deep link working and the index not is a
+confusing enough failure that it is worth writing down.
+
+**Moving it found the second thing.** Swagger UI and ReDoc load their assets
+from jsdelivr, and this app sets `script-src 'self'`. Both pages have therefore
+rendered blank since the CSP was added — an interactive API browser that never
+browsed anything, on every deployment, unnoticed. Serving it from a new path
+would have kept a dead page alive, so it is off. `/api/openapi.json` stays,
+needs no CDN, and is recorded in the route-table snapshot, which is where an
+"interactive browser over every endpoint" should have been visible in the first
+place rather than arriving as a framework default.
+
+**The bundle decision, taken once for items 3 and 4 as the plan asked.**
+Client-side rendering in the view's own lazy chunk. `marked` plus `dompurify`
+come to 79 KB there and nothing in the entry bundle, which stands at 424 KB
+against a 460 KB budget. Rendering server-side was the alternative and it is
+worse twice over: it would add a Markdown dependency to the Python package in
+the same release that spent an item removing dependency surface, and it would
+mean shipping HTML over the wire and trusting it in the browser, which is a
+weaker position than shipping Markdown and rendering it there.
+
+**Sanitising our own files is not paranoia about today.** The notes are authored
+and reviewed, so the HTML is trusted now. The tests are about the day a document
+is generated, pasted or contributed — at which point a renderer that emits raw
+HTML is a script-injection point, and the fix would have to be found rather than
+already being there. `iframe`, `form` and `style` are stripped along with
+scripts: a note should display text and nothing else.
+
+**A cross-origin iframe cannot be restyled, so the docs site is themed instead.**
+The plan said this and it is worth confirming: the same-origin policy is
+absolute here. `mkdocs.yml` now carries Carbon's palette and IBM Plex, which
+also fixes the appearance for people who go to Read the Docs directly — the
+better half of the trade. Our own CSP was the only thing blocking the embed;
+Read the Docs sends neither `X-Frame-Options` nor `frame-ancestors`.
+`frame-src` names that one origin, never a wildcard, and `frame-ancestors
+'none'` is untouched — the two are easy to conflate and there is now a test
+asserting that adding the first did not relax the second.
+
+**Two consequences of "the notes are not packaged" needed handling, not just
+noting.** The plan verified `docs/` is absent from both distributions and
+concluded no packaging change was needed. True, and it leaves the view empty
+wherever the repository is not — including the deployment, which runs the
+container image. So `deploy/Dockerfile` copies `docs/notes/` beside the
+`pyproject.toml` it already has at `/app`, which is what the resolver walks up
+to find, and the container smoke test asserts the endpoint actually serves
+documents. Finding an empty docs view during the demo it was built for is the
+failure this avoids. In the other direction, CI now checks `docs/` stays out of
+both distributions: it was a decision, and a stray `package-data` entry would
+reverse it silently.
+
 ## 2026-08-30 — 1.5.0, item 2: the release page, and where the check belongs
 
 Small item, one decision in it. The plan said to order the Release job after

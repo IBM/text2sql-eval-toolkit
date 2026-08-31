@@ -16,6 +16,8 @@
   "dependencies": {
     "@carbon/react": "^1.103.0",
     "@carbon/styles": "^1.102.0",
+    "dompurify": "^3.4.14",
+    "marked": "^18.0.11",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.2"

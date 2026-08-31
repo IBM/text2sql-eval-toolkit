@@ -266,6 +266,32 @@ jobs:
             http://127.0.0.1:8000/api/benchmarks/demo/execute)
           echo "execute -> $code"
           [ "$code" = "403" ]
+      - name: The docs view has documents to show
+        # The whole point of copying docs/notes into the image. Without this the
+        # view is empty on the deployment and the failure is only found by
+        # opening it -- which, for a view built for a demo, means finding it
+        # during the demo.
+        run: |
+          curl -fsS http://127.0.0.1:8000/api/docs > /tmp/docs.json
+          cat /tmp/docs.json
+          python3 -c "
+          import json, sys
+          body = json.load(open('/tmp/docs.json'))
+          if not body.get('available'):
+              print('::error::the image has no docs/notes directory'); sys.exit(1)
+          if not body.get('items'):
+              print('::error::the docs directory is in the image but empty'); sys.exit(1)
+          print(f\"{len(body['items'])} document(s) served\")
+          "
+          name=$(python3 -c "import json;print(json.load(open('/tmp/docs.json'))['items'][0]['name'])")
+          curl -fsS "http://127.0.0.1:8000/api/docs/$name" | head -c 200
+          echo
+          # Traversal must not reach outside the docs directory on the real image.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            "http://127.0.0.1:8000/api/docs/..%2F..%2Fpyproject")
+          echo "traversal -> $code"
+          [ "$code" = "404" ]
+
       - name: Provisioning is reachable inside the image
         # The documented first deployment step runs this. It failed three ways
         # at once and nothing noticed: the script was not in the image, the
@@ -516,6 +542,25 @@ jobs:
               failed = True
           sys.exit(1 if failed else 0)
           PY
+      - name: The notes must NOT be in the distributions
+        # `docs/` is deliberately unpackaged: the long-form notes stay in the
+        # repository and are public on GitHub, rather than shipping to PyPI.
+        # The dashboard's docs view reads them from a checkout (or from the
+        # deployment image, which copies them in) and shows an explanatory
+        # empty state on a pip install. That is a decision, so it is checked --
+        # a stray `package-data` entry would quietly reverse it.
+        run: |
+          python - <<'PY'
+          import glob, sys, tarfile, zipfile
+          wheel = zipfile.ZipFile(glob.glob("dist/*.whl")[0]).namelist()
+          sdist = tarfile.open(glob.glob("dist/*.tar.gz")[0]).getnames()
+          strays = [n for n in wheel + sdist if "docs/" in n]
+          for n in strays:
+              print(f"::error::docs/ must not be packaged, but found: {n}")
+          print(f"ok   docs/ is absent from both distributions")
+          sys.exit(1 if strays else 0)
+          PY
+
       - name: A clean install must serve the UI, not a bare 404
         run: |
           python -m venv /tmp/probe
