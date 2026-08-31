@@ -11,39 +11,26 @@
  */
 
 .t2s-markdown {
-  /* The article itself is as wide as the column it is given. The measure is
-     applied to the prose below rather than here, because a child cannot be
-     wider than its parent -- setting it here and then exempting tables and
-     diagrams looks like it works and does nothing. A six-column comparison
-     table and a left-to-right flowchart are not prose and do not want a
-     prose measure. */
-  max-width: 72rem;
+  /*
+   * One column for everything.
+   *
+   * Prose and wide content used to have different widths -- 46rem of text
+   * inside a 72rem article -- so on a wide window every table, diagram and
+   * screenshot overhung the paragraphs above it by some 400 pixels and the
+   * right edge was ragged. Sharing a width costs the tables a little room and
+   * is worth it; the two that genuinely need more already have somewhere to
+   * go, since a table scrolls inside its own block and a diagram has "View
+   * full size".
+   *
+   * 54rem rather than the classic 46: at 46 a six-column comparison table is
+   * cramped and the widest diagrams drop below their legibility floor, and at
+   * 54 a line is still comfortably inside the range where prose stays
+   * readable.
+   */
+  max-width: 54rem;
   color: var(--cds-text-primary);
   line-height: 1.55;
   font-size: 0.9375rem;
-}
-
-/* Roughly 80 characters: full-width paragraphs on a wide monitor are
-   unreadable however good the content is. Applied to the text-level children,
-   so tables, diagrams and code blocks keep the full column. */
-.t2s-markdown > p,
-.t2s-markdown > ul,
-.t2s-markdown > ol,
-.t2s-markdown > blockquote,
-.t2s-markdown > h1,
-.t2s-markdown > h2,
-.t2s-markdown > h3,
-.t2s-markdown > h4,
-.t2s-markdown > .math-block {
-  max-width: 46rem;
-}
-
-/* Markdown wraps an image in a paragraph, which would hold a screenshot to the
-   prose measure -- and on a tour of the interface the screenshots are the
-   point. A paragraph that is nothing but an image is not prose, so it gets the
-   whole column like a table or a diagram. */
-.t2s-markdown > p:has(> img:only-child) {
-  max-width: none;
 }
 
 .t2s-markdown > *:first-child {

@@ -16,7 +16,6 @@ import {
   Theme,
 } from "@carbon/react";
 import { DataTableSkeleton } from "@carbon/react";
-import { BenchmarkList } from "../views/BenchmarkList";
 import { BenchmarkTiles } from "../views/BenchmarkTiles";
 import { BenchmarkConfigModal } from "../views/BenchmarkConfigModal";
 
@@ -608,6 +607,9 @@ export const App: React.FC = () => {
                 background: "rgba(255,255,255,0.015)",
               }}
             >
+              {/* No `onAddNew`: the home page is for picking a benchmark.
+                  Adding one is managing them, and that is the Benchmarks
+                  page. */}
               <BenchmarkTiles
                 items={benchmarks}
                 onSelect={(benchmarkId) => {
@@ -616,7 +618,6 @@ export const App: React.FC = () => {
                 onEdit={(benchmarkId) => {
                   void openEditBenchmarkModal(benchmarkId);
                 }}
-                onAddNew={openCreateBenchmarkModal}
               />
             </div>
 
@@ -732,15 +733,16 @@ export const App: React.FC = () => {
                 color: "var(--cds-text-secondary)",
               }}
             >
-              Every benchmark with results on this deployment. This was a
-              slide-out panel, which meant it had no address of its own and
-              could not be linked to or opened in a new tab.
+              Every benchmark with results on this deployment.
             </p>
           </div>
-          <BenchmarkList
+          <BenchmarkTiles
             items={benchmarks}
-            selectedId={selectedBenchmark}
             onSelect={(benchmarkId) => navigate(routes.benchmark(benchmarkId))}
+            onEdit={(benchmarkId) => {
+              void openEditBenchmarkModal(benchmarkId);
+            }}
+            onAddNew={openCreateBenchmarkModal}
           />
         </div>
       );
