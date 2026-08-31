@@ -1,4 +1,4 @@
-# Evaluating Text-to-SQL Systems: Metrics, Benchmarks, Frameworks, and Emerging Methodologies
+# State of the art in Text-to-SQL Evaluation
 
 > **Survey**
 >
