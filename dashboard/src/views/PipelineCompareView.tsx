@@ -15,6 +15,7 @@ import {
   Tag,
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
+import { BenchmarkSelect } from "./BenchmarkSelect";
 import { apiFetch, apiUrl } from "../lib/api";
 import {
   type MetricDefinitionsResponse,
@@ -117,6 +118,8 @@ function formatTimingDelta(valueType: string, left: number | null, right: number
 
 export const PipelineCompareView: React.FC<Props> = ({
   benchmarkId,
+  benchmarks,
+  onSelectBenchmark,
   onOpenErrorAnalysis,
 }) => {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
@@ -381,6 +384,17 @@ export const PipelineCompareView: React.FC<Props> = ({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
       <h3 style={{ margin: 0 }}>Pipeline compare – {benchmarkId}</h3>
+
+      {/* The benchmark is an input to this view, not part of its identity, so
+          it is a control here rather than a path segment. */}
+      {benchmarks && onSelectBenchmark && (
+        <BenchmarkSelect
+          id="pipeline-compare-benchmark-select"
+          benchmarks={benchmarks}
+          selected={benchmarkId}
+          onSelect={onSelectBenchmark}
+        />
+      )}
 
       {metricDefinitionsError && (
         <InlineNotification

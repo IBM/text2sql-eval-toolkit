@@ -84,6 +84,7 @@ import { AboutPanel } from "../views/AboutPanel";
 import { NavLink } from "../views/NavLink";
 import { LinkTile, TileGrid } from "../views/LinkTile";
 import { BenchmarkViewTabs } from "../views/BenchmarkViewTabs";
+import { BenchmarkSelect, NoBenchmarkYet } from "../views/BenchmarkSelect";
 import { fetchSession } from "../lib/session";
 import { REFERENCE_URL, fetchDocs, type DocInfo } from "../services/docs";
 import {
@@ -102,6 +103,7 @@ import type {
 import {
   FILTER_DEFAULTS,
   parseLocation,
+  parseBenchmark,
   parseBenchmarkList,
   parseQuery,
   routes,
@@ -141,42 +143,29 @@ const BenchmarkView: React.FC<{
 );
 
 /**
- * The benchmark picker an analysis view shows when the address names none.
+ * An analysis view before a benchmark is chosen.
  *
- * Tiles rather than a dropdown, so it matches the home page and shows the same
- * information -- engine, record count, description -- that a reader needs to
- * choose between them.
+ * The same dropdown the view itself carries, over an otherwise empty page --
+ * so choosing the first benchmark and changing it later are the same gesture,
+ * in the same place. It was a grid of benchmark tiles, which looked like a
+ * different page rather than like this view waiting for an input.
  */
 const ChooseBenchmark: React.FC<{
   title: string;
+  what: string;
   benchmarks: BenchmarkSummary[];
+  selectId: string;
   onChoose: (benchmarkId: string) => void;
-}> = ({ title, benchmarks, onChoose }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-    <div>
-      <h3 style={{ margin: 0 }}>{title}</h3>
-      <p
-        style={{
-          margin: "0.35rem 0 0",
-          maxWidth: "52rem",
-          lineHeight: 1.45,
-          color: "var(--cds-text-secondary)",
-        }}
-      >
-        Choose a benchmark to continue. The address will name it, so the view
-        you end up on can be linked to.
-      </p>
-    </div>
-    {benchmarks.length === 0 ? (
-      <InlineNotification
-        kind="info"
-        title="Loading benchmarks…"
-        subtitle="Fetching available evaluation artifacts."
-        lowContrast
-      />
-    ) : (
-      <BenchmarkTiles items={benchmarks} onSelect={onChoose} />
-    )}
+}> = ({ title, what, benchmarks, selectId, onChoose }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+    <h3 style={{ margin: 0 }}>{title}</h3>
+    <BenchmarkSelect
+      id={selectId}
+      benchmarks={benchmarks}
+      selected={null}
+      onSelect={onChoose}
+    />
+    <NoBenchmarkYet what={what} />
   </div>
 );
 
@@ -362,7 +351,10 @@ export const App: React.FC = () => {
       pageSize: number;
       record: string | null;
     }) => {
-      const benchmark = match.benchmarkId;
+      // The path form for older links, the query form for current ones. Reading
+      // only the path made this a no-op on `/errors?benchmark=…`, so the
+      // address stopped following the page number and the open record.
+      const benchmark = match.benchmarkId ?? parseBenchmark(location.search);
       if (!benchmark) return;
       const next = routes.errors(benchmark, {
         ...(state.filters as Record<string, string | boolean>),
@@ -388,6 +380,19 @@ export const App: React.FC = () => {
   );
 
   const selectedBenchmark = match.benchmarkId;
+
+  /**
+   * The benchmark an analysis view is looking at.
+   *
+   * `?benchmark=` is where it lives now; a path segment is kept working for
+   * the older `/benchmark/{id}/insights` addresses, which is why both are
+   * consulted.
+   */
+  const analysisBenchmark = useMemo(
+    () => selectedBenchmark ?? parseBenchmark(location.search),
+    [selectedBenchmark, location.search],
+  );
+
   const selectedPipeline = match.pipelineId;
   const activeView = match.view;
   const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
@@ -845,12 +850,14 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "errorAnalysis") {
-      const effectiveBenchmarkId = selectedBenchmark;
+      const effectiveBenchmarkId = analysisBenchmark;
       if (!effectiveBenchmarkId) {
         return (
           <ChooseBenchmark
             title="Error analysis"
+            what="search and filter its records"
             benchmarks={benchmarks}
+            selectId="error-analysis-choose-benchmark"
             onChoose={(id) => navigate(routes.errors(id))}
           />
         );
@@ -864,6 +871,8 @@ export const App: React.FC = () => {
         <ErrorAnalysis
           key={effectiveBenchmarkId}
           benchmarkId={effectiveBenchmarkId}
+          benchmarks={benchmarks}
+          onSelectBenchmark={(id) => navigate(routes.errors(id))}
           onBack={() => navigate(routes.benchmark(effectiveBenchmarkId))}
           initialFilters={errorAnalysisFilters}
           initialPage={urlFilters.page ?? undefined}
@@ -935,12 +944,14 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "toolkitInsights") {
-      const effectiveBenchmarkId = selectedBenchmark;
+      const effectiveBenchmarkId = analysisBenchmark;
       if (!effectiveBenchmarkId) {
         return (
           <ChooseBenchmark
             title="Metric insights"
+            what="compare two metrics across its pipelines"
             benchmarks={benchmarks}
+            selectId="insights-choose-benchmark"
             onChoose={(id) => navigate(routes.insights(id))}
           />
         );
@@ -964,12 +975,14 @@ export const App: React.FC = () => {
     }
 
     if (activeView === "pipelineCompare") {
-      const effectiveBenchmarkId = selectedBenchmark;
+      const effectiveBenchmarkId = analysisBenchmark;
       if (!effectiveBenchmarkId) {
         return (
           <ChooseBenchmark
             title="Pipeline compare"
+            what="compare two of its pipelines"
             benchmarks={benchmarks}
+            selectId="pipeline-compare-choose-benchmark"
             onChoose={(id) => navigate(routes.compare(id))}
           />
         );
@@ -982,6 +995,8 @@ export const App: React.FC = () => {
         >
           <PipelineCompareView
             benchmarkId={effectiveBenchmarkId}
+            benchmarks={benchmarks}
+            onSelectBenchmark={(id) => navigate(routes.compare(id))}
             onOpenErrorAnalysis={(filters) =>
               navigate(routes.errors(effectiveBenchmarkId, filters))
             }

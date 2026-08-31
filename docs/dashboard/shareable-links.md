@@ -7,14 +7,14 @@ filtered error-analysis query, or a single record can be linked to directly.
 /benchmark/{id}                                          benchmark summary
 /benchmark/{id}/pipeline/{pipeline_id}                   pipeline detail
 /benchmark/{id}/pipeline/{pipeline_id}/record/{record}   one record, in a pipeline
-/benchmark/{id}/errors?pipeline=…&value=0                filtered error analysis
-/benchmark/{id}/errors?…&record={record}                 one record, open
-/benchmark/{id}/insights                                 metric insights
-/benchmark/{id}/compare                                  pipeline comparison
+/errors?benchmark={id}&pipeline=…&value=0                 filtered error analysis
+/errors?benchmark={id}&…&record={record}                 one record, open
+/insights?benchmark={id}                                 metric insights
+/compare?benchmark={id}                                  pipeline comparison
+/compare/profile?benchmarks=a,b                          profile comparison, pooling those
 /errors                                                  …with no benchmark chosen yet
 /insights                                                …
 /compare                                                 …
-/compare/profile?benchmarks=a,b                           profile comparison, pooling those
 /run                                                     eval playground
 /run/{id}                                                …at one benchmark
 /run/{id}/record/{record}?pipeline=…                     …at one record
@@ -26,17 +26,19 @@ Filters, page number, page size and the open record are all carried in the query
 string, so a link reproduces the exact view rather than the right page in a
 default state.
 
-The analysis views have two forms. `/benchmark/{id}/insights` is that view of
-that benchmark; `/insights` is the same view with none chosen yet, and asks.
-Opening the second used to redirect to whichever benchmark loaded first, which
-showed the reader numbers for something they had not asked about. Profile
-compare selects benchmarks itself, several at a time, so its address carries a
-list: `/compare/profile?benchmarks=bird_mini_dev_postgres,beaver`. A single
-benchmark in a path segment could only ever name one, and the view lets you add
-a second — at which point the address quietly became the one most recently
-added and no longer described what was on screen. The older
-`/benchmark/{id}/compare/profile` still resolves and seeds the selection with
-that one benchmark.
+**Where the benchmark lives.** `/benchmark/{id}` is the summary *of* a
+benchmark, so the id is in its path. The other four views take a benchmark as
+an input — and profile compare takes several — so it is a query parameter
+there. That is what lets the address describe the selection in every case,
+including the multi-benchmark one, and it makes `/insights` a real address on
+its own: the view with nothing chosen yet, showing its benchmark dropdown over
+an empty page.
+
+Opening one of those without a benchmark used to redirect to whichever loaded
+first, which showed the reader numbers for something they had not asked about.
+
+The older `/benchmark/{id}/insights`, `/compare`, `/compare/profile` and
+`/errors` forms all still resolve, because links to them exist.
 
 **The address bar is the link.** There is no "copy this URL" button — it would
 duplicate something every browser already offers.
