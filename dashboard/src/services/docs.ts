@@ -9,6 +9,20 @@
  */
 import { apiFetch, apiUrl } from "../lib/api";
 
+/**
+ * The published API reference.
+ *
+ * A link out rather than an embed: a tile that opens a frame of somebody
+ * else's site -- which cannot be styled from here, and which needed a
+ * `frame-src` exception in our own CSP to display at all -- was doing more
+ * work than a link for the same result.
+ *
+ * Here rather than in a view because both the home page and the documentation
+ * index offer it, and the latter is lazily loaded.
+ */
+export const REFERENCE_URL =
+  "https://text2sql-eval-toolkit.readthedocs.io/en/latest/";
+
 export interface DocInfo {
   /** Addressable stem: `/docs/{name}`. */
   name: string;

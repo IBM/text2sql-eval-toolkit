@@ -82,7 +82,9 @@ import { CopyShortLinkButton } from "../views/CopyShortLinkButton";
 import { DataStampBar, SessionBar } from "../views/SessionBar";
 import { AboutPanel } from "../views/AboutPanel";
 import { NavLink } from "../views/NavLink";
+import { LinkTile, TileGrid } from "../views/LinkTile";
 import { fetchSession } from "../lib/session";
+import { REFERENCE_URL, fetchDocs, type DocInfo } from "../services/docs";
 import {
   createBenchmark,
   fetchBenchmarkConfig,
@@ -109,6 +111,46 @@ import {
 } from "../lib/pipelineAlias";
 
 type BenchmarkModalMode = "create" | "edit";
+
+/**
+ * A titled band of tiles on the home page.
+ *
+ * The home page is the way in to everything the dashboard does, so it is a
+ * list of places rather than a single grid; the headings are what stop three
+ * rows of tiles reading as one long undifferentiated one.
+ */
+const HomeSection: React.FC<{
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}> = ({ title, subtitle, children }) => (
+  <section style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+    <div>
+      <h4 style={{ margin: 0, fontSize: "0.95rem" }}>{title}</h4>
+      {subtitle && (
+        <p
+          style={{
+            margin: "0.2rem 0 0",
+            opacity: 0.75,
+            fontSize: "0.8125rem",
+          }}
+        >
+          {subtitle}
+        </p>
+      )}
+    </div>
+    <div
+      style={{
+        border: "1px solid rgba(255,255,255,0.12)",
+        borderRadius: "8px",
+        padding: "0.75rem",
+        background: "rgba(255,255,255,0.015)",
+      }}
+    >
+      {children}
+    </div>
+  </section>
+);
 const DEFAULT_BENCHMARK_ID = "bird_mini_dev_sqlite";
 /** Left nav width when open; main content shifts right by this amount (no overlay). */
 const NAV_PANEL_WIDTH_PX = 200;
@@ -444,6 +486,69 @@ export const App: React.FC = () => {
   /** Target benchmark for views that require one, falling back when none is in the URL. */
   const benchmarkForNav = selectedBenchmark ?? fallbackBenchmarkId;
 
+  /**
+   * The analysis views, for the home page's second band of tiles.
+   *
+   * Four of the six need a benchmark and are inert until there is one, which
+   * is the same rule the left-hand navigation applies -- offering a link that
+   * cannot resolve is worse than showing why it cannot.
+   */
+  const analysisTiles = useMemo(
+    () => [
+      {
+        title: "Metric Insights",
+        summary:
+          "Confusion matrices between two binary metrics, per pipeline and across pipelines — where execution match and the judge disagree.",
+        href: benchmarkForNav ? routes.insights(benchmarkForNav) : null,
+      },
+      {
+        title: "Pipeline Compare",
+        summary:
+          "Two pipelines side by side, with the count of records each gets right where the other does not.",
+        href: benchmarkForNav ? routes.compare(benchmarkForNav) : null,
+      },
+      {
+        title: "Profile Compare",
+        summary:
+          "Metrics broken down by SQL feature, pooled across one or more benchmarks and weighted by sample size.",
+        href: benchmarkForNav ? routes.profileCompare(benchmarkForNav) : null,
+      },
+      {
+        title: "Error Analysis",
+        summary:
+          "Search and filter records, then open one to see both queries, both result tables and every metric.",
+        href: benchmarkForNav ? routes.errors(benchmarkForNav) : null,
+      },
+      {
+        title: "LLM Judge",
+        summary:
+          "The judge's model, generation parameters and prompt, as editable YAML.",
+        href: routes.llmJudge(),
+      },
+      {
+        title: "Eval Playground",
+        summary:
+          "Load a record, edit the SQL, run it, and evaluate the result — optionally asking the judge.",
+        href: routes.run(),
+      },
+    ],
+    [benchmarkForNav],
+  );
+
+  // The home page lists the documentation alongside everything else, so it
+  // needs the same list the docs index uses. Cheap -- filenames and first
+  // paragraphs -- and it is the only fetch on this page that is not benchmarks.
+  const [docs, setDocs] = useState<DocInfo[]>([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchDocs(controller.signal)
+      .then((list) => setDocs(list.items))
+      // An empty list is the pip-install case and renders as no note tiles,
+      // which is the truth; the reference tile stands on its own.
+      .catch(() => setDocs([]));
+    return () => controller.abort();
+  }, []);
+
   // Whether to offer the user console at all. Showing a control that 403s is
   // the failure this whole area is trying to avoid.
   const [canManageUsers, setCanManageUsers] = useState(false);
@@ -593,33 +698,67 @@ export const App: React.FC = () => {
                   lineHeight: 1.4,
                 }}
               >
-                Start by selecting a benchmark tile below, or open
-                <strong> Benchmarks </strong>
-                from the menu at the top left at any time.
+                Everything below is a starting point: a benchmark to open, a
+                view to analyse it with, or a document to read.
               </p>
             </div>
 
-            <div
-              style={{
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: "8px",
-                padding: "0.75rem",
-                background: "rgba(255,255,255,0.015)",
-              }}
-            >
-              {/* No `onAddNew`: the home page is for picking a benchmark.
-                  Adding one is managing them, and that is the Benchmarks
-                  page. */}
+            <HomeSection title="Benchmarks">
+              {/* Neither `onAddNew` nor `onEdit`: the home page is for picking
+                  a benchmark. Adding and editing are managing them, and that
+                  is the Benchmarks page. */}
               <BenchmarkTiles
                 items={benchmarks}
                 onSelect={(benchmarkId) => {
                   navigate(routes.benchmark(benchmarkId));
                 }}
-                onEdit={(benchmarkId) => {
-                  void openEditBenchmarkModal(benchmarkId);
-                }}
               />
-            </div>
+            </HomeSection>
+
+            <HomeSection
+              title="Analysis"
+              subtitle={
+                benchmarkForNav
+                  ? `Views below open on ${benchmarkForNav}.`
+                  : undefined
+              }
+            >
+              <TileGrid>
+                {analysisTiles.map((tile) => (
+                  <LinkTile
+                    key={tile.title}
+                    eyebrow="View"
+                    title={tile.title}
+                    summary={tile.summary}
+                    href={tile.href}
+                    onNavigate={goto}
+                    unavailableReason="Needs a benchmark with results on this deployment."
+                  />
+                ))}
+              </TileGrid>
+            </HomeSection>
+
+            <HomeSection title="Documentation">
+              <TileGrid>
+                <LinkTile
+                  eyebrow="Reference"
+                  title="API reference"
+                  summary="Every exported symbol, generated from the docstrings. Opens on Read the Docs."
+                  href={REFERENCE_URL}
+                  external
+                />
+                {docs.map((doc) => (
+                  <LinkTile
+                    key={doc.name}
+                    eyebrow="Note"
+                    title={doc.title}
+                    summary={doc.summary}
+                    href={routes.docs(doc.name)}
+                    onNavigate={goto}
+                  />
+                ))}
+              </TileGrid>
+            </HomeSection>
 
             <AboutPanel />
           </div>

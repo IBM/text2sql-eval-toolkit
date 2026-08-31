@@ -6,7 +6,13 @@ import { apiUrl } from "../lib/api";
 interface Props {
   items: BenchmarkSummary[];
   onSelect: (benchmarkId: string) => void;
-  onEdit: (benchmarkId: string) => void;
+  /**
+   * Omit to render the tiles without their edit control.
+   *
+   * Same reasoning as `onAddNew`: the home page picks a benchmark, the
+   * Benchmarks page manages them.
+   */
+  onEdit?: (benchmarkId: string) => void;
   /**
    * Omit to render the grid without the "Add New Benchmark" tile.
    *
@@ -67,33 +73,35 @@ export const BenchmarkTiles: React.FC<Props> = ({
               position: "relative",
             }}
           >
-            <button
-              type="button"
-              aria-label={`Edit ${item.benchmark_id}`}
-              title="Edit benchmark"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(item.benchmark_id);
-              }}
-              style={{
-                position: "absolute",
-                top: "0.45rem",
-                right: "0.45rem",
-                width: "1.65rem",
-                height: "1.65rem",
-                border: "1px solid #c6c6c6",
-                borderRadius: "999px",
-                background: "#f4f4f4",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "0.8rem",
-                lineHeight: 1,
-              }}
-            >
-              ✎
-            </button>
+            {onEdit && (
+              <button
+                type="button"
+                aria-label={`Edit ${item.benchmark_id}`}
+                title="Edit benchmark"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(item.benchmark_id);
+                }}
+                style={{
+                  position: "absolute",
+                  top: "0.45rem",
+                  right: "0.45rem",
+                  width: "1.65rem",
+                  height: "1.65rem",
+                  border: "1px solid #c6c6c6",
+                  borderRadius: "999px",
+                  background: "#f4f4f4",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.8rem",
+                  lineHeight: 1,
+                }}
+              >
+                ✎
+              </button>
+            )}
 
             <div style={{ minWidth: 0, width: "100%" }}>
               <div
