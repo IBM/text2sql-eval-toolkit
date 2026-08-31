@@ -10,6 +10,58 @@ finished.
 
 ---
 
+## 2026-08-30 — 1.5.0, item 4: the editor, and the defect on the other side of it
+
+The plan left one judgement inside this item and asked for it to be taken
+deliberately: JSON or YAML in the editor. **YAML.** Opening the packaged config
+settles it in about ten seconds — `prompt_template` is a block scalar running to
+forty lines of prose, and it is most of the file. As JSON it is a single line of
+roughly fifteen hundred characters with `\n` escapes through it. Syntax
+highlighting does not make that editable. A different notation does, and it
+happens to be the notation the file is already written in.
+
+The endpoint is untouched: the editor converts, and nothing is lost by that
+which was not lost already, since the server has always parsed and re-dumped.
+
+**CodeMirror is assembled from its parts rather than from `basicSetup`,** which
+pulls in autocompletion, search and folding for a forty-line config. Even so the
+judge view's chunk is ~416 KB, which is the deal that keeps the entry bundle at
+424 KB against its 460 KB budget. The CI budget step now also caps every
+non-entry chunk at 520 KB — not to constrain this one, but so the next thing
+that lands in the wrong place is visible rather than merely lazy.
+
+**Three bugs in the position arithmetic, all found by tests rather than by
+using it.** js-yaml reports an unterminated construct at the phantom position
+one past the end of the document — "line 4" of a three-line file — so the
+message named a line that does not exist and the marker had nothing to
+underline. Clamping fixed the marker and left the message wrong, because the
+two were computed separately; they are now derived from one value, which is the
+only way they cannot disagree. Then the clamped offset could land on a newline,
+putting the marker on the line break instead of on the text, and the underline
+could come out zero-width, which draws nothing — on exactly the errors reported
+at the end of a document, which are the ones hardest to find by eye. A
+"show me where it is wrong" feature that shows nothing is worse than not having
+it.
+
+Separately, js-yaml v5 raises on an empty document where v4 returned undefined.
+The editor is empty whenever nothing is selected and just after a delete, so
+without a guard a red error sat on a box nobody had touched.
+
+**The real find was on the write side, and only became visible because the read
+side got better.** Saving a config through the dashboard wrote it with
+`yaml.safe_dump`, which renders a long multi-line string as a *single-quoted
+folded* scalar: every line break becomes a blank line and the prose is rewrapped
+at 80 columns. So the editor showed `prompt_template: |`, the save wrote a
+quoted blob, and the next load showed `|` again — the disagreement was invisible
+until you opened the file on disk, which is what this item's whole complaint was
+about, one step further along. The value round-tripped correctly the entire
+time; the file was simply unreadable afterwards.
+
+Fixed with a block-style representer on a `SafeDumper` *subclass*. Registering
+it on `yaml.SafeDumper` would have been one line shorter and would have changed
+every other `yaml.safe_dump` in the process, which is a strange way to fix a
+formatting bug in one endpoint.
+
 ## 2026-08-30 — 1.5.0, item 3: the docs view, and what `/docs` was already for
 
 The view is what the plan asked for: `/docs` embeds the published reference,

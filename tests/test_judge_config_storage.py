@@ -145,3 +145,70 @@ def test_writing_a_traversal_name_over_http_is_refused(client, tmp_path):
 def test_deleting_a_traversal_name_over_http_is_refused(client):
     resp = client.delete("/api/llm-judge/configs/..%2f..%2fowned")
     assert resp.status_code in (400, 404), resp.status_code
+
+
+# --- what the written file looks like ---------------------------------------
+
+
+def test_a_multi_line_prompt_is_written_as_a_block_scalar(client, tmp_path):
+    """
+    ``yaml.safe_dump`` renders a long multi-line string as a single-quoted
+    folded scalar: every line break becomes a blank line and the prose is
+    rewrapped at 80 columns. It round-trips correctly and it is unreadable --
+    and `prompt_template` is the bulk of every judge config, so every save
+    through the dashboard turned a file that opened with `prompt_template: |`
+    into one that did not.
+    """
+    prompt = "First line.\n\nSecond paragraph.\nThird line.\n"
+    resp = client.put(
+        "/api/llm-judge/configs/block_style",
+        json={"model": {"id": "anthropic:x"}, "prompt_template": prompt},
+    )
+    assert resp.status_code == 200
+
+    written = (tmp_path / "llm_judge_config" / "block_style.yaml").read_text()
+    assert "prompt_template: |" in written
+    # The folded form quotes the scalar and doubles every line break.
+    assert "prompt_template: '" not in written
+
+    # And the value is unchanged, which is the part that actually matters.
+    import yaml
+
+    assert yaml.safe_load(written)["prompt_template"] == prompt
+
+
+def test_a_long_prompt_line_is_not_rewrapped(client, tmp_path):
+    # A block scalar's line breaks are part of the prompt the judge is sent.
+    # Folding one at 80 columns changes the prompt without anyone asking.
+    line = "word " * 60
+    client.put(
+        "/api/llm-judge/configs/wide",
+        json={"model": {"id": "anthropic:x"}, "prompt_template": f"{line}\nnext\n"},
+    )
+    written = (tmp_path / "llm_judge_config" / "wide.yaml").read_text()
+    assert line.strip() in written
+
+
+def test_a_single_line_string_stays_plain(client, tmp_path):
+    # Block style on every string would make `id: |-` of a model name.
+    client.put(
+        "/api/llm-judge/configs/plain",
+        json={"model": {"id": "anthropic:x"}, "prompt_template": "one line"},
+    )
+    written = (tmp_path / "llm_judge_config" / "plain.yaml").read_text()
+    assert "id: anthropic:x" in written
+    assert "prompt_template: one line" in written
+
+
+def test_the_block_representer_is_not_registered_globally(client):
+    """
+    It is on a Dumper subclass, not on ``yaml.SafeDumper``. Registering it
+    globally would change every other ``yaml.safe_dump`` in the process.
+    """
+    import yaml
+
+    client.put(
+        "/api/llm-judge/configs/scoped",
+        json={"model": {"id": "anthropic:x"}, "prompt_template": "a\nb\n"},
+    )
+    assert "|" not in yaml.safe_dump({"k": "a\nb\n"})
