@@ -140,19 +140,18 @@ def test_responses_carry_baseline_security_headers(client):
     assert "font-src" in csp
     assert "1.www.s81c.com" in csp.split("font-src")[1].split(";")[0]
 
-    # The docs view frames the published reference. `frame-src` falls back to
-    # `default-src`, so it has to be named or the iframe is blocked -- and it
-    # must name that one origin, never a wildcard.
-    frame_src = csp.split("frame-src")[1].split(";")[0]
-    assert "https://text2sql-eval-toolkit.readthedocs.io" in frame_src
-    assert "*" not in frame_src
+    # The dashboard frames nothing. The docs view embedded the published API
+    # reference for one release and needed `frame-src` naming that origin;
+    # it is a link out now, so the directive is gone and `frame-src` falls
+    # back to `default-src 'self'`.
+    assert "frame-src" not in csp
 
 
-def test_framing_this_site_is_still_refused():
+def test_framing_this_site_is_refused():
     """
     `frame-src` (what we may embed) and `frame-ancestors` / X-Frame-Options
-    (who may embed us) are easy to conflate. Adding the first must not relax
-    the second.
+    (who may embed us) are easy to conflate, and the first was added and then
+    removed while the second stayed put throughout. This asserts the second.
     """
     from fastapi.testclient import TestClient
     from text2sql_eval_toolkit.ui import server

@@ -15,7 +15,7 @@ filtered error-analysis query, or a single record can be linked to directly.
 /run                                                     eval playground
 /run/{id}                                                …at one benchmark
 /run/{id}/record/{record}?pipeline=…                     …at one record
-/docs                                                    the published API reference
+/docs                                                    documentation index
 /docs/{name}                                             one long-form note
 ```
 

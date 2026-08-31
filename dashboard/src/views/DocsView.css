@@ -167,6 +167,77 @@
   font-style: italic;
 }
 
+/* --- the index of tiles -------------------------------------------------- */
+
+.t2s-doc-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 9.5rem;
+  padding: 1rem;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background 0.11s ease,
+    border-color 0.11s ease;
+}
+
+.t2s-doc-tile:hover {
+  background: var(--cds-layer-hover);
+  border-color: var(--cds-border-strong);
+}
+
+.t2s-doc-tile:focus-visible {
+  outline: 2px solid var(--cds-focus);
+  outline-offset: -2px;
+}
+
+.t2s-doc-tile__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--cds-text-secondary);
+}
+
+.t2s-doc-tile__title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--cds-link-primary);
+}
+
+.t2s-doc-tile__summary {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--cds-text-secondary);
+  /* Summaries are a document's opening paragraph and vary from a line to a
+     short essay. Four lines keeps the grid from going ragged. */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.t2s-doc-tile--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+
+.t2s-doc-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  align-self: flex-start;
+  font-size: 0.8125rem;
+  color: var(--cds-link-primary);
+}
+
 /* --- diagrams and maths -------------------------------------------------
  *
  * Both are drawn into the prose after rendering, from lib/richContent.ts.
