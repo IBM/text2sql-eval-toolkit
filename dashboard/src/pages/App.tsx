@@ -594,9 +594,9 @@ export const App: React.FC = () => {
                   lineHeight: 1.4,
                 }}
               >
-                Start by selecting a benchmark tile below, or use the
+                Start by selecting a benchmark tile below, or open
                 <strong> Benchmarks </strong>
-                button in the top-right corner at any time.
+                from the menu at the top left at any time.
               </p>
             </div>
 
@@ -986,6 +986,19 @@ export const App: React.FC = () => {
               <NavLink href={routes.run()} onNavigate={goto}>
                 Eval Playground
               </NavLink>
+              {/* Docs is pinned to the foot of the rail, below a spacer that
+                  takes up whatever height is left. Everything above it acts on
+                  the results loaded here; this one is reading material, and
+                  grouping it with the analysis pages made it look like another
+                  one of them. */}
+              <div style={{ flex: 1, minHeight: "1rem" }} />
+              <div
+                style={{
+                  height: "1px",
+                  background: "rgba(255,255,255,0.12)",
+                  margin: "0 0 0.5rem",
+                }}
+              />
               <NavLink href={routes.docs()} onNavigate={goto}>
                 Docs
               </NavLink>

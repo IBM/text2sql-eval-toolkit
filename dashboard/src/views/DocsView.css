@@ -11,12 +11,31 @@
  */
 
 .t2s-markdown {
-  /* Prose, not a data table: a measure of roughly 80 characters. Full-width
-     paragraphs on a wide monitor are unreadable however good the content is. */
-  max-width: 46rem;
+  /* The article itself is as wide as the column it is given. The measure is
+     applied to the prose below rather than here, because a child cannot be
+     wider than its parent -- setting it here and then exempting tables and
+     diagrams looks like it works and does nothing. A six-column comparison
+     table and a left-to-right flowchart are not prose and do not want a
+     prose measure. */
+  max-width: 72rem;
   color: var(--cds-text-primary);
   line-height: 1.55;
   font-size: 0.9375rem;
+}
+
+/* Roughly 80 characters: full-width paragraphs on a wide monitor are
+   unreadable however good the content is. Applied to the text-level children,
+   so tables, diagrams and code blocks keep the full column. */
+.t2s-markdown > p,
+.t2s-markdown > ul,
+.t2s-markdown > ol,
+.t2s-markdown > blockquote,
+.t2s-markdown > h1,
+.t2s-markdown > h2,
+.t2s-markdown > h3,
+.t2s-markdown > h4,
+.t2s-markdown > .math-block {
+  max-width: 46rem;
 }
 
 .t2s-markdown > *:first-child {
@@ -100,13 +119,30 @@
   color: var(--cds-text-secondary);
 }
 
+/* Wide content uses the whole column and scrolls inside itself if it still
+   does not fit. */
+.t2s-markdown .table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  margin: 0 0 1rem;
+}
+
 .t2s-markdown table {
   border-collapse: collapse;
   margin: 0 0 1rem;
-  /* Wide tables scroll with the block below rather than widening the page. */
+  /* A bare table (one not wrapped by the renderer) still must not widen the
+     page. */
   display: block;
   overflow-x: auto;
   max-width: 100%;
+}
+
+.t2s-markdown .table-scroll > table {
+  display: table;
+  width: 100%;
+  margin: 0;
+  overflow: visible;
+  font-size: 0.875rem;
 }
 
 .t2s-markdown th,
@@ -129,4 +165,53 @@
 
 .t2s-markdown em {
   font-style: italic;
+}
+
+/* --- diagrams and maths -------------------------------------------------
+ *
+ * Both are drawn into the prose after rendering, from lib/richContent.ts.
+ * A survey's diagrams and tables are wider than its measure, so both are
+ * allowed past it and scroll inside themselves rather than widening the page.
+ */
+
+.t2s-markdown .t2s-diagram {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid var(--cds-border-subtle);
+  background: var(--cds-layer);
+  /* A flowchart is often wider than 46rem of prose. Let it use the column it
+     is in, and scroll if it still does not fit. */
+  overflow-x: auto;
+  text-align: center;
+}
+
+.t2s-markdown .t2s-diagram svg {
+  /* Width is set per diagram in richContent.ts: natural size, so a wide
+     flowchart scrolls rather than shrinking until its labels are illegible. */
+  height: auto;
+}
+
+.t2s-markdown .t2s-diagram-error {
+  margin: 0 0 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--cds-text-error);
+}
+
+/* Until KaTeX has run, and for any expression it refuses, the raw TeX shows.
+   Monospace makes that read as source rather than as broken prose. */
+.t2s-markdown .math-inline:not(.katex),
+.t2s-markdown .math-block:not(.katex-display) {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.9em;
+}
+
+.t2s-markdown .math-block {
+  display: block;
+  margin: 1rem 0;
+  /* A long display equation scrolls rather than pushing the page sideways. */
+  overflow-x: auto;
+}
+
+.t2s-markdown .math-error {
+  color: var(--cds-text-error);
 }
