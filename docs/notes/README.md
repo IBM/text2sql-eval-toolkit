@@ -10,7 +10,7 @@ from docstrings and describes the code.
 
 | Document | What it is |
 |---|---|
-| [text-to-sql-evaluation-survey.md](text-to-sql-evaluation-survey.md) | A survey of the field: metrics, benchmarks, frameworks and emerging methodologies, with diagrams and a reference list |
+| [text-to-sql-evaluation-survey.md](text-to-sql-evaluation-survey.md) | *State of the art in Text-to-SQL Evaluation* — metrics, benchmarks, frameworks and emerging methodologies, with diagrams and a reference list |
 | [worked-examples.md](worked-examples.md) | The recurring shapes where two metrics disagree, what each one means, and what to do about it |
 | [demo-walkthrough.md](demo-walkthrough.md) | Six screens, in order, and the point each one makes |
 
