@@ -104,15 +104,27 @@ export const routes = {
   compare: (benchmarkId?: string | null): string =>
     benchmarkId ? `/benchmark/${encode(benchmarkId)}/compare` : "/compare",
   /**
-   * Profile compare picks its own benchmarks, several at a time, so the
-   * canonical address names none. The benchmark-scoped form still resolves,
-   * because links to it were shared before this changed, and it seeds the
-   * view's selection.
+   * Profile compare pools *several* benchmarks, so its address carries a list.
+   *
+   * A single benchmark in a path segment could only ever name one, and the
+   * view let you add a second -- at which point the address quietly became the
+   * one most recently added and no longer described what was on screen. A
+   * query parameter holds the set: `/compare/profile?benchmarks=a,b`.
+   *
+   * Each id is encoded and the commas are not, so an id containing a comma
+   * survives the round trip. The older `/benchmark/{id}/compare/profile` still
+   * resolves -- links to it exist -- and seeds the selection with that one.
    */
-  profileCompare: (benchmarkId?: string | null): string =>
-    benchmarkId
-      ? `/benchmark/${encode(benchmarkId)}/compare/profile`
-      : "/compare/profile",
+  profileCompare: (
+    benchmarkIds?: string | readonly string[] | null,
+  ): string => {
+    const ids = (
+      typeof benchmarkIds === "string" ? [benchmarkIds] : (benchmarkIds ?? [])
+    ).filter(Boolean);
+    return ids.length === 0
+      ? "/compare/profile"
+      : `/compare/profile?benchmarks=${ids.map(encode).join(",")}`;
+  },
   llmJudge: (configName?: string): string =>
     configName ? `/llm-judge/${encode(configName)}` : "/llm-judge",
   /**
@@ -166,6 +178,36 @@ export const routes = {
   users: (): string => "/users",
   myKeys: (): string => "/my-keys",
 };
+
+/**
+ * The benchmarks profile compare is pooling, from a query string.
+ *
+ * Empty when the parameter is absent, which is the view with nothing selected.
+ */
+export function parseBenchmarkList(search: string): string[] {
+  // Read the raw parameter rather than going through `URLSearchParams`, which
+  // decodes the value before this can split it -- turning an id containing an
+  // encoded comma into two ids. The separator has to be found in the encoded
+  // text, and each entry decoded afterwards.
+  const raw = search
+    .replace(/^\?/, "")
+    .split("&")
+    .map((pair) => pair.split("="))
+    .find(([key]) => key === "benchmarks")?.[1];
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((id) => {
+      try {
+        return decodeURIComponent(id);
+      } catch {
+        // A malformed escape should cost that one entry, not throw and blank
+        // the whole view.
+        return "";
+      }
+    })
+    .filter(Boolean);
+}
 
 /**
  * Serialize filters to a query string, dropping empty values and anything

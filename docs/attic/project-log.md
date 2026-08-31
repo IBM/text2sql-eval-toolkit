@@ -10,6 +10,43 @@ finished.
 
 ---
 
+## 2026-08-31 — an address that could not describe what was on screen
+
+Profile compare pools several benchmarks. Its address named one, in a path
+segment, and `onSelectBenchmark(id)` fired with whichever had just been added --
+so adding a second rewrote the address to that second one, the seeding effect
+put it back into the selection, and the URL now described neither the pair on
+screen nor anything a reader could share.
+
+The shape was wrong before the wiring was. A path segment holds one value; the
+view holds a set. `/compare/profile?benchmarks=a,b` is what the thing actually
+is, and matches this project's own rule -- path segments say what is being
+shown, query parameters carry how. The view reports its whole selection now
+rather than the last change to it, which is the difference between an address
+that tracks the state and one that tracks the most recent event.
+
+Two things went wrong while building it, both caught by tests rather than by
+clicking.
+
+`URLSearchParams.get()` decodes the value before returning it, so splitting the
+result on commas splits *decoded* ones too -- a benchmark id containing `%2C`
+became two ids. The separator has to be found in the encoded text, so the raw
+parameter is read out of the search string by hand and each entry decoded
+afterwards. Worth knowing generally: `URLSearchParams` is the wrong tool for
+any list whose separator could appear inside an element.
+
+And a test asserting the old path form failed, correctly -- the design changed
+under it. That is the test doing its job, but it is also the moment to check
+that the *other* callers were updated rather than assuming; the tab strip's
+Profile Compare link passes a single id, which the builder still accepts and
+turns into a one-element list.
+
+Selection changes `replace` rather than push. Adding and removing benchmarks
+adjusts one view; a history entry per change would bury whatever the reader was
+looking at before it under a stack of near-identical addresses.
+
+---
+
 ## 2026-08-31 — five views of a benchmark, and one way between them
 
 The benchmark summary offered the other four views as ghost buttons in its
