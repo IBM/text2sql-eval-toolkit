@@ -3,6 +3,7 @@ import { InlineNotification, SkeletonText } from "@carbon/react";
 import { Launch } from "@carbon/icons-react";
 import { fetchDoc, fetchDocs, type DocInfo } from "../services/docs";
 import { renderMarkdown } from "../lib/markdown";
+import { isRealDocumentLoad } from "../lib/iframeLoad";
 import { routes } from "../lib/routes";
 import { NavLink } from "./NavLink";
 import "./DocsView.css";
@@ -291,12 +292,14 @@ const Reference: React.FC = () => {
       >
         {!loaded && (
           <div
-            // Behind the frame rather than in front of it: the moment the docs
-            // site paints, it covers this, so there is no flash of the message
-            // being removed.
+            // In front of the frame, and opaque. An iframe paints its own
+            // background -- white, for `about:blank` and for the docs site --
+            // so a placeholder behind it is a placeholder nobody sees.
             style={{
               position: "absolute",
               inset: 0,
+              zIndex: 1,
+              background: "var(--cds-layer)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -329,15 +332,18 @@ const Reference: React.FC = () => {
           // and links that open in a new tab.
           sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms"
           referrerPolicy="no-referrer"
-          onLoad={() => setLoaded(true)}
+          // Not `setLoaded(true)` directly: a fresh iframe fires `load` for
+          // its initial `about:blank` before the real document arrives, and
+          // acting on that one clears the placeholder while the frame is still
+          // empty. See lib/iframeLoad.ts.
+          onLoad={(event) => {
+            if (isRealDocumentLoad(event.currentTarget)) setLoaded(true);
+          }}
           style={{
             position: "relative",
             width: "100%",
             height: "100%",
             border: "none",
-            // Transparent until it has painted, so the placeholder behind it
-            // shows through rather than being hidden by an empty white page.
-            background: loaded ? "var(--cds-layer)" : "transparent",
           }}
         />
       </div>
