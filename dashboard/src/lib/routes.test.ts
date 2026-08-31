@@ -46,7 +46,11 @@ describe("path builders", () => {
     expect(routes.errors(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/errors`);
     expect(routes.insights(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/insights`);
     expect(routes.compare(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/compare`);
-    expect(routes.profileCompare(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/compare/profile`);
+    // Profile compare pools several benchmarks, so its address carries a list
+    // rather than a path segment -- see routes.analysis.test.ts.
+    expect(routes.profileCompare(BENCHMARK)).toBe(
+      `/compare/profile?benchmarks=${BENCHMARK}`
+    );
     expect(routes.llmJudge()).toBe("/llm-judge");
     expect(routes.llmJudge("default")).toBe("/llm-judge/default");
     expect(routes.run()).toBe("/run");
