@@ -111,8 +111,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the workflow *before* anything is published, rather than producing a release
   with an empty page.
 
+### Changed
+
+- **Adding a benchmark lives on the Benchmarks page.** The home page is where
+  you pick one; the Benchmarks page shows the same tiles plus the control to
+  add another. It was a table before, and the *Add New Benchmark* tile was on
+  the home page.
+
 ### Fixed
 
+- **Development history no longer leaks into the interface.** The Benchmarks
+  page explained that it "was a slide-out panel, which meant it had no address
+  of its own" — a changelog entry rendered as product copy. Every page's prose
+  was read through for others; that was the only one.
+- **A document's tables, diagrams and screenshots no longer overhang its
+  prose.** They were given the full article width while paragraphs kept a
+  narrower measure, so on a wide window everything wide stuck out by some 400
+  pixels past the text above it. One column now, a little wider than prose
+  alone would want; a table still scrolls inside its own block and a diagram
+  still has **View full size** when it needs more room.
 - **The dashboard's welcome text pointed at a control that is not there.** It
   told the reader to use a *Benchmarks* button in the top-right corner; the
   navigation moved to a menu at the top left, and the sentence did not.

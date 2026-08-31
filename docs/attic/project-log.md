@@ -10,6 +10,43 @@ finished.
 
 ---
 
+## 2026-08-31 — a changelog entry had been rendering as product copy
+
+The Benchmarks page said: "Every benchmark with results on this deployment.
+This was a slide-out panel, which meant it had no address of its own and could
+not be linked to or opened in a new tab."
+
+The second sentence is a release note. It explains a decision to a reader of
+this log, and to a person using the dashboard it is a stranger telling them
+about a thing that no longer exists. It went in when the panel became a page,
+which is exactly when the distinction is hardest to see: the change was fresh,
+the reasoning felt like information, and the copy was written by whoever had
+just made it.
+
+Every rendered string in the dashboard was read through afterwards -- the JSX
+text nodes and the helper-text, subtitle and label props, comments stripped so
+only shipped prose remained. That was the only one. What is there otherwise
+describes current behaviour to someone who needs it: what a stored key does and
+does not change, why the environment administrators cannot be edited from the
+console, what a snapshot means for a shared link. Those are worth keeping and
+are a different thing.
+
+**Two page changes alongside it.** Adding a benchmark has moved to the
+Benchmarks page, which now shows the same tiles as the home page rather than a
+table; the home page is where you pick a benchmark, and managing them is a
+different job. `BenchmarkList` had no other caller and is deleted.
+
+**And one column for a document, instead of two widths.** Prose sat at 46rem
+inside a 72rem article, so every table, diagram and screenshot overhung the
+paragraph above it by around 400 pixels on a wide window, and the right edge
+was ragged. Sharing one width at 54rem costs the widest content some room --
+three of the survey's ten diagrams now clamp at their legibility floor and
+scroll, where none did before -- and that is the case "View full size" was
+built for a few hours earlier. Worth noting how the two decisions interacted:
+giving wide content its own width was right in isolation and wrong on the page.
+
+---
+
 ## 2026-08-31 — diagrams fit the column, and there is a way out when they do not
 
 The survey's diagrams were rendered at natural size and left to scroll inside
