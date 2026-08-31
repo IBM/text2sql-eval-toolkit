@@ -50,8 +50,8 @@ jobs:
         run: python scripts/ci/check_version.py
 
   consistency:
-    # Two files in this repo are generated from another; both have silently
-    # drifted before. Checking is cheaper than noticing later.
+    # The packaged benchmark registry is generated from the checkout's copy, and
+    # has silently drifted before. Checking is cheaper than noticing later.
     name: Generated files in sync
     # Skipped for pull requests from this repository: the push event above
     # already covered that commit. Fork PRs have no push event here, so they
@@ -70,21 +70,13 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: uv.lock matches pyproject.toml
-        # An export can agree with a lockfile that has itself fallen behind the
-        # project's declared dependencies.
+        # uv.lock and pyproject.toml are the only dependency sources of truth.
+        # There was a third -- a requirements.txt export, guarded by a job here
+        # that kept it in sync -- and it was deleted in 1.5.0: it duplicated the
+        # lockfile, and Dependabot scanned it as a separate manifest, so every
+        # advisory was reported twice. `uv export` reproduces it on demand for
+        # anyone who wants a pinned file.
         run: uv lock --check
-      - name: requirements.txt matches uv.lock
-        run: |
-          uv export --format requirements-txt --no-hashes --no-dev \
-            --no-emit-project -o /tmp/requirements.expected
-          # Compare package lines only: our header and uv's banner differ by
-          # design, and comments carry no dependency information.
-          grep -E '^[a-zA-Z0-9]' requirements.txt | sort > /tmp/have.txt
-          grep -E '^[a-zA-Z0-9]' /tmp/requirements.expected | sort > /tmp/want.txt
-          if ! diff -u /tmp/want.txt /tmp/have.txt; then
-            echo "::error::requirements.txt is stale. Regenerate it (see its header)."
-            exit 1
-          fi
 
   typecheck:
     name: Type check

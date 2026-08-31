@@ -10,7 +10,7 @@ An LLM turns each question into SQL. Two pipelines ship:
 | Class | What it does |
 |---|---|
 | [`LLMSQLGenerationPipeline`][text2sql_eval_toolkit.LLMSQLGenerationPipeline] | One prompt, one answer — the greedy zero-shot baseline |
-| [`AgenticSQLGenerationPipeline`][text2sql_eval_toolkit.AgenticSQLGenerationPipeline] | A LangGraph agent that inspects the schema, runs candidate queries and retries |
+| [`AgenticSQLGenerationPipeline`][text2sql_eval_toolkit.AgenticSQLGenerationPipeline] | An agent that inspects the schema, runs candidate queries and retries |
 | [`LLMSQLGenerationPipelineSimple`][text2sql_eval_toolkit.LLMSQLGenerationPipelineSimple] | A minimal variant, useful as a template |
 
 Predictions are keyed by `pipeline_id`, so several models accumulate in the same
