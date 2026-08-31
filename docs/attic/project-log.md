@@ -10,6 +10,53 @@ finished.
 
 ---
 
+## 2026-08-31 — 1.5.0 deployed, and the iframe was not finished
+
+The branch is live at `text2sql-eval-toolkit.oaklayer.dev`, built from the
+checkout on the box as usual. Starlette 1.x and FastAPI 0.141 came up clean --
+that was the one upgrade in item 1 with real risk in it, since the suite drives
+the API through a test client rather than a socket, and it was fine. Every
+health check in `docs/dashboard/deployment.md` passes unchanged, `/docs` serves
+the dashboard rather than Swagger, and the container serves its three notes.
+
+The habit of tagging the running image before rebuilding is worth keeping:
+`docker image tag text2sql-dashboard-app text2sql-dashboard-app:rollback-1.4.0`
+turns a rollback from a five-minute rebuild into a container restart. It was not
+needed. It cost nothing.
+
+**The embedded reference was blank for the first several seconds and I had
+called that done.** Locally the docs site is warm and paints immediately;
+through Cloudflare from the deployment it took long enough that the frame is a
+blank white box with nothing to say it is working. In a demo that reads as
+broken. Only deploying it showed this, which is the same lesson as 1.4.0's --
+three defects there needed a real API call to see.
+
+**Then the fix for it was wrong, twice, and deploying it again is what showed
+that.**
+
+The placeholder went *behind* the frame, on the reasoning that the docs site
+would simply cover it and there would be no flash. An iframe paints its own
+background, white, for `about:blank` as much as for the loaded page -- so a
+placeholder behind one is a placeholder nobody sees.
+
+And it was cleared by the wrong event. A fresh iframe fires `load` **twice**:
+once for the `about:blank` the browser puts in it, and again when the real
+document arrives. Instrumented against the deployment, 3 ms and 480 ms on a warm
+cache. So the placeholder was removed almost immediately and the view showed the
+same blank box as before -- now with code in it that looked like a fix.
+
+There is no cross-origin way to ask a frame what it is showing. There is a
+same-origin way to ask whether it is still showing `about:blank`, which is the
+only document in that sequence that *is* same-origin: once the frame navigates
+away, reading its location throws, and the throw is the signal. That is
+`lib/iframeLoad.ts`, and it has tests, because the reasoning is the kind that
+looks obvious once written down and was not obvious before.
+
+Worth naming plainly: the first attempt looked right, passed lint, types and 170
+tests, and did nothing. What caught it was measuring the actual load events in
+the actual browser against the actual deployment, rather than reasoning about
+what iframes probably do.
+
 ## 2026-08-30 — 1.5.0, item 4: the editor, and the defect on the other side of it
 
 The plan left one judgement inside this item and asked for it to be taken
