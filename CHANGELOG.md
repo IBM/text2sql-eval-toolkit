@@ -113,6 +113,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Profile Compare's address names every benchmark it is pooling.**
+  `/compare/profile?benchmarks=bird_mini_dev_postgres,beaver`. It named a
+  single one in a path segment, so adding a second changed the address to
+  whichever was chosen last and a shared link reopened the wrong view. Removing
+  one and *Reset to one* keep it in step as well.
 - **A benchmark's five views share a tab strip.** Summary, Metric Insights,
   Pipeline Compare, Profile Compare and Error Analysis, across the top of all
   five, with the current one marked. The summary offered the other four as

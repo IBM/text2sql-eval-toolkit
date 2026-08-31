@@ -102,6 +102,7 @@ import type {
 import {
   FILTER_DEFAULTS,
   parseLocation,
+  parseBenchmarkList,
   parseQuery,
   routes,
   type ViewName,
@@ -260,6 +261,12 @@ export const App: React.FC = () => {
 
   const urlFilters = useMemo(
     () => parseQuery(location.search.replace(/^\?/, "")),
+    [location.search],
+  );
+
+  /** The benchmarks profile compare is pooling, from `?benchmarks=a,b`. */
+  const profileBenchmarkIds = useMemo(
+    () => parseBenchmarkList(location.search.replace(/^\?/, "")),
     [location.search],
   );
 
@@ -987,16 +994,25 @@ export const App: React.FC = () => {
       // No chooser and no fallback: this view selects benchmarks itself, and
       // several at once, so a benchmark in the address only seeds that
       // selection. Its own address names none.
+      // The tab strip anchors to the first benchmark in the selection, which is
+      // the one you arrived from when you came through a benchmark's tabs.
+      // With none selected there is nothing to anchor to and no strip.
       return (
         <BenchmarkView
-          benchmarkId={selectedBenchmark}
+          benchmarkId={profileBenchmarkIds[0] ?? selectedBenchmark}
           active="profileCompare"
           onNavigate={goto}
         >
           <ProfileCompareView
             benchmarks={benchmarks}
             benchmarkId={selectedBenchmark}
-            onSelectBenchmark={(id) => navigate(routes.profileCompare(id))}
+            selectedIds={profileBenchmarkIds}
+            // `replace`, not push: adding and removing benchmarks adjusts one
+            // view, and a history entry per change would bury whatever the
+            // reader was looking at before it.
+            onSelectionChange={(ids) =>
+              navigate(routes.profileCompare(ids), { replace: true })
+            }
           />
         </BenchmarkView>
       );

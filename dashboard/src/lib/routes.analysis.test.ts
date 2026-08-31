@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseLocation, routes } from "./routes";
+import { parseBenchmarkList, parseLocation, routes } from "./routes";
 
 /**
  * The analysis views, addressed with and without a benchmark.
@@ -16,8 +16,10 @@ describe("building analysis addresses", () => {
     expect(routes.insights(BENCHMARK)).toBe("/benchmark/spider_dev/insights");
     expect(routes.compare(BENCHMARK)).toBe("/benchmark/spider_dev/compare");
     expect(routes.errors(BENCHMARK)).toBe("/benchmark/spider_dev/errors");
+    // Profile compare is the exception: it pools several benchmarks, so its
+    // address carries a list rather than a path segment. See below.
     expect(routes.profileCompare(BENCHMARK)).toBe(
-      "/benchmark/spider_dev/compare/profile",
+      "/compare/profile?benchmarks=spider_dev",
     );
   });
 
@@ -81,5 +83,58 @@ describe("resolving analysis addresses", () => {
   it("still refuses a mangled path under these prefixes", () => {
     expect(parseLocation("/compare/nonsense").notFound).toBe(true);
     expect(parseLocation("/insights/extra").notFound).toBe(true);
+  });
+});
+
+describe("profile compare pools several benchmarks", () => {
+  it("carries the whole selection, not just the last one added", () => {
+    // The bug this replaced: the address named whichever benchmark was chosen
+    // most recently while the view was pooling several.
+    expect(routes.profileCompare(["a", "b", "c"])).toBe(
+      "/compare/profile?benchmarks=a,b,c",
+    );
+  });
+
+  it("accepts a single id, for the tab strip and for old callers", () => {
+    expect(routes.profileCompare("spider_dev")).toBe(
+      "/compare/profile?benchmarks=spider_dev",
+    );
+  });
+
+  it("names none when nothing is selected", () => {
+    expect(routes.profileCompare()).toBe("/compare/profile");
+    expect(routes.profileCompare([])).toBe("/compare/profile");
+    expect(routes.profileCompare(null)).toBe("/compare/profile");
+  });
+
+  it("round-trips a selection through the query string", () => {
+    for (const ids of [["a"], ["a", "b"], ["bird_mini_dev_postgres", "beaver"]]) {
+      const url = routes.profileCompare(ids);
+      expect(parseBenchmarkList(url.split("?")[1] ?? "")).toEqual(ids);
+    }
+  });
+
+  it("encodes an id so a comma in one cannot split the list", () => {
+    const url = routes.profileCompare(["a,b", "c"]);
+    expect(url).toBe("/compare/profile?benchmarks=a%2Cb,c");
+    expect(parseBenchmarkList(url.split("?")[1])).toEqual(["a,b", "c"]);
+  });
+
+  it("reads an absent or empty parameter as no selection", () => {
+    expect(parseBenchmarkList("")).toEqual([]);
+    expect(parseBenchmarkList("other=1")).toEqual([]);
+    expect(parseBenchmarkList("benchmarks=")).toEqual([]);
+  });
+
+  it("drops a malformed entry rather than throwing", () => {
+    // A bad escape must cost that one id, not blank the whole view.
+    expect(parseBenchmarkList("benchmarks=good,%E0%A4%A")).toEqual(["good"]);
+  });
+
+  it("still resolves the older benchmark-scoped address", () => {
+    // Links to it exist; it seeds the selection with that one benchmark.
+    expect(parseLocation("/benchmark/spider_dev/compare/profile")).toMatchObject(
+      { view: "profileCompare", benchmarkId: "spider_dev" },
+    );
   });
 });

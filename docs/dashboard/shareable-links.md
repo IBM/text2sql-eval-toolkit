@@ -14,7 +14,7 @@ filtered error-analysis query, or a single record can be linked to directly.
 /errors                                                  …with no benchmark chosen yet
 /insights                                                …
 /compare                                                 …
-/compare/profile                                         profile comparison
+/compare/profile?benchmarks=a,b                           profile comparison, pooling those
 /run                                                     eval playground
 /run/{id}                                                …at one benchmark
 /run/{id}/record/{record}?pipeline=…                     …at one record
@@ -30,9 +30,13 @@ The analysis views have two forms. `/benchmark/{id}/insights` is that view of
 that benchmark; `/insights` is the same view with none chosen yet, and asks.
 Opening the second used to redirect to whichever benchmark loaded first, which
 showed the reader numbers for something they had not asked about. Profile
-compare selects benchmarks itself, several at a time, so `/compare/profile` is
-its canonical address; the benchmark-scoped form still resolves and seeds that
-selection.
+compare selects benchmarks itself, several at a time, so its address carries a
+list: `/compare/profile?benchmarks=bird_mini_dev_postgres,beaver`. A single
+benchmark in a path segment could only ever name one, and the view lets you add
+a second — at which point the address quietly became the one most recently
+added and no longer described what was on screen. The older
+`/benchmark/{id}/compare/profile` still resolves and seeds the selection with
+that one benchmark.
 
 **The address bar is the link.** There is no "copy this URL" button — it would
 duplicate something every browser already offers.
