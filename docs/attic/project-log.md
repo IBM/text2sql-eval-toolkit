@@ -10,6 +10,31 @@ finished.
 
 ---
 
+## 2026-08-30 — 1.5.0, item 2: the release page, and where the check belongs
+
+Small item, one decision in it. The plan said to order the Release job after
+`publish`, and it is right about that: a Release page pointing at a version PyPI
+rejected is worse than a missing one. But it also said the changelog extraction
+should live in that job, and *that* would mean a tag with no changelog section
+publishes to PyPI -- irreversibly -- and only then fails.
+
+So the two halves are split. `build` extracts the notes and fails there, before
+anything leaves the machine; the notes travel to `github-release` as an
+artifact, so both jobs read the same bytes rather than re-deriving them. The
+ordering the plan asked for is kept for the part that creates the page.
+
+`scripts/ci/extract_changelog.py` has twelve tests, which is more than it looks
+like it needs until you notice what they cover: the newest section running on
+past the next heading, the oldest section swallowing the link-reference block at
+the foot of the file, and a heading with nothing under it -- which produces an
+empty page, the exact failure the item exists to prevent. One of them asserts
+the *current* declared version has notes, so the repository cannot reach a tag
+in the state 1.3.0 and 1.4.0 were in.
+
+The changelog's link-reference definitions were missing for 1.2.0, 1.4.0 and
+1.5.0, so those headings rendered as literal `[1.4.0]`. Added, now that the
+URLs they point at will exist.
+
 ## 2026-08-30 — 1.5.0, item 1: the alerts were mostly bookkeeping, and one real finding
 
 158 open Dependabot alerts, 28 distinct packages, three manifests. The count was
