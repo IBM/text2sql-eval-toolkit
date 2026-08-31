@@ -2,7 +2,22 @@
 # Copyright IBM Corp. 2025 - 2026
 # SPDX-License-Identifier: Apache-2.0
 #
-# Publishes to PyPI when a v* tag is pushed.
+# Publishes to PyPI and creates the GitHub Release when a v* tag is pushed.
+#
+# One push, three jobs, no manual step:
+#
+#   build   -- build, check the tag matches the packaged version, check the
+#              wheel carries its UI and judge configs, `twine check`, and
+#              extract this version's release notes from CHANGELOG.md. A tag
+#              with no changelog section fails here, before anything is
+#              published.
+#   publish -- Trusted Publishing to PyPI, gated on the `pypi` environment.
+#   github-release -- the Release page, from those notes, with the wheel and
+#              sdist attached.
+#
+# The third job is new in 1.5.0. Before it, the Release page was written by
+# hand after the tag, and it was forgotten on both 1.3.0 and 1.4.0 -- nothing
+# failed when it was missed, which is why it kept being missed.
 #
 # Authentication is PyPI Trusted Publishing (OIDC): the workflow exchanges a
 # short-lived GitHub identity token for an upload token at publish time. No API
@@ -74,10 +89,32 @@ jobs:
       - name: Metadata renders on PyPI
         run: twine check dist/*
 
+      - name: Release notes exist for this tag
+        # Checked *here*, in the job before `publish`, because publishing is
+        # irreversible: a tag with no changelog section must stop the release,
+        # not produce a PyPI version alongside an empty Release page. The
+        # extraction happens once, and the notes travel to the release job as an
+        # artifact so both are reading the same bytes.
+        #
+        # `scripts/ci/extract_changelog.py` has tests; this step is the reason
+        # it is a script rather than shell inside this file.
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          python scripts/ci/extract_changelog.py "$GITHUB_REF_NAME" \
+            -o release-notes.md
+          echo "--- release notes ---"
+          cat release-notes.md
+
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
+
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: release-notes
+          path: release-notes.md
 
   publish:
     name: Publish to PyPI
@@ -99,3 +136,39 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: ${{ (github.event_name == 'workflow_dispatch' && inputs.testpypi) && 'https://test.pypi.org/legacy/' || '' }}
+
+  github-release:
+    name: GitHub Release
+    # After `publish`, never beside it. A Release page pointing at a version
+    # PyPI rejected is worse than a missing one.
+    needs: publish
+    # Only a real tag gets a Release. A workflow_dispatch to TestPyPI has no tag
+    # to attach one to.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      # The only thing this job needs, and the only thing it gets. Kept as
+      # narrow as the publish job's `id-token: write`.
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+
+      - name: Create the Release
+        # --verify-tag refuses to invent a tag if the ref is somehow not one.
+        # The wheel and sdist are attached so the page is a complete record of
+        # what was published rather than only a pointer at PyPI.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            dist/*.whl dist/*.tar.gz

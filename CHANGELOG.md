@@ -50,6 +50,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were already enabled; what was missing is the half that opens a pull request
   rather than waiting for someone to notice.
 
+### Added
+
+- **The GitHub Release is created by the tag.** Pushing `vX.Y.Z` now builds,
+  publishes to PyPI and creates the Release page with that version's changelog
+  notes and the built wheel and sdist attached. The page used to be written by
+  hand afterwards, and was forgotten on both 1.3.0 and 1.4.0 — nothing failed
+  when it was missed. A tag whose version has no `CHANGELOG.md` section fails
+  the workflow *before* anything is published, rather than producing a release
+  with an empty page.
+
 ## [1.4.0] - 2026-08-30
 
 ### Changed — breaking
@@ -267,6 +277,9 @@ which is enforced by a test rather than by intention.
 - Re-exported low-level SQL comparison and parsing helpers (`compare_result_dfs`, `sql_exact_match`, etc.) from toolkit-owned metrics utilities.
 - Library-focused README examples showing record-level, file-level, and benchmark-level usage.
 
+[1.5.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.5.0
+[1.4.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.4.0
 [1.3.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.3.0
+[1.2.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.2.0
 [1.1.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.1.0
 [1.0.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.0.0
