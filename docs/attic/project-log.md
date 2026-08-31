@@ -10,6 +10,42 @@ finished.
 
 ---
 
+## 2026-08-31 — the benchmark is an input, not an identity
+
+Profile compare's fix generalised. `/benchmark/{id}` is the summary *of* a
+benchmark, so the id belongs in its path. The other four are views that *take* a
+benchmark -- and one of them takes several -- which is a different relationship,
+and the path segment was the wrong home for it. They are `/insights?benchmark=x`
+now, and the four old path forms still resolve because links to them exist.
+
+Three things follow from that, and they are the reason the change is worth more
+than the tidier URL.
+
+The benchmark becomes a control in the view. It was already one in metric
+insights; pipeline compare and error analysis had none at all, so once you were
+in them the only way to change benchmark was the tab strip or the address bar.
+All three share one `BenchmarkSelect` now.
+
+The empty state stops being a different page. It was a grid of benchmark tiles,
+which looked like a chooser rather than like the view waiting for an input; it
+is the same dropdown the view carries, over an empty page, so picking the first
+benchmark and changing it later are the same gesture in the same place.
+
+And `parseLocation` no longer sees the benchmark, which caught a real bug in
+review rather than in use: `onErrorAnalysisStateChange` read `match.benchmarkId`
+and returned early when it was null, so on `/errors?benchmark=…` the address
+silently stopped following the page number and the open record. Three e2e tests
+failed on it. They were testing the right thing and they earned their keep --
+that is the third time on this branch that moving a URL broke something no unit
+test covered.
+
+Four route assertions across two files also failed, correctly, encoding the old
+scheme. Worth noticing that they failed *after* the previous commit shipped with
+one of them broken because I read the timing line of the test output instead of
+the pass count. This time I grepped for the count.
+
+---
+
 ## 2026-08-31 — an address that could not describe what was on screen
 
 Profile compare pools several benchmarks. Its address named one, in a path

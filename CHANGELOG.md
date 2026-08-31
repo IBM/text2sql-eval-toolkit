@@ -113,6 +113,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The benchmark moved out of the analysis views' paths and into their query.**
+  `/insights?benchmark=bird_mini_dev_sqlite`, and likewise for `/compare` and
+  `/errors`. `/benchmark/{id}` is the summary *of* a benchmark and keeps the id
+  in its path; the other four take a benchmark as an input, and one takes
+  several, so it belongs in a parameter. Each of those views now carries a
+  benchmark dropdown at the top — Pipeline Compare and Error Analysis had no
+  way to change benchmark at all — and with none chosen shows that dropdown
+  over an empty page rather than a grid of tiles. The older path forms still
+  resolve.
 - **Profile Compare's address names every benchmark it is pooling.**
   `/compare/profile?benchmarks=bird_mini_dev_postgres,beaver`. It named a
   single one in a path segment, so adding a second changed the address to

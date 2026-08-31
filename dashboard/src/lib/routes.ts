@@ -59,6 +59,22 @@ export const FILTER_DEFAULTS: Required<
 const encode = (segment: string): string => encodeURIComponent(segment);
 
 /**
+ * Put `benchmark=` at the front of a query string that may already have
+ * filters in it.
+ *
+ * First rather than appended, because it is the parameter a reader is most
+ * likely to want to see or edit in the address bar.
+ */
+const withBenchmark = (
+  benchmarkId: string | null | undefined,
+  rest: string,
+): string => {
+  if (!benchmarkId) return rest;
+  const tail = rest.replace(/^\?/, "");
+  return `?benchmark=${encode(benchmarkId)}${tail ? `&${tail}` : ""}`;
+};
+
+/**
  * The path prefix for a benchmark. Spelled out rather than abbreviated: these
  * addresses get pasted into issues and papers, where `/benchmark/spider_dev`
  * says what it points at and `/b/spider_dev` needs the reader to already know.
@@ -87,22 +103,23 @@ export const routes = {
       pipelineId,
     )}/record/${encode(recordId)}`,
   /**
-   * The analysis views, with or without a benchmark.
+   * The analysis views. The benchmark is a query parameter, not a segment.
    *
-   * `/benchmark/{id}/errors` is a view of one benchmark; `/errors` is the same
-   * view with none chosen yet, which asks. Both are real addresses -- the
-   * second is what the home page and the navigation link to, so that arriving
-   * at a view does not silently pick a benchmark on the reader's behalf and
-   * show them numbers for something they did not ask about.
+   * `/benchmark/{id}` is the summary *of* a benchmark, so the id belongs in
+   * its path. The other four are views that take a benchmark as their input,
+   * and one of them -- profile compare -- takes several; making that an input
+   * rather than part of the view's identity is what lets the address describe
+   * the selection in every case. It also means `/insights` is a real address
+   * on its own, showing the view with nothing chosen yet.
+   *
+   * The `/benchmark/{id}/insights` form still resolves; links to it exist.
    */
   errors: (benchmarkId?: string | null, filters?: ErrorFilters): string =>
-    benchmarkId
-      ? `/benchmark/${encode(benchmarkId)}/errors${buildQuery(filters)}`
-      : `/errors${buildQuery(filters)}`,
+    `/errors${withBenchmark(benchmarkId, buildQuery(filters))}`,
   insights: (benchmarkId?: string | null): string =>
-    benchmarkId ? `/benchmark/${encode(benchmarkId)}/insights` : "/insights",
+    `/insights${withBenchmark(benchmarkId, "")}`,
   compare: (benchmarkId?: string | null): string =>
-    benchmarkId ? `/benchmark/${encode(benchmarkId)}/compare` : "/compare",
+    `/compare${withBenchmark(benchmarkId, "")}`,
   /**
    * Profile compare pools *several* benchmarks, so its address carries a list.
    *
@@ -184,6 +201,12 @@ export const routes = {
  *
  * Empty when the parameter is absent, which is the view with nothing selected.
  */
+/** The benchmark an analysis view is looking at, from `?benchmark=`. */
+export function parseBenchmark(search: string): string | null {
+  const params = new URLSearchParams(search.replace(/^\?/, ""));
+  return params.get("benchmark") || null;
+}
+
 export function parseBenchmarkList(search: string): string[] {
   // Read the raw parameter rather than going through `URLSearchParams`, which
   // decodes the value before this can split it -- turning an id containing an

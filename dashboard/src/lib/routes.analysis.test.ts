@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { parseBenchmarkList, parseLocation, routes } from "./routes";
+import {
+  parseBenchmark,
+  parseBenchmarkList,
+  parseLocation,
+  routes,
+} from "./routes";
 
 /**
  * The analysis views, addressed with and without a benchmark.
@@ -12,14 +17,21 @@ import { parseBenchmarkList, parseLocation, routes } from "./routes";
 const BENCHMARK = "spider_dev";
 
 describe("building analysis addresses", () => {
-  it("names the benchmark when there is one", () => {
-    expect(routes.insights(BENCHMARK)).toBe("/benchmark/spider_dev/insights");
-    expect(routes.compare(BENCHMARK)).toBe("/benchmark/spider_dev/compare");
-    expect(routes.errors(BENCHMARK)).toBe("/benchmark/spider_dev/errors");
-    // Profile compare is the exception: it pools several benchmarks, so its
-    // address carries a list rather than a path segment. See below.
+  it("names the benchmark in the query when there is one", () => {
+    // The benchmark is an input to these views, not part of their identity,
+    // so it is a parameter rather than a path segment. Only `/benchmark/{id}`,
+    // the summary *of* a benchmark, keeps it in the path.
+    expect(routes.insights(BENCHMARK)).toBe("/insights?benchmark=spider_dev");
+    expect(routes.compare(BENCHMARK)).toBe("/compare?benchmark=spider_dev");
+    expect(routes.errors(BENCHMARK)).toBe("/errors?benchmark=spider_dev");
     expect(routes.profileCompare(BENCHMARK)).toBe(
       "/compare/profile?benchmarks=spider_dev",
+    );
+  });
+
+  it("puts the benchmark before a view's own filters", () => {
+    expect(routes.errors(BENCHMARK, { pipeline: "p", value: "0" })).toBe(
+      "/errors?benchmark=spider_dev&pipeline=p&value=0",
     );
   });
 
@@ -76,7 +88,12 @@ describe("resolving analysis addresses", () => {
   it("round-trips every form through the builder and the parser", () => {
     for (const build of [routes.insights, routes.compare, routes.errors]) {
       expect(parseLocation(build()).benchmarkId).toBeNull();
-      expect(parseLocation(build(BENCHMARK)).benchmarkId).toBe(BENCHMARK);
+      expect(parseBenchmark(build())).toBeNull();
+
+      const [path, search] = build(BENCHMARK).split("?");
+      // The path identifies the view; the query carries its benchmark.
+      expect(parseLocation(path).benchmarkId).toBeNull();
+      expect(parseBenchmark(search)).toBe(BENCHMARK);
     }
   });
 
