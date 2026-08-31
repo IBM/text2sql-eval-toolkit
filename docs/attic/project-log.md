@@ -58,9 +58,20 @@ found by looking at pixels, and the fifth by measuring `scrollWidth`.
 Two smaller things, both reported rather than found: the welcome text still
 told the reader to use a *Benchmarks* button in the top-right corner, which
 moved to a menu at the top left some releases ago; and **Docs** sat in the
-nav among the analysis pages, where it read as another one of them. It is
-pinned to the foot of the rail now, below a divider -- everything above it acts
-on the loaded results, and this one is reading material.
+nav among the analysis pages, where it read as another one of them. It has its
+own section now, below a divider -- everything above it acts on the loaded
+results, and this one is reading material.
+
+The first attempt at that put it at the foot of the rail behind a full-height
+spacer, which left a link stranded in the bottom-left corner under a screen of
+nothing and read as a mistake rather than as a section. The divider alone says
+what the spacer was for.
+
+The same report pointed out that the rail scrolled away with the page, which
+the survey makes obvious at 27,000 pixels long. It is sticky now, and the
+sticky has to be on the `<aside>` itself: the `overflow: hidden` that the width
+animation needs makes that element a scroll container, so a sticky descendant
+would position against it and never move.
 
 ---
 
