@@ -10,6 +10,42 @@ finished.
 
 ---
 
+## 2026-08-31 — the docs view becomes an index, and the embed goes
+
+`/docs` is a page of tiles now: the API reference and one tile per note.
+`/docs/{name}` opens a note full width, without the second navigation rail the
+view used to carry beside its content.
+
+**The embed is gone with it.** The 1.5.0 plan decided the published reference
+should be framed inside the dashboard, and that work was real: our own CSP was
+refusing it, so `frame-src` had to name the Read the Docs origin; the frame
+turned out to be blank for several seconds behind a CDN, so it needed a loading
+state; and detecting when it had actually loaded needed the `about:blank` trick,
+because a fresh iframe fires `load` twice.
+
+A tile that opens a frame of somebody else's site was doing all of that for the
+same result a link gives. The iframe, the loading state, `lib/iframeLoad.ts` and
+the `frame-src` directive are all deleted, and the dashboard now frames nothing
+at all -- which is a smaller policy than it had before this release started.
+
+What survives is the Carbon palette on `mkdocs.yml`. It was written because a
+cross-origin frame cannot be restyled from outside, and it is worth keeping for
+the reason that was always the better half of that argument: it applies to
+people who arrive at Read the Docs on their own.
+
+Worth being honest about the sequence. Three commits of work went into making
+the embed behave, and a design change made the whole thing unnecessary. None of
+it was wasted in the sense of being wrong -- it was wasted in the sense that the
+question "does this need to be a frame at all" was never asked, by the plan or
+by me, until the layout changed and made it obvious.
+
+The document page gains real estate as a side effect: the article is 1152px at a
+1400px viewport where the old two-rail layout gave it 1104px minus a 240px
+document list, and tables and diagrams get all of it while the prose stays at
+its measure.
+
+---
+
 ## 2026-08-31 — the survey arrives, and "renders properly" turns out to mean four things
 
 The generated `state-of-the-art.md` is replaced by a real 667-line survey with

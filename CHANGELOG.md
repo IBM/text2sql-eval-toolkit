@@ -61,13 +61,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **A docs view in the dashboard.** `/docs` embeds the published API reference;
-  `/docs/{name}` opens one of the long-form notes now kept in `docs/notes/` — a
-  survey of how text-to-SQL evaluation is done and where each metric misleads,
-  a catalogue of the cases where two metrics disagree, and a demo script. Each
-  note has its own address, so a link opens the one being discussed. Read-only,
-  public on every deployment mode, and adding a note needs no code change: the
-  title comes out of the file.
+- **A docs view in the dashboard.** `/docs` is an index of tiles — the
+  published API reference, which opens on Read the Docs, and the long-form
+  notes now kept in `docs/notes/`: a survey of how text-to-SQL evaluation is
+  done and where each metric misleads, a catalogue of the cases where two
+  metrics disagree, and a demo script. `/docs/{name}` opens one, full width.
+  Each note has its own address, so a link opens the one being discussed.
+  Read-only, public on every deployment mode, and adding a note needs no code
+  change: the title comes out of the file.
 
   The notes are not packaged. `docs/` ships in neither the wheel nor the sdist,
   and CI now checks that it stays that way — so a pip install gets the reference

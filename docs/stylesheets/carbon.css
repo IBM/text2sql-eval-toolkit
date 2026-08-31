@@ -4,11 +4,10 @@
  *
  * Carbon's colours for mkdocs-material.
  *
- * The dashboard embeds this site in an iframe, and a cross-origin frame cannot
- * be restyled from the page that frames it -- so if the reference is to look
- * like the product it documents, the theming has to happen here. It also means
- * someone arriving straight at Read the Docs sees the same thing, which is the
- * better half of the deal.
+ * The dashboard's documentation index links straight here, so this is the only
+ * place the reference can be made to look like the product it documents -- and
+ * it is the right place anyway, because it applies equally to someone who
+ * arrives at Read the Docs on their own.
  *
  * Values are IBM Carbon v11 tokens, spelled out rather than imported: pulling
  * Carbon's stylesheet into a docs build to read nine colours out of it would be
