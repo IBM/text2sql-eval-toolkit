@@ -1,5 +1,12 @@
 # A tour of the dashboard
 
+> **The links on this page only work in a running dashboard.** They are
+> addresses within the application — `/benchmark/spider_dev/compare` and the
+> like — so they resolve when you are reading this *inside* the dashboard, and
+> they do not resolve when you are reading the file on GitHub. The screenshots
+> and the numbers work either way. A public deployment is at
+> <https://text2sql-eval-toolkit.oaklayer.dev/docs/dashboard-tour>.
+
 Every screen below is part of this dashboard, and every link opens the real
 thing with real results loaded. Nothing here is a mock-up — the numbers quoted
 are the ones the linked page will show you.
