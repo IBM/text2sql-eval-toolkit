@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { enhance } from "./richContent";
+import { ZOOM_ATTRIBUTE, enhance } from "./richContent";
 
 /**
  * Only the table pass is exercised here.
@@ -54,6 +54,12 @@ describe("enhance", () => {
     await enhance(root);
     await enhance(root);
     expect(root.querySelectorAll(".table-scroll")).toHaveLength(1);
+  });
+
+  it("exports the attribute the view listens for", () => {
+    // The control is created here and handled in DocsView; a rename on one
+    // side without the other would silently stop the dialog from opening.
+    expect(ZOOM_ATTRIBUTE).toBe("data-diagram-zoom");
   });
 
   it("leaves a document with no table, maths or diagram untouched", async () => {

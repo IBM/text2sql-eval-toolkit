@@ -3,7 +3,7 @@ import { InlineNotification, SkeletonText } from "@carbon/react";
 import { ArrowLeft, Launch } from "@carbon/icons-react";
 import { fetchDoc, fetchDocs, type DocInfo } from "../services/docs";
 import { renderMarkdown } from "../lib/markdown";
-import { enhance } from "../lib/richContent";
+import { ZOOM_ATTRIBUTE, enhance } from "../lib/richContent";
 import { routes } from "../lib/routes";
 import "./DocsView.css";
 
@@ -217,6 +217,7 @@ const DocumentPage: React.FC<{
   const [html, setHtml] = useState<string | null>(null);
   const [title, setTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [zoomed, setZoomed] = useState<SVGElement | null>(null);
   const article = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -295,7 +296,19 @@ const DocumentPage: React.FC<{
           // anchor, because the anchors arrive as sanitised HTML and there is
           // nothing to attach a handler to.
           onClick={(event) => {
-            const anchor = (event.target as HTMLElement).closest("a");
+            const target = event.target as HTMLElement;
+
+            const zoom = target.closest(`[${ZOOM_ATTRIBUTE}]`);
+            if (zoom) {
+              // The live node, not its markup: it was sanitised on the way in
+              // and cloning it keeps it that way, with no HTML round trip to
+              // reason about.
+              const svg = zoom.parentElement?.querySelector("svg") ?? null;
+              if (svg) setZoomed(svg);
+              return;
+            }
+
+            const anchor = target.closest("a");
             if (!anchor || !article.current?.contains(anchor)) return;
             // Leave anything the browser handles better: modified clicks, the
             // middle button, and any link opening in a new tab or another
@@ -325,6 +338,91 @@ const DocumentPage: React.FC<{
           dangerouslySetInnerHTML={{ __html: html }}
         />
       )}
+
+      {zoomed && <DiagramDialog svg={zoomed} onClose={() => setZoomed(null)} />}
+    </div>
+  );
+};
+
+/**
+ * One diagram, at its natural size, over the page.
+ *
+ * The point is room: in the article a wide diagram is drawn at around half
+ * size to fit the column, and here it is drawn at the size Mermaid laid it out
+ * at and scrolls if that is still larger than the window.
+ */
+const DiagramDialog: React.FC<{ svg: SVGElement; onClose: () => void }> = ({
+  svg,
+  onClose,
+}) => {
+  const closeButton = useRef<HTMLButtonElement | null>(null);
+
+  // Escape closes, and the page behind does not scroll while this is open --
+  // scrolling the thing you cannot see is disorienting.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // Focus moves into the dialog, and back out again on close, so a keyboard
+    // user is not left where the page used to be.
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeButton.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [onClose]);
+
+  const canvas = useRef<HTMLDivElement | null>(null);
+
+  // An effect rather than a ref callback: StrictMode attaches refs twice in
+  // development, and this way the clone is replaced when the diagram changes
+  // instead of being appended beside the last one.
+  useEffect(() => {
+    const node = canvas.current;
+    if (!node) return;
+    const clone = svg.cloneNode(true) as SVGElement;
+    // Undo the fitting the article applies; here there is room.
+    clone.removeAttribute("style");
+    clone.style.width = svg.style.width || "auto";
+    clone.style.maxWidth = "none";
+    clone.style.height = "auto";
+    node.replaceChildren(clone);
+    return () => node.replaceChildren();
+  }, [svg]);
+
+  return (
+    <div
+      className="t2s-diagram-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Diagram, full size"
+      // Anything but the diagram closes. Comparing target to currentTarget
+      // would have been tidier and did not work: the bar and the canvas fill
+      // the dialog, so the dialog element itself is never the click target and
+      // there is no backdrop left to hit. Excluding the diagram means dragging
+      // to scroll a wide one cannot dismiss it by accident.
+      onClick={(event) => {
+        const target = event.target as Element;
+        if (target.closest("svg") || target.closest("button")) return;
+        onClose();
+      }}
+    >
+      <div className="t2s-diagram-dialog__bar">
+        <button
+          type="button"
+          ref={closeButton}
+          className="t2s-diagram-dialog__close"
+          onClick={onClose}
+        >
+          Close
+        </button>
+      </div>
+      <div className="t2s-diagram-dialog__canvas" ref={canvas} />
     </div>
   );
 };

@@ -59,6 +59,24 @@ _ASSET_TYPES = {
     ".gif": "image/gif",
 }
 
+#: Reading order for the index, lowest first.
+#:
+#: Alphabetical put the survey in the middle, which is the wrong place for the
+#: longest and most theoretical of the notes: a reader arriving at the
+#: documentation wants the tour, then the worked examples, then -- if they are
+#: still there -- the survey.
+#:
+#: A document not named here takes ``_DEFAULT_ORDER`` and sorts by title among
+#: its neighbours, so adding a note still needs no code change; it lands in the
+#: middle, which is a reasonable place for something nobody has ranked. Give it
+#: a rank here only when its position actually matters.
+_DEFAULT_ORDER = 50
+_ORDER = {
+    "dashboard-tour": 10,
+    "worked-examples": 20,
+    "text-to-sql-evaluation-survey": 90,
+}
+
 #: Not listed as documents. ``README.md`` is the directory's index for someone
 #: browsing the repository on GitHub -- it describes the other files rather
 #: than being one of them, and in the view it would read as a document about
@@ -195,7 +213,9 @@ def list_docs() -> DocListResponse:
                 summary=_summary_of(text),
             )
         )
-    items.sort(key=lambda item: item.title.lower())
+    items.sort(
+        key=lambda item: (_ORDER.get(item.name, _DEFAULT_ORDER), item.title.lower())
+    )
     return DocListResponse(items=items, available=True)
 
 

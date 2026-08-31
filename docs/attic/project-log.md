@@ -10,6 +10,60 @@ finished.
 
 ---
 
+## 2026-08-31 — diagrams fit the column, and there is a way out when they do not
+
+The survey's diagrams were rendered at natural size and left to scroll inside
+their figures. That was a deliberate reaction to the previous state, where
+fitting them to the column had squeezed a 2082-pixel flowchart into 32 pixels of
+height -- present, correct and impossible to read. Scrolling was the safe
+answer, and the wrong default: the reader wants the figure.
+
+The version that holds both is: scale to fit, but never below a floor. `width`
+is the natural size so a small diagram is never blown up, `max-width: 100%`
+lets a wide one shrink to the column, and `min-width` stops the shrinking at
+half size, below which the figure scrolls as before.
+
+The floor was measured, not guessed. Every diagram in the survey needs at most
+0.53 to fit the article column, so at a normal window all ten fit and none
+scroll; at 1024 two clamp, and at 768 five do. That is the shape you want --
+the default does the right thing where there is room, and degrades where there
+is not.
+
+**And a way out of both.** Each figure carries a "View full size" control that
+opens the diagram at its natural size over the page, scrolling in both axes if
+the window is smaller. Three details that were wrong first:
+
+- Comparing `event.target` to `event.currentTarget` for the backdrop click is
+  the tidy idiom and does nothing here: the bar and canvas fill the dialog, so
+  the dialog element is never the target and there is no backdrop left to hit.
+  It closes on anything that is not the diagram itself instead -- which also
+  means dragging to scroll a wide one cannot dismiss it.
+- The clone started as a ref callback guarded by `if (node.firstChild) return`.
+  That survives StrictMode's double attach by accident rather than by design,
+  and silently ignores the diagram changing. It is an effect keyed on the SVG.
+- Carbon's overlay token is light enough that the header behind reads through
+  and competes with the figure. The scrim is set explicitly.
+
+The control is created in `richContent.ts`, where the figure is built, and
+handled in `DocsView`, because the dialog is React's. The attribute joining
+them is exported and asserted in a test -- renaming one side silently stops the
+dialog opening, and nothing else would have caught it.
+
+It was first placed in the top-right corner of the figure, absolutely
+positioned. The figure was the scroll container, so on the wide diagrams -- the
+ones the control exists for -- it slid out of view the moment you scrolled to
+see what it was offering to enlarge. The scrolling moved to an inner element
+and the button below it in normal flow, where it is always where the reader
+left it and never covers the figure.
+
+The index is ordered by a rank rather than by title. Alphabetical put the
+survey in the middle, which is the wrong place for the longest and most
+theoretical note; the reader wants the tour, then the worked examples, then --
+if they are still there -- the survey. An unranked document takes a default in
+the middle, so adding a note still needs no code change.
+
+---
+
 ## 2026-08-31 — the demo note was written for the presenter, not the reader
 
 `demo-walkthrough.md` was a script: what to show, in what order, how long it
