@@ -10,6 +10,39 @@ finished.
 
 ---
 
+## 2026-08-31 — 1.5.0 closed, and what the plan did not predict
+
+The four planned items — dependency advisories, release automation, a docs view,
+a usable judge-config editor — were the smaller half of what shipped. The rest
+came from using the thing: a home page that is now the entry point to every
+view, an address scheme where the benchmark is a query parameter on the analysis
+views rather than a path segment, and a run of judge defects that only surfaced
+once somebody pointed a second provider at it.
+
+That is the pattern worth recording. Four of the defects fixed this release —
+the `user_keys` migration, the OpenAI base URL, the Markdown verdict, the
+uncacheable-N/A — were all invisible to the test suite and all found within an
+hour of one person trying to use their own API key on the deployment. Every one
+lived in a gap the tests could not see: a database older than the schema, an
+environment variable nobody local had unset, a model whose house style differs
+from the one we developed against, a cache with no escape hatch. Tests that
+construct their own world will not find these; only a real deployment with a
+real user will.
+
+The plan document is deleted, as `docs/attic/README.md` says it should be. What
+survived it is already elsewhere: the *why* in the entries below, the user-facing
+half in `docs/guide/llm-judge.md` and `docs/guide/models.md`.
+
+Release mechanics for the record: the version was already 1.5.0 in
+`pyproject.toml` and `uv.lock`, the changelog section is dated the day it
+actually shipped rather than the day it was started, the results dataset on the
+Hub is tagged `v1.5.0` so `results fetch` resolves without falling back to
+`main`, and the tag itself does the rest — `release.yml` builds, checks the tag
+against the packaged version, publishes to PyPI behind the `pypi` environment
+gate and writes the Release page from the changelog.
+
+---
+
 ## 2026-08-31 — a cache with no way out
 
 Fixing the parser did not fix the deployment: the stale `N/A` was still in the

@@ -138,12 +138,15 @@ of 0. Scroll the metric block to read it.
 Edit a query, run it, evaluate it, and — where the deployment allows it — run
 the LLM judge on the result and read the verdict.
 
-Two things worth knowing:
+Three things worth knowing:
 
 - A verdict is cached against the record, the pipeline, the config name **and a
   digest of the config's contents**. Re-running an unchanged judge costs
   nothing; changing a word in the prompt invalidates it. That is what makes a
   judge score reproducible rather than a coin flip.
+- **Judge again** overrides that. The digest only covers the case where you
+  changed something; this is for the case where the inputs are identical and you
+  simply do not trust the stored verdict.
 - Once a verdict is showing, the address carries the judge config. **That link
   restores the same verdict for whoever you send it to** — and opening it reads
   the cache only. It never starts an inference, because sharing an answer is not
@@ -167,7 +170,9 @@ a genuinely different measurement: it asks whether the query answers the
 question, rather than whether it matches someone else's answer.
 
 Edits are saved to the data root and shadow the packaged config of the same
-name; deleting the copy restores the original.
+name; deleting the copy restores the original. **Duplicate** starts a new config
+from the one open rather than from an empty editor, and **Rename** moves one of
+your own.
 
 ---
 
