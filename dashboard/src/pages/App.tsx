@@ -885,6 +885,7 @@ export const App: React.FC = () => {
           benchmarkId={selectedBenchmark}
           pipelineName={selectedPipeline}
           recordId={match.recordId}
+          onNavigate={goto}
           // Opening or closing a record is a step a reader walks back through,
           // so it pushes a history entry rather than replacing one.
           onSelectRecord={(recordId) =>
@@ -932,6 +933,7 @@ export const App: React.FC = () => {
           key={effectiveBenchmarkId}
           benchmarkId={effectiveBenchmarkId}
           benchmarks={benchmarks}
+          onNavigate={goto}
           onSelectBenchmark={(id) => navigate(routes.errors(id))}
           onBack={() => navigate(routes.benchmark(effectiveBenchmarkId))}
           initialFilters={errorAnalysisFilters}
