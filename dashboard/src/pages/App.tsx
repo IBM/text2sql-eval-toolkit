@@ -186,20 +186,37 @@ const ChooseBenchmark: React.FC<{
  */
 const HOME_SECTION_BOX = false;
 
+/**
+ * The band banners' colour: Carbon Blue 80.
+ *
+ * Blue 60 -- the interactive blue used for links and primary buttons -- was
+ * too bright for three full-width bars; it read as three calls to action
+ * rather than as structure. Blue 80 is the same family two steps darker, so it
+ * still relates to everything else blue on the page without competing with it,
+ * and white on it clears the contrast floor several times over.
+ *
+ * Compared against Gray 100, Gray 80, Blue 70, Gray 20 and Gray 10 by
+ * rendering each. Gray 100 matches the header, rail and footer exactly and is
+ * the tidiest argument, but three near-black bars make the page top-heavy and
+ * compete with the real header. Gray 20 is closest to Carbon's own section
+ * heading and too quiet to do the separating this page needs -- which was the
+ * original problem.
+ */
+const HOME_BANNER_BG = "#002d9c";
+const HOME_BANNER_FG = "#ffffff";
+
 const HomeSection: React.FC<{
   title: string;
   children: React.ReactNode;
 }> = ({ title, children }) => (
   <section style={{ display: "flex", flexDirection: "column" }}>
     {/*
-      A solid Carbon Blue 60 banner, white and centred.
+      A solid banner, white and centred -- see HOME_BANNER_BG for the colour.
 
       Carbon's own section heading is typography and whitespace rather than a
       filled bar, so this is a deliberate departure: the home page is a landing
       page carrying three unrelated bands of tiles, and a heading that competes
-      with sixteen bordered tiles for attention loses. The blue is the same
-      $interactive the rest of the interface uses, and white on it clears the
-      contrast floor comfortably.
+      with sixteen bordered tiles for attention loses.
 
       Square, because Carbon does not round anything.
     */}
@@ -207,8 +224,8 @@ const HomeSection: React.FC<{
       style={{
         margin: 0,
         padding: "0.55rem 1rem",
-        background: "#0f62fe",
-        color: "#ffffff",
+        background: HOME_BANNER_BG,
+        color: HOME_BANNER_FG,
         fontSize: "0.875rem",
         fontWeight: 600,
         letterSpacing: "0.02em",

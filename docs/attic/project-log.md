@@ -184,10 +184,20 @@ benchmarks, the six analysis views, and the four documents. The band headings
 took three passes. Plain text above each card matched nothing else in the
 dashboard. Moving them inside a blue-bordered card matched the other views --
 and still lost, because a small blue heading cannot separate three bands when
-sixteen bordered tiles are competing with it. They are solid Blue 60 banners
-now, white and centred: a departure from Carbon, which titles sections with
+sixteen bordered tiles are competing with it. They are solid banners now,
+white and centred: a departure from Carbon, which titles sections with
 typography and whitespace, and the right one for a landing page whose whole job
 is to be scanned.
+
+Blue 60 was the first try and too bright -- three full-width bars in the
+interactive blue read as three calls to action rather than as structure. Six
+candidates were rendered and looked at: Gray 100, Gray 80, Blue 80, Blue 70,
+Gray 20, Gray 10. Blue 80 won. Gray 100 matches the header, rail and footer
+exactly, which is the tidiest argument on paper and makes the page top-heavy in
+practice, three near-black bars competing with the real header; Gray 20 is
+closest to Carbon's own section heading and too quiet to separate anything,
+which is where this started. The colour is a named constant, because the next
+person to ask will want to try the others too.
 
 The box around each band went with them. Both versions were built and looked at
 side by side, which is the only way to answer that kind of question; the box put
