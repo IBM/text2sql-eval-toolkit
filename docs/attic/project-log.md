@@ -10,6 +10,37 @@ finished.
 
 ---
 
+## 2026-08-31 — CREATE TABLE IF NOT EXISTS is not a migration
+
+Saving a Gemini key on the deployment answered 500. The log said it plainly:
+`table user_keys has no column named ciphertext2`.
+
+That column was added in 1.4.0, for the watsonx project id that has to travel
+with the watsonx key. The table is created with `CREATE TABLE IF NOT EXISTS`,
+which does nothing at all when the table is already there -- so the deployment,
+whose table was created earlier in 1.4.0's development, never got the column,
+and the schema in the source and the schema on disk quietly diverged.
+
+The blast radius was wider than the report. The INSERT names `ciphertext2`
+unconditionally -- NULL for providers with nothing to put in it -- so storing a
+key for *any* provider failed, not just Gemini. The feature had been unusable on
+that deployment since the day the column landed, and nobody had tried until now,
+because the per-user keys are the one feature you cannot exercise from a test
+that runs against a fresh database.
+
+Which is the actual lesson: every test created its table from the current
+schema, so every test passed. The bug lives entirely in the gap between a fresh
+database and an old one, and nothing was looking at that gap. The four new tests
+build the *previous* schema on purpose and migrate it.
+
+The fix reconciles columns on open rather than only creating the table. It is
+deliberately small -- a declared list of added columns, `ALTER TABLE ADD COLUMN`
+for whichever are absent -- and it carries a note that this only works for
+nullable columns with constant defaults, because the next column might not be
+one and a rebuild-and-copy is a different piece of work.
+
+---
+
 ## 2026-08-31 — checking the doc links found a bug older than the links
 
 Asked to check the tour's links, and the internal ones all resolved -- but the
