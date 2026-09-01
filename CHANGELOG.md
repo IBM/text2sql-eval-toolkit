@@ -142,7 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   address, so the view you end up on can still be linked to. Profile Compare
   selects benchmarks itself, several at a time, so `/compare/profile` is its
   canonical address and names none.
-- **The home page is the way in to everything.** Three bands of tiles:
+- **The home page is the way in to everything.** Three bands of tiles under solid blue banners:
   benchmarks, the six analysis views (Metric Insights, Pipeline Compare,
   Profile Compare, Error Analysis, LLM Judge, Eval Playground), and the four
   documents. Each tile says what the view is for. The analysis views that need

@@ -176,23 +176,57 @@ const ChooseBenchmark: React.FC<{
  * list of places rather than a single grid; the headings are what stop three
  * rows of tiles reading as one long undifferentiated one.
  */
+/**
+ * Whether a home section keeps a border around its tiles.
+ *
+ * Flipped once, compared side by side, and settled -- see the banner comment
+ * below. Left as a named constant rather than deleted branches because the
+ * question ("does the box still earn its place?") is the kind that gets asked
+ * again the next time the page changes.
+ */
+const HOME_SECTION_BOX = false;
+
 const HomeSection: React.FC<{
   title: string;
   children: React.ReactNode;
 }> = ({ title, children }) => (
-  // The bordered card with a blue heading inside it, which is how every other
-  // view in the dashboard titles a section -- see PipelineCompareView and
-  // ToolkitInsightsView. The first version put a plain heading above the card
-  // instead, which read as a different product.
-  <section
-    style={{
-      border: "1px solid rgba(15,98,254,0.2)",
-      borderRadius: "6px",
-      padding: "0.75rem",
-    }}
-  >
-    <h4 style={{ margin: "0 0 0.5rem 0", color: "#0f62fe" }}>{title}</h4>
-    {children}
+  <section style={{ display: "flex", flexDirection: "column" }}>
+    {/*
+      A solid Carbon Blue 60 banner, white and centred.
+
+      Carbon's own section heading is typography and whitespace rather than a
+      filled bar, so this is a deliberate departure: the home page is a landing
+      page carrying three unrelated bands of tiles, and a heading that competes
+      with sixteen bordered tiles for attention loses. The blue is the same
+      $interactive the rest of the interface uses, and white on it clears the
+      contrast floor comfortably.
+
+      Square, because Carbon does not round anything.
+    */}
+    <h4
+      style={{
+        margin: 0,
+        padding: "0.55rem 1rem",
+        background: "#0f62fe",
+        color: "#ffffff",
+        fontSize: "0.875rem",
+        fontWeight: 600,
+        letterSpacing: "0.02em",
+        textAlign: "center",
+      }}
+    >
+      {title}
+    </h4>
+    <div
+      style={{
+        padding: HOME_SECTION_BOX ? "0.75rem" : "0.75rem 0 0",
+        ...(HOME_SECTION_BOX
+          ? { border: "1px solid var(--cds-border-subtle)", borderTop: "none" }
+          : null),
+      }}
+    >
+      {children}
+    </div>
   </section>
 );
 /** Left nav width when open; main content shifts right by this amount (no overlay). */
