@@ -3,6 +3,7 @@ import { Button, ComboBox, InlineNotification, Tag, Tile } from "@carbon/react";
 import { Renew } from "@carbon/icons-react";
 
 import { apiFetch, apiUrl } from "../lib/api";
+import { toYaml } from "../lib/judgeConfig";
 
 /**
  * Run LLM-as-judge on the record currently open, and show what it said.
@@ -166,6 +167,49 @@ export const JudgePlayground: React.FC<Props> = ({
     ? configs.map((c) => c.name)
     : [DEFAULT_CONFIG_NAME];
 
+  // What the chosen judge actually is: its model and its prompt. Picking a
+  // config by name said nothing about what it would ask, and the only way to
+  // find out was to leave for the config editor and come back.
+  //
+  // YAML in a `pre` rather than the CodeMirror editor the config view uses:
+  // that editor's chunk is 416 KB against this view's 44 KB, which is a great
+  // deal of syntax highlighting for a read-only prompt template.
+  const [configYaml, setConfigYaml] = useState<string | null>(null);
+  const [configModel, setConfigModel] = useState<string | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
+  const [configOpen, setConfigOpen] = useState(false);
+
+  useEffect(() => {
+    if (!configName) return;
+    let cancelled = false;
+    setConfigError(null);
+    void (async () => {
+      try {
+        const res = await apiFetch(
+          apiUrl(`/api/llm-judge/configs/${encodeURIComponent(configName)}`),
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const body = (await res.json()) as Record<string, unknown>;
+        if (cancelled) return;
+        const model = (body?.model ?? {}) as Record<string, unknown>;
+        setConfigModel(
+          typeof model.id === "string" ? model.id : null,
+        );
+        setConfigYaml(toYaml(body));
+      } catch (e) {
+        if (cancelled) return;
+        setConfigYaml(null);
+        setConfigModel(null);
+        setConfigError(
+          e instanceof Error ? e.message : "Could not read the config",
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [configName]);
+
   return (
     <section
       style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
@@ -186,7 +230,7 @@ export const JudgePlayground: React.FC<Props> = ({
           Ask an LLM whether the predicted SQL answers the question, using the
           record above. A verdict is cached against this record, pipeline and
           config — including the config's contents — so running it again costs
-          nothing until one of those changes. <strong>Judge again</strong>
+          nothing until one of those changes. <strong>Judge again</strong>{" "}
           ignores the cache and asks the model afresh, replacing the stored
           verdict.
         </p>
@@ -240,6 +284,78 @@ export const JudgePlayground: React.FC<Props> = ({
           </Button>
         )}
       </div>
+
+      {(configYaml || configError) && (
+        <div
+          style={{
+            border: "1px solid var(--cds-border-subtle-01)",
+            background: "var(--cds-layer-02)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+              padding: "0.5rem 0.75rem",
+            }}
+          >
+            <span style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
+              Judge config
+            </span>
+            <code style={{ fontSize: "0.8125rem" }}>{configName}</code>
+            {configModel && (
+              <Tag type="cool-gray" size="sm" title={configModel}>
+                {configModel}
+              </Tag>
+            )}
+            <div style={{ marginInlineStart: "auto" }}>
+              <Button
+                kind="ghost"
+                size="sm"
+                onClick={() => setConfigOpen((open) => !open)}
+                disabled={!configYaml}
+              >
+                {configOpen ? "Hide prompt" : "Show prompt"}
+              </Button>
+            </div>
+          </div>
+          {configError && (
+            <p
+              style={{
+                margin: 0,
+                padding: "0 0.75rem 0.5rem",
+                fontSize: "0.8125rem",
+                color: "var(--cds-text-error)",
+              }}
+            >
+              Could not read this config: {configError}
+            </p>
+          )}
+          {configOpen && configYaml && (
+            // Collapsed by default. The prompt template is the bulk of every
+            // config and runs to forty-odd lines, which would push the verdict
+            // and the run controls off the screen for a reader who only wanted
+            // to know which model was judging.
+            <pre
+              style={{
+                margin: 0,
+                padding: "0.75rem",
+                borderBlockStart: "1px solid var(--cds-border-subtle-01)",
+                background: "var(--cds-layer-01)",
+                fontSize: "0.75rem",
+                lineHeight: 1.5,
+                maxHeight: "22rem",
+                overflow: "auto",
+                whiteSpace: "pre",
+              }}
+            >
+              {configYaml}
+            </pre>
+          )}
+        </div>
+      )}
 
       {!ready && (
         <p
