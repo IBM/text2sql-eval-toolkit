@@ -181,9 +181,19 @@ every visitor paid for a table most never opened.
 
 The home page then became the way in to everything: three bands of tiles for
 benchmarks, the six analysis views, and the four documents. The band headings
-were plain text above each card until it was pointed out that they matched
-nothing else in the dashboard; every other view titles a section with a blue
-heading *inside* a blue-bordered card, and they do that now too. Administrative
+took three passes. Plain text above each card matched nothing else in the
+dashboard. Moving them inside a blue-bordered card matched the other views --
+and still lost, because a small blue heading cannot separate three bands when
+sixteen bordered tiles are competing with it. They are solid Blue 60 banners
+now, white and centred: a departure from Carbon, which titles sections with
+typography and whitespace, and the right one for a landing page whose whole job
+is to be scanned.
+
+The box around each band went with them. Both versions were built and looked at
+side by side, which is the only way to answer that kind of question; the box put
+a frame around already-bordered tiles, and the banner alone does the grouping.
+The choice is a named constant rather than deleted code, because it will be
+asked again. Administrative
 routes are deliberately absent -- Users and sign-in stay in the header and the
 rail, because a landing page is for what the dashboard is *for*, not for
 running it.
