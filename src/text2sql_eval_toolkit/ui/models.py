@@ -347,6 +347,13 @@ class JudgeRequest(BaseModel):
     #: with and reopens the verdict on load; without this that link would bill
     #: whoever opened it, which is not what sharing a result should mean.
     cached_only: bool = False
+    #: Ignore any stored verdict and judge again, replacing it. The cache key
+    #: covers the config's contents, so an edited config already re-judges by
+    #: itself -- this is for the other case, where the inputs are identical and
+    #: the stored verdict is the thing you want rid of: a reply the parser could
+    #: not read, a model that was having a bad day, a run made against a broken
+    #: build. Without it a bad verdict was permanent.
+    refresh: bool = False
 
 
 class JudgeUsage(BaseModel):

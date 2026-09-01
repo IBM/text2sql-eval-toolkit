@@ -165,6 +165,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Judge again.** A stored verdict could not be overridden. The cache key
+  covers the config's contents, so an edited config re-judges by itself — but
+  with the inputs identical there was no way to discard a verdict you did not
+  trust, and a bad one was permanent. The button appears next to **Run judge**
+  once there is a result, and the endpoint takes `refresh` alongside
+  `cached_only` (setting both is a 400). A re-run costs an inference like any
+  other, so the monthly ceiling applies.
 - **A judge verdict is read through the formatting the model wrapped it in.**
   The prompt asks for a reply beginning "Yes", "No" or "Maybe", and the parser
   required those to be the literal first characters — so `**Yes**`, which is
