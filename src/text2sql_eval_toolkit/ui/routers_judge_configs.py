@@ -197,13 +197,19 @@ def rename_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
         raise HTTPException(status_code=400, detail="That is already its name.")
 
     if not source.is_file():
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f'"{name}" ships with the toolkit and cannot be renamed. '
-                "Duplicate it under the name you want instead."
-            ),
-        )
+        # Two different situations reach here. A name with a packaged config
+        # behind it is read-only and should be duplicated; a name with nothing
+        # behind it at all is simply not a config, and telling somebody it
+        # "ships with the toolkit" would be an invention.
+        if _contained(_judge_config_dir(), name).is_file():
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f'"{name}" ships with the toolkit and cannot be renamed. '
+                    "Duplicate it under the name you want instead."
+                ),
+            )
+        raise HTTPException(status_code=404, detail=f'No config named "{name}".')
 
     if target.exists() or _contained(_judge_config_dir(), new_name).is_file():
         raise HTTPException(

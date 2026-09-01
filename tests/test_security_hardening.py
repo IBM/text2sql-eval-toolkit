@@ -141,10 +141,12 @@ def test_responses_carry_baseline_security_headers(client):
     assert "1.www.s81c.com" in csp.split("font-src")[1].split(";")[0]
 
     # The dashboard frames nothing. The docs view embedded the published API
-    # reference for one release and needed `frame-src` naming that origin;
-    # it is a link out now, so the directive is gone and `frame-src` falls
-    # back to `default-src 'self'`.
-    assert "frame-src" not in csp
+    # reference for one release and needed `frame-src` naming that origin; it
+    # is a link out now. Said explicitly rather than left to the fallback:
+    # without the directive CSP falls back to `default-src 'self'`, which still
+    # allows a same-origin frame, so the comment claimed more than the policy
+    # enforced.
+    assert "frame-src 'none'" in csp
 
 
 def test_framing_this_site_is_refused():
