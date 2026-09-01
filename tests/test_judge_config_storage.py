@@ -329,3 +329,27 @@ def test_a_failed_move_leaves_no_empty_placeholder(client, tmp_path, monkeypatch
     assert resp.status_code == 500
     assert not (root / "later.yaml").exists(), "an empty config was left behind"
     assert (root / "one.yaml").is_file()
+
+
+def test_renaming_a_config_that_does_not_exist_is_a_404(client):
+    """
+    A name with nothing behind it is not a packaged config. Saying it "ships
+    with the toolkit" invents a config that was never there -- and sends the
+    caller to duplicate something that does not exist.
+    """
+    resp = client.post(
+        "/api/llm-judge/configs/no_such_config/rename", json={"new_name": "other"}
+    )
+    assert resp.status_code == 404, resp.text
+    detail = resp.json()["detail"]
+    assert "no_such_config" in detail
+    assert "ships with the toolkit" not in detail
+
+
+def test_renaming_a_packaged_config_still_says_to_duplicate_it(client):
+    """The other half: a name that does resolve to a packaged config."""
+    resp = client.post(
+        f"/api/llm-judge/configs/{PACKAGED}/rename", json={"new_name": "mine"}
+    )
+    assert resp.status_code == 400
+    assert "duplicate" in resp.json()["detail"].lower()

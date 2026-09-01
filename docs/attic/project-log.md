@@ -10,6 +10,58 @@ finished.
 
 ---
 
+## 2026-09-01 — fifteen defects, and the one grep that would have found three
+
+The 1.5.0 pull request went through three rounds of automated review. Each round
+found real defects; two of them found gaps in the *previous* round's fix. That
+last part is the interesting bit, so it is worth writing down what the pattern
+actually was.
+
+Almost everything clustered into two families, and both have the same shape: a
+change moved something, and the consumers were fixed one at a time as somebody
+noticed them.
+
+**The benchmark moved from the path to the query string.** Round two found the
+alias lookup still reading `match.benchmarkId`, so a short pipeline link on
+`/errors?benchmark=x` resolved against an empty table and died as a not-found.
+Round three found the unknown-benchmark guard reading the same thing, so
+`/errors?benchmark=missing` rendered a view that could only fail. After that
+round I stopped waiting and grepped every reader of the path benchmark: the
+navigation rail was still building its links from it, so moving between analysis
+views dropped the benchmark and offered an empty picker. The comment directly
+above those links already claimed they carried it. One grep, three defects, and
+it would have cost nothing on the day the address changed.
+
+**Containment moved from the file to the directory.** Round one restricted the
+docs root to this project's own checkout. Round two pointed out that resolving
+follows symlinks, so the notes directory itself could point anywhere -- and,
+separately, that the assets directory had the same hole a level down. Round
+three pointed out that the *listing* reads every file to build its title and
+summary without the check the fetch path applies, so a symlinked document leaked
+its first heading and opening paragraph while fetching it correctly 404'd. Three
+rounds to close one class of bug, because each fix addressed the instance rather
+than the class.
+
+The rest were their own things: a judge verdict cached as N/A with no way to
+replace it, an editor stranded between two naming modes, a rename that would
+have been a guaranteed 500 on Windows, a re-judge that answered N/A while the
+old verdict stayed in the cache.
+
+Two process notes.
+
+A stray dashboard left running on port 8123 quietly became the system under
+test: `playwright.config.ts` sets `reuseExistingServer: !process.env.CI`, so a
+forgotten local server is reused, and mine was serving a stale build from a
+revert experiment. Five tests failed, a different five each run, which is the
+only reason it was caught rather than believed. `lsof -ti:8123` before trusting
+a local end-to-end run.
+
+And twice I reported a green suite from a pass count without reading the lines
+under it. The second time there were two failures in the output I had just
+printed. Read the failure list, not the total.
+
+---
+
 ## 2026-08-31 — 1.5.0 closed, and what the plan did not predict
 
 The four planned items — dependency advisories, release automation, a docs view,

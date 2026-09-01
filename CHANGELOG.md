@@ -187,6 +187,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the reply, not a judgement — but it was stored, so the next run answered from
   the cache without calling the model and **Run judge** had no way to try
   again. The spend is still metered, because the tokens were still spent.
+- **The CSP states `frame-src 'none'` rather than leaving it to the fallback.**
+  With the directive omitted, CSP falls back to `default-src 'self'`, which
+  still permits a same-origin frame — so "the dashboard frames nothing" was a
+  claim in a comment that the policy did not actually enforce.
+- **Renaming a config that does not exist is a 404.** It answered that the name
+  "ships with the toolkit and cannot be renamed", inventing a config that was
+  never there and sending the caller to duplicate it.
 - **The navigation carries a query-form benchmark between analysis views.** The
   rail's links build their addresses from the benchmark you are looking at, and
   read the path segment only — so from `/insights?benchmark=x`, clicking *Error
