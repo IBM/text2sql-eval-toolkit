@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The chosen judge's config is shown in the playground.** Picking a config by
+  name said nothing about what it would ask, and the only way to find out was to
+  leave for the config editor and come back. The box names the model and shows
+  the YAML behind a **Show prompt** toggle — collapsed by default, because the
+  prompt template runs to forty-odd lines and would otherwise push the run
+  controls and the verdict off the screen.
 - **Open in Eval Playground**, from a record's detail panel in both Error
   Analysis and a pipeline's detail view. The panels show a record read-only;
   the playground is where the same record can be edited and re-run, and getting
@@ -17,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pipeline you were looking at. It is an anchor rather than a button with a
   click handler, so the address can be copied and the playground opened in a new
   tab.
+
+### Fixed
+
+- **"Judge again ignores the cache" had no space in it.** JSX drops a newline
+  between an element and the text after it, so the sentence rendered as
+  "Judge againignores the cache".
 
 ### Changed
 
