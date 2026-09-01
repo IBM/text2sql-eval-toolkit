@@ -10,6 +10,38 @@ finished.
 
 ---
 
+## 2026-09-01 — the release automation failed on the release it was written for
+
+1.5.0's second plan item was automating the GitHub Release, because the page had
+been written by hand after the tag and forgotten on both 1.3.0 and 1.4.0.
+Pushing `v1.5.0` built, verified the tag against the packaged version, published
+to PyPI -- and then failed on the Release page. `gh: not a git repository`.
+
+The `github-release` job downloads two artifacts and runs `gh release create`.
+It never checks the repository out, because it has no need of the source, so
+there is no git remote for `gh` to infer the repository from. It was never going
+to work; nothing exercised it before the tag, because a tag is the only thing
+that triggers it and there had not been one since the job was written.
+
+`GH_REPO: ${{ github.repository }}` is the fix -- cheaper than adding a checkout
+purely to give `gh` its bearings.
+
+The blast radius was small only by luck of ordering. `publish` runs before
+`github-release`, so PyPI had 1.5.0 before anything failed; the recovery was to
+download that run's own artifacts, check the wheel's SHA-256 against what PyPI
+was serving, and create the page from those exact files. Had the ordering been
+the other way round the recovery would have been a version number burned on
+PyPI.
+
+Two things worth keeping. A workflow that only ever runs on a tag has no
+rehearsal, and this one's comment block confidently described three jobs and
+"no manual step" while the third could not run at all. And the automation that
+replaced a step people forgot failed the first time it was asked to do that
+step -- which is not an argument against automating it, but is an argument for
+`workflow_dispatch` on a throwaway tag before trusting it.
+
+---
+
 ## 2026-09-01 — fifteen defects, and the one grep that would have found three
 
 The 1.5.0 pull request went through three rounds of automated review. Each round
