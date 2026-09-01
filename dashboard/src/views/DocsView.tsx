@@ -303,7 +303,18 @@ const DiagramDialog: React.FC<{ svg: SVGElement; onClose: () => void }> = ({
   // scrolling the thing you cannot see is disorienting.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      // Tab is held inside the dialog. Close is its only focusable control, so
+      // there is nowhere else to send focus -- and without this, Tab walks into
+      // the page behind an `aria-modal` dialog, which is exactly what
+      // `aria-modal` promises it will not do.
+      if (event.key === "Tab") {
+        event.preventDefault();
+        closeButton.current?.focus();
+      }
     };
     document.addEventListener("keydown", onKeyDown);
     const previousOverflow = document.body.style.overflow;

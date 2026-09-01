@@ -33,14 +33,11 @@ dependencies = [
     "tqdm>=4.67.1",
     "matplotlib>=3.10.5",
     "python-dotenv>=1.2.2",
-    # langgraph and langchain-core were declared here and imported nowhere: the
-    # agentic pipeline names LangGraph in its docstring but runs a hand-written
-    # state machine, and the only `from langgraph...` line in the tree is
-    # commented out. Between them they pulled langgraph-checkpoint,
-    # langgraph-sdk, langgraph-prebuilt, langsmith and orjson into every install
-    # -- six of the fifteen base packages that carried an open advisory in
-    # 1.5.0. Removed rather than floored. Re-add them if the pipeline is ever
-    # actually rebuilt on LangGraph.
+    # The agentic pipeline is a hand-written state machine, so langgraph and
+    # langchain-core are deliberately not declared here: between them they
+    # brought langgraph-checkpoint, langgraph-sdk, langgraph-prebuilt, langsmith
+    # and orjson into every install. Add them back alongside the code that needs
+    # them, not before.
     "openai>=1.0.0",
     "google-genai>=1.0.0",
     "huggingface_hub>=0.30,<1.0",

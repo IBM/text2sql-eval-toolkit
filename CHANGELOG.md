@@ -9,12 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed — breaking
 
-- **`langgraph` and `langchain-core` are no longer dependencies.** Nothing in
-  the package imported them: `AgenticSQLGenerationPipeline` names LangGraph in
-  its docstring but runs a hand-written state machine, and the only
-  `from langgraph...` line in the tree has been commented out since the module
-  was written. They pulled thirteen further packages into every install,
-  including six that carried open security advisories.
+- **`langgraph` and `langchain-core` are no longer dependencies.**
+  `AgenticSQLGenerationPipeline` is a hand-written state machine and does not
+  use them. Between them they brought thirteen further packages into every
+  install, six of which carried open security advisories.
 
   **Upgrading:** nothing changes for callers of this package. If your own code
   imported `langgraph` and relied on getting it transitively, declare it.
@@ -189,6 +187,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the reply, not a judgement — but it was stored, so the next run answered from
   the cache without calling the model and **Run judge** had no way to try
   again. The spend is still metered, because the tokens were still spent.
+- **The docs view serves only this project's documents.** The directory was
+  resolved by walking up for the nearest `pyproject.toml` of *any* project, so a
+  pip-installed dashboard started inside an unrelated checkout that happened to
+  have a `docs/notes/` would publish that project's files — at the public tier,
+  with no sign-in. The ancestor must now declare `text2sql-eval-toolkit`; one
+  that does not is skipped rather than ending the walk, so a checkout nested
+  inside another project still resolves.
+- **The Eval Playground follows the address between two records.** The auto-load
+  guard was keyed on the benchmark alone, so moving from one record to another
+  within the same benchmark — browser Back, or any in-app link — returned early
+  and left the first record on screen while the URL named the second.
+- **Tab stays inside the full-size diagram dialog.** Focus moved in on open and
+  back out on close, but Tab walked into the page behind an `aria-modal`
+  dialog — the one thing `aria-modal` says will not happen.
 - **`openai:` models no longer require `OPENAI_BASE_URL`.** The client demanded
   it, so an OpenAI key alone was not enough and a judge run answered "Missing
   OPENAI_BASE_URL environment variable". The same client serves Ollama and any

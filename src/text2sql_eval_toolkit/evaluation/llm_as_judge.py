@@ -223,12 +223,16 @@ def evaluate_sql_prediction_with_llm(
         # discarded the evidence in the one case where somebody needs to read it
         # -- there was no way to tell a model that refused to answer from one
         # whose answer was simply not recognised.
+        # The reply itself goes to DEBUG, not here. It can carry the question,
+        # the SQL and rows of result data, and a warning is a level production
+        # keeps on -- so the fact is logged where an operator will see it and
+        # the content where the rest of this pipeline already puts content. The
+        # caller gets the full text back as `explanation` either way.
         logger.warning(
-            "LLM judge reply from %r did not begin with a verdict; scoring N/A. "
-            "First 200 characters: %s",
+            "LLM judge reply from %r did not begin with a verdict; scoring N/A.",
             evaluator_model,
-            answer[:200],
         )
+        logger.debug("Unrecognised LLM judge reply: %s", answer)
     verdict = read or "N/A"
     score = _VERDICT_SCORES.get(verdict, 0.0)
 

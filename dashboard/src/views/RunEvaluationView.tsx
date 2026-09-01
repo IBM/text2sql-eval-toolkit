@@ -681,8 +681,13 @@ export const RunEvaluationView: React.FC<Props> = ({
   useEffect(() => {
     const bid = selectedBenchmark?.benchmark_id;
     if (!bid || recordItems.length === 0) return;
-    if (autoLoadedForBenchRef.current === bid) return;
-    autoLoadedForBenchRef.current = bid;
+    // Keyed on the record the address names, not the benchmark alone. Moving
+    // between two records of one benchmark -- browser Back, or any in-app link
+    // -- changes only `initialRecordId`, and a benchmark-only key returned here
+    // and left the previous record on screen while the URL said otherwise.
+    const autoLoadKey = `${bid}|${initialRecordId ?? ""}`;
+    if (autoLoadedForBenchRef.current === autoLoadKey) return;
+    autoLoadedForBenchRef.current = autoLoadKey;
     // What the address asked for wins.
     //
     // This used to declare a local `initialRecordId` here, shadowing the prop
@@ -710,6 +715,10 @@ export const RunEvaluationView: React.FC<Props> = ({
         ? DEFAULT_PLAYGROUND_RECORD_ID
         : String(recordItems[0].record_id));
 
+    // Choosing a record in the view puts it in the address, which arrives back
+    // here as a changed key. Nothing to do when it names what is already open.
+    if (recordToOpen === loadedRecordId) return;
+
     setSelectedRecordId(recordToOpen);
     setRecordIdManual("");
     void loadPlaygroundRef.current(recordToOpen, {
@@ -721,6 +730,7 @@ export const RunEvaluationView: React.FC<Props> = ({
     recordItems,
     initialRecordId,
     initialPipeline,
+    loadedRecordId,
   ]);
 
   // Held here rather than inside JudgePlayground: the address and the export
