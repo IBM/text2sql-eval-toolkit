@@ -256,6 +256,13 @@ def list_docs() -> DocListResponse:
             # link that 404s.
             logger.warning("skipping doc with unaddressable name: %s", path.name)
             continue
+        if path.resolve().parent != base:
+            # A `*.md` symlink pointing out of the notes directory. Fetching it
+            # is already a 404, but the listing reads every file to build its
+            # title and summary -- so without this the first heading and opening
+            # paragraph of the target leaked through the list instead.
+            logger.warning("skipping doc that resolves outside the notes: %s", path)
+            continue
         try:
             text = path.read_text(encoding="utf-8")
         except OSError:

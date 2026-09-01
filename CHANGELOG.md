@@ -187,6 +187,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the reply, not a judgement — but it was stored, so the next run answered from
   the cache without calling the model and **Run judge** had no way to try
   again. The spend is still metered, because the tokens were still spent.
+- **An unknown benchmark in the query is a not-found.** The guard read the
+  benchmark from the path only, so `/errors?benchmark=missing` rendered the view
+  and let it issue API calls that could only fail, instead of saying the server
+  has no such benchmark.
+- **The docs list no longer follows a symlinked document.** Fetching one was
+  already a 404, but the listing reads every file to build its title and
+  summary, so the target's first heading and opening paragraph came back through
+  the list.
+- **Starting a new judge config leaves rename mode.** Clicking **New config**
+  with a rename in progress left both name fields on screen, hid the create
+  action, and offered to rename a config that had just been deselected.
+- **Renaming a judge config works on Windows.** The name is claimed with a
+  placeholder before the move, and Windows' `rename()` refuses an existing
+  destination — so every rename would have been a 500 there. It is `replace()`,
+  which is defined to overwrite on every platform.
 - **A short pipeline link works on the query-based analysis addresses.** The
   alias table was fetched with the benchmark from the *path*, so
   `/errors?benchmark=x&pipeline=<alias>` had nothing to look the alias up in:

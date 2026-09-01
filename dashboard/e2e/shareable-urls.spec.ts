@@ -275,6 +275,21 @@ test.describe("links that do not resolve say so", () => {
     await expect(page.getByText(/does not name a pipeline/i)).toBeVisible();
   });
 
+  test("an unknown benchmark in the query is a not-found too", async ({
+    page,
+  }) => {
+    // The guard read the benchmark from the path only, so the query form
+    // rendered the view and let it issue API calls that could only fail.
+    //
+    // Plain goto rather than openFresh: this page keeps a session poll going,
+    // so `networkidle` never arrives and waiting for it only times out. The
+    // assertion below is what the test is about.
+    await page.goto("/errors?benchmark=no-such-benchmark");
+    await expect(page.getByText(/has no benchmark called/i)).toBeVisible({
+      timeout: 15000,
+    });
+  });
+
   test("an unknown path is a not-found with a way back", async ({ page }) => {
     await openFresh(page, "/benchmark/nope/not-a-view");
     await expect(page.getByRole("button", { name: /go to benchmarks/i })).toBeVisible();

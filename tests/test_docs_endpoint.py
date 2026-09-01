@@ -20,6 +20,8 @@ is the *normal* state for most installs rather than an edge case.
 change, which is only true if the title comes out of the file itself.
 """
 
+import json
+
 import pytest
 
 pytest.importorskip("fastapi")
@@ -399,3 +401,26 @@ def test_a_symlinked_assets_directory_is_refused(repo, client):
     # The document itself still serves; only the assets directory is refused.
     assert client.get("/api/docs/doc").status_code == 200
     assert client.get("/api/docs/assets/leak.png").status_code == 404
+
+
+def test_the_listing_does_not_follow_a_symlinked_document(repo, client):
+    """
+    Fetching a symlinked document is already a 404, but the listing reads every
+    file to build its title and summary -- so the target's first heading and
+    opening paragraph came back through the list.
+    """
+    outside = repo.parent.parent / "outside"
+    outside.mkdir(parents=True, exist_ok=True)
+    secret = outside / "secret.md"
+    secret.write_text("# Confidential\n\nThe opening paragraph.\n", encoding="utf-8")
+
+    (repo / "ours.md").write_text("# Ours\n\nFine.\n", encoding="utf-8")
+    (repo / "leak.md").symlink_to(secret)
+
+    body = client.get("/api/docs").json()
+    names = {item["name"] for item in body["items"]}
+    assert "ours" in names
+    assert "leak" not in names
+    assert "Confidential" not in json.dumps(body)
+    # And fetching it directly stays a 404, as before.
+    assert client.get("/api/docs/leak").status_code == 404

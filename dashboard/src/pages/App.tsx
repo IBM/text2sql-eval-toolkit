@@ -498,10 +498,15 @@ export const App: React.FC = () => {
   // this server does not have: guessing is worse than saying.
 
   // Named, but not here.
+  //
+  // `analysisBenchmark`, not the path segment: `/errors?benchmark=missing`
+  // named a benchmark this server does not have and rendered the view anyway,
+  // which then issued API calls that could only fail. Naming one that is not
+  // here reads the same whichever half of the address it came from.
   const unknownBenchmark =
-    !!selectedBenchmark &&
+    !!analysisBenchmark &&
     benchmarks.length > 0 &&
-    !benchmarks.some((b) => b.benchmark_id === selectedBenchmark);
+    !benchmarks.some((b) => b.benchmark_id === analysisBenchmark);
 
   const resetBenchmarkModal = () => {
     setShowBenchmarkModal(false);
@@ -698,7 +703,7 @@ export const App: React.FC = () => {
       return (
         <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
           <NotFound
-            message={`This server has no benchmark called "${selectedBenchmark}". It may be from a deployment with a different results snapshot.`}
+            message={`This server has no benchmark called "${analysisBenchmark}". It may be from a deployment with a different results snapshot.`}
           />
           <Button
             kind="tertiary"
