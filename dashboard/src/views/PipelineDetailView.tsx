@@ -18,6 +18,7 @@ import {
 import { apiFetch, apiUrl } from "../lib/api";
 import { highlightSql } from "../lib/sql";
 import { ResultTableView } from "./ResultTableView";
+import { OpenInPlaygroundButton } from "./OpenInPlaygroundButton";
 
 interface Props {
   benchmarkId: string;
@@ -28,6 +29,8 @@ interface Props {
   onSelectRecord?: (recordId: string | null) => void;
   onBack: () => void;
   onOpenErrorAnalysis?: (filters: Record<string, any>) => void;
+  /** Single-page navigation for the link into the playground. */
+  onNavigate?: (href: string) => void;
 }
 
 interface PipelineMetrics {
@@ -104,6 +107,7 @@ export const PipelineDetailView: React.FC<Props> = ({
   onSelectRecord,
   onBack,
   onOpenErrorAnalysis,
+  onNavigate,
 }) => {
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [errors, setErrors] = useState<ErrorRecordSummary[]>([]);
@@ -627,6 +631,14 @@ export const PipelineDetailView: React.FC<Props> = ({
                   : `Record detail – ${selectedRecordId}`}
               </h3>
               <div style={{ display: "flex", gap: "0.35rem" }}>
+                {detailViewMode === "detail" && (
+                  <OpenInPlaygroundButton
+                    benchmarkId={benchmarkId}
+                    recordId={selectedRecordId}
+                    pipeline={pipelineName}
+                    onNavigate={onNavigate}
+                  />
+                )}
                 {detailViewMode !== "detail" && (
                   <Button kind="ghost" size="sm" onClick={() => setDetailViewMode("detail")}>
                     Back to detail

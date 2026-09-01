@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Open in Eval Playground**, from a record's detail panel in both Error
+  Analysis and a pipeline's detail view. The panels show a record read-only;
+  the playground is where the same record can be edited and re-run, and getting
+  between them meant reading the record id off the address bar and assembling a
+  `/run/...` URL by hand. The link carries the benchmark, the record and the
+  pipeline you were looking at. It is an anchor rather than a button with a
+  click handler, so the address can be copied and the playground opened in a new
+  tab.
+
+### Changed
+
+- **The Eval Playground's question and database are legible.** They were set
+  smaller and dimmer than the body copy around them, with the database run onto
+  the end of the question's line, which made the subject of the whole view the
+  hardest thing on it to find. The question now has its own tinted block at
+  heading scale and the database is a labelled tag. Ground-truth and predicted
+  SQL each get a box, so two bare text areas side by side no longer read as one
+  undivided region.
+
 ## [1.5.0] - 2026-08-31
 
 ### Changed — breaking

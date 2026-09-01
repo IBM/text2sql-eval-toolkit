@@ -207,6 +207,41 @@ test.describe("a link reproduces the view", () => {
   });
 });
 
+test.describe("a record detail leads into the playground", () => {
+  test("the button carries the benchmark, the record and the pipeline", async ({
+    page,
+  }) => {
+    // Getting from a record you are reading to the same record you can edit
+    // meant reading the id off the address bar and assembling a /run/... URL by
+    // hand.
+    await openFresh(page, `/errors?benchmark=${BENCHMARK}&record=rec-005`);
+    const button = page.getByRole("link", { name: /Open in Eval Playground/i });
+    await expect(button).toBeVisible({ timeout: 15000 });
+
+    const href = await button.getAttribute("href");
+    expect(href).toContain(`/run/${BENCHMARK}/record/rec-005`);
+
+    await button.click();
+    await expect(page.getByText("Question 5 about")).toBeVisible({
+      timeout: 15000,
+    });
+    expect(new URL(page.url()).pathname).toBe(
+      `/run/${BENCHMARK}/record/rec-005`,
+    );
+  });
+
+  test("it is a real link, not a button that looks like one", async ({
+    page,
+  }) => {
+    // An address worth opening in a new tab. A click handler on a <button>
+    // would look identical and offer none of that.
+    await openFresh(page, `/errors?benchmark=${BENCHMARK}&record=rec-005`);
+    const button = page.getByRole("link", { name: /Open in Eval Playground/i });
+    await expect(button).toBeVisible({ timeout: 15000 });
+    expect(await button.evaluate((el) => el.tagName)).toBe("A");
+  });
+});
+
 test.describe("the short-link control hands over a working address", () => {
   test("it yields a shorter address for the same view", async ({
     page,
