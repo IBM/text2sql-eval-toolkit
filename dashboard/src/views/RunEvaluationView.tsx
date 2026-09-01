@@ -1121,21 +1121,64 @@ export const RunEvaluationView: React.FC<Props> = ({
         )}
 
         {questionText && (
-          <p
+          // The question is what the whole view is about, and it used to be set
+          // smaller and dimmer than the body copy around it, with the db_id run
+          // onto the end of the same line. Given its own block at heading scale
+          // it can be found without hunting for it.
+          <div
             style={{
               margin: 0,
-              fontSize: "0.875rem",
-              color: "var(--cds-text-secondary)",
+              padding: "0.75rem 1rem",
+              borderInlineStart: "3px solid var(--cds-border-interactive)",
+              // layer-02, not layer-01: inside this content layer the latter
+              // resolves to the same white as the page, so the block had a
+              // background in the code and none on screen.
+              background: "var(--cds-layer-02)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.375rem",
             }}
           >
-            <strong>Question:</strong> {questionText}
+            <span
+              style={{
+                fontSize: "0.75rem",
+                letterSpacing: "0.32px",
+                textTransform: "uppercase",
+                color: "var(--cds-text-secondary)",
+              }}
+            >
+              Question
+            </span>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "1.25rem",
+                lineHeight: 1.4,
+                color: "var(--cds-text-primary)",
+              }}
+            >
+              {questionText}
+            </p>
             {dbIdText ? (
-              <>
-                {" "}
-                <strong>db_id:</strong> {dbIdText}
-              </>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+              >
+                <span
+                  style={{
+                    fontSize: "0.75rem",
+                    letterSpacing: "0.32px",
+                    textTransform: "uppercase",
+                    color: "var(--cds-text-secondary)",
+                  }}
+                >
+                  Database
+                </span>
+                <Tag type="blue" size="md">
+                  {dbIdText}
+                </Tag>
+              </div>
             ) : null}
-          </p>
+          </div>
         )}
 
         <div
@@ -1152,6 +1195,11 @@ export const RunEvaluationView: React.FC<Props> = ({
               flexDirection: "column",
               gap: "0.5rem",
               minWidth: 0,
+              // Boxed like the panels below it. Bare Carbon text areas carry
+              // only an underline, so two of them side by side read as one
+              // undivided region rather than as the two queries being compared.
+              border: "1px solid var(--cds-border-subtle-01)",
+              padding: "0.75rem",
             }}
           >
             {groundTruthSqls.map((sql, idx) => (
@@ -1183,6 +1231,8 @@ export const RunEvaluationView: React.FC<Props> = ({
               flexDirection: "column",
               gap: "0.5rem",
               minWidth: 0,
+              border: "1px solid var(--cds-border-subtle-01)",
+              padding: "0.75rem",
             }}
           >
             <TextArea
