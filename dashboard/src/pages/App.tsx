@@ -317,6 +317,23 @@ export const App: React.FC = () => {
     [location.search],
   );
 
+  /**
+   * The benchmark an analysis view is looking at.
+   *
+   * `?benchmark=` is where it lives now; a path segment is kept working for
+   * the older `/benchmark/{id}/insights` addresses, which is why both are
+   * consulted.
+   *
+   * Computed here rather than beside the other view state because the alias
+   * lookup below needs it: fetching the table with the path benchmark alone
+   * meant `/errors?benchmark=x&pipeline=<alias>` had nothing to look the alias
+   * up in, so it read as unknown and the link died as a not-found.
+   */
+  const analysisBenchmark = useMemo(
+    () => match.benchmarkId ?? parseBenchmark(location.search),
+    [match.benchmarkId, location.search],
+  );
+
   // A shared link may name a pipeline by its short alias rather than its full
   // id. The readable form stays canonical, so an alias is expanded on arrival
   // and the address rewritten -- which means every view below this point only
@@ -329,7 +346,7 @@ export const App: React.FC = () => {
     [match.pipelineId, urlFilters.pipeline, urlFilters.pipeline2],
   );
   const { table: aliasTable, ready: aliasesReady } = usePipelineAliases(
-    match.benchmarkId,
+    analysisBenchmark,
     aliasRefs.length > 0,
   );
   const unknownAlias =
@@ -430,18 +447,6 @@ export const App: React.FC = () => {
   );
 
   const selectedBenchmark = match.benchmarkId;
-
-  /**
-   * The benchmark an analysis view is looking at.
-   *
-   * `?benchmark=` is where it lives now; a path segment is kept working for
-   * the older `/benchmark/{id}/insights` addresses, which is why both are
-   * consulted.
-   */
-  const analysisBenchmark = useMemo(
-    () => selectedBenchmark ?? parseBenchmark(location.search),
-    [selectedBenchmark, location.search],
-  );
 
   const selectedPipeline = match.pipelineId;
   const activeView = match.view;

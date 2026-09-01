@@ -149,7 +149,21 @@ def docs_dir() -> Optional[Path]:
         if not pyproject.is_file() or not _declares_this_project(pyproject):
             continue
         candidate = directory.joinpath(*DOCS_SUBDIR)
-        return candidate.resolve() if candidate.is_dir() else None
+        if not candidate.is_dir():
+            return None
+        resolved = candidate.resolve()
+        # Resolving follows symlinks, so `docs/notes -> /somewhere/else` would
+        # otherwise become the docs root and publish that directory at the
+        # public tier. Containment is asserted on every name served out of this
+        # directory; it has to hold for the directory itself too.
+        if not resolved.is_relative_to(directory.resolve()):
+            logger.warning(
+                "Ignoring %s: it resolves to %s, outside the project.",
+                candidate,
+                resolved,
+            )
+            return None
+        return resolved
     return None
 
 
@@ -283,6 +297,11 @@ def get_doc_asset(filename: str) -> FileResponse:
     if base is None:
         raise HTTPException(status_code=404, detail="Asset not found")
     assets = (base / "assets").resolve()
+    # `assets` is resolved, so comparing `candidate.parent` to it would still
+    # pass if `assets` itself were a symlink out of the docs tree -- and these
+    # routes are public. Check the directory before checking what is in it.
+    if not assets.is_relative_to(base):
+        raise HTTPException(status_code=404, detail="Asset not found")
     candidate = (assets / filename).resolve()
     if candidate.parent != assets or not candidate.is_file():
         raise HTTPException(status_code=404, detail="Asset not found")

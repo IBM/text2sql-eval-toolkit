@@ -187,6 +187,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the reply, not a judgement — but it was stored, so the next run answered from
   the cache without calling the model and **Run judge** had no way to try
   again. The spend is still metered, because the tokens were still spent.
+- **A short pipeline link works on the query-based analysis addresses.** The
+  alias table was fetched with the benchmark from the *path*, so
+  `/errors?benchmark=x&pipeline=<alias>` had nothing to look the alias up in:
+  the table came back empty, every alias read as unknown, and the link died as
+  a not-found. The address moved to a query parameter this release; the lookup
+  had not moved with it.
+- **A forced re-judge that cannot be read clears the verdict it replaces.** An
+  `N/A` is not stored, so **Judge again** followed by an unreadable reply
+  answered `N/A` while the cache still held the verdict you had just asked to
+  discard — and the next request handed it back.
+- **Renaming a judge config cannot be raced into deleting one.** The
+  no-overwrite check and the move were separate, and POSIX `rename()` replaces
+  its target silently, so two renames onto one name could both pass the check
+  and the second would destroy the first's config. The name is claimed with
+  `O_CREAT|O_EXCL` before the move, so the filesystem decides the winner and
+  the loser gets the same 409.
+- **The docs view refuses a symlinked notes or assets directory.** Resolving
+  follows symlinks, so `docs/notes -> elsewhere` would have made that directory
+  the docs root and published it at the public tier. Containment is asserted on
+  the directories, not only on the names served out of them.
 - **The docs view serves only this project's documents.** The directory was
   resolved by walking up for the nearest `pyproject.toml` of *any* project, so a
   pip-installed dashboard started inside an unrelated checkout that happened to

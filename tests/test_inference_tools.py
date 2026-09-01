@@ -97,3 +97,57 @@ def prompt():
 def test_postprocess_sql(input_text, expected_sql):
     output = postprocess_sql(input_text)
     assert output == expected_sql, f"\nExpected:\n{expected_sql}\nGot:\n{output}"
+
+
+class TestOpenAIBaseUrl:
+    """
+    `openai:` models used to require OPENAI_BASE_URL, so an OpenAI key alone was
+    not enough to reach OpenAI and every call raised. The dispatch tests replace
+    the client constructor, so nothing exercised this; these build the real one.
+    """
+
+    @staticmethod
+    def _client(monkeypatch, **env):
+        from text2sql_eval_toolkit.inference import inference_tools as it
+
+        pytest.importorskip("openai")
+        for name in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OLLAMA_BASE_URL"):
+            monkeypatch.delenv(name, raising=False)
+        for name, value in env.items():
+            monkeypatch.setenv(name, value)
+        return it.OpenAIClientChatAPI("gpt-4o-mini", {})
+
+    def test_an_unset_base_url_reaches_openai(self, monkeypatch):
+        from text2sql_eval_toolkit.inference import inference_tools as it
+
+        client = self._client(monkeypatch, OPENAI_API_KEY="k")
+        assert client.base_url == it.OPENAI_DEFAULT_BASE_URL
+
+    def test_an_empty_base_url_is_the_same_as_unset(self, monkeypatch):
+        # docker-compose passes these through as `${VAR:-}`, so "absent" arrives
+        # as the empty string rather than as no variable at all.
+        from text2sql_eval_toolkit.inference import inference_tools as it
+
+        client = self._client(monkeypatch, OPENAI_API_KEY="k", OPENAI_BASE_URL="")
+        assert client.base_url == it.OPENAI_DEFAULT_BASE_URL
+
+    def test_a_compatible_server_still_overrides_it(self, monkeypatch):
+        client = self._client(
+            monkeypatch,
+            OPENAI_API_KEY="k",
+            OPENAI_BASE_URL="https://gateway.internal/v1",
+        )
+        assert client.base_url == "https://gateway.internal/v1"
+
+    def test_a_trailing_slash_is_trimmed(self, monkeypatch):
+        client = self._client(
+            monkeypatch,
+            OPENAI_API_KEY="k",
+            OPENAI_BASE_URL="https://gateway.internal/v1/",
+        )
+        assert client.base_url == "https://gateway.internal/v1"
+
+    def test_a_missing_key_is_still_an_error(self, monkeypatch):
+        # The default endpoint does not make the request free.
+        with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+            self._client(monkeypatch)

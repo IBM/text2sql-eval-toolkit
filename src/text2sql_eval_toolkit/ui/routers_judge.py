@@ -358,7 +358,14 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
     # the cache without calling the model, and the only way to try again was to
     # edit the config. The spend above is still recorded, because the tokens
     # were still spent.
-    if verdict != "N/A":
+    if verdict == "N/A":
+        # A forced re-judge that comes back unreadable must not leave the old
+        # verdict standing: the caller asked to replace it, the response says
+        # N/A, and without this the next request would produce the very verdict
+        # they had just discarded.
+        if req.refresh:
+            store.delete_verdict(cache_key)
+    else:
         store.put_verdict(
             cache_key,
             benchmark_id=benchmark_id,

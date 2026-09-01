@@ -212,6 +212,73 @@ def test_refresh_ignores_a_stored_verdict_and_replaces_it(client, monkeypatch):
     assert len(calls) == 2
 
 
+def test_a_refresh_that_cannot_be_read_clears_the_old_verdict(client, monkeypatch):
+    """
+    An N/A is not stored -- but a *forced* one has to remove what it replaces.
+    Otherwise the response says N/A while the cache still holds the verdict the
+    caller just asked to be rid of, and the next request hands it back.
+    """
+    replies = [
+        {**FAKE_RESULT, "verdict": "Yes", "score": 1.0, "explanation": "sure"},
+        {
+            **FAKE_RESULT,
+            "verdict": "N/A",
+            "score": 0.0,
+            "explanation": "unreadable",
+        },
+    ]
+    calls = []
+
+    def _fake(*args, **kwargs):
+        calls.append(args)
+        return replies[min(len(calls) - 1, len(replies) - 1)]
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    payload = {"record_id": "r1", "pipeline": PIPE}
+    assert api.post("/api/benchmarks/demo/judge", json=payload).json()["verdict"] == (
+        "Yes"
+    )
+
+    forced = api.post(
+        "/api/benchmarks/demo/judge", json={**payload, "refresh": True}
+    ).json()
+    assert forced["verdict"] == "N/A"
+
+    # The discarded verdict must not come back.
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={**payload, "cached_only": True},
+    )
+    assert resp.status_code == 204, resp.text
+
+
+def test_an_unforced_na_leaves_an_unrelated_cached_verdict_alone(client, monkeypatch):
+    """The delete belongs to refresh. A plain run must not clear the cache."""
+    calls = []
+
+    def _fake(*args, **kwargs):
+        calls.append(args)
+        if len(calls) == 1:
+            return {**FAKE_RESULT, "verdict": "Yes"}
+        return {**FAKE_RESULT, "verdict": "N/A", "score": 0.0}
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    other = {"record_id": "r2", "pipeline": PIPE}
+    api.post("/api/benchmarks/demo/judge", json={"record_id": "r1", "pipeline": PIPE})
+    api.post("/api/benchmarks/demo/judge", json=other)
+
+    still = api.post(
+        "/api/benchmarks/demo/judge",
+        json={"record_id": "r1", "pipeline": PIPE, "cached_only": True},
+    )
+    assert still.status_code == 200
+    assert still.json()["verdict"] == "Yes"
+
+
 def test_refresh_still_respects_the_budget(client, fake_llm, monkeypatch):
     """A re-run costs an inference like any other, so the ceiling applies."""
     api, _ = client
