@@ -172,6 +172,64 @@ def test_second_request_is_served_from_cache_without_calling_the_model(
     assert len(fake_llm) == 1, "a cached verdict must not cost another call"
 
 
+def test_an_unreadable_verdict_is_not_cached(client, monkeypatch):
+    """
+    An N/A means nobody could read the reply, not that the answer is "N/A".
+    Caching it made that permanent: the next run answered from the cache
+    without calling the model, so the button offered no way to try again.
+    """
+    calls = []
+
+    def _fake(*args, **kwargs):
+        calls.append(args)
+        return {
+            "verdict": "N/A",
+            "score": 0.0,
+            "explanation": "the model said something else entirely",
+            "token_usage": {"prompt_tokens": 10, "completion_tokens": 5},
+        }
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    payload = {"record_id": "r1", "pipeline": PIPE}
+    first = api.post("/api/benchmarks/demo/judge", json=payload).json()
+    second = api.post("/api/benchmarks/demo/judge", json=payload).json()
+
+    assert first["verdict"] == "N/A"
+    assert first["cached"] is False
+    assert second["cached"] is False, "an N/A was cached and the retry was lost"
+    assert len(calls) == 2, "the second run must reach the model again"
+
+    # And there is nothing for a cached-only lookup to find.
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={"record_id": "r1", "pipeline": PIPE, "cached_only": True},
+    )
+    assert resp.status_code == 204
+
+
+def test_an_unreadable_verdict_is_still_metered(client, monkeypatch):
+    """The tokens were spent whether or not the reply could be read."""
+
+    def _fake(*args, **kwargs):
+        return {
+            "verdict": "N/A",
+            "score": 0.0,
+            "explanation": "unrecognised",
+            "token_usage": {"prompt_tokens": 1200, "completion_tokens": 80},
+        }
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    body = api.post(
+        "/api/benchmarks/demo/judge", json={"record_id": "r1", "pipeline": PIPE}
+    ).json()
+    assert body["usage"]["calls"] == 1
+    assert body["usage"]["spent_usd"] > 0
+
+
 def test_cache_key_changes_with_the_inputs_that_determine_a_verdict():
     base = ("bench", "rec", "pipe", "cfg", "model")
     key = verdict_cache_key(*base)

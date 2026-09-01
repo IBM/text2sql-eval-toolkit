@@ -10,6 +10,59 @@ finished.
 
 ---
 
+## 2026-08-31 — the judge marked everything wrong because the model wrote Markdown
+
+Gemini on the deployment returned `N/A`, score 0, explanation `N/A`, and
+`from cache — no inference`. Three separate defects stacked into one
+unreadable symptom, and the server log had the answer:
+
+```
+Part(text="""**Yes**
+
+The predicted SQL query correctly answers the question by selecting the
+`Name` and `Age` from the `singer` table ...""")
+```
+
+Gemini answered correctly. The parser did `answer.lower().startswith("yes")`,
+and `**yes**` does not start with `yes`.
+
+**One.** The prompt asks the model to lead with the verdict, and it did — in
+its own house style. Gemini 3 emphasises the verdict; other models write
+`### Yes`, `> Yes`, `"Yes"`, `Verdict: Yes`. Every one of those scored `N/A`,
+which scores 0. This was never specific to the dashboard: a batch judge run
+over a whole benchmark with a Markdown-formatting model would have marked every
+single prediction wrong and reported a plausible-looking 0%. The fix strips
+leading decoration and an optional `Verdict:` label, then matches the first
+word. Only the head, deliberately — scanning the whole reply would find the
+"No" in "No ground-truth SQL was available" and read a rejection out of an
+explanation.
+
+A detail worth keeping: the first pattern used `\b` after the verdict, and
+`__Yes__` still failed. `_` is a word character to `re`, so there is no
+boundary between the `s` and the underscore. It is `(?![A-Za-z0-9])` now.
+
+**Two.** The `N/A` branch set `explanation = "N/A"` and dropped the reply. The
+one case where the text is the only way to find out what happened is the one
+case where it was discarded — which is why the UI showed nothing useful and the
+diagnosis had to come from a DEBUG log line on the server. The reply is now
+returned verbatim whatever the verdict.
+
+**Three.** That `N/A` was cached, so re-running answered from the cache without
+calling the model. The failure was permanent and **Run judge** could not
+retry — the only way out was to edit the config and change the cache key. An
+`N/A` is not a result, so it is not stored. The spend still is: the tokens were
+spent either way, and a ceiling that stops counting on the failure path is
+worse than one that overcounts.
+
+The same log run confirmed the OpenAI fix from earlier today works: the request
+reached OpenAI and came back `429 insufficient_quota — You have no credits
+remaining`. That is an account to top up, not a bug.
+
+Twenty parametrised cases on the parser, both refusals included, and two on the
+cache. The cache test was checked against the unfixed code and fails there.
+
+---
+
 ## 2026-08-31 — two ways to start from a config that already exists
 
 Two reports from the same session of trying the judge for real.
