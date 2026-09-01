@@ -232,7 +232,11 @@ def rename_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
         ) from None
 
     try:
-        source.rename(target)
+        # replace(), not rename(): the placeholder above means the destination
+        # always exists by this point, and Windows' rename() refuses that --
+        # which would have made every rename a 500 there. replace() is defined
+        # to overwrite on every platform.
+        source.replace(target)
     except OSError as exc:
         logger.error("Failed to rename judge config %s: %s", name, exc)
         # Do not leave the placeholder behind as an empty config.

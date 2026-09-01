@@ -116,6 +116,10 @@ export const LLMJudgeConfigView: React.FC = () => {
   const startNewConfig = () => {
     setError(null);
     setMessage(null);
+    // Leaving a half-finished rename open would show two name fields at once,
+    // hide the create action, and offer a Rename button for the config this
+    // just deselected.
+    setRenameTo(null);
     setSelected(null);
     setNewName("");
     setRaw(NEW_CONFIG_TEMPLATE);
@@ -142,6 +146,8 @@ export const LLMJudgeConfigView: React.FC = () => {
     if (!selected) return;
     setError(null);
     setMessage(null);
+    // The other direction of the same rule: one name field at a time.
+    setNewName(null);
     setRenameTo(selected.name);
   };
 

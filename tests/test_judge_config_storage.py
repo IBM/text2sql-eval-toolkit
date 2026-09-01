@@ -320,10 +320,10 @@ def test_a_failed_move_leaves_no_empty_placeholder(client, tmp_path, monkeypatch
     root = tmp_path / "llm_judge_config"
     client.put("/api/llm-judge/configs/one", json=BODY)
 
-    def failing_rename(self, target):
+    def failing_replace(self, target):
         raise OSError(13, "Permission denied")
 
-    monkeypatch.setattr(Path, "rename", failing_rename)
+    monkeypatch.setattr(Path, "replace", failing_replace)
     resp = client.post("/api/llm-judge/configs/one/rename", json={"new_name": "later"})
 
     assert resp.status_code == 500
