@@ -694,6 +694,14 @@ class ClaudeClientChatAPI:
         return sql, token_usage
 
 
+#: Where `openai:` models go when `OPENAI_BASE_URL` says nothing.
+#:
+#: The same class serves OpenAI, Ollama and any OpenAI-compatible server, and
+#: the latter two genuinely need an address. OpenAI itself has exactly one, so
+#: requiring it there was asking for a constant.
+OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1"
+
+
 class OpenAIClientChatAPI:
     """
     LLM API client using OpenAI-compatible API (e.g., LiteLLM proxy).
@@ -717,22 +725,21 @@ class OpenAIClientChatAPI:
             self.base_url = ollama_base_url.rstrip("/")
             self.api_key = ollama_api_key
         else:
-            # Using OpenAI or OpenAI-compatible API
-            env_vars = {
-                "base_url": "OPENAI_BASE_URL",
-                "api_key": "OPENAI_API_KEY",
-            }
-
-            values = {k: os.environ.get(v) for k, v in env_vars.items()}
-
-            # base_url and api_key are required
-            if not values["base_url"]:
-                raise ValueError("Missing OPENAI_BASE_URL environment variable")
-            if not values["api_key"]:
+            # Using OpenAI, or an OpenAI-compatible API.
+            #
+            # `OPENAI_BASE_URL` is optional and defaults to OpenAI's own
+            # endpoint. It was required, which meant an `openai:` model with a
+            # perfectly good `OPENAI_API_KEY` failed with "Missing
+            # OPENAI_BASE_URL" -- asking the operator to supply a constant that
+            # only ever has one value unless they are pointing somewhere else.
+            # Set it to reach a compatible server; leave it unset for OpenAI.
+            api_key = os.environ.get("OPENAI_API_KEY")
+            if not api_key:
                 raise ValueError("Missing OPENAI_API_KEY environment variable")
 
-            self.base_url = values["base_url"].rstrip("/")
-            self.api_key = values["api_key"]
+            base_url = os.environ.get("OPENAI_BASE_URL") or OPENAI_DEFAULT_BASE_URL
+            self.base_url = base_url.rstrip("/")
+            self.api_key = api_key
 
         self.model_name = model_name
 

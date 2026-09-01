@@ -118,6 +118,10 @@ services:
       # Only needed for an identity-linked key; workspace-scoped keys carry it.
       ANTHROPIC_WORKSPACE_ID: ${ANTHROPIC_WORKSPACE_ID:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      # Optional, and empty is the same as unset: openai: models fall back to
+      # api.openai.com. Set it to point them at a gateway or a compatible
+      # server instead.
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
 
       # Read-only database access, internal hostnames only. Absent by default:

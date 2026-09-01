@@ -10,6 +10,48 @@ finished.
 
 ---
 
+## 2026-08-31 — two ways to start from a config that already exists
+
+Two reports from the same session of trying the judge for real.
+
+The first: `openai:` models refused to run at all. `Missing OPENAI_BASE_URL
+environment variable` -- so an OpenAI key, which is the one thing an OpenAI user
+definitely has, was not enough to reach OpenAI. The client is shared with Ollama
+and with any OpenAI-compatible server, and *those* genuinely need an address,
+which is how the requirement got there. But OpenAI has exactly one endpoint, so
+requiring it was asking every user to supply a constant. It now defaults to
+`https://api.openai.com/v1`, and an empty value is treated the same as unset --
+which matters because `deploy/docker-compose.yml` passes these through as
+`${VAR:-}` and would otherwise hand the client an empty string.
+
+The second: having added four judge configs by hand, the editor had no way to
+work from an existing one. **New config** opened an empty document, so a variant
+of an existing judge meant reproducing a fifteen-hundred-character prompt
+template, and a name chosen while experimenting was permanent -- the only way
+out was create-under-the-new-name and delete the old.
+
+**Duplicate** is entirely client-side: keep the document that is open, clear the
+selection, prefill the name field with `<name>_copy`. There is no endpoint
+because saving under a new name is already an endpoint.
+
+**Rename** needed one, and the interesting part is what it refuses. A packaged
+config has no file of yours to move, so renaming it is not a rename -- the
+button is not offered and the endpoint says to duplicate it instead. Renaming
+onto an existing name is a 409 rather than a silent overwrite, and that check
+has to consider packaged names too, not just files in the writable root:
+otherwise a rename could land on a name that already resolves to something and
+shadow it. And renaming *away* from a name that also exists as a packaged config
+uncovers the packaged one, which the response reports rather than leaving the
+caller to discover that the config they renamed appears to still be there. Seven
+tests, one per refusal.
+
+A note on the browser check: the first run came back 405. The route was right;
+the dev server had been started before it existed. Restarting turned it into a
+400, which is a route that exists rejecting an empty name -- the useful signal
+that it was never a code problem.
+
+---
+
 ## 2026-08-31 — CREATE TABLE IF NOT EXISTS is not a migration
 
 Saving a Gemini key on the deployment answered 500. The log said it plainly:
