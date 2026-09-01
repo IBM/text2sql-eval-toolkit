@@ -1,7 +1,7 @@
 # A tour of the dashboard
 
 > **The links on this page only work in a running dashboard.** They are
-> addresses within the application — `/benchmark/spider_dev/compare` and the
+> addresses within the application — `/compare?benchmark=spider_dev` and the
 > like — so they resolve when you are reading this *inside* the dashboard, and
 > they do not resolve when you are reading the file on GitHub. The screenshots
 > and the numbers work either way. A public deployment is at
@@ -53,7 +53,7 @@ other, and the disagreement is the finding.**
 
 ## Two systems, the same score, different behaviour
 
-[**Compare two pipelines on Spider Dev →**](/benchmark/spider_dev/compare)
+[**Compare two pipelines on Spider Dev →**](/compare?benchmark=spider_dev)
 
 ![Pipeline comparison showing two models with identical execution accuracy of 0.816 and a disagreement rate of 0.083](assets/pipeline-compare.png)
 
@@ -74,7 +74,7 @@ records behind it.
 
 ## Where two metrics disagree
 
-[**Open metric insights →**](/benchmark/bird_mini_dev_sqlite/insights)
+[**Open metric insights →**](/insights?benchmark=bird_mini_dev_sqlite)
 
 ![Two confusion matrices comparing execution accuracy against subset matching and against the LLM judge](assets/metric-insights.png)
 
@@ -94,7 +94,7 @@ conclusions. Neither is automatically right. Both are reported by the same run.
 
 ## Reading one record
 
-[**Open error analysis →**](/benchmark/bird_mini_dev_sqlite/errors?pipeline=wxai%3Aopenai%2Fgpt-oss-120b-greedy-zero-shot-chatapi&metric=execution_accuracy&value=0)
+[**Open error analysis →**](/errors?benchmark=bird_mini_dev_sqlite&pipeline=wxai%3Aopenai%2Fgpt-oss-120b-greedy-zero-shot-chatapi&metric=execution_accuracy&value=0)
 
 ![The error analysis view, filtered to records where execution accuracy is zero, with quick-preset filter buttons](assets/error-analysis.png)
 
@@ -104,7 +104,7 @@ disagreement filters from the section above, one click away.
 
 Then open a record.
 
-[**Open record 1480 →**](/benchmark/bird_mini_dev_sqlite/errors?pipeline=wxai%3Aopenai%2Fgpt-oss-120b-greedy-zero-shot-chatapi&metric=execution_accuracy&value=0&record=1480)
+[**Open record 1480 →**](/errors?benchmark=bird_mini_dev_sqlite&pipeline=wxai%3Aopenai%2Fgpt-oss-120b-greedy-zero-shot-chatapi&metric=execution_accuracy&value=0&record=1480)
 
 ![Record detail showing the question, the ground truth SQL, the predicted SQL and the full metric block](assets/record-detail.png)
 
@@ -122,7 +122,7 @@ The toolkit reports both readings and lets you decide which one your project
 means — it does not decide for you.
 
 The same record on the [PostgreSQL
-version](/benchmark/bird_mini_dev_postgres/errors?pipeline=wxai%3Ameta-llama%2Fllama-3-3-70b-instruct-greedy-zero-shot-chatapi&metric=execution_accuracy&value=0&record=1480)
+version](/errors?benchmark=bird_mini_dev_postgres&pipeline=wxai%3Ameta-llama%2Fllama-3-3-70b-instruct-greedy-zero-shot-chatapi&metric=execution_accuracy&value=0&record=1480)
 of the benchmark carries a judge verdict in its `llm_explanation` field, which
 opens *"Yes — The predicted SQL query is correct"* against an execution accuracy
 of 0. Scroll the metric block to read it.
