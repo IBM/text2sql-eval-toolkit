@@ -185,19 +185,32 @@ took three passes. Plain text above each card matched nothing else in the
 dashboard. Moving them inside a blue-bordered card matched the other views --
 and still lost, because a small blue heading cannot separate three bands when
 sixteen bordered tiles are competing with it. They are solid banners now,
-white and centred: a departure from Carbon, which titles sections with
-typography and whitespace, and the right one for a landing page whose whole job
-is to be scanned.
+centred: a departure from Carbon, which titles sections with typography and
+whitespace, and the right one for a landing page whose whole job is to be
+scanned.
+
+The colour took eight renders and settled on **Gray 30 with Gray 90 text**.
 
 Blue 60 was the first try and too bright -- three full-width bars in the
-interactive blue read as three calls to action rather than as structure. Six
-candidates were rendered and looked at: Gray 100, Gray 80, Blue 80, Blue 70,
-Gray 20, Gray 10. Blue 80 won. Gray 100 matches the header, rail and footer
-exactly, which is the tidiest argument on paper and makes the page top-heavy in
-practice, three near-black bars competing with the real header; Gray 20 is
-closest to Carbon's own section heading and too quiet to separate anything,
-which is where this started. The colour is a named constant, because the next
-person to ask will want to try the others too.
+interactive blue read as three calls to action rather than as structure. Blue 80
+fixed the brightness and lost on a different argument, which is the one that
+decided it: on this page everything blue is clickable. Every tile title, every
+navigation link, the zoom control. A blue bar above them spends that signal on
+a label nobody can click, and grey says "this is structure" and nothing else --
+which is the only claim a section header is making.
+
+Gray 100 matches the header, rail and footer exactly, the tidiest argument on
+paper and top-heavy in practice: three near-black bars against a real black
+header. Gray 10 and Gray 20 went the other way and stopped separating anything,
+which is where this started. Gray 30 is the lightest neutral that still stops
+the eye.
+
+The text is Gray 90 rather than Gray 100. At a light band a near-black label is
+heavier than the band it sits in, which puts the emphasis on the wrong element;
+matching their weights makes the strip read as one thing.
+
+Both colours are named constants, because the next person to ask will want to
+try the others too.
 
 The box around each band went with them. Both versions were built and looked at
 side by side, which is the only way to answer that kind of question; the box put
