@@ -172,6 +172,86 @@ def test_second_request_is_served_from_cache_without_calling_the_model(
     assert len(fake_llm) == 1, "a cached verdict must not cost another call"
 
 
+def test_refresh_ignores_a_stored_verdict_and_replaces_it(client, monkeypatch):
+    """
+    The cache key covers the config's contents, so an edited config re-judges
+    by itself. This is the case the key cannot see: identical inputs, and a
+    stored verdict that should not stand.
+    """
+    replies = [
+        {**FAKE_RESULT, "verdict": "No", "score": 0.0, "explanation": "first"},
+        {**FAKE_RESULT, "verdict": "Yes", "score": 1.0, "explanation": "second"},
+    ]
+    calls = []
+
+    def _fake(*args, **kwargs):
+        calls.append(args)
+        return replies[min(len(calls) - 1, len(replies) - 1)]
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    payload = {"record_id": "r1", "pipeline": PIPE}
+    first = api.post("/api/benchmarks/demo/judge", json=payload).json()
+    assert first["verdict"] == "No"
+    # Without refresh the stored verdict stands.
+    assert api.post("/api/benchmarks/demo/judge", json=payload).json()["cached"] is True
+    assert len(calls) == 1
+
+    again = api.post(
+        "/api/benchmarks/demo/judge", json={**payload, "refresh": True}
+    ).json()
+    assert again["cached"] is False
+    assert again["verdict"] == "Yes"
+    assert len(calls) == 2
+
+    # And it replaced the old one rather than sitting alongside it.
+    after = api.post("/api/benchmarks/demo/judge", json=payload).json()
+    assert after["cached"] is True
+    assert after["verdict"] == "Yes"
+    assert len(calls) == 2
+
+
+def test_refresh_still_respects_the_budget(client, fake_llm, monkeypatch):
+    """A re-run costs an inference like any other, so the ceiling applies."""
+    api, _ = client
+    monkeypatch.setattr(
+        routers_judge.JudgeStore,
+        "check_budget",
+        lambda self: (_ for _ in ()).throw(routers_judge.BudgetExceeded("no")),
+    )
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={"record_id": "r1", "pipeline": PIPE, "refresh": True},
+    )
+    assert resp.status_code == 429
+    assert fake_llm == []
+
+
+def test_refresh_and_cached_only_together_are_refused(client, fake_llm):
+    """One says never call the model, the other says always. Not a default."""
+    api, _ = client
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={
+            "record_id": "r1",
+            "pipeline": PIPE,
+            "refresh": True,
+            "cached_only": True,
+        },
+    )
+    assert resp.status_code == 400
+    assert fake_llm == []
+
+
+def test_refresh_is_off_by_default(client, fake_llm):
+    api, _ = client
+    payload = {"record_id": "r1", "pipeline": PIPE}
+    api.post("/api/benchmarks/demo/judge", json=payload)
+    assert api.post("/api/benchmarks/demo/judge", json=payload).json()["cached"] is True
+    assert len(fake_llm) == 1
+
+
 def test_an_unreadable_verdict_is_not_cached(client, monkeypatch):
     """
     An N/A means nobody could read the reply, not that the answer is "N/A".

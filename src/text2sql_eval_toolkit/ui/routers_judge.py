@@ -247,7 +247,14 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
     cache_key = verdict_cache_key(
         benchmark_id, req.record_id, req.pipeline, config_name, model, judge_config
     )
-    cached = store.get_verdict(cache_key)
+    if req.refresh and req.cached_only:
+        # Contradictory: one says never call the model, the other says always.
+        raise HTTPException(
+            status_code=400,
+            detail="refresh and cached_only cannot both be set.",
+        )
+
+    cached = None if req.refresh else store.get_verdict(cache_key)
     if cached:
         return JudgeResponse(
             benchmark_id=benchmark_id,

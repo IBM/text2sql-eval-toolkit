@@ -10,6 +10,41 @@ finished.
 
 ---
 
+## 2026-08-31 — a cache with no way out
+
+Fixing the parser did not fix the deployment: the stale `N/A` was still in the
+verdict cache, so the same record answered `from cache — no inference` with the
+old verdict on a build that would have read it correctly. I could not delete
+the row -- a destructive write to production data, and rightly refused -- and
+the user's response was the better one anyway: *there should always be a
+"refresh cache" button, just in case*.
+
+That is the actual defect. The cache key covers the config's contents, so
+editing a config re-judges by itself, and that had been treated as sufficient.
+It is not: it only covers the case where you *changed* something. With the
+inputs identical there was no way to discard a verdict you did not trust, so a
+bad one was permanent and the only workaround was to perturb the config until
+the key moved.
+
+`refresh` on the request skips the cache read; the write afterwards is
+`INSERT OR REPLACE`, so it already replaced rather than duplicated. Setting it
+together with `cached_only` is a 400 rather than a silent precedence rule --
+one says never call the model and the other says always, and picking a winner
+would hide a caller's mistake. The budget check sits after the cache lookup, so
+a re-run is metered like any other call without anything extra.
+
+Verified in a browser against the e2e fixture with the endpoint stubbed: the
+button is absent until there is a result, the request carries `refresh: true`,
+and the panel flips to "fresh inference" with the new text. Four endpoint tests,
+including that refresh still honours the ceiling.
+
+The local checkout has no results, so the playground's Run judge was disabled
+and the first browser check could not click anything. `make_e2e_fixture.py`
+builds exactly the data this needed -- worth remembering as the way to exercise
+a view that requires results without the 4 GB snapshot.
+
+---
+
 ## 2026-08-31 — the judge marked everything wrong because the model wrote Markdown
 
 Gemini on the deployment returned `N/A`, score 0, explanation `N/A`, and

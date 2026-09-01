@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button, ComboBox, InlineNotification, Tag, Tile } from "@carbon/react";
+import { Renew } from "@carbon/icons-react";
 
 import { apiFetch, apiUrl } from "../lib/api";
 
@@ -81,6 +82,7 @@ export const JudgePlayground: React.FC<Props> = ({
     async (
       config: string,
       cachedOnly: boolean,
+      refresh = false,
     ): Promise<JudgeResult | null> => {
       const res = await apiFetch(
         apiUrl(
@@ -94,6 +96,7 @@ export const JudgePlayground: React.FC<Props> = ({
             pipeline,
             config_name: config,
             cached_only: cachedOnly,
+            refresh,
           }),
         },
       );
@@ -103,12 +106,16 @@ export const JudgePlayground: React.FC<Props> = ({
     [benchmarkId, recordId, pipeline],
   );
 
-  const run = async () => {
+  // `refresh` ignores any stored verdict and judges again, replacing it. An
+  // edited config already re-judges by itself -- its contents are in the cache
+  // key -- so this is for the case the key cannot see: identical inputs, and a
+  // stored verdict you want rid of.
+  const run = async (refresh = false) => {
     if (!ready) return;
     setRunning(true);
     setError(null);
     try {
-      publish(await judge(configName, false));
+      publish(await judge(configName, false, refresh));
     } catch (e) {
       publish(null);
       setError(e instanceof Error ? e.message : "The judge could not be run");
@@ -179,7 +186,9 @@ export const JudgePlayground: React.FC<Props> = ({
           Ask an LLM whether the predicted SQL answers the question, using the
           record above. A verdict is cached against this record, pipeline and
           config — including the config's contents — so running it again costs
-          nothing until one of those changes.
+          nothing until one of those changes. <strong>Judge again</strong>
+          ignores the cache and asks the model afresh, replacing the stored
+          verdict.
         </p>
       </div>
 
@@ -220,6 +229,16 @@ export const JudgePlayground: React.FC<Props> = ({
         >
           {running ? "Judging…" : "Run judge"}
         </Button>
+        {result && (
+          <Button
+            kind="tertiary"
+            renderIcon={Renew}
+            disabled={!ready || running}
+            onClick={() => void run(true)}
+          >
+            Judge again
+          </Button>
+        )}
       </div>
 
       {!ready && (
