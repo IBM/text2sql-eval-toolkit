@@ -275,6 +275,29 @@ test.describe("links that do not resolve say so", () => {
     await expect(page.getByText(/does not name a pipeline/i)).toBeVisible();
   });
 
+  test("the navigation carries a query-form benchmark between views", async ({
+    page,
+  }) => {
+    // The rail's links build their addresses from the benchmark you are
+    // looking at. They read the path segment, so from `/insights?benchmark=x`
+    // they dropped it and sent you to an empty picker instead of the same
+    // benchmark's errors.
+    await page.goto(`/insights?benchmark=${BENCHMARK}`);
+    await expect(page.getByText(/Metrics Comparison/i).first()).toBeVisible({
+      timeout: 15000,
+    });
+
+    const hrefs = await page.evaluate(() =>
+      [...document.querySelectorAll("a")]
+        .filter((a) => /Error Analysis|Pipeline Compare/.test(a.textContent ?? ""))
+        .map((a) => a.getAttribute("href") ?? ""),
+    );
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const href of hrefs) {
+      expect(href, "a nav link dropped the benchmark").toContain(BENCHMARK);
+    }
+  });
+
   test("an unknown benchmark in the query is a not-found too", async ({
     page,
   }) => {

@@ -1074,13 +1074,13 @@ export const App: React.FC = () => {
       // With none selected there is nothing to anchor to and no strip.
       return (
         <BenchmarkView
-          benchmarkId={profileBenchmarkIds[0] ?? selectedBenchmark}
+          benchmarkId={profileBenchmarkIds[0] ?? analysisBenchmark}
           active="profileCompare"
           onNavigate={goto}
         >
           <ProfileCompareView
             benchmarks={benchmarks}
-            benchmarkId={selectedBenchmark}
+            benchmarkId={analysisBenchmark}
             selectedIds={profileBenchmarkIds}
             // `replace`, not push: adding and removing benchmarks adjusts one
             // view, and a history entry per change would bury whatever the
@@ -1216,15 +1216,18 @@ export const App: React.FC = () => {
               </NavLink>
               {/* Carries the benchmark you are already looking at, and asks
                   when there is not one -- rather than being disabled, or
-                  picking whichever benchmark happened to load first. */}
+                  picking whichever benchmark happened to load first.
+                  `analysisBenchmark`, so it is carried from the query form of
+                  the address as well as the path: reading only the path meant
+                  these links dropped it and sent you to an empty picker. */}
               <NavLink
-                href={routes.insights(selectedBenchmark)}
+                href={routes.insights(analysisBenchmark)}
                 onNavigate={goto}
               >
                 Metric Insights
               </NavLink>
               <NavLink
-                href={routes.compare(selectedBenchmark)}
+                href={routes.compare(analysisBenchmark)}
                 onNavigate={goto}
               >
                 Pipeline Compare
@@ -1232,7 +1235,10 @@ export const App: React.FC = () => {
               <NavLink href={routes.profileCompare()} onNavigate={goto}>
                 Profile Compare
               </NavLink>
-              <NavLink href={routes.errors(selectedBenchmark)} onNavigate={goto}>
+              <NavLink
+                href={routes.errors(analysisBenchmark)}
+                onNavigate={goto}
+              >
                 Error Analysis
               </NavLink>
               <div

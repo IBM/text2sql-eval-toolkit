@@ -187,6 +187,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the reply, not a judgement — but it was stored, so the next run answered from
   the cache without calling the model and **Run judge** had no way to try
   again. The spend is still metered, because the tokens were still spent.
+- **The navigation carries a query-form benchmark between analysis views.** The
+  rail's links build their addresses from the benchmark you are looking at, and
+  read the path segment only — so from `/insights?benchmark=x`, clicking *Error
+  Analysis* dropped it and offered an empty picker rather than that benchmark's
+  errors.
 - **An unknown benchmark in the query is a not-found.** The guard read the
   benchmark from the path only, so `/errors?benchmark=missing` rendered the view
   and let it issue API calls that could only fail, instead of saying the server
