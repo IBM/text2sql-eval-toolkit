@@ -156,6 +156,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The Eval Playground opens the record its address names.** A link to
+  `/run/{benchmark}/record/1480` loaded a different record and rewrote itself
+  to say so. On mount the view reported "nothing open", which erased the record
+  from the address before the view had read it; the record then arrived as
+  null, a default was loaded, and the address was rewritten to name that. It
+  had been true of every playground record link.
 - **Development history no longer leaks into the interface.** The Benchmarks
   page explained that it "was a slide-out panel, which meant it had no address
   of its own" — a changelog entry rendered as product copy. Every page's prose

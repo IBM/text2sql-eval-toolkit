@@ -683,6 +683,19 @@ export const RunEvaluationView: React.FC<Props> = ({
     if (!bid || recordItems.length === 0) return;
     if (autoLoadedForBenchRef.current === bid) return;
     autoLoadedForBenchRef.current = bid;
+    // What the address asked for wins.
+    //
+    // This used to declare a local `initialRecordId` here, shadowing the prop
+    // of that name, and load a default instead -- so `/run/{id}/record/1480`
+    // opened record 1490 and rewrote the address to say so. The prop was even
+    // in this effect's dependency list, which is how a value can be depended
+    // on and never read.
+    const named =
+      initialRecordId &&
+      recordItems.some((r) => String(r.record_id) === initialRecordId)
+        ? initialRecordId
+        : null;
+
     // The default record id only exists in some benchmarks. This used to check
     // that and then load it regardless, so opening the playground on any other
     // benchmark greeted you with "Record not found in benchmark data" -- an
@@ -691,14 +704,16 @@ export const RunEvaluationView: React.FC<Props> = ({
     const hasDefault = recordItems.some(
       (r) => String(r.record_id) === DEFAULT_PLAYGROUND_RECORD_ID,
     );
-    const initialRecordId = hasDefault
-      ? DEFAULT_PLAYGROUND_RECORD_ID
-      : String(recordItems[0].record_id);
+    const recordToOpen =
+      named ??
+      (hasDefault
+        ? DEFAULT_PLAYGROUND_RECORD_ID
+        : String(recordItems[0].record_id));
 
-    setSelectedRecordId(initialRecordId);
+    setSelectedRecordId(recordToOpen);
     setRecordIdManual("");
-    void loadPlaygroundRef.current(initialRecordId, {
-      preferredPipelineName: DEFAULT_PLAYGROUND_PIPELINE,
+    void loadPlaygroundRef.current(recordToOpen, {
+      preferredPipelineName: initialPipeline ?? DEFAULT_PLAYGROUND_PIPELINE,
       autoEvaluate: true,
     });
   }, [
@@ -717,6 +732,15 @@ export const RunEvaluationView: React.FC<Props> = ({
   // a link built from a half-finished selection would open on something else.
   useEffect(() => {
     if (!onStateChange) return;
+    // Nothing has loaded yet and the address names a record: say nothing.
+    //
+    // This effect ran on mount with `loadedRecordId` still null, reported "no
+    // record", and the address was rewritten from `/run/{id}/record/1480` to
+    // `/run/{id}` -- before the view had read the record out of it. The record
+    // then arrived as null, the default was loaded instead, and the address was
+    // rewritten again to name *that*. A shared link to a record opened a
+    // different record and rewrote itself to look deliberate.
+    if (!loadedRecordId && initialRecordId) return;
     onStateChange({
       benchmarkId: selectedBenchmark?.benchmark_id ?? null,
       recordId: loadedRecordId || null,
@@ -729,6 +753,7 @@ export const RunEvaluationView: React.FC<Props> = ({
     onStateChange,
     selectedBenchmark?.benchmark_id,
     loadedRecordId,
+    initialRecordId,
     selectedPipelineName,
     judgeResult?.config_name,
   ]);

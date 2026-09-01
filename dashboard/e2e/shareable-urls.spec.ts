@@ -99,6 +99,34 @@ test.describe("a link reproduces the view", () => {
     await recipient.close();
   });
 
+  test("the playground opens the record the address names", async ({ page }) => {
+    // The address was being erased before the view read it. The view reports
+    // what it has open so the URL can follow; on mount it had nothing open,
+    // reported "no record", and that rewrote `/run/{id}/record/X` to
+    // `/run/{id}` -- so the record arrived as null, a default was loaded, and
+    // the address was rewritten again to name *that*. A link to one record
+    // opened another and looked deliberate about it.
+    await openFresh(page, `/run/${BENCHMARK}/record/rec-005`);
+    await expect(page.getByText("Question 5 about")).toBeVisible({
+      timeout: 15000,
+    });
+    expect(new URL(page.url()).pathname).toBe(`/run/${BENCHMARK}/record/rec-005`);
+  });
+
+  test("the playground falls back when the address names no record", async ({
+    page,
+  }) => {
+    // The other half of the same rule: with nothing named, the view is free to
+    // choose, and the address follows what it chose.
+    await openFresh(page, `/run/${BENCHMARK}`);
+    await expect(page.locator("text=/Question \\d+ about/").first()).toBeVisible({
+      timeout: 15000,
+    });
+    expect(new URL(page.url()).pathname).toMatch(
+      new RegExp(`^/run/${BENCHMARK}/record/rec-\\d+$`),
+    );
+  });
+
   test("a filtered list, with the filter still applied", async ({
     page,
     browser,

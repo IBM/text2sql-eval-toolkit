@@ -10,6 +10,47 @@ finished.
 
 ---
 
+## 2026-08-31 — checking the doc links found a bug older than the links
+
+Asked to check the tour's links, and the internal ones all resolved -- but the
+playground link pointed at record 1480 and landed on 1490, rewriting the address
+on the way so it looked deliberate.
+
+Not something this branch broke: the deployed build does the same, and
+`RunEvaluationView` has no commits on this branch at all. It had been true of
+every playground record link for as long as they have existed.
+
+The cause is two effects racing over one address. The view reports what it has
+open so the URL can follow -- and on mount it has nothing open, so it reported
+"no record", which rewrote `/run/{id}/record/1480` to `/run/{id}`. The record
+then arrived as null, a default was loaded, and the address was rewritten again
+to name *that*. Both effects were individually reasonable; between them they
+erased the reader's own link before anything read it.
+
+The report is now suppressed while nothing has loaded *and* the address names a
+record: in that window the address is the source of truth and the view has
+nothing to add.
+
+There was a second, smaller thing in the same effect that loads the record: it
+declared a local `const initialRecordId`, shadowing the prop of that name, and
+the prop was in the effect's dependency list -- depended upon and never read.
+Fixing the race alone would have left that, and it would have bitten the next
+person.
+
+Two e2e tests cover it now, and I checked they fail without the fix, because a
+test that passes either way is worth nothing. That is the fourth time on this
+branch that a URL change broke something only the e2e suite could see -- except
+this one was not a URL change at all, just a link somebody asked me to check.
+
+The external links were checked too. Three of the survey's citations answer with
+something other than 200 -- two are Cloudflare and IEEE refusing a script, and
+one is a PVLDB DOI that is registered but not yet live, which is the same reason
+the toolkit's own DOI does not resolve. None of them is wrong. The GitHub link
+in the docs view's empty state 404s only because `docs/notes` exists on this
+branch and not yet on `main`.
+
+---
+
 ## 2026-08-31 — the benchmark is an input, not an identity
 
 Profile compare's fix generalised. `/benchmark/{id}` is the summary *of* a
