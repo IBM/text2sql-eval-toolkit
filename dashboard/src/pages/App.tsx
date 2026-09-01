@@ -187,23 +187,22 @@ const ChooseBenchmark: React.FC<{
 const HOME_SECTION_BOX = false;
 
 /**
- * The band banners' colour: Carbon Blue 80.
+ * The band banners' colour: Carbon Gray 30 with Gray 90 text.
  *
- * Blue 60 -- the interactive blue used for links and primary buttons -- was
- * too bright for three full-width bars; it read as three calls to action
- * rather than as structure. Blue 80 is the same family two steps darker, so it
- * still relates to everything else blue on the page without competing with it,
- * and white on it clears the contrast floor several times over.
+ * Several candidates were rendered against the real page. Blue 60 -- the
+ * interactive blue used for links and primary buttons -- read as three calls to
+ * action rather than as structure. Blue 80 fixed the brightness and still spent
+ * the brand colour on decoration. Gray 100 matches the header, rail and footer
+ * exactly, which is the tidiest argument on paper and makes the page top-heavy
+ * in practice. Gray 10 was quiet enough to stop separating the bands at all.
  *
- * Compared against Gray 100, Gray 80, Blue 70, Gray 20 and Gray 10 by
- * rendering each. Gray 100 matches the header, rail and footer exactly and is
- * the tidiest argument, but three near-black bars make the page top-heavy and
- * compete with the real header. Gray 20 is closest to Carbon's own section
- * heading and too quiet to do the separating this page needs -- which was the
- * original problem.
+ * Gray 30 is the neutral that still reads as a band: darker than the tile
+ * borders, so the eye stops at it, without the weight of a filled colour.
+ * Carbon's own section headings are neutral rather than filled, which is what
+ * makes this the least surprising thing the page can do.
  */
-const HOME_BANNER_BG = "#002d9c";
-const HOME_BANNER_FG = "#ffffff";
+const HOME_BANNER_BG = "#c6c6c6";
+const HOME_BANNER_FG = "#262626";
 
 const HomeSection: React.FC<{
   title: string;
