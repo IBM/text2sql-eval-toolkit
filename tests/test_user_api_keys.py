@@ -292,3 +292,96 @@ class TestProvidersNeedingMoreThanAKey:
             store.reveal_for_request(USER, "wxai")
         assert CANARY not in caplog.text
         assert "proj-secret-value" not in caplog.text
+
+
+# --- schema migration ------------------------------------------------------
+
+
+#: The table as it shipped before `ciphertext2` was added for watsonx.
+_PRE_CIPHERTEXT2_SCHEMA = """
+CREATE TABLE user_keys (
+    email        TEXT NOT NULL,
+    provider     TEXT NOT NULL,
+    ciphertext   BLOB NOT NULL,
+    label        TEXT,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    last_used_at TEXT,
+    PRIMARY KEY (email, provider)
+);
+"""
+
+
+def _legacy_db(tmp_path):
+    """A key store whose table predates the current schema."""
+    import sqlite3
+
+    path = tmp_path / "keys.sqlite"
+    with sqlite3.connect(path) as conn:
+        conn.executescript(_PRE_CIPHERTEXT2_SCHEMA)
+    return path
+
+
+def _columns(path):
+    import sqlite3
+
+    with sqlite3.connect(path) as conn:
+        return {row[1] for row in conn.execute("PRAGMA table_info(user_keys)")}
+
+
+def test_an_older_table_gains_the_column_it_is_missing(tmp_path, master_key):
+    """
+    `CREATE TABLE IF NOT EXISTS` is not a migration.
+
+    A deployment whose table was created before `ciphertext2` never received
+    it, and since the INSERT names that column, storing *any* key answered
+    500 -- which is exactly what happened on the live deployment.
+    """
+    path = _legacy_db(tmp_path)
+    assert "ciphertext2" not in _columns(path)
+
+    UserKeyStore(path)
+
+    assert "ciphertext2" in _columns(path)
+
+
+def test_saving_works_against_a_migrated_table(tmp_path, master_key):
+    store = UserKeyStore(_legacy_db(tmp_path))
+    # The provider that has no companion value, and the one that does.
+    store.store(email="a@b.c", provider="gemini", api_key="gem-key")
+    store.store(email="a@b.c", provider="wxai", api_key="wx-key", secondary="proj")
+
+    assert sorted(r["provider"] for r in store.describe("a@b.c")) == [
+        "gemini",
+        "wxai",
+    ]
+    assert store.reveal_for_request("a@b.c", "gemini") == {"GEMINI_API_KEY": "gem-key"}
+    # The companion value survives, which is the whole reason the column exists.
+    assert store.reveal_for_request("a@b.c", "wxai") == {
+        "WATSONX_APIKEY": "wx-key",
+        "WATSONX_PROJECTID": "proj",
+    }
+
+
+def test_rows_already_in_an_older_table_are_kept(tmp_path, master_key):
+    # A migration that dropped existing keys would be worse than the bug.
+    import sqlite3
+
+    path = _legacy_db(tmp_path)
+    with sqlite3.connect(path) as conn:
+        conn.execute(
+            "INSERT INTO user_keys (email, provider, ciphertext) VALUES (?, ?, ?)",
+            ("old@b.c", "anthropic", b"whatever"),
+        )
+
+    UserKeyStore(path)
+
+    with sqlite3.connect(path) as conn:
+        rows = list(conn.execute("SELECT email, provider FROM user_keys"))
+    assert rows == [("old@b.c", "anthropic")]
+
+
+def test_migrating_twice_is_harmless(tmp_path, master_key):
+    path = _legacy_db(tmp_path)
+    UserKeyStore(path)
+    UserKeyStore(path)
+    assert "ciphertext2" in _columns(path)

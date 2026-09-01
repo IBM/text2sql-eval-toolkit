@@ -172,6 +172,211 @@ def test_second_request_is_served_from_cache_without_calling_the_model(
     assert len(fake_llm) == 1, "a cached verdict must not cost another call"
 
 
+def test_refresh_ignores_a_stored_verdict_and_replaces_it(client, monkeypatch):
+    """
+    The cache key covers the config's contents, so an edited config re-judges
+    by itself. This is the case the key cannot see: identical inputs, and a
+    stored verdict that should not stand.
+    """
+    replies = [
+        {**FAKE_RESULT, "verdict": "No", "score": 0.0, "explanation": "first"},
+        {**FAKE_RESULT, "verdict": "Yes", "score": 1.0, "explanation": "second"},
+    ]
+    calls = []
+
+    def _fake(*args, **kwargs):
+        calls.append(args)
+        return replies[min(len(calls) - 1, len(replies) - 1)]
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    payload = {"record_id": "r1", "pipeline": PIPE}
+    first = api.post("/api/benchmarks/demo/judge", json=payload).json()
+    assert first["verdict"] == "No"
+    # Without refresh the stored verdict stands.
+    assert api.post("/api/benchmarks/demo/judge", json=payload).json()["cached"] is True
+    assert len(calls) == 1
+
+    again = api.post(
+        "/api/benchmarks/demo/judge", json={**payload, "refresh": True}
+    ).json()
+    assert again["cached"] is False
+    assert again["verdict"] == "Yes"
+    assert len(calls) == 2
+
+    # And it replaced the old one rather than sitting alongside it.
+    after = api.post("/api/benchmarks/demo/judge", json=payload).json()
+    assert after["cached"] is True
+    assert after["verdict"] == "Yes"
+    assert len(calls) == 2
+
+
+def test_a_refresh_that_cannot_be_read_clears_the_old_verdict(client, monkeypatch):
+    """
+    An N/A is not stored -- but a *forced* one has to remove what it replaces.
+    Otherwise the response says N/A while the cache still holds the verdict the
+    caller just asked to be rid of, and the next request hands it back.
+    """
+    replies = [
+        {**FAKE_RESULT, "verdict": "Yes", "score": 1.0, "explanation": "sure"},
+        {
+            **FAKE_RESULT,
+            "verdict": "N/A",
+            "score": 0.0,
+            "explanation": "unreadable",
+        },
+    ]
+    calls = []
+
+    def _fake(*args, **kwargs):
+        calls.append(args)
+        return replies[min(len(calls) - 1, len(replies) - 1)]
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    payload = {"record_id": "r1", "pipeline": PIPE}
+    assert api.post("/api/benchmarks/demo/judge", json=payload).json()["verdict"] == (
+        "Yes"
+    )
+
+    forced = api.post(
+        "/api/benchmarks/demo/judge", json={**payload, "refresh": True}
+    ).json()
+    assert forced["verdict"] == "N/A"
+
+    # The discarded verdict must not come back.
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={**payload, "cached_only": True},
+    )
+    assert resp.status_code == 204, resp.text
+
+
+def test_an_unforced_na_leaves_an_unrelated_cached_verdict_alone(client, monkeypatch):
+    """The delete belongs to refresh. A plain run must not clear the cache."""
+    calls = []
+
+    def _fake(*args, **kwargs):
+        calls.append(args)
+        if len(calls) == 1:
+            return {**FAKE_RESULT, "verdict": "Yes"}
+        return {**FAKE_RESULT, "verdict": "N/A", "score": 0.0}
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    other = {"record_id": "r2", "pipeline": PIPE}
+    api.post("/api/benchmarks/demo/judge", json={"record_id": "r1", "pipeline": PIPE})
+    api.post("/api/benchmarks/demo/judge", json=other)
+
+    still = api.post(
+        "/api/benchmarks/demo/judge",
+        json={"record_id": "r1", "pipeline": PIPE, "cached_only": True},
+    )
+    assert still.status_code == 200
+    assert still.json()["verdict"] == "Yes"
+
+
+def test_refresh_still_respects_the_budget(client, fake_llm, monkeypatch):
+    """A re-run costs an inference like any other, so the ceiling applies."""
+    api, _ = client
+    monkeypatch.setattr(
+        routers_judge.JudgeStore,
+        "check_budget",
+        lambda self: (_ for _ in ()).throw(routers_judge.BudgetExceeded("no")),
+    )
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={"record_id": "r1", "pipeline": PIPE, "refresh": True},
+    )
+    assert resp.status_code == 429
+    assert fake_llm == []
+
+
+def test_refresh_and_cached_only_together_are_refused(client, fake_llm):
+    """One says never call the model, the other says always. Not a default."""
+    api, _ = client
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={
+            "record_id": "r1",
+            "pipeline": PIPE,
+            "refresh": True,
+            "cached_only": True,
+        },
+    )
+    assert resp.status_code == 400
+    assert fake_llm == []
+
+
+def test_refresh_is_off_by_default(client, fake_llm):
+    api, _ = client
+    payload = {"record_id": "r1", "pipeline": PIPE}
+    api.post("/api/benchmarks/demo/judge", json=payload)
+    assert api.post("/api/benchmarks/demo/judge", json=payload).json()["cached"] is True
+    assert len(fake_llm) == 1
+
+
+def test_an_unreadable_verdict_is_not_cached(client, monkeypatch):
+    """
+    An N/A means nobody could read the reply, not that the answer is "N/A".
+    Caching it made that permanent: the next run answered from the cache
+    without calling the model, so the button offered no way to try again.
+    """
+    calls = []
+
+    def _fake(*args, **kwargs):
+        calls.append(args)
+        return {
+            "verdict": "N/A",
+            "score": 0.0,
+            "explanation": "the model said something else entirely",
+            "token_usage": {"prompt_tokens": 10, "completion_tokens": 5},
+        }
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    payload = {"record_id": "r1", "pipeline": PIPE}
+    first = api.post("/api/benchmarks/demo/judge", json=payload).json()
+    second = api.post("/api/benchmarks/demo/judge", json=payload).json()
+
+    assert first["verdict"] == "N/A"
+    assert first["cached"] is False
+    assert second["cached"] is False, "an N/A was cached and the retry was lost"
+    assert len(calls) == 2, "the second run must reach the model again"
+
+    # And there is nothing for a cached-only lookup to find.
+    resp = api.post(
+        "/api/benchmarks/demo/judge",
+        json={"record_id": "r1", "pipeline": PIPE, "cached_only": True},
+    )
+    assert resp.status_code == 204
+
+
+def test_an_unreadable_verdict_is_still_metered(client, monkeypatch):
+    """The tokens were spent whether or not the reply could be read."""
+
+    def _fake(*args, **kwargs):
+        return {
+            "verdict": "N/A",
+            "score": 0.0,
+            "explanation": "unrecognised",
+            "token_usage": {"prompt_tokens": 1200, "completion_tokens": 80},
+        }
+
+    monkeypatch.setattr(routers_judge, "evaluate_sql_prediction_with_llm", _fake)
+
+    api, _ = client
+    body = api.post(
+        "/api/benchmarks/demo/judge", json={"record_id": "r1", "pipeline": PIPE}
+    ).json()
+    assert body["usage"]["calls"] == 1
+    assert body["usage"]["spent_usd"] > 0
+
+
 def test_cache_key_changes_with_the_inputs_that_determine_a_verdict():
     base = ("bench", "rec", "pipe", "cfg", "model")
     key = verdict_cache_key(*base)

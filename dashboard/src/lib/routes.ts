@@ -24,6 +24,7 @@ export type ViewName =
   | "benchmarks"
   | "users"
   | "myKeys"
+  | "docs"
   | "runEvaluation";
 
 /** Filter state for the error-analysis view, all optional. */
@@ -58,6 +59,22 @@ export const FILTER_DEFAULTS: Required<
 const encode = (segment: string): string => encodeURIComponent(segment);
 
 /**
+ * Put `benchmark=` at the front of a query string that may already have
+ * filters in it.
+ *
+ * First rather than appended, because it is the parameter a reader is most
+ * likely to want to see or edit in the address bar.
+ */
+const withBenchmark = (
+  benchmarkId: string | null | undefined,
+  rest: string,
+): string => {
+  if (!benchmarkId) return rest;
+  const tail = rest.replace(/^\?/, "");
+  return `?benchmark=${encode(benchmarkId)}${tail ? `&${tail}` : ""}`;
+};
+
+/**
  * The path prefix for a benchmark. Spelled out rather than abbreviated: these
  * addresses get pasted into issues and papers, where `/benchmark/spider_dev`
  * says what it points at and `/b/spider_dev` needs the reader to already know.
@@ -85,14 +102,46 @@ export const routes = {
     `/benchmark/${encode(benchmarkId)}/pipeline/${encode(
       pipelineId,
     )}/record/${encode(recordId)}`,
-  errors: (benchmarkId: string, filters?: ErrorFilters): string =>
-    `/benchmark/${encode(benchmarkId)}/errors${buildQuery(filters)}`,
-  insights: (benchmarkId: string): string =>
-    `/benchmark/${encode(benchmarkId)}/insights`,
-  compare: (benchmarkId: string): string =>
-    `/benchmark/${encode(benchmarkId)}/compare`,
-  profileCompare: (benchmarkId: string): string =>
-    `/benchmark/${encode(benchmarkId)}/compare/profile`,
+  /**
+   * The analysis views. The benchmark is a query parameter, not a segment.
+   *
+   * `/benchmark/{id}` is the summary *of* a benchmark, so the id belongs in
+   * its path. The other four are views that take a benchmark as their input,
+   * and one of them -- profile compare -- takes several; making that an input
+   * rather than part of the view's identity is what lets the address describe
+   * the selection in every case. It also means `/insights` is a real address
+   * on its own, showing the view with nothing chosen yet.
+   *
+   * The `/benchmark/{id}/insights` form still resolves; links to it exist.
+   */
+  errors: (benchmarkId?: string | null, filters?: ErrorFilters): string =>
+    `/errors${withBenchmark(benchmarkId, buildQuery(filters))}`,
+  insights: (benchmarkId?: string | null): string =>
+    `/insights${withBenchmark(benchmarkId, "")}`,
+  compare: (benchmarkId?: string | null): string =>
+    `/compare${withBenchmark(benchmarkId, "")}`,
+  /**
+   * Profile compare pools *several* benchmarks, so its address carries a list.
+   *
+   * A single benchmark in a path segment could only ever name one, and the
+   * view let you add a second -- at which point the address quietly became the
+   * one most recently added and no longer described what was on screen. A
+   * query parameter holds the set: `/compare/profile?benchmarks=a,b`.
+   *
+   * Each id is encoded and the commas are not, so an id containing a comma
+   * survives the round trip. The older `/benchmark/{id}/compare/profile` still
+   * resolves -- links to it exist -- and seeds the selection with that one.
+   */
+  profileCompare: (
+    benchmarkIds?: string | readonly string[] | null,
+  ): string => {
+    const ids = (
+      typeof benchmarkIds === "string" ? [benchmarkIds] : (benchmarkIds ?? [])
+    ).filter(Boolean);
+    return ids.length === 0
+      ? "/compare/profile"
+      : `/compare/profile?benchmarks=${ids.map(encode).join(",")}`;
+  },
   llmJudge: (configName?: string): string =>
     configName ? `/llm-judge/${encode(configName)}` : "/llm-judge",
   /**
@@ -129,9 +178,59 @@ export const routes = {
   },
   /** Every benchmark, as a page rather than a slide-out panel. */
   benchmarks: (): string => "/benchmarks",
+  /**
+   * Documentation.
+   *
+   * `/docs` is the published API reference, embedded. `/docs/{name}` is one of
+   * the long-form notes from the repository's `docs/notes/`. Naming the
+   * document in the path is the point: in a demo you want to send someone the
+   * exact thing being discussed, not the docs view and directions.
+   *
+   * The bare `/docs` deliberately shows the reference rather than the first
+   * note -- it is the one thing that is present on every install, including a
+   * pip install, where `docs/` is not packaged and there are no notes to show.
+   */
+  docs: (name?: string | null): string =>
+    name ? `/docs/${encode(name)}` : "/docs",
   users: (): string => "/users",
   myKeys: (): string => "/my-keys",
 };
+
+/**
+ * The benchmarks profile compare is pooling, from a query string.
+ *
+ * Empty when the parameter is absent, which is the view with nothing selected.
+ */
+/** The benchmark an analysis view is looking at, from `?benchmark=`. */
+export function parseBenchmark(search: string): string | null {
+  const params = new URLSearchParams(search.replace(/^\?/, ""));
+  return params.get("benchmark") || null;
+}
+
+export function parseBenchmarkList(search: string): string[] {
+  // Read the raw parameter rather than going through `URLSearchParams`, which
+  // decodes the value before this can split it -- turning an id containing an
+  // encoded comma into two ids. The separator has to be found in the encoded
+  // text, and each entry decoded afterwards.
+  const raw = search
+    .replace(/^\?/, "")
+    .split("&")
+    .map((pair) => pair.split("="))
+    .find(([key]) => key === "benchmarks")?.[1];
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((id) => {
+      try {
+        return decodeURIComponent(id);
+      } catch {
+        // A malformed escape should cost that one entry, not throw and blank
+        // the whole view.
+        return "";
+      }
+    })
+    .filter(Boolean);
+}
 
 /**
  * Serialize filters to a query string, dropping empty values and anything
@@ -267,6 +366,34 @@ export function parseLocation(pathname: string): RouteMatch {
 
   if (segments[0] === "my-keys" && segments.length === 1) {
     return { ...EMPTY, view: "myKeys" };
+  }
+
+  // The analysis views with no benchmark named. `/compare/profile` is checked
+  // before `/compare`, or the two-segment path would match the one-segment
+  // rule and lose its second half.
+  if (
+    segments[0] === "compare" &&
+    segments[1] === "profile" &&
+    segments.length === 2
+  ) {
+    return { ...EMPTY, view: "profileCompare" };
+  }
+  if (segments[0] === "compare" && segments.length === 1) {
+    return { ...EMPTY, view: "pipelineCompare" };
+  }
+  if (segments[0] === "insights" && segments.length === 1) {
+    return { ...EMPTY, view: "toolkitInsights" };
+  }
+  if (segments[0] === "errors" && segments.length === 1) {
+    return { ...EMPTY, view: "errorAnalysis" };
+  }
+
+  if (segments[0] === "docs" && segments.length <= 2) {
+    // `configName` carries the document stem. It is the existing "which named
+    // thing is this view showing" slot -- adding a second identically-shaped
+    // field would mean every consumer of RouteMatch has to know which views use
+    // which one.
+    return { ...EMPTY, view: "docs", configName: segments[1] ?? null };
   }
 
   if (segments[0] === "llm-judge" && segments.length <= 2) {

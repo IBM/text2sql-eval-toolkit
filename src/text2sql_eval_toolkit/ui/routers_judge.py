@@ -247,7 +247,14 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
     cache_key = verdict_cache_key(
         benchmark_id, req.record_id, req.pipeline, config_name, model, judge_config
     )
-    cached = store.get_verdict(cache_key)
+    if req.refresh and req.cached_only:
+        # Contradictory: one says never call the model, the other says always.
+        raise HTTPException(
+            status_code=400,
+            detail="refresh and cached_only cannot both be set.",
+        )
+
+    cached = None if req.refresh else store.get_verdict(cache_key)
     if cached:
         return JudgeResponse(
             benchmark_id=benchmark_id,
@@ -345,18 +352,32 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
             model,
         )
 
-    store.put_verdict(
-        cache_key,
-        benchmark_id=benchmark_id,
-        record_id=req.record_id,
-        pipeline_id=req.pipeline,
-        config_name=config_name,
-        model=model,
-        verdict=str(result.get("verdict", "N/A")),
-        score=result.get("score"),
-        explanation=result.get("explanation"),
-        user_hash=user_hash,
-    )
+    verdict = str(result.get("verdict", "N/A"))
+    # An N/A is not a result, it is a reply nobody could read -- so it is not
+    # cached. Caching it made the failure permanent: the next run answered from
+    # the cache without calling the model, and the only way to try again was to
+    # edit the config. The spend above is still recorded, because the tokens
+    # were still spent.
+    if verdict == "N/A":
+        # A forced re-judge that comes back unreadable must not leave the old
+        # verdict standing: the caller asked to replace it, the response says
+        # N/A, and without this the next request would produce the very verdict
+        # they had just discarded.
+        if req.refresh:
+            store.delete_verdict(cache_key)
+    else:
+        store.put_verdict(
+            cache_key,
+            benchmark_id=benchmark_id,
+            record_id=req.record_id,
+            pipeline_id=req.pipeline,
+            config_name=config_name,
+            model=model,
+            verdict=verdict,
+            score=result.get("score"),
+            explanation=result.get("explanation"),
+            user_hash=user_hash,
+        )
 
     usage = store.usage()
     if usage.warning:
@@ -370,7 +391,7 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
         benchmark_id=benchmark_id,
         record_id=req.record_id,
         pipeline=req.pipeline,
-        verdict=str(result.get("verdict", "N/A")),
+        verdict=verdict,
         score=result.get("score"),
         explanation=result.get("explanation"),
         model=model,

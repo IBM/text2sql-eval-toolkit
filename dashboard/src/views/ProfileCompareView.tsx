@@ -38,7 +38,15 @@ import {
 interface Props {
   benchmarks: BenchmarkSummary[];
   benchmarkId: string | null;
-  onSelectBenchmark?: (id: string) => void;
+  /**
+   * The benchmarks to pool, from the address.
+   *
+   * The view keeps its own copy so the controls stay responsive, and reports
+   * every change back through `onSelectionChange` so the address always
+   * describes what is on screen.
+   */
+  selectedIds?: readonly string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
 type PipelineMetrics = CategorySummaryResponse["overall"][number];
@@ -140,7 +148,8 @@ function findPipeline(pipelines: PipelineMetrics[], name: string): PipelineMetri
 export const ProfileCompareView: React.FC<Props> = ({
   benchmarks,
   benchmarkId,
-  onSelectBenchmark,
+  selectedIds,
+  onSelectionChange,
 }) => {
   const [selectedBenchmarkIds, setSelectedBenchmarkIds] = useState<string[]>([]);
   const [summariesById, setSummariesById] = useState<Record<string, CategorySummaryResponse>>({});
@@ -170,12 +179,29 @@ export const ProfileCompareView: React.FC<Props> = ({
     [benchmarks]
   );
 
+  // Adopt the address's selection. `benchmarkId` is the older
+  // `/benchmark/{id}/compare/profile` form and seeds a single one; `selectedIds`
+  // is the list the canonical address carries.
+  //
+  // Compared before setting, or every render would replace the state with an
+  // equal array and restart the fetches below.
+  const addressIds = useMemo(
+    () => (selectedIds && selectedIds.length > 0
+      ? [...selectedIds]
+      : benchmarkId
+        ? [benchmarkId]
+        : []),
+    [selectedIds, benchmarkId],
+  );
+
   useEffect(() => {
-    if (!benchmarkId) return;
     setSelectedBenchmarkIds((prev) =>
-      prev.includes(benchmarkId) ? prev : [...prev, benchmarkId]
+      prev.length === addressIds.length &&
+      prev.every((id, i) => id === addressIds[i])
+        ? prev
+        : addressIds,
     );
-  }, [benchmarkId]);
+  }, [addressIds]);
 
   useEffect(() => {
     let cancelled = false;
@@ -285,14 +311,18 @@ export const ProfileCompareView: React.FC<Props> = ({
     if (!item) return;
     const id = item.benchmark_id;
     if (selectedBenchmarkIds.includes(id)) return;
-    setSelectedBenchmarkIds((prev) => [...prev, id]);
-    onSelectBenchmark?.(id);
+    const next = [...selectedBenchmarkIds, id];
+    setSelectedBenchmarkIds(next);
+    // The whole selection, not the one just added. Reporting only the addition
+    // is what made the address name whichever benchmark was chosen last while
+    // the view was pooling several.
+    onSelectionChange?.(next);
   };
 
   const removeBenchmark = (id: string) => {
     setSelectedBenchmarkIds((prev) => {
       const next = prev.filter((x) => x !== id);
-      if (next.length > 0) onSelectBenchmark?.(next[next.length - 1]);
+      onSelectionChange?.(next);
       return next;
     });
     setSummariesById((prev) => {
@@ -457,7 +487,9 @@ export const ProfileCompareView: React.FC<Props> = ({
               kind="ghost"
               size="sm"
               onClick={() => {
-                setSelectedBenchmarkIds(benchmarkId ? [benchmarkId] : [selectedBenchmarkIds[0]]);
+                const next = selectedBenchmarkIds.slice(0, 1);
+                setSelectedBenchmarkIds(next);
+                onSelectionChange?.(next);
               }}
             >
               Reset to one

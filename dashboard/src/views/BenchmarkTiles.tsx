@@ -6,8 +6,20 @@ import { apiUrl } from "../lib/api";
 interface Props {
   items: BenchmarkSummary[];
   onSelect: (benchmarkId: string) => void;
-  onEdit: (benchmarkId: string) => void;
-  onAddNew: () => void;
+  /**
+   * Omit to render the tiles without their edit control.
+   *
+   * Same reasoning as `onAddNew`: the home page picks a benchmark, the
+   * Benchmarks page manages them.
+   */
+  onEdit?: (benchmarkId: string) => void;
+  /**
+   * Omit to render the grid without the "Add New Benchmark" tile.
+   *
+   * The home page is a place to pick a benchmark; adding one is managing them,
+   * and that lives on the Benchmarks page.
+   */
+  onAddNew?: () => void;
 }
 
 export const BenchmarkTiles: React.FC<Props> = ({
@@ -20,7 +32,9 @@ export const BenchmarkTiles: React.FC<Props> = ({
 
   const getLogoSrc = (logoFilename?: string | null): string => {
     if (!logoFilename) return defaultLogoSrc;
-    return apiUrl(`/api/static/benchmarks/logos/${encodeURIComponent(logoFilename)}`);
+    return apiUrl(
+      `/api/static/benchmarks/logos/${encodeURIComponent(logoFilename)}`,
+    );
   };
 
   return (
@@ -59,33 +73,35 @@ export const BenchmarkTiles: React.FC<Props> = ({
               position: "relative",
             }}
           >
-            <button
-              type="button"
-              aria-label={`Edit ${item.benchmark_id}`}
-              title="Edit benchmark"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(item.benchmark_id);
-              }}
-              style={{
-                position: "absolute",
-                top: "0.45rem",
-                right: "0.45rem",
-                width: "1.65rem",
-                height: "1.65rem",
-                border: "1px solid #c6c6c6",
-                borderRadius: "999px",
-                background: "#f4f4f4",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "0.8rem",
-                lineHeight: 1,
-              }}
-            >
-              ✎
-            </button>
+            {onEdit && (
+              <button
+                type="button"
+                aria-label={`Edit ${item.benchmark_id}`}
+                title="Edit benchmark"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.(item.benchmark_id);
+                }}
+                style={{
+                  position: "absolute",
+                  top: "0.45rem",
+                  right: "0.45rem",
+                  width: "1.65rem",
+                  height: "1.65rem",
+                  border: "1px solid #c6c6c6",
+                  borderRadius: "999px",
+                  background: "#f4f4f4",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.8rem",
+                  lineHeight: 1,
+                }}
+              >
+                ✎
+              </button>
+            )}
 
             <div style={{ minWidth: 0, width: "100%" }}>
               <div
@@ -100,16 +116,30 @@ export const BenchmarkTiles: React.FC<Props> = ({
               >
                 {item.name || item.benchmark_id}
               </div>
-              <div style={{ fontSize: "0.8rem", opacity: 0.8 }}>{item.benchmark_id}</div>
+              <div style={{ fontSize: "0.8rem", opacity: 0.8 }}>
+                {item.benchmark_id}
+              </div>
             </div>
 
             <img
               src={getLogoSrc(item.logo)}
               alt={`${item.name || item.benchmark_id} logo`}
-              style={{ width: "82px", height: "82px", objectFit: "contain", borderRadius: "6px" }}
+              style={{
+                width: "82px",
+                height: "82px",
+                objectFit: "contain",
+                borderRadius: "6px",
+              }}
             />
 
-            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "0.4rem",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
               <Tag type="blue">{item.db_type}</Tag>
               <Tag type="purple">{`${item.num_records} records`}</Tag>
             </div>
@@ -133,28 +163,30 @@ export const BenchmarkTiles: React.FC<Props> = ({
           </div>
         ))}
 
-        <button
-          type="button"
-          onClick={onAddNew}
-          style={{
-            border: "1px dashed #6f6f6f",
-            borderRadius: "8px",
-            textAlign: "center",
-            padding: "0.9rem",
-            background: "rgba(255,255,255,0.35)",
-            cursor: "pointer",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            gap: "0.4rem",
-            minHeight: "180px",
-            fontWeight: 600,
-          }}
-        >
-          <span style={{ fontSize: "1.4rem", lineHeight: 1 }}>+</span>
-          Add New Benchmark
-        </button>
+        {onAddNew && (
+          <button
+            type="button"
+            onClick={onAddNew}
+            style={{
+              border: "1px dashed #6f6f6f",
+              borderRadius: "8px",
+              textAlign: "center",
+              padding: "0.9rem",
+              background: "rgba(255,255,255,0.35)",
+              cursor: "pointer",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "0.4rem",
+              minHeight: "180px",
+              fontWeight: 600,
+            }}
+          >
+            <span style={{ fontSize: "1.4rem", lineHeight: 1 }}>+</span>
+            Add New Benchmark
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,62 @@
+# Notes
+
+Long-form documents rendered in the dashboard's **Docs** view, and readable here
+on GitHub.
+
+They are about evaluation *methodology* and about demonstrating this toolkit,
+which is why they are not on the [API reference
+site](https://text2sql-eval-toolkit.readthedocs.io/): that site is generated
+from docstrings and describes the code.
+
+| Document | What it is |
+|---|---|
+| [text-to-sql-evaluation-survey.md](text-to-sql-evaluation-survey.md) | *State of the art in Text-to-SQL Evaluation* — metrics, benchmarks, frameworks and emerging methodologies, with diagrams and a reference list |
+| [worked-examples.md](worked-examples.md) | The recurring shapes where two metrics disagree, what each one means, and what to do about it |
+| [dashboard-tour.md](dashboard-tour.md) | A showcase of the dashboard: what each view answers, with screenshots and links into the real thing |
+
+## Adding one
+
+Screenshots go in `assets/` and are referenced relatively, as
+`![alt](assets/name.png)`, so the same Markdown renders both here on GitHub and
+in the dashboard — which rewrites the path to the endpoint that serves them.
+PNG, JPEG, WebP and GIF; no SVG.
+
+Write a `.md` file here. That is the whole process — there is no registry and no
+code change. It appears in the middle of the index; only if its position
+actually matters does it need a rank in `_ORDER` in `ui/routers_docs.py`. The dashboard reads the file's first `#` heading as its title and
+its first paragraph as the summary in the list, and it becomes addressable at
+`/docs/<filename-without-the-extension>`.
+
+Two constraints, both enforced by the server:
+
+- The filename must be a plain stem — letters, digits, dots, dashes and
+  underscores, starting with a letter or digit. Anything else is not
+  addressable, so it is skipped rather than listed with a link that 404s.
+- Raw HTML in the Markdown is sanitised before rendering. Scripts, iframes,
+  forms, styles and event handlers are stripped, so a document can display text
+  and nothing more.
+
+Beyond ordinary Markdown, the dashboard renders:
+
+- **Mermaid diagrams**, in ` ```mermaid ` fenced blocks. A diagram is scaled to
+  fit the column, and a **View full size** control on each one opens it at its
+  natural size when it is too small to read.
+- **LaTeX**, inline as `\(x\)` and display as `\[ ... \]`. These delimiters
+  rather than `$...$`, because a lone `$` is common in prose and would turn
+  half a paragraph into an equation.
+- **Wide tables**, which get their own horizontal scroller rather than being
+  squeezed into the prose measure.
+
+Both renderers are fetched only by documents that use them, so a note of plain
+prose costs neither.
+
+## Where they are, and are not
+
+These files are **not packaged**. `docs/` is absent from both the wheel and the
+sdist, deliberately, and CI checks that it stays that way — the notes live in
+the repository and are public here, rather than shipping to PyPI.
+
+The consequence is that the docs view is empty on a `pip install`. That is the
+intended behaviour, and the view explains it and links here. A checkout has
+them, and `deploy/Dockerfile` copies them into the deployment image, so the two
+places that matter both do.

@@ -56,6 +56,7 @@ from text2sql_eval_toolkit.ui import (
     routers_judge_configs,
     routers_users,
     routers_keys,
+    routers_docs,
     static_files,
 )
 from text2sql_eval_toolkit.ui.indexes import (  # noqa: F401
@@ -95,7 +96,28 @@ from text2sql_eval_toolkit.logging import get_logger
 
 logger = get_logger(__name__)
 
-app = FastAPI(title="Text2SQL Evaluation Dashboard API")
+# FastAPI's interactive documentation pages are off, and its schema has moved
+# under /api with everything else the server owns.
+#
+# Two reasons, found together. `/docs` is the dashboard's own documentation view
+# from 1.5.0, and Swagger UI sat on exactly that path -- a real route, so it won
+# the match and the SPA route was unreachable, while `/docs/state-of-the-art`
+# worked because nothing else claimed it.
+#
+# Moving it revealed the second: Swagger UI and ReDoc both load their assets
+# from a CDN, and this app's own CSP is `script-src 'self'`. Both pages have
+# therefore rendered blank since the CSP was added -- an API browser that never
+# browsed anything. Serving it from somewhere else would have kept a dead page
+# alive, so it is off.
+#
+# The schema itself needs no CDN and is the useful half: `/api/openapi.json`
+# imports into any client, and `tests/test_route_table.py` records it.
+app = FastAPI(
+    title="Text2SQL Evaluation Dashboard API",
+    openapi_url="/api/openapi.json",
+    docs_url=None,
+    redoc_url=None,
+)
 
 # When True the /api/results/fetch endpoints are active.  Set by main() via
 # the --enable-fetch CLI flag.  Off by default so production deployments are
@@ -119,6 +141,7 @@ for _router in (
     routers_judge_configs.router,
     routers_users.router,
     routers_keys.router,
+    routers_docs.router,
     static_files.router,
 ):
     app.include_router(_router)

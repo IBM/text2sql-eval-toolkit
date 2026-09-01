@@ -82,7 +82,7 @@ The standard baseline performs **single-shot SQL generation** using an LLM with 
 
 ### Agentic Baselines
 
-Agentic baselines use **LangGraph** to create an agent that can:
+Agentic baselines run an agent that can:
 - Execute generated SQL queries to check for errors
 - Retry with error feedback when queries fail
 - Probe the database schema for additional information
@@ -496,7 +496,8 @@ Question + Schema
 - **v2**: Adds smart error classification to decide if retry is worthwhile
 - **v3**: Adds LLM judge validation - even successful executions are validated for correctness
 
-**Built with LangGraph:**
+**How it is built** -- a hand-written state machine.
+
 - State management for multi-step reasoning
 - Node-based execution (generate → execute → validate)
 - Conditional routing based on errors and attempts
@@ -722,9 +723,6 @@ Edit the prompt construction in:
 
 ## Troubleshooting
 
-**Issue: "No module named 'langgraph'"**
-- Solution: `pip install langgraph langchain-core`
-
 **Issue: "Missing WATSONX.AI credentials"**
 - Solution: Set environment variables or create `.env` file (see Configuration)
 
@@ -745,7 +743,6 @@ Edit the prompt construction in:
 
 ## References
 
-- **LangGraph Documentation:** https://langchain-ai.github.io/langgraph/
 - **BIRD Benchmark:** https://bird-bench.github.io/
 - **Text2SQL Evaluation Metrics:** See `scripts/evaluation/README.md`
 

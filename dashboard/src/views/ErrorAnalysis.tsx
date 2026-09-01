@@ -22,6 +22,8 @@ import {
   InlineLoading,
 } from "@carbon/react";
 import { apiFetch, apiUrl } from "../lib/api";
+import type { BenchmarkSummary } from "../types/benchmark";
+import { BenchmarkSelect } from "./BenchmarkSelect";
 import { highlightSql } from "../lib/sql";
 import { ResultTableView } from "./ResultTableView";
 import { resolveDetailPipeline } from "../lib/detailPipeline";
@@ -33,6 +35,9 @@ import {
 
 interface Props {
   benchmarkId: string;
+  /** Supplied together, to offer the benchmark selector at the top. */
+  benchmarks?: BenchmarkSummary[];
+  onSelectBenchmark?: (benchmarkId: string) => void;
   onBack?: () => void;
   initialFilters?: Partial<ErrorAnalysisFilters>;
   /** Page, page size, and selected record, restored from the URL. */
@@ -138,6 +143,8 @@ function formatMetricHeader(metricName: string, fallback: string): string {
 
 export const ErrorAnalysis: React.FC<Props> = ({
   benchmarkId,
+  benchmarks,
+  onSelectBenchmark,
   onBack,
   initialFilters,
   initialPage,
@@ -586,6 +593,16 @@ export const ErrorAnalysis: React.FC<Props> = ({
           </Button>
         )}
       </div>
+      {/* The benchmark is an input to this view, not part of its identity, so
+          it is a control here rather than a path segment. */}
+      {benchmarks && onSelectBenchmark && (
+        <BenchmarkSelect
+          id="error-analysis-benchmark-select"
+          benchmarks={benchmarks}
+          selected={benchmarkId}
+          onSelect={onSelectBenchmark}
+        />
+      )}
       {metricDefinitionsError && (
         <InlineNotification
           kind="warning"

@@ -5,6 +5,288 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-31
+
+### Changed — breaking
+
+- **`langgraph` and `langchain-core` are no longer dependencies.**
+  `AgenticSQLGenerationPipeline` is a hand-written state machine and does not
+  use them. Between them they brought thirteen further packages into every
+  install, six of which carried open security advisories.
+
+  **Upgrading:** nothing changes for callers of this package. If your own code
+  imported `langgraph` and relied on getting it transitively, declare it.
+- **`requirements.txt` is removed.** It was a generated export of `uv.lock`,
+  and a second manifest that security scanning read as a separate project — so
+  every advisory was reported twice. `uv.lock` and `pyproject.toml` are the
+  dependency sources of truth. Run
+  `uv export --format requirements-txt --no-hashes --no-dev --no-emit-project`
+  for a pinned file.
+
+### Changed
+
+- **FastAPI's interactive documentation pages are off, and its schema moved to
+  `/api/openapi.json`.** `/docs` is the dashboard's documentation view now, and
+  Swagger UI held that path. Moving it surfaced the reason not to keep it: both
+  it and ReDoc load their assets from a CDN that this app's own
+  `script-src 'self'` blocks, so both have rendered blank since the CSP was
+  added. The schema needs no CDN and is the half that was ever usable.
+
+### Security
+
+- **Every package in the base install with an open advisory is floored at its
+  patched version**, and the lockfile moved to match: `cryptography` 46 → 50
+  (it encrypts stored per-user provider keys), `sqlparse` 0.5.5 → 0.6.0,
+  `requests`, `urllib3`, `idna`, `pillow`, `pyasn1`, `python-dotenv` and
+  `setuptools`. Nine of these are named in `pyproject.toml` despite not being
+  imported directly: a lockfile protects this repository and the container, but
+  `pip install text2sql-eval-toolkit` resolves fresh, and the intermediate
+  packages' own floors are years behind.
+- **The dashboard's HTTP stack moved off Starlette 0.x** (FastAPI ≥ 0.141.1,
+  Starlette ≥ 1.3.1), which fixes Host-header poisoning of `request.url.path`
+  and `request.form()` size limits being silently ignored — both of which
+  matter for a deployment that faces the internet.
+- **The `notebook` extra resolves a clean Jupyter stack.** The one *critical*
+  advisory outstanding at 1.4.0 was a stored XSS in Jupyter Server's nbconvert
+  handlers, reachable only through this extra; the metapackage's own constraints
+  were wide enough to resolve onto it, so the floors are named here.
+- **`vite`, `postcss`, `nanoid` and `immutable` updated** in the dashboard
+  lockfile; `npm audit` reports no vulnerabilities.
+- **Dependabot version updates are on** for `uv.lock`, `dashboard/` and the
+  workflow actions, grouped so the pull requests are readable. Security alerts
+  were already enabled; what was missing is the half that opens a pull request
+  rather than waiting for someone to notice.
+
+### Added
+
+- **A docs view in the dashboard.** `/docs` is an index of tiles — the
+  published API reference, which opens on Read the Docs, and the long-form
+  notes now kept in `docs/notes/`: a survey of how text-to-SQL evaluation is
+  done and where each metric misleads, a catalogue of the cases where two
+  metrics disagree, and a tour of the dashboard itself — screenshots and links
+  into the real views, so a first-time reader is shown what the tool does
+  rather than told. `/docs/{name}` opens one, full width.
+  Each note has its own address, so a link opens the one being discussed.
+  Read-only, public on every deployment mode, and adding a note needs no code
+  change: the title comes out of the file.
+
+  The notes are not packaged. `docs/` ships in neither the wheel nor the sdist,
+  and CI now checks that it stays that way — so a pip install gets the reference
+  and an explanation of where the notes are, rather than a blank page. The
+  deployment image copies them in.
+
+  A note may reference screenshots from `docs/notes/assets/`, written as
+  relative paths so the Markdown also renders on GitHub.
+
+  Diagrams are scaled to fit the column rather than scrolling sideways, down to
+  a floor below which they would stop being readable, and each carries a **View
+  full size** control that opens it at its natural size over the page. The
+  index is in reading order rather than alphabetical — the tour, then the
+  worked examples, then the survey.
+
+  Beyond ordinary Markdown the view renders **Mermaid diagrams**, **LaTeX** —
+  inline as `\(x\)` and display as `\[ ... \]` — and gives wide tables their
+  own horizontal scroller instead of squeezing them into the prose measure.
+  Both renderers are fetched only by documents that use them, so a note of
+  plain prose costs neither, and the entry bundle is unchanged.
+- **A judge-config editor that is not painful.** Syntax highlighting, bracket
+  matching, line numbers, a **Format** action that reflows the document, and an
+  error marked at its line and column as you type instead of a "not valid"
+  message on save. Save stays refused when `model.id` or `prompt_template` is
+  missing — highlighting makes malformed input visible and says nothing about a
+  config that parses cleanly and describes a useless judge.
+
+  **The editor now edits YAML, which is what the file is.** It presented JSON,
+  so `prompt_template` — the bulk of every config, and always multi-line — was
+  one line of roughly fifteen hundred characters with `\n` escapes through it.
+  Highlighting does not make that editable; a different notation does. The
+  endpoint is unchanged and still takes JSON.
+
+  **Duplicate and Rename.** A new config started from an empty editor, so
+  writing a variant of an existing judge meant retyping or pasting a
+  fifteen-hundred-character prompt — and a config named while experimenting
+  kept that name for good. **Duplicate** keeps the open document and offers
+  `<name>_copy` to save it under; **Rename** moves a config to a new name in
+  place. A packaged config cannot be renamed — there is no file of yours to
+  move — and the button says to duplicate it instead. Renaming onto a name
+  already in use is refused rather than silently overwriting it.
+- **The GitHub Release is created by the tag.** Pushing `vX.Y.Z` now builds,
+  publishes to PyPI and creates the Release page with that version's changelog
+  notes and the built wheel and sdist attached. The page used to be written by
+  hand afterwards, and was forgotten on both 1.3.0 and 1.4.0 — nothing failed
+  when it was missed. A tag whose version has no `CHANGELOG.md` section fails
+  the workflow *before* anything is published, rather than producing a release
+  with an empty page.
+
+### Changed
+
+- **The benchmark moved out of the analysis views' paths and into their query.**
+  `/insights?benchmark=bird_mini_dev_sqlite`, and likewise for `/compare` and
+  `/errors`. `/benchmark/{id}` is the summary *of* a benchmark and keeps the id
+  in its path; the other four take a benchmark as an input, and one takes
+  several, so it belongs in a parameter. Each of those views now carries a
+  benchmark dropdown at the top — Pipeline Compare and Error Analysis had no
+  way to change benchmark at all — and with none chosen shows that dropdown
+  over an empty page rather than a grid of tiles. The older path forms still
+  resolve.
+- **Profile Compare's address names every benchmark it is pooling.**
+  `/compare/profile?benchmarks=bird_mini_dev_postgres,beaver`. It named a
+  single one in a path segment, so adding a second changed the address to
+  whichever was chosen last and a shared link reopened the wrong view. Removing
+  one and *Reset to one* keep it in step as well.
+- **A benchmark's five views share a tab strip.** Summary, Metric Insights,
+  Pipeline Compare, Profile Compare and Error Analysis, across the top of all
+  five, with the current one marked. The summary offered the other four as
+  ghost buttons in its header — one-way, not links, and sharing a row with a
+  form control — so moving between two of them meant going back to the summary
+  first.
+- **An analysis view asks which benchmark, instead of guessing.** Opening
+  Metric Insights, Pipeline Compare or Error Analysis without one redirected to
+  whichever benchmark loaded first — in practice always `bird_mini_dev_sqlite`
+  — so the reader was shown numbers for something they had not asked about.
+  `/insights`, `/compare` and `/errors` are addresses in their own right now
+  and show a benchmark picker; choosing one moves to the benchmark-scoped
+  address, so the view you end up on can still be linked to. Profile Compare
+  selects benchmarks itself, several at a time, so `/compare/profile` is its
+  canonical address and names none.
+- **The home page is the way in to everything.** Three bands of tiles under solid banners:
+  benchmarks, the six analysis views (Metric Insights, Pipeline Compare,
+  Profile Compare, Error Analysis, LLM Judge, Eval Playground), and the four
+  documents. Each tile says what the view is for. The analysis views that need
+  a benchmark say so when there is not one, rather than offering a link that
+  cannot resolve. Administrative routes — Users, signing in and out — stay out
+  of it and remain in the header and the navigation rail.
+- **Adding and editing a benchmark live on the Benchmarks page.** The home page
+  is where you pick one; the Benchmarks page shows the same tiles plus the
+  controls to add and edit. It was a table before, and both controls were on
+  the home page.
+
+### Fixed
+
+- **Judge again.** A stored verdict could not be overridden. The cache key
+  covers the config's contents, so an edited config re-judges by itself — but
+  with the inputs identical there was no way to discard a verdict you did not
+  trust, and a bad one was permanent. The button appears next to **Run judge**
+  once there is a result, and the endpoint takes `refresh` alongside
+  `cached_only` (setting both is a 400). A re-run costs an inference like any
+  other, so the monthly ceiling applies.
+- **A judge verdict is read through the formatting the model wrapped it in.**
+  The prompt asks for a reply beginning "Yes", "No" or "Maybe", and the parser
+  required those to be the literal first characters — so `**Yes**`, which is
+  what Gemini 3 returns, scored `N/A`, which scores 0. A judge run against any
+  model that writes Markdown marked every prediction wrong. Markdown emphasis,
+  a heading, a block quote, a list bullet, surrounding quotes and a `Verdict:`
+  label are now all read through. Only the start of the reply is examined, so
+  an explanation that mentions "no" further down still cannot flip a verdict.
+- **An unreadable judge reply is kept instead of being thrown away.** The
+  `explanation` was replaced with `"N/A"` in exactly the case where somebody
+  needs to read it, which made an unrecognised answer indistinguishable from a
+  model that refused to answer. The reply is now returned verbatim whatever the
+  verdict, and the server logs its first 200 characters.
+- **An `N/A` verdict is no longer cached.** It records that nobody could read
+  the reply, not a judgement — but it was stored, so the next run answered from
+  the cache without calling the model and **Run judge** had no way to try
+  again. The spend is still metered, because the tokens were still spent.
+- **The CSP states `frame-src 'none'` rather than leaving it to the fallback.**
+  With the directive omitted, CSP falls back to `default-src 'self'`, which
+  still permits a same-origin frame — so "the dashboard frames nothing" was a
+  claim in a comment that the policy did not actually enforce.
+- **Renaming a config that does not exist is a 404.** It answered that the name
+  "ships with the toolkit and cannot be renamed", inventing a config that was
+  never there and sending the caller to duplicate it.
+- **The navigation carries a query-form benchmark between analysis views.** The
+  rail's links build their addresses from the benchmark you are looking at, and
+  read the path segment only — so from `/insights?benchmark=x`, clicking *Error
+  Analysis* dropped it and offered an empty picker rather than that benchmark's
+  errors.
+- **An unknown benchmark in the query is a not-found.** The guard read the
+  benchmark from the path only, so `/errors?benchmark=missing` rendered the view
+  and let it issue API calls that could only fail, instead of saying the server
+  has no such benchmark.
+- **The docs list no longer follows a symlinked document.** Fetching one was
+  already a 404, but the listing reads every file to build its title and
+  summary, so the target's first heading and opening paragraph came back through
+  the list.
+- **Starting a new judge config leaves rename mode.** Clicking **New config**
+  with a rename in progress left both name fields on screen, hid the create
+  action, and offered to rename a config that had just been deselected.
+- **Renaming a judge config works on Windows.** The name is claimed with a
+  placeholder before the move, and Windows' `rename()` refuses an existing
+  destination — so every rename would have been a 500 there. It is `replace()`,
+  which is defined to overwrite on every platform.
+- **A short pipeline link works on the query-based analysis addresses.** The
+  alias table was fetched with the benchmark from the *path*, so
+  `/errors?benchmark=x&pipeline=<alias>` had nothing to look the alias up in:
+  the table came back empty, every alias read as unknown, and the link died as
+  a not-found. The address moved to a query parameter this release; the lookup
+  had not moved with it.
+- **A forced re-judge that cannot be read clears the verdict it replaces.** An
+  `N/A` is not stored, so **Judge again** followed by an unreadable reply
+  answered `N/A` while the cache still held the verdict you had just asked to
+  discard — and the next request handed it back.
+- **Renaming a judge config cannot be raced into deleting one.** The
+  no-overwrite check and the move were separate, and POSIX `rename()` replaces
+  its target silently, so two renames onto one name could both pass the check
+  and the second would destroy the first's config. The name is claimed with
+  `O_CREAT|O_EXCL` before the move, so the filesystem decides the winner and
+  the loser gets the same 409.
+- **The docs view refuses a symlinked notes or assets directory.** Resolving
+  follows symlinks, so `docs/notes -> elsewhere` would have made that directory
+  the docs root and published it at the public tier. Containment is asserted on
+  the directories, not only on the names served out of them.
+- **The docs view serves only this project's documents.** The directory was
+  resolved by walking up for the nearest `pyproject.toml` of *any* project, so a
+  pip-installed dashboard started inside an unrelated checkout that happened to
+  have a `docs/notes/` would publish that project's files — at the public tier,
+  with no sign-in. The ancestor must now declare `text2sql-eval-toolkit`; one
+  that does not is skipped rather than ending the walk, so a checkout nested
+  inside another project still resolves.
+- **The Eval Playground follows the address between two records.** The auto-load
+  guard was keyed on the benchmark alone, so moving from one record to another
+  within the same benchmark — browser Back, or any in-app link — returned early
+  and left the first record on screen while the URL named the second.
+- **Tab stays inside the full-size diagram dialog.** Focus moved in on open and
+  back out on close, but Tab walked into the page behind an `aria-modal`
+  dialog — the one thing `aria-modal` says will not happen.
+- **`openai:` models no longer require `OPENAI_BASE_URL`.** The client demanded
+  it, so an OpenAI key alone was not enough and a judge run answered "Missing
+  OPENAI_BASE_URL environment variable". The same client serves Ollama and any
+  OpenAI-compatible server, which genuinely need an address; OpenAI itself has
+  exactly one, and it is now the default. Set the variable only to point
+  elsewhere — an empty value means the same as unset.
+- **Storing a per-user API key no longer fails on an existing deployment.**
+  `ciphertext2` was added to the key table in 1.4.0 for watsonx's project id,
+  but `CREATE TABLE IF NOT EXISTS` creates nothing when the table already
+  exists — so a deployment whose table predated the column never received it,
+  and since every INSERT names that column, storing a key for *any* provider
+  answered HTTP 500. The store now adds missing columns on open. Existing rows
+  are untouched.
+- **The Eval Playground opens the record its address names.** A link to
+  `/run/{benchmark}/record/1480` loaded a different record and rewrote itself
+  to say so. On mount the view reported "nothing open", which erased the record
+  from the address before the view had read it; the record then arrived as
+  null, a default was loaded, and the address was rewritten to name that. It
+  had been true of every playground record link.
+- **Development history no longer leaks into the interface.** The Benchmarks
+  page explained that it "was a slide-out panel, which meant it had no address
+  of its own" — a changelog entry rendered as product copy. Every page's prose
+  was read through for others; that was the only one.
+- **A document's tables, diagrams and screenshots no longer overhang its
+  prose.** They were given the full article width while paragraphs kept a
+  narrower measure, so on a wide window everything wide stuck out by some 400
+  pixels past the text above it. One column now, a little wider than prose
+  alone would want; a table still scrolls inside its own block and a diagram
+  still has **View full size** when it needs more room.
+- **The dashboard's welcome text pointed at a control that is not there.** It
+  told the reader to use a *Benchmarks* button in the top-right corner; the
+  navigation moved to a menu at the top left, and the sentence did not.
+- **Saving a judge config no longer mangles its formatting.** `yaml.safe_dump`
+  renders a long multi-line string as a single-quoted folded scalar — every
+  line break becomes a blank line and the prose is rewrapped at 80 columns — so
+  every save through the dashboard turned a file that opened with
+  `prompt_template: |` into one that did not. The value always round-tripped
+  correctly; the file was simply unreadable afterwards.
+
 ## [1.4.0] - 2026-08-30
 
 ### Changed — breaking
@@ -222,6 +504,9 @@ which is enforced by a test rather than by intention.
 - Re-exported low-level SQL comparison and parsing helpers (`compare_result_dfs`, `sql_exact_match`, etc.) from toolkit-owned metrics utilities.
 - Library-focused README examples showing record-level, file-level, and benchmark-level usage.
 
+[1.5.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.5.0
+[1.4.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.4.0
 [1.3.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.3.0
+[1.2.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.2.0
 [1.1.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.1.0
 [1.0.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.0.0

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   FILTER_DEFAULTS,
+  parseBenchmark,
   buildQuery,
   parseLocation,
   parseQuery,
@@ -43,10 +44,15 @@ describe("path builders", () => {
   it("builds the documented paths", () => {
     expect(routes.home()).toBe("/");
     expect(routes.benchmark(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}`);
-    expect(routes.errors(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/errors`);
-    expect(routes.insights(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/insights`);
-    expect(routes.compare(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/compare`);
-    expect(routes.profileCompare(BENCHMARK)).toBe(`/benchmark/${BENCHMARK}/compare/profile`);
+    // The four analysis views take a benchmark as an input rather than being
+    // views *of* one, so it is a query parameter -- see
+    // routes.analysis.test.ts. Only the summary keeps it in the path.
+    expect(routes.errors(BENCHMARK)).toBe(`/errors?benchmark=${BENCHMARK}`);
+    expect(routes.insights(BENCHMARK)).toBe(`/insights?benchmark=${BENCHMARK}`);
+    expect(routes.compare(BENCHMARK)).toBe(`/compare?benchmark=${BENCHMARK}`);
+    expect(routes.profileCompare(BENCHMARK)).toBe(
+      `/compare/profile?benchmarks=${BENCHMARK}`
+    );
     expect(routes.llmJudge()).toBe("/llm-judge");
     expect(routes.llmJudge("default")).toBe("/llm-judge/default");
     expect(routes.run()).toBe("/run");
@@ -173,8 +179,13 @@ describe("parseLocation", () => {
 
   it("round-trips every builder through the parser", () => {
     expect(parseLocation(routes.benchmark(BENCHMARK)).benchmarkId).toBe(BENCHMARK);
-    expect(parseLocation(routes.errors(BENCHMARK)).benchmarkId).toBe(BENCHMARK);
     expect(parseLocation(routes.pipeline(BENCHMARK, PIPELINE)).pipelineId).toBe(PIPELINE);
+    // The analysis views carry their benchmark in the query, which
+    // `parseLocation` does not see -- `parseBenchmark` reads it.
+    const built = routes.errors(BENCHMARK);
+    const [path, search] = built.split("?");
+    expect(parseLocation(path).view).toBe("errorAnalysis");
+    expect(parseBenchmark(search)).toBe(BENCHMARK);
   });
 
   it("flags unknown paths rather than silently rendering home", () => {
