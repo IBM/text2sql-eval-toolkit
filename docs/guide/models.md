@@ -8,7 +8,7 @@ Model names are `provider:model`, and the prefix chooses the client:
 |---|---|---|
 | `wxai:` | IBM watsonx.ai | `WATSONX_APIKEY`, `WATSONX_API_BASE`, `WATSONX_PROJECTID` |
 | `anthropic:` | Anthropic | `ANTHROPIC_API_KEY`, optionally `ANTHROPIC_WORKSPACE_ID` |
-| `openai:` | OpenAI | `OPENAI_API_KEY` |
+| `openai:` | OpenAI | `OPENAI_API_KEY`, optionally `OPENAI_BASE_URL` |
 | `gemini:` | Google Gemini | `GEMINI_API_KEY` |
 | `vllm:` | A local or remote vLLM server | `VLLM_API_BASE` |
 | `ollama:` | Ollama, via its OpenAI-compatible endpoint | `OLLAMA_BASE_URL` |
@@ -24,6 +24,11 @@ and the LLM judge alike.
     and `anthropic:` worked agentically but raised `NotImplementedError` on the
     baseline. They now share one dispatch table, so support is a property of the
     toolkit rather than of where you happened to call it from.
+
+`OPENAI_BASE_URL` defaults to `https://api.openai.com/v1` and is only needed to
+point `openai:` models somewhere else — a gateway, a proxy, or another
+OpenAI-compatible server. It was *required* until 1.5.0, so an OpenAI key alone
+was not enough to reach OpenAI.
 
 `litellm:` requires the optional extra:
 
