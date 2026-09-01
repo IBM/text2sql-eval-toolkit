@@ -75,6 +75,18 @@ def spa_client(tmp_path, monkeypatch):
         "/benchmarks",
         "/users",
         "/my-keys",
+        # The docs view, added in 1.5.0. `/docs` had to be taken back from
+        # FastAPI, which mounts Swagger UI there by default -- a real route,
+        # so it won the match and this one was unreachable.
+        "/docs",
+        "/docs/state-of-the-art",
+        # The analysis views with no benchmark named, added in 1.5.0. Opening
+        # one used to redirect to whichever benchmark loaded first; these ask
+        # instead, so they are addresses in their own right.
+        "/insights",
+        "/compare",
+        "/compare/profile",
+        "/errors",
     ],
 )
 def test_deep_links_serve_the_app_shell(spa_client, path):
@@ -82,6 +94,27 @@ def test_deep_links_serve_the_app_shell(spa_client, path):
     assert resp.status_code == 200, path
     assert "text/html" in resp.headers["content-type"]
     assert "<title>dash</title>" in resp.text
+
+
+def test_docs_is_the_dashboard_view_not_the_framework_default(spa_client):
+    """
+    FastAPI mounts Swagger UI at /docs unless told otherwise, and a real route
+    beats the SPA fallback. When it did, `/docs/state-of-the-art` rendered the
+    dashboard and `/docs` rendered a different application entirely -- which is
+    the confusing half of that failure, because the deep link kept working.
+
+    The Swagger page is off rather than moved: it loads its assets from a CDN
+    that this app's own `script-src 'self'` blocks, so it had been rendering
+    blank since the CSP was added.
+    """
+    resp = spa_client.get("/docs")
+    assert "<title>dash</title>" in resp.text
+    assert "swagger" not in resp.text.lower()
+
+    # The schema is the half that works without a CDN, and it moved under /api
+    # with everything else the server owns.
+    assert spa_client.get("/api/openapi.json").status_code == 200
+    assert spa_client.get("/openapi.json").status_code == 404
 
 
 def test_deep_link_with_query_string_still_resolves(spa_client):

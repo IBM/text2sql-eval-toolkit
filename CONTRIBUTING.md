@@ -245,13 +245,28 @@ docs(readme): update installation instructions for Python 3.12
 
 ## Release Process
 
-Releases are managed by project maintainers:
+Releases are managed by project maintainers. Everything after the tag is
+automated -- there is no step to remember:
 
-1. Update version in `pyproject.toml`
-2. Update CHANGELOG.md
-3. Create a git tag: `git tag -a v1.0.0 -m "Release v1.0.0"`
-4. Push tag: `git push origin v1.0.0`
-5. GitHub Actions will automatically publish to PyPI
+1. Update the version in `pyproject.toml`.
+2. Add the section to `CHANGELOG.md` under a `## [x.y.z] - YYYY-MM-DD` heading.
+   This is **required**: the release workflow extracts the page's notes from it
+   and fails the release if the version has no section.
+3. `uv lock` (the lockfile records the project's own version).
+4. Tag: `git tag -a v1.5.0 -m "Release v1.5.0"`
+5. Push: `git push origin v1.5.0`
+
+`release.yml` then builds, checks the tag against the packaged version, checks
+the wheel carries its UI and judge configs, publishes to PyPI through Trusted
+Publishing (gated on the `pypi` environment, so it waits for a reviewer), and
+creates the GitHub Release with the changelog notes and the built artifacts
+attached.
+
+To preview the notes a tag would produce:
+
+```bash
+python scripts/ci/extract_changelog.py v1.5.0
+```
 
 ## Getting Help
 

@@ -99,6 +99,67 @@ test.describe("a link reproduces the view", () => {
     await recipient.close();
   });
 
+  test("the playground opens the record the address names", async ({ page }) => {
+    // The address was being erased before the view read it. The view reports
+    // what it has open so the URL can follow; on mount it had nothing open,
+    // reported "no record", and that rewrote `/run/{id}/record/X` to
+    // `/run/{id}` -- so the record arrived as null, a default was loaded, and
+    // the address was rewritten again to name *that*. A link to one record
+    // opened another and looked deliberate about it.
+    await openFresh(page, `/run/${BENCHMARK}/record/rec-005`);
+    await expect(page.getByText("Question 5 about")).toBeVisible({
+      timeout: 15000,
+    });
+    expect(new URL(page.url()).pathname).toBe(`/run/${BENCHMARK}/record/rec-005`);
+  });
+
+  test("the playground follows the address between two records", async ({
+    page,
+  }) => {
+    // The auto-load guard was keyed on the benchmark alone, so moving between
+    // two records of the same benchmark returned early and left the first one
+    // on screen while the URL said the second.
+    await openFresh(page, `/run/${BENCHMARK}/record/rec-005`);
+    await expect(page.getByText("Question 5 about")).toBeVisible({
+      timeout: 15000,
+    });
+
+    // In-app, not page.goto: a full load resets everything and would pass
+    // whatever the guard did. This is the client-side path.
+    await page.locator("#pg-record-manual").fill("rec-009");
+    await page.getByRole("button", { name: "Load record" }).click();
+    await expect(page.getByText("Question 9 about")).toBeVisible({
+      timeout: 15000,
+    });
+    await expect
+      .poll(() => new URL(page.url()).pathname)
+      .toBe(`/run/${BENCHMARK}/record/rec-009`);
+
+    // Back is a popstate the router handles without reloading. The view has to
+    // follow it, rather than leaving 9 on screen under a URL that says 5.
+    await page.goBack();
+    await expect(page.getByText("Question 5 about")).toBeVisible({
+      timeout: 15000,
+    });
+    expect(new URL(page.url()).pathname).toBe(
+      `/run/${BENCHMARK}/record/rec-005`,
+    );
+  });
+
+  test("the playground falls back when the address names no record", async ({
+    page,
+  }) => {
+    // The other half of the same rule: with nothing named, the view is free to
+    // choose, and the address follows what it chose.
+    await openFresh(page, `/run/${BENCHMARK}`);
+    await expect(page.locator("text=/Question \\d+ about/").first()).toBeVisible({
+      timeout: 15000,
+    });
+    expect(new URL(page.url()).pathname).toMatch(
+      new RegExp(`^/run/${BENCHMARK}/record/rec-\\d+$`),
+    );
+  });
+
   test("a filtered list, with the filter still applied", async ({
     page,
     browser,
@@ -173,6 +234,28 @@ test.describe("the short-link control hands over a working address", () => {
     await recipient.close();
   });
 
+  test("an alias resolves on a query-based analysis address too", async ({
+    page,
+    request,
+  }) => {
+    // The alias table was fetched with the benchmark from the *path*, so on
+    // `/errors?benchmark=...` there was none to fetch with: the table came back
+    // empty and ready, every alias read as unknown, and the link died as a
+    // not-found. The address moved to a query parameter; the lookup had not.
+    const aliases = await (
+      await request.get(`/api/benchmarks/${BENCHMARK}/pipeline-aliases`)
+    ).json();
+    const short = aliases.by_pipeline[PIPELINE];
+    expect(short, "the fixture pipeline should have an alias").toBeTruthy();
+
+    await openFresh(page, `/errors?benchmark=${BENCHMARK}&pipeline=${short}`);
+    await expect(page.getByText(/does not name a pipeline/i)).toHaveCount(0);
+    // Expanded in place, exactly as it is on the path form.
+    await expect
+      .poll(() => page.url(), { timeout: 15000 })
+      .not.toContain(`pipeline=${short}`);
+  });
+
   test("it stays out of the way where it would change nothing", async ({ page }) => {
     // No pipeline in the address means the short form is the address, and a
     // button that copies what is already in the address bar earns nothing.
@@ -190,6 +273,44 @@ test.describe("links that do not resolve say so", () => {
   }) => {
     await openFresh(page, `/benchmark/${BENCHMARK}/pipeline/ffffffffff`);
     await expect(page.getByText(/does not name a pipeline/i)).toBeVisible();
+  });
+
+  test("the navigation carries a query-form benchmark between views", async ({
+    page,
+  }) => {
+    // The rail's links build their addresses from the benchmark you are
+    // looking at. They read the path segment, so from `/insights?benchmark=x`
+    // they dropped it and sent you to an empty picker instead of the same
+    // benchmark's errors.
+    await page.goto(`/insights?benchmark=${BENCHMARK}`);
+    await expect(page.getByText(/Metrics Comparison/i).first()).toBeVisible({
+      timeout: 15000,
+    });
+
+    const hrefs = await page.evaluate(() =>
+      [...document.querySelectorAll("a")]
+        .filter((a) => /Error Analysis|Pipeline Compare/.test(a.textContent ?? ""))
+        .map((a) => a.getAttribute("href") ?? ""),
+    );
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const href of hrefs) {
+      expect(href, "a nav link dropped the benchmark").toContain(BENCHMARK);
+    }
+  });
+
+  test("an unknown benchmark in the query is a not-found too", async ({
+    page,
+  }) => {
+    // The guard read the benchmark from the path only, so the query form
+    // rendered the view and let it issue API calls that could only fail.
+    //
+    // Plain goto rather than openFresh: this page keeps a session poll going,
+    // so `networkidle` never arrives and waiting for it only times out. The
+    // assertion below is what the test is about.
+    await page.goto("/errors?benchmark=no-such-benchmark");
+    await expect(page.getByText(/has no benchmark called/i)).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("an unknown path is a not-found with a way back", async ({ page }) => {

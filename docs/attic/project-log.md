@@ -10,6 +10,959 @@ finished.
 
 ---
 
+## 2026-09-01 — fifteen defects, and the one grep that would have found three
+
+The 1.5.0 pull request went through three rounds of automated review. Each round
+found real defects; two of them found gaps in the *previous* round's fix. That
+last part is the interesting bit, so it is worth writing down what the pattern
+actually was.
+
+Almost everything clustered into two families, and both have the same shape: a
+change moved something, and the consumers were fixed one at a time as somebody
+noticed them.
+
+**The benchmark moved from the path to the query string.** Round two found the
+alias lookup still reading `match.benchmarkId`, so a short pipeline link on
+`/errors?benchmark=x` resolved against an empty table and died as a not-found.
+Round three found the unknown-benchmark guard reading the same thing, so
+`/errors?benchmark=missing` rendered a view that could only fail. After that
+round I stopped waiting and grepped every reader of the path benchmark: the
+navigation rail was still building its links from it, so moving between analysis
+views dropped the benchmark and offered an empty picker. The comment directly
+above those links already claimed they carried it. One grep, three defects, and
+it would have cost nothing on the day the address changed.
+
+**Containment moved from the file to the directory.** Round one restricted the
+docs root to this project's own checkout. Round two pointed out that resolving
+follows symlinks, so the notes directory itself could point anywhere -- and,
+separately, that the assets directory had the same hole a level down. Round
+three pointed out that the *listing* reads every file to build its title and
+summary without the check the fetch path applies, so a symlinked document leaked
+its first heading and opening paragraph while fetching it correctly 404'd. Three
+rounds to close one class of bug, because each fix addressed the instance rather
+than the class.
+
+The rest were their own things: a judge verdict cached as N/A with no way to
+replace it, an editor stranded between two naming modes, a rename that would
+have been a guaranteed 500 on Windows, a re-judge that answered N/A while the
+old verdict stayed in the cache.
+
+Two process notes.
+
+A stray dashboard left running on port 8123 quietly became the system under
+test: `playwright.config.ts` sets `reuseExistingServer: !process.env.CI`, so a
+forgotten local server is reused, and mine was serving a stale build from a
+revert experiment. Five tests failed, a different five each run, which is the
+only reason it was caught rather than believed. `lsof -ti:8123` before trusting
+a local end-to-end run.
+
+And twice I reported a green suite from a pass count without reading the lines
+under it. The second time there were two failures in the output I had just
+printed. Read the failure list, not the total.
+
+---
+
+## 2026-08-31 — 1.5.0 closed, and what the plan did not predict
+
+The four planned items — dependency advisories, release automation, a docs view,
+a usable judge-config editor — were the smaller half of what shipped. The rest
+came from using the thing: a home page that is now the entry point to every
+view, an address scheme where the benchmark is a query parameter on the analysis
+views rather than a path segment, and a run of judge defects that only surfaced
+once somebody pointed a second provider at it.
+
+That is the pattern worth recording. Four of the defects fixed this release —
+the `user_keys` migration, the OpenAI base URL, the Markdown verdict, the
+uncacheable-N/A — were all invisible to the test suite and all found within an
+hour of one person trying to use their own API key on the deployment. Every one
+lived in a gap the tests could not see: a database older than the schema, an
+environment variable nobody local had unset, a model whose house style differs
+from the one we developed against, a cache with no escape hatch. Tests that
+construct their own world will not find these; only a real deployment with a
+real user will.
+
+The plan document is deleted, as `docs/attic/README.md` says it should be. What
+survived it is already elsewhere: the *why* in the entries below, the user-facing
+half in `docs/guide/llm-judge.md` and `docs/guide/models.md`.
+
+Release mechanics for the record: the version was already 1.5.0 in
+`pyproject.toml` and `uv.lock`, the changelog section is dated the day it
+actually shipped rather than the day it was started, the results dataset on the
+Hub is tagged `v1.5.0` so `results fetch` resolves without falling back to
+`main`, and the tag itself does the rest — `release.yml` builds, checks the tag
+against the packaged version, publishes to PyPI behind the `pypi` environment
+gate and writes the Release page from the changelog.
+
+---
+
+## 2026-08-31 — a cache with no way out
+
+Fixing the parser did not fix the deployment: the stale `N/A` was still in the
+verdict cache, so the same record answered `from cache — no inference` with the
+old verdict on a build that would have read it correctly. I could not delete
+the row -- a destructive write to production data, and rightly refused -- and
+the user's response was the better one anyway: *there should always be a
+"refresh cache" button, just in case*.
+
+That is the actual defect. The cache key covers the config's contents, so
+editing a config re-judges by itself, and that had been treated as sufficient.
+It is not: it only covers the case where you *changed* something. With the
+inputs identical there was no way to discard a verdict you did not trust, so a
+bad one was permanent and the only workaround was to perturb the config until
+the key moved.
+
+`refresh` on the request skips the cache read; the write afterwards is
+`INSERT OR REPLACE`, so it already replaced rather than duplicated. Setting it
+together with `cached_only` is a 400 rather than a silent precedence rule --
+one says never call the model and the other says always, and picking a winner
+would hide a caller's mistake. The budget check sits after the cache lookup, so
+a re-run is metered like any other call without anything extra.
+
+Verified in a browser against the e2e fixture with the endpoint stubbed: the
+button is absent until there is a result, the request carries `refresh: true`,
+and the panel flips to "fresh inference" with the new text. Four endpoint tests,
+including that refresh still honours the ceiling.
+
+The local checkout has no results, so the playground's Run judge was disabled
+and the first browser check could not click anything. `make_e2e_fixture.py`
+builds exactly the data this needed -- worth remembering as the way to exercise
+a view that requires results without the 4 GB snapshot.
+
+---
+
+## 2026-08-31 — the judge marked everything wrong because the model wrote Markdown
+
+Gemini on the deployment returned `N/A`, score 0, explanation `N/A`, and
+`from cache — no inference`. Three separate defects stacked into one
+unreadable symptom, and the server log had the answer:
+
+```
+Part(text="""**Yes**
+
+The predicted SQL query correctly answers the question by selecting the
+`Name` and `Age` from the `singer` table ...""")
+```
+
+Gemini answered correctly. The parser did `answer.lower().startswith("yes")`,
+and `**yes**` does not start with `yes`.
+
+**One.** The prompt asks the model to lead with the verdict, and it did — in
+its own house style. Gemini 3 emphasises the verdict; other models write
+`### Yes`, `> Yes`, `"Yes"`, `Verdict: Yes`. Every one of those scored `N/A`,
+which scores 0. This was never specific to the dashboard: a batch judge run
+over a whole benchmark with a Markdown-formatting model would have marked every
+single prediction wrong and reported a plausible-looking 0%. The fix strips
+leading decoration and an optional `Verdict:` label, then matches the first
+word. Only the head, deliberately — scanning the whole reply would find the
+"No" in "No ground-truth SQL was available" and read a rejection out of an
+explanation.
+
+A detail worth keeping: the first pattern used `\b` after the verdict, and
+`__Yes__` still failed. `_` is a word character to `re`, so there is no
+boundary between the `s` and the underscore. It is `(?![A-Za-z0-9])` now.
+
+**Two.** The `N/A` branch set `explanation = "N/A"` and dropped the reply. The
+one case where the text is the only way to find out what happened is the one
+case where it was discarded — which is why the UI showed nothing useful and the
+diagnosis had to come from a DEBUG log line on the server. The reply is now
+returned verbatim whatever the verdict.
+
+**Three.** That `N/A` was cached, so re-running answered from the cache without
+calling the model. The failure was permanent and **Run judge** could not
+retry — the only way out was to edit the config and change the cache key. An
+`N/A` is not a result, so it is not stored. The spend still is: the tokens were
+spent either way, and a ceiling that stops counting on the failure path is
+worse than one that overcounts.
+
+The same log run confirmed the OpenAI fix from earlier today works: the request
+reached OpenAI and came back `429 insufficient_quota — You have no credits
+remaining`. That is an account to top up, not a bug.
+
+Twenty parametrised cases on the parser, both refusals included, and two on the
+cache. The cache test was checked against the unfixed code and fails there.
+
+---
+
+## 2026-08-31 — two ways to start from a config that already exists
+
+Two reports from the same session of trying the judge for real.
+
+The first: `openai:` models refused to run at all. `Missing OPENAI_BASE_URL
+environment variable` -- so an OpenAI key, which is the one thing an OpenAI user
+definitely has, was not enough to reach OpenAI. The client is shared with Ollama
+and with any OpenAI-compatible server, and *those* genuinely need an address,
+which is how the requirement got there. But OpenAI has exactly one endpoint, so
+requiring it was asking every user to supply a constant. It now defaults to
+`https://api.openai.com/v1`, and an empty value is treated the same as unset --
+which matters because `deploy/docker-compose.yml` passes these through as
+`${VAR:-}` and would otherwise hand the client an empty string.
+
+The second: having added four judge configs by hand, the editor had no way to
+work from an existing one. **New config** opened an empty document, so a variant
+of an existing judge meant reproducing a fifteen-hundred-character prompt
+template, and a name chosen while experimenting was permanent -- the only way
+out was create-under-the-new-name and delete the old.
+
+**Duplicate** is entirely client-side: keep the document that is open, clear the
+selection, prefill the name field with `<name>_copy`. There is no endpoint
+because saving under a new name is already an endpoint.
+
+**Rename** needed one, and the interesting part is what it refuses. A packaged
+config has no file of yours to move, so renaming it is not a rename -- the
+button is not offered and the endpoint says to duplicate it instead. Renaming
+onto an existing name is a 409 rather than a silent overwrite, and that check
+has to consider packaged names too, not just files in the writable root:
+otherwise a rename could land on a name that already resolves to something and
+shadow it. And renaming *away* from a name that also exists as a packaged config
+uncovers the packaged one, which the response reports rather than leaving the
+caller to discover that the config they renamed appears to still be there. Seven
+tests, one per refusal.
+
+A note on the browser check: the first run came back 405. The route was right;
+the dev server had been started before it existed. Restarting turned it into a
+400, which is a route that exists rejecting an empty name -- the useful signal
+that it was never a code problem.
+
+---
+
+## 2026-08-31 — CREATE TABLE IF NOT EXISTS is not a migration
+
+Saving a Gemini key on the deployment answered 500. The log said it plainly:
+`table user_keys has no column named ciphertext2`.
+
+That column was added in 1.4.0, for the watsonx project id that has to travel
+with the watsonx key. The table is created with `CREATE TABLE IF NOT EXISTS`,
+which does nothing at all when the table is already there -- so the deployment,
+whose table was created earlier in 1.4.0's development, never got the column,
+and the schema in the source and the schema on disk quietly diverged.
+
+The blast radius was wider than the report. The INSERT names `ciphertext2`
+unconditionally -- NULL for providers with nothing to put in it -- so storing a
+key for *any* provider failed, not just Gemini. The feature had been unusable on
+that deployment since the day the column landed, and nobody had tried until now,
+because the per-user keys are the one feature you cannot exercise from a test
+that runs against a fresh database.
+
+Which is the actual lesson: every test created its table from the current
+schema, so every test passed. The bug lives entirely in the gap between a fresh
+database and an old one, and nothing was looking at that gap. The four new tests
+build the *previous* schema on purpose and migrate it.
+
+The fix reconciles columns on open rather than only creating the table. It is
+deliberately small -- a declared list of added columns, `ALTER TABLE ADD COLUMN`
+for whichever are absent -- and it carries a note that this only works for
+nullable columns with constant defaults, because the next column might not be
+one and a rebuild-and-copy is a different piece of work.
+
+---
+
+## 2026-08-31 — checking the doc links found a bug older than the links
+
+Asked to check the tour's links, and the internal ones all resolved -- but the
+playground link pointed at record 1480 and landed on 1490, rewriting the address
+on the way so it looked deliberate.
+
+Not something this branch broke: the deployed build does the same, and
+`RunEvaluationView` has no commits on this branch at all. It had been true of
+every playground record link for as long as they have existed.
+
+The cause is two effects racing over one address. The view reports what it has
+open so the URL can follow -- and on mount it has nothing open, so it reported
+"no record", which rewrote `/run/{id}/record/1480` to `/run/{id}`. The record
+then arrived as null, a default was loaded, and the address was rewritten again
+to name *that*. Both effects were individually reasonable; between them they
+erased the reader's own link before anything read it.
+
+The report is now suppressed while nothing has loaded *and* the address names a
+record: in that window the address is the source of truth and the view has
+nothing to add.
+
+There was a second, smaller thing in the same effect that loads the record: it
+declared a local `const initialRecordId`, shadowing the prop of that name, and
+the prop was in the effect's dependency list -- depended upon and never read.
+Fixing the race alone would have left that, and it would have bitten the next
+person.
+
+Two e2e tests cover it now, and I checked they fail without the fix, because a
+test that passes either way is worth nothing. That is the fourth time on this
+branch that a URL change broke something only the e2e suite could see -- except
+this one was not a URL change at all, just a link somebody asked me to check.
+
+The external links were checked too. Three of the survey's citations answer with
+something other than 200 -- two are Cloudflare and IEEE refusing a script, and
+one is a PVLDB DOI that is registered but not yet live, which is the same reason
+the toolkit's own DOI does not resolve. None of them is wrong. The GitHub link
+in the docs view's empty state 404s only because `docs/notes` exists on this
+branch and not yet on `main`.
+
+---
+
+## 2026-08-31 — the benchmark is an input, not an identity
+
+Profile compare's fix generalised. `/benchmark/{id}` is the summary *of* a
+benchmark, so the id belongs in its path. The other four are views that *take* a
+benchmark -- and one of them takes several -- which is a different relationship,
+and the path segment was the wrong home for it. They are `/insights?benchmark=x`
+now, and the four old path forms still resolve because links to them exist.
+
+Three things follow from that, and they are the reason the change is worth more
+than the tidier URL.
+
+The benchmark becomes a control in the view. It was already one in metric
+insights; pipeline compare and error analysis had none at all, so once you were
+in them the only way to change benchmark was the tab strip or the address bar.
+All three share one `BenchmarkSelect` now.
+
+The empty state stops being a different page. It was a grid of benchmark tiles,
+which looked like a chooser rather than like the view waiting for an input; it
+is the same dropdown the view carries, over an empty page, so picking the first
+benchmark and changing it later are the same gesture in the same place.
+
+And `parseLocation` no longer sees the benchmark, which caught a real bug in
+review rather than in use: `onErrorAnalysisStateChange` read `match.benchmarkId`
+and returned early when it was null, so on `/errors?benchmark=…` the address
+silently stopped following the page number and the open record. Three e2e tests
+failed on it. They were testing the right thing and they earned their keep --
+that is the third time on this branch that moving a URL broke something no unit
+test covered.
+
+Four route assertions across two files also failed, correctly, encoding the old
+scheme. Worth noticing that they failed *after* the previous commit shipped with
+one of them broken because I read the timing line of the test output instead of
+the pass count. This time I grepped for the count.
+
+---
+
+## 2026-08-31 — an address that could not describe what was on screen
+
+Profile compare pools several benchmarks. Its address named one, in a path
+segment, and `onSelectBenchmark(id)` fired with whichever had just been added --
+so adding a second rewrote the address to that second one, the seeding effect
+put it back into the selection, and the URL now described neither the pair on
+screen nor anything a reader could share.
+
+The shape was wrong before the wiring was. A path segment holds one value; the
+view holds a set. `/compare/profile?benchmarks=a,b` is what the thing actually
+is, and matches this project's own rule -- path segments say what is being
+shown, query parameters carry how. The view reports its whole selection now
+rather than the last change to it, which is the difference between an address
+that tracks the state and one that tracks the most recent event.
+
+Two things went wrong while building it, both caught by tests rather than by
+clicking.
+
+`URLSearchParams.get()` decodes the value before returning it, so splitting the
+result on commas splits *decoded* ones too -- a benchmark id containing `%2C`
+became two ids. The separator has to be found in the encoded text, so the raw
+parameter is read out of the search string by hand and each entry decoded
+afterwards. Worth knowing generally: `URLSearchParams` is the wrong tool for
+any list whose separator could appear inside an element.
+
+And a test asserting the old path form failed, correctly -- the design changed
+under it. That is the test doing its job, but it is also the moment to check
+that the *other* callers were updated rather than assuming; the tab strip's
+Profile Compare link passes a single id, which the builder still accepts and
+turns into a one-element list.
+
+Selection changes `replace` rather than push. Adding and removing benchmarks
+adjusts one view; a history entry per change would bury whatever the reader was
+looking at before it under a stack of near-identical addresses.
+
+---
+
+## 2026-08-31 — five views of a benchmark, and one way between them
+
+The benchmark summary offered the other four views as ghost buttons in its
+header, next to the category dropdown. Three things wrong with that, and only
+the first is visual: they were buttons rather than links, so no address on
+hover, nothing to copy, no "open in new window"; they existed on the summary
+only, so moving from metric insights to error analysis meant going back through
+the summary; and they shared a row with a form control, which is why they were
+squeezed.
+
+A tab strip across all five replaces them -- Carbon's tab shape, built from
+anchors rather than from `Tabs`, because these are five addresses and not five
+panels of one page. Each carries `aria-current` when it is the one on screen,
+and the current tab's own click is swallowed: following it would remount the
+view and throw away its filters and scroll position for nothing.
+
+`BenchmarkDetail` loses four props and an import. That is the part worth
+noticing -- the summary had been the only view that knew about the other four,
+which is exactly why the navigation only worked in one direction.
+
+Profile compare is the exception again. Its canonical address names no
+benchmark, so at `/compare/profile` there is nothing for the tabs to point at
+and they are omitted rather than rendered pointing nowhere; reached as
+`/benchmark/{id}/compare/profile` from a tab strip, it gets one.
+
+---
+
+## 2026-08-31 — a changelog entry had been rendering as product copy
+
+The Benchmarks page said: "Every benchmark with results on this deployment.
+This was a slide-out panel, which meant it had no address of its own and could
+not be linked to or opened in a new tab."
+
+The second sentence is a release note. It explains a decision to a reader of
+this log, and to a person using the dashboard it is a stranger telling them
+about a thing that no longer exists. It went in when the panel became a page,
+which is exactly when the distinction is hardest to see: the change was fresh,
+the reasoning felt like information, and the copy was written by whoever had
+just made it.
+
+Every rendered string in the dashboard was read through afterwards -- the JSX
+text nodes and the helper-text, subtitle and label props, comments stripped so
+only shipped prose remained. That was the only one. What is there otherwise
+describes current behaviour to someone who needs it: what a stored key does and
+does not change, why the environment administrators cannot be edited from the
+console, what a snapshot means for a shared link. Those are worth keeping and
+are a different thing.
+
+**Two page changes alongside it.** Adding *and editing* a benchmark have moved
+to the Benchmarks page, which now shows the same tiles as the home page rather
+than a table; the home page is where you pick a benchmark, and managing them is
+a different job. `BenchmarkList` had no other caller and is deleted -- which
+also took 68 KB out of the entry bundle, since it was eagerly imported and
+every visitor paid for a table most never opened.
+
+The home page then became the way in to everything: three bands of tiles for
+benchmarks, the six analysis views, and the four documents. The band headings
+took three passes. Plain text above each card matched nothing else in the
+dashboard. Moving them inside a blue-bordered card matched the other views --
+and still lost, because a small blue heading cannot separate three bands when
+sixteen bordered tiles are competing with it. They are solid banners now,
+centred: a departure from Carbon, which titles sections with typography and
+whitespace, and the right one for a landing page whose whole job is to be
+scanned.
+
+The colour took eight renders and settled on **Gray 30 with Gray 90 text**.
+
+Blue 60 was the first try and too bright -- three full-width bars in the
+interactive blue read as three calls to action rather than as structure. Blue 80
+fixed the brightness and lost on a different argument, which is the one that
+decided it: on this page everything blue is clickable. Every tile title, every
+navigation link, the zoom control. A blue bar above them spends that signal on
+a label nobody can click, and grey says "this is structure" and nothing else --
+which is the only claim a section header is making.
+
+Gray 100 matches the header, rail and footer exactly, the tidiest argument on
+paper and top-heavy in practice: three near-black bars against a real black
+header. Gray 10 and Gray 20 went the other way and stopped separating anything,
+which is where this started. Gray 30 is the lightest neutral that still stops
+the eye.
+
+The text is Gray 90 rather than Gray 100. At a light band a near-black label is
+heavier than the band it sits in, which puts the emphasis on the wrong element;
+matching their weights makes the strip read as one thing.
+
+Both colours are named constants, because the next person to ask will want to
+try the others too.
+
+The box around each band went with them. Both versions were built and looked at
+side by side, which is the only way to answer that kind of question; the box put
+a frame around already-bordered tiles, and the banner alone does the grouping.
+The choice is a named constant rather than deleted code, because it will be
+asked again. Administrative
+routes are deliberately absent -- Users and sign-in stay in the header and the
+rail, because a landing page is for what the dashboard is *for*, not for
+running it.
+
+Two things fell out of building it. The tile markup existed twice by then, in
+the documentation index and about to be copied onto the home page, so it is one
+`LinkTile` with its own stylesheet, imported by the component rather than by
+either page. And `REFERENCE_URL` had to leave the documentation view: the home
+page offers the same link, and that view is lazily loaded, so a constant inside
+it is not reachable from the entry bundle without dragging the whole view in.
+
+The four analysis views that need a benchmark were first drawn inert, with the
+reason, when there was not one -- the rule the navigation rail already applied.
+That turned out to be the wrong fix, and the right one came out of being told
+the views "open on bird_mini_dev_sqlite".
+
+They did, and had for a long time. A `useEffect` redirected any benchmark-less
+analysis view to `fallbackBenchmarkId`, so `/insights` silently became
+`/benchmark/bird_mini_dev_sqlite/insights`. The comment above it argued its case
+well -- the address bar should reflect what is on screen -- and the same
+paragraph noted that a benchmark the URL *names* is never swapped out, because
+showing someone numbers for something they did not ask about is worse than
+saying nothing. The redirect was doing exactly that, in the case where nothing
+had been asked for at all. A good reason, applied one step too far.
+
+`/insights`, `/compare` and `/errors` are addresses in their own right now and
+show a benchmark picker; choosing one moves to the scoped address, so what you
+land on is still linkable. `DEFAULT_BENCHMARK_ID` and `fallbackBenchmarkId` are
+both gone, and nothing else wanted them -- which is the tell that the fallback
+existed to paper over this one gap.
+
+Profile compare is the odd one out and the report was right about it: it selects
+benchmarks itself, several at a time, so being addressed by a single benchmark
+never made sense. `/compare/profile` is canonical; the scoped form still
+resolves, because links to it exist, and seeds the selection.
+
+The home tiles link to the bare forms, and so does the navigation rail -- which
+carries the benchmark you are already looking at when there is one, and asks
+otherwise. That is better than what it did before, which was to disable itself.
+
+**And one column for a document, instead of two widths.** Prose sat at 46rem
+inside a 72rem article, so every table, diagram and screenshot overhung the
+paragraph above it by around 400 pixels on a wide window, and the right edge
+was ragged. Sharing one width at 54rem costs the widest content some room --
+three of the survey's ten diagrams now clamp at their legibility floor and
+scroll, where none did before -- and that is the case "View full size" was
+built for a few hours earlier. Worth noting how the two decisions interacted:
+giving wide content its own width was right in isolation and wrong on the page.
+
+---
+
+## 2026-08-31 — diagrams fit the column, and there is a way out when they do not
+
+The survey's diagrams were rendered at natural size and left to scroll inside
+their figures. That was a deliberate reaction to the previous state, where
+fitting them to the column had squeezed a 2082-pixel flowchart into 32 pixels of
+height -- present, correct and impossible to read. Scrolling was the safe
+answer, and the wrong default: the reader wants the figure.
+
+The version that holds both is: scale to fit, but never below a floor. `width`
+is the natural size so a small diagram is never blown up, `max-width: 100%`
+lets a wide one shrink to the column, and `min-width` stops the shrinking at
+half size, below which the figure scrolls as before.
+
+The floor was measured, not guessed. Every diagram in the survey needs at most
+0.53 to fit the article column, so at a normal window all ten fit and none
+scroll; at 1024 two clamp, and at 768 five do. That is the shape you want --
+the default does the right thing where there is room, and degrades where there
+is not.
+
+**And a way out of both.** Each figure carries a "View full size" control that
+opens the diagram at its natural size over the page, scrolling in both axes if
+the window is smaller. Three details that were wrong first:
+
+- Comparing `event.target` to `event.currentTarget` for the backdrop click is
+  the tidy idiom and does nothing here: the bar and canvas fill the dialog, so
+  the dialog element is never the target and there is no backdrop left to hit.
+  It closes on anything that is not the diagram itself instead -- which also
+  means dragging to scroll a wide one cannot dismiss it.
+- The clone started as a ref callback guarded by `if (node.firstChild) return`.
+  That survives StrictMode's double attach by accident rather than by design,
+  and silently ignores the diagram changing. It is an effect keyed on the SVG.
+- Carbon's overlay token is light enough that the header behind reads through
+  and competes with the figure. The scrim is set explicitly.
+
+The control is created in `richContent.ts`, where the figure is built, and
+handled in `DocsView`, because the dialog is React's. The attribute joining
+them is exported and asserted in a test -- renaming one side silently stops the
+dialog opening, and nothing else would have caught it.
+
+It was first placed in the top-right corner of the figure, absolutely
+positioned. The figure was the scroll container, so on the wide diagrams -- the
+ones the control exists for -- it slid out of view the moment you scrolled to
+see what it was offering to enlarge. The scrolling moved to an inner element
+and the button below it in normal flow, where it is always where the reader
+left it and never covers the figure.
+
+The index is ordered by a rank rather than by title. Alphabetical put the
+survey in the middle, which is the wrong place for the longest and most
+theoretical note; the reader wants the tour, then the worked examples, then --
+if they are still there -- the survey. An unranked document takes a default in
+the middle, so adding a note still needs no code change.
+
+---
+
+## 2026-08-31 — the demo note was written for the presenter, not the reader
+
+`demo-walkthrough.md` was a script: what to show, in what order, how long it
+takes, what to have open beforehand. Useful to one person standing in front of a
+room, and no use at all to somebody who opens the docs and wants to know what
+the tool does. It is now `dashboard-tour.md` -- a showcase with screenshots of
+each view and links into the real thing.
+
+**The numbers in it were checked against the deployment before they were
+written, and two of them changed what the page says.**
+
+The comparison view turned out to have a better story than the one I would have
+invented: `llama-3-3-70b` and `llama-4-maverick` score *identically* on Spider
+Dev -- 0.816 each, a delta of exactly 0.000 -- while disagreeing on 86 of the
+1,034 records, 43 in each direction. Two systems that a leaderboard cannot tell
+apart, behaving differently on 8% of the benchmark.
+
+The metric-insights view gave the other: on BIRD Mini-Dev, execution accuracy
+and the LLM judge reach opposite verdicts on **184 of 500 records**. A 36.9%
+disagreement between two metrics reported by the same run is a stronger argument
+for reading records than any sentence I could write about it.
+
+**One example had to be thrown away for being untrue.** Record 1480 on the
+SQLite benchmark shows `execution_accuracy: 0` beside `llm_score: 1.0`, which
+reads as the judge overruling execution -- and I nearly wrote it up that way.
+The `llm_explanation` field says *"N/A (did not use LLM due to subset match)"*:
+the judge never ran, and the 1.0 is a short-circuit rather than a verdict. The
+same record on the PostgreSQL benchmark has a real explanation, so that is the
+one the note links to. Checking the field that explains a number, rather than
+the number, is the whole difference between a true claim and a plausible one.
+
+**Screenshots needed somewhere to live.** Notes reference them relatively, as
+`assets/foo.png`, so the Markdown still renders on GitHub; the dashboard
+rewrites that one prefix to `/api/docs/assets/{filename}`, which serves raster
+images out of `docs/notes/assets/` with the same stem validation and containment
+check the documents get. Anything else in that directory -- Markdown, scripts,
+SVG -- is refused, because the endpoint exists to serve screenshots and not to
+become a file server.
+
+Two layout things the screenshots exposed. They are captured at 2x, so their
+intrinsic width is 2880 pixels and the page scrolled sideways until `img` got a
+`max-width` -- the one thing wide content must never do, and it took a
+screenshot of a tour about the interface to find it. And Markdown wraps an image
+in a paragraph, so every screenshot was being held to the 46rem prose measure; a
+paragraph containing nothing but an image is not prose and now gets the whole
+column.
+
+In-document links into the dashboard are intercepted for single-page navigation
+rather than left as full page loads. The tour is mostly such links, and a white
+flash plus a bundle re-fetch for a route the app already has is a poor
+advertisement for the app.
+
+---
+
+## 2026-08-31 — the docs view becomes an index, and the embed goes
+
+`/docs` is a page of tiles now: the API reference and one tile per note.
+`/docs/{name}` opens a note full width, without the second navigation rail the
+view used to carry beside its content.
+
+**The embed is gone with it.** The 1.5.0 plan decided the published reference
+should be framed inside the dashboard, and that work was real: our own CSP was
+refusing it, so `frame-src` had to name the Read the Docs origin; the frame
+turned out to be blank for several seconds behind a CDN, so it needed a loading
+state; and detecting when it had actually loaded needed the `about:blank` trick,
+because a fresh iframe fires `load` twice.
+
+A tile that opens a frame of somebody else's site was doing all of that for the
+same result a link gives. The iframe, the loading state, `lib/iframeLoad.ts` and
+the `frame-src` directive are all deleted, and the dashboard now frames nothing
+at all -- which is a smaller policy than it had before this release started.
+
+What survives is the Carbon palette on `mkdocs.yml`. It was written because a
+cross-origin frame cannot be restyled from outside, and it is worth keeping for
+the reason that was always the better half of that argument: it applies to
+people who arrive at Read the Docs on their own.
+
+Worth being honest about the sequence. Three commits of work went into making
+the embed behave, and a design change made the whole thing unnecessary. None of
+it was wasted in the sense of being wrong -- it was wasted in the sense that the
+question "does this need to be a frame at all" was never asked, by the plan or
+by me, until the layout changed and made it obvious.
+
+The document page gains real estate as a side effect: the article is 1152px at a
+1400px viewport where the old two-rail layout gave it 1104px minus a 240px
+document list, and tables and diagrams get all of it while the prose stays at
+its measure.
+
+---
+
+## 2026-08-31 — the survey arrives, and "renders properly" turns out to mean four things
+
+The generated `state-of-the-art.md` is replaced by a real 667-line survey with
+30 references. It uses three things the renderer did not have, and finding them
+took a browser rather than a test suite.
+
+**Markdown ate the maths before anything could render it.** The survey writes
+inline maths as `\(q\)`, and `(` and `)` are escapable punctuation in
+CommonMark -- so by the time the renderer sees them the delimiters are gone and
+`\(q\)` is the literal text `(q)`. Nothing errors; the equation simply is not
+there. It needs a tokenizer that runs before the escape rule.
+
+**The sanitiser was removing the only thing that identified a diagram.** The
+allow-list did not include `class`, so `<code class="language-mermaid">` came
+through as an anonymous code block and there was no way to tell a diagram from
+any other fence. `class` is now allowed: it cannot execute, and the worst a
+document can do with it is apply a style the page already has.
+
+**Then the diagrams drew as empty boxes.** Mermaid puts its labels in HTML
+inside a `<foreignObject>`, and sanitising the result as SVG strips the HTML --
+so ten diagrams rendered with every node correctly placed and entirely blank.
+Two fixes work; `htmlLabels: false` is the one taken, because it means the SVG
+is genuinely SVG and there is no HTML in it to have an opinion about. I first
+attributed a tall gap in the timeline to that setting and wrote it in a comment;
+rendering it both ways showed the timeline is identical either way, and the gap
+is just Mermaid reserving height for its longest column. The comment was wrong
+and is fixed. A confident explanation in a comment is worth about as much as
+the check that was not run behind it.
+
+**The "wide content escapes the prose measure" rule did nothing.** The measure
+was on the article, and tables and figures were then given a larger
+`max-width` -- which cannot work, because a child is not allowed to be wider
+than its parent. It looked like it worked because the tables were legible
+anyway. The measure now sits on the prose elements and the article is as wide
+as its column, which is the arrangement that was intended all along. Checked at
+1400, 1024 and 768 pixels: the page never scrolls sideways, and wide diagrams
+scroll inside their own figure rather than shrinking -- one of the survey's
+flowcharts is 2082 pixels wide naturally and had been rendering 32 pixels tall.
+
+**None of this was visible from the tests, and the browser pane's screenshots
+stopped working halfway through.** Playwright is already a dev dependency for
+the e2e suite; driving it directly gave real screenshots and, more usefully, a
+way to measure layout at several widths. Four of the five defects above were
+found by looking at pixels, and the fifth by measuring `scrollWidth`.
+
+Two smaller things, both reported rather than found: the welcome text still
+told the reader to use a *Benchmarks* button in the top-right corner, which
+moved to a menu at the top left some releases ago; and **Docs** sat in the
+nav among the analysis pages, where it read as another one of them. It has its
+own section now, below a divider -- everything above it acts on the loaded
+results, and this one is reading material.
+
+The first attempt at that put it at the foot of the rail behind a full-height
+spacer, which left a link stranded in the bottom-left corner under a screen of
+nothing and read as a mistake rather than as a section. The divider alone says
+what the spacer was for.
+
+The same report pointed out that the rail scrolled away with the page, which
+the survey makes obvious at 27,000 pixels long. It is sticky now, and the
+sticky has to be on the `<aside>` itself: the `overflow: hidden` that the width
+animation needs makes that element a scroll container, so a sticky descendant
+would position against it and never move.
+
+---
+
+## 2026-08-31 — 1.5.0 deployed, and the iframe was not finished
+
+The branch is live at `text2sql-eval-toolkit.oaklayer.dev`, built from the
+checkout on the box as usual. Starlette 1.x and FastAPI 0.141 came up clean --
+that was the one upgrade in item 1 with real risk in it, since the suite drives
+the API through a test client rather than a socket, and it was fine. Every
+health check in `docs/dashboard/deployment.md` passes unchanged, `/docs` serves
+the dashboard rather than Swagger, and the container serves its three notes.
+
+The habit of tagging the running image before rebuilding is worth keeping:
+`docker image tag text2sql-dashboard-app text2sql-dashboard-app:rollback-1.4.0`
+turns a rollback from a five-minute rebuild into a container restart. It was not
+needed. It cost nothing.
+
+**The embedded reference was blank for the first several seconds and I had
+called that done.** Locally the docs site is warm and paints immediately;
+through Cloudflare from the deployment it took long enough that the frame is a
+blank white box with nothing to say it is working. In a demo that reads as
+broken. Only deploying it showed this, which is the same lesson as 1.4.0's --
+three defects there needed a real API call to see.
+
+**Then the fix for it was wrong, twice, and deploying it again is what showed
+that.**
+
+The placeholder went *behind* the frame, on the reasoning that the docs site
+would simply cover it and there would be no flash. An iframe paints its own
+background, white, for `about:blank` as much as for the loaded page -- so a
+placeholder behind one is a placeholder nobody sees.
+
+And it was cleared by the wrong event. A fresh iframe fires `load` **twice**:
+once for the `about:blank` the browser puts in it, and again when the real
+document arrives. Instrumented against the deployment, 3 ms and 480 ms on a warm
+cache. So the placeholder was removed almost immediately and the view showed the
+same blank box as before -- now with code in it that looked like a fix.
+
+There is no cross-origin way to ask a frame what it is showing. There is a
+same-origin way to ask whether it is still showing `about:blank`, which is the
+only document in that sequence that *is* same-origin: once the frame navigates
+away, reading its location throws, and the throw is the signal. That is
+`lib/iframeLoad.ts`, and it has tests, because the reasoning is the kind that
+looks obvious once written down and was not obvious before.
+
+Worth naming plainly: the first attempt looked right, passed lint, types and 170
+tests, and did nothing. What caught it was measuring the actual load events in
+the actual browser against the actual deployment, rather than reasoning about
+what iframes probably do.
+
+## 2026-08-30 — 1.5.0, item 4: the editor, and the defect on the other side of it
+
+The plan left one judgement inside this item and asked for it to be taken
+deliberately: JSON or YAML in the editor. **YAML.** Opening the packaged config
+settles it in about ten seconds — `prompt_template` is a block scalar running to
+forty lines of prose, and it is most of the file. As JSON it is a single line of
+roughly fifteen hundred characters with `\n` escapes through it. Syntax
+highlighting does not make that editable. A different notation does, and it
+happens to be the notation the file is already written in.
+
+The endpoint is untouched: the editor converts, and nothing is lost by that
+which was not lost already, since the server has always parsed and re-dumped.
+
+**CodeMirror is assembled from its parts rather than from `basicSetup`,** which
+pulls in autocompletion, search and folding for a forty-line config. Even so the
+judge view's chunk is ~416 KB, which is the deal that keeps the entry bundle at
+424 KB against its 460 KB budget. The CI budget step now also caps every
+non-entry chunk at 520 KB — not to constrain this one, but so the next thing
+that lands in the wrong place is visible rather than merely lazy.
+
+**Three bugs in the position arithmetic, all found by tests rather than by
+using it.** js-yaml reports an unterminated construct at the phantom position
+one past the end of the document — "line 4" of a three-line file — so the
+message named a line that does not exist and the marker had nothing to
+underline. Clamping fixed the marker and left the message wrong, because the
+two were computed separately; they are now derived from one value, which is the
+only way they cannot disagree. Then the clamped offset could land on a newline,
+putting the marker on the line break instead of on the text, and the underline
+could come out zero-width, which draws nothing — on exactly the errors reported
+at the end of a document, which are the ones hardest to find by eye. A
+"show me where it is wrong" feature that shows nothing is worse than not having
+it.
+
+Separately, js-yaml v5 raises on an empty document where v4 returned undefined.
+The editor is empty whenever nothing is selected and just after a delete, so
+without a guard a red error sat on a box nobody had touched.
+
+**The real find was on the write side, and only became visible because the read
+side got better.** Saving a config through the dashboard wrote it with
+`yaml.safe_dump`, which renders a long multi-line string as a *single-quoted
+folded* scalar: every line break becomes a blank line and the prose is rewrapped
+at 80 columns. So the editor showed `prompt_template: |`, the save wrote a
+quoted blob, and the next load showed `|` again — the disagreement was invisible
+until you opened the file on disk, which is what this item's whole complaint was
+about, one step further along. The value round-tripped correctly the entire
+time; the file was simply unreadable afterwards.
+
+Fixed with a block-style representer on a `SafeDumper` *subclass*. Registering
+it on `yaml.SafeDumper` would have been one line shorter and would have changed
+every other `yaml.safe_dump` in the process, which is a strange way to fix a
+formatting bug in one endpoint.
+
+## 2026-08-30 — 1.5.0, item 3: the docs view, and what `/docs` was already for
+
+The view is what the plan asked for: `/docs` embeds the published reference,
+`/docs/{name}` opens a note from `docs/notes/`, the list is built from the files
+so adding one is writing one. Three notes are written — the survey, the
+catalogue of metric disagreements, and the demo script.
+
+**The route was taken.** `/docs` is where FastAPI mounts Swagger UI, and a real
+route beats the SPA fallback, so the new view was unreachable at exactly the
+address the plan specified — while `/docs/state-of-the-art` worked perfectly,
+because nothing else claimed *that*. A deep link working and the index not is a
+confusing enough failure that it is worth writing down.
+
+**Moving it found the second thing.** Swagger UI and ReDoc load their assets
+from jsdelivr, and this app sets `script-src 'self'`. Both pages have therefore
+rendered blank since the CSP was added — an interactive API browser that never
+browsed anything, on every deployment, unnoticed. Serving it from a new path
+would have kept a dead page alive, so it is off. `/api/openapi.json` stays,
+needs no CDN, and is recorded in the route-table snapshot, which is where an
+"interactive browser over every endpoint" should have been visible in the first
+place rather than arriving as a framework default.
+
+**The bundle decision, taken once for items 3 and 4 as the plan asked.**
+Client-side rendering in the view's own lazy chunk. `marked` plus `dompurify`
+come to 79 KB there and nothing in the entry bundle, which stands at 424 KB
+against a 460 KB budget. Rendering server-side was the alternative and it is
+worse twice over: it would add a Markdown dependency to the Python package in
+the same release that spent an item removing dependency surface, and it would
+mean shipping HTML over the wire and trusting it in the browser, which is a
+weaker position than shipping Markdown and rendering it there.
+
+**Sanitising our own files is not paranoia about today.** The notes are authored
+and reviewed, so the HTML is trusted now. The tests are about the day a document
+is generated, pasted or contributed — at which point a renderer that emits raw
+HTML is a script-injection point, and the fix would have to be found rather than
+already being there. `iframe`, `form` and `style` are stripped along with
+scripts: a note should display text and nothing else.
+
+**A cross-origin iframe cannot be restyled, so the docs site is themed instead.**
+The plan said this and it is worth confirming: the same-origin policy is
+absolute here. `mkdocs.yml` now carries Carbon's palette and IBM Plex, which
+also fixes the appearance for people who go to Read the Docs directly — the
+better half of the trade. Our own CSP was the only thing blocking the embed;
+Read the Docs sends neither `X-Frame-Options` nor `frame-ancestors`.
+`frame-src` names that one origin, never a wildcard, and `frame-ancestors
+'none'` is untouched — the two are easy to conflate and there is now a test
+asserting that adding the first did not relax the second.
+
+**Two consequences of "the notes are not packaged" needed handling, not just
+noting.** The plan verified `docs/` is absent from both distributions and
+concluded no packaging change was needed. True, and it leaves the view empty
+wherever the repository is not — including the deployment, which runs the
+container image. So `deploy/Dockerfile` copies `docs/notes/` beside the
+`pyproject.toml` it already has at `/app`, which is what the resolver walks up
+to find, and the container smoke test asserts the endpoint actually serves
+documents. Finding an empty docs view during the demo it was built for is the
+failure this avoids. In the other direction, CI now checks `docs/` stays out of
+both distributions: it was a decision, and a stray `package-data` entry would
+reverse it silently.
+
+## 2026-08-30 — 1.5.0, item 2: the release page, and where the check belongs
+
+Small item, one decision in it. The plan said to order the Release job after
+`publish`, and it is right about that: a Release page pointing at a version PyPI
+rejected is worse than a missing one. But it also said the changelog extraction
+should live in that job, and *that* would mean a tag with no changelog section
+publishes to PyPI -- irreversibly -- and only then fails.
+
+So the two halves are split. `build` extracts the notes and fails there, before
+anything leaves the machine; the notes travel to `github-release` as an
+artifact, so both jobs read the same bytes rather than re-deriving them. The
+ordering the plan asked for is kept for the part that creates the page.
+
+`scripts/ci/extract_changelog.py` has twelve tests, which is more than it looks
+like it needs until you notice what they cover: the newest section running on
+past the next heading, the oldest section swallowing the link-reference block at
+the foot of the file, and a heading with nothing under it -- which produces an
+empty page, the exact failure the item exists to prevent. One of them asserts
+the *current* declared version has notes, so the repository cannot reach a tag
+in the state 1.3.0 and 1.4.0 were in.
+
+The changelog's link-reference definitions were missing for 1.2.0, 1.4.0 and
+1.5.0, so those headings rendered as literal `[1.4.0]`. Added, now that the
+URLs they point at will exist.
+
+## 2026-08-30 — 1.5.0, item 1: the alerts were mostly bookkeeping, and one real finding
+
+158 open Dependabot alerts, 28 distinct packages, three manifests. The count was
+inflated three ways and the plan predicted two of them: the same package is
+counted once per manifest it appears in, and one package often carries several
+advisories. Deleting `requirements.txt` — a generated export of `uv.lock` that
+scanning read as a separate project — removed about a third of the alerts
+without changing a single dependency, exactly as the plan said it would.
+
+**The third inflation was not predicted, and it is the finding worth keeping.**
+The plan's "watch for" paragraph warned that `langgraph` and `langchain-core`
+are "the agentic pipeline's spine" and should be bumped deliberately. They are
+not the spine. They are not anything. `grep -rn "langgraph\|langchain" src/
+scripts/ tests/` returns two lines, both of them commented-out imports, above a
+comment reading "we're using a simpler state machine approach". The dependency
+has been declared and unimported since the module was written.
+
+Between them the two packages pulled thirteen more into every install —
+`langgraph-checkpoint`, `langgraph-sdk`, `langgraph-prebuilt`, `langsmith`,
+`orjson`, `ormsgpack`, `xxhash`, `zstandard` and the rest — and **six of the
+fifteen base-install packages with an open advisory were in that subtree**.
+Flooring them would have worked and would have been wrong: the correct fix for a
+vulnerable dependency you do not use is to stop declaring it. Removed. The
+docstring claiming a LangGraph agent, and `scripts/inference/README.md`'s
+troubleshooting entry telling people to `pip install langgraph`, were corrected
+at the same time — they had been describing a design that never shipped.
+
+**Nine packages are now named in `pyproject.toml` that this project does not
+import.** `pillow` via matplotlib, `urllib3` and `idna` via requests,
+`cryptography` and `pyasn1` via google-auth. This looks wrong and is not: a
+lockfile protects this repository and the container, and does nothing for
+`pip install text2sql-eval-toolkit`, which resolves fresh against the
+intermediate package's own floor — and those floors are years behind. Naming the
+patched version is the only mechanism that reaches that install. They are floors
+rather than pins, and the comment above them says when to delete each one.
+
+**`uv lock --upgrade` was the wrong tool and it took one run to find out.** It
+moved 60-odd packages including pandas 2.2 → 3.0, sqlglot 28 → 30, numpy 2.4 →
+2.5 and starlette 0.52 → 1.6. None of those belonged in a security fix, and
+pandas 3 under a project whose core data model is serialised dataframes is a
+week of its own. Reverted, and replaced with: raise the floors, plain `uv lock`,
+then `--upgrade-package` by name for the handful the floors could not reach.
+22 packages moved instead of 60.
+
+**Starlette 1.x was taken deliberately, and it is the one upgrade with risk in
+it.** The 0.x advisories are Host-header poisoning of `request.url.path` and
+`request.form()` limits being silently ignored; both are about a server facing
+the internet, which this one is. It needed FastAPI ≥ 0.141.1 to come with it.
+921 tests pass, but the suite exercises the API through the test client rather
+than a socket, so this is the item to watch on the deployment.
+
+The one *critical* alert — stored XSS in Jupyter Server's nbconvert handlers —
+was reachable only through the `notebook` extra. The plan offered dropping the
+extra or pinning it forward; a clean stack existed, so it is pinned forward and
+the notebooks still install with one command.
+
 ## 2026-08-30 — 1.4.0 built. The features were the easy half.
 
 All five planned items shipped and are running live at

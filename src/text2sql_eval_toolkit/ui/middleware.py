@@ -300,9 +300,16 @@ async def add_security_headers(request: Request, call_next):
         # it the visitor IPs disclosed to that CDN; until then it is allowed
         # explicitly rather than by loosening default-src.
         "font-src 'self' data: https://1.www.s81c.com; "
-        "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self'",
+        # What this page may frame. The docs view briefly framed the published
+        # API reference and needed an exception naming that origin; the
+        # reference is a link out now, so nothing is framed. Stated rather than
+        # omitted: with no directive the fallback is `default-src 'self'`, which
+        # still allows same-origin frames -- so "frames nothing" was a claim the
+        # policy did not make.
+        "frame-src 'none'; "
+        # This and X-Frame-Options govern *this* site being framed by someone
+        # else, which is the other direction entirely.
+        "frame-ancestors 'none'; " "base-uri 'self'; " "form-action 'self'",
     )
     return response
 

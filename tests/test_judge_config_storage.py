@@ -14,6 +14,8 @@ the same name, and deleting the copy restores the original.
 """
 
 import json
+import os
+from pathlib import Path
 
 import pytest
 
@@ -145,3 +147,209 @@ def test_writing_a_traversal_name_over_http_is_refused(client, tmp_path):
 def test_deleting_a_traversal_name_over_http_is_refused(client):
     resp = client.delete("/api/llm-judge/configs/..%2f..%2fowned")
     assert resp.status_code in (400, 404), resp.status_code
+
+
+# --- what the written file looks like ---------------------------------------
+
+
+def test_a_multi_line_prompt_is_written_as_a_block_scalar(client, tmp_path):
+    """
+    ``yaml.safe_dump`` renders a long multi-line string as a single-quoted
+    folded scalar: every line break becomes a blank line and the prose is
+    rewrapped at 80 columns. It round-trips correctly and it is unreadable --
+    and `prompt_template` is the bulk of every judge config, so every save
+    through the dashboard turned a file that opened with `prompt_template: |`
+    into one that did not.
+    """
+    prompt = "First line.\n\nSecond paragraph.\nThird line.\n"
+    resp = client.put(
+        "/api/llm-judge/configs/block_style",
+        json={"model": {"id": "anthropic:x"}, "prompt_template": prompt},
+    )
+    assert resp.status_code == 200
+
+    written = (tmp_path / "llm_judge_config" / "block_style.yaml").read_text()
+    assert "prompt_template: |" in written
+    # The folded form quotes the scalar and doubles every line break.
+    assert "prompt_template: '" not in written
+
+    # And the value is unchanged, which is the part that actually matters.
+    import yaml
+
+    assert yaml.safe_load(written)["prompt_template"] == prompt
+
+
+def test_a_long_prompt_line_is_not_rewrapped(client, tmp_path):
+    # A block scalar's line breaks are part of the prompt the judge is sent.
+    # Folding one at 80 columns changes the prompt without anyone asking.
+    line = "word " * 60
+    client.put(
+        "/api/llm-judge/configs/wide",
+        json={"model": {"id": "anthropic:x"}, "prompt_template": f"{line}\nnext\n"},
+    )
+    written = (tmp_path / "llm_judge_config" / "wide.yaml").read_text()
+    assert line.strip() in written
+
+
+def test_a_single_line_string_stays_plain(client, tmp_path):
+    # Block style on every string would make `id: |-` of a model name.
+    client.put(
+        "/api/llm-judge/configs/plain",
+        json={"model": {"id": "anthropic:x"}, "prompt_template": "one line"},
+    )
+    written = (tmp_path / "llm_judge_config" / "plain.yaml").read_text()
+    assert "id: anthropic:x" in written
+    assert "prompt_template: one line" in written
+
+
+def test_the_block_representer_is_not_registered_globally(client):
+    """
+    It is on a Dumper subclass, not on ``yaml.SafeDumper``. Registering it
+    globally would change every other ``yaml.safe_dump`` in the process.
+    """
+    import yaml
+
+    client.put(
+        "/api/llm-judge/configs/scoped",
+        json={"model": {"id": "anthropic:x"}, "prompt_template": "a\nb\n"},
+    )
+    assert "|" not in yaml.safe_dump({"k": "a\nb\n"})
+
+
+# --- renaming --------------------------------------------------------------
+
+
+def test_renaming_moves_the_config(client, tmp_path):
+    client.put("/api/llm-judge/configs/before", json=BODY)
+    resp = client.post(
+        "/api/llm-judge/configs/before/rename", json={"new_name": "after"}
+    )
+    assert resp.status_code == 200
+    names = {c["name"] for c in client.get("/api/llm-judge/configs").json()["items"]}
+    assert "after" in names and "before" not in names
+    assert client.get("/api/llm-judge/configs/after").json() == BODY
+
+
+def test_renaming_a_packaged_config_is_refused(client):
+    # It is read-only and shared with every install, so a "rename" would leave
+    # the original sitting there under its own name.
+    resp = client.post(
+        f"/api/llm-judge/configs/{PACKAGED}/rename", json={"new_name": "mine"}
+    )
+    assert resp.status_code == 400
+    assert "duplicate" in resp.json()["detail"].lower()
+
+
+def test_renaming_onto_an_existing_name_is_refused(client):
+    client.put("/api/llm-judge/configs/one", json=BODY)
+    client.put("/api/llm-judge/configs/two", json=BODY)
+    resp = client.post("/api/llm-judge/configs/one/rename", json={"new_name": "two"})
+    assert resp.status_code == 409
+    # Both survive; a refused rename must not consume either side.
+    names = {c["name"] for c in client.get("/api/llm-judge/configs").json()["items"]}
+    assert {"one", "two"} <= names
+
+
+def test_renaming_onto_a_packaged_name_is_refused(client):
+    # Writing onto one would silently shadow a shipped config.
+    client.put("/api/llm-judge/configs/mine", json=BODY)
+    resp = client.post(
+        "/api/llm-judge/configs/mine/rename", json={"new_name": PACKAGED}
+    )
+    assert resp.status_code == 409
+
+
+def test_renaming_to_an_invalid_name_is_refused(client):
+    client.put("/api/llm-judge/configs/valid", json=BODY)
+    for bad in ("../escape", "", "with space", ".hidden"):
+        resp = client.post(
+            "/api/llm-judge/configs/valid/rename", json={"new_name": bad}
+        )
+        assert resp.status_code == 400, bad
+    assert client.get("/api/llm-judge/configs/valid").status_code == 200
+
+
+def test_renaming_to_the_same_name_is_refused(client):
+    client.put("/api/llm-judge/configs/same", json=BODY)
+    resp = client.post("/api/llm-judge/configs/same/rename", json={"new_name": "same"})
+    assert resp.status_code == 400
+
+
+def test_renaming_an_edit_uncovers_the_packaged_config(client):
+    # Same rule as deleting one: the shipped original becomes visible again.
+    client.put(f"/api/llm-judge/configs/{PACKAGED}", json=BODY)
+    resp = client.post(
+        f"/api/llm-judge/configs/{PACKAGED}/rename", json={"new_name": "moved"}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["reverted_to_packaged"] is True
+    names = {c["name"] for c in client.get("/api/llm-judge/configs").json()["items"]}
+    assert {"moved", PACKAGED} <= names
+
+
+def test_a_rename_cannot_be_raced_into_deleting_a_config(client, tmp_path, monkeypatch):
+    """
+    The existence check and the move are two operations, and POSIX rename()
+    replaces its target silently. Two renames onto one name must not both
+    succeed, because the second would delete the config the first just made.
+
+    The competing request is simulated by creating the target in the window
+    between the check and the claim -- which is exactly when it would arrive.
+    """
+    root = tmp_path / "llm_judge_config"
+    client.put("/api/llm-judge/configs/one", json=BODY)
+    winner = root / "taken.yaml"
+    real_open = os.open
+
+    def racing_open(path, flags, *args, **kwargs):
+        if str(path) == str(winner) and not winner.exists():
+            winner.write_text("model:\n  id: theirs\n", encoding="utf-8")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", racing_open)
+    resp = client.post("/api/llm-judge/configs/one/rename", json={"new_name": "taken"})
+
+    assert resp.status_code == 409, resp.text
+    # Neither config was destroyed.
+    assert (root / "one.yaml").is_file()
+    assert winner.read_text(encoding="utf-8") == "model:\n  id: theirs\n"
+
+
+def test_a_failed_move_leaves_no_empty_placeholder(client, tmp_path, monkeypatch):
+    """The name is claimed before the move; a failed move must give it back."""
+    root = tmp_path / "llm_judge_config"
+    client.put("/api/llm-judge/configs/one", json=BODY)
+
+    def failing_replace(self, target):
+        raise OSError(13, "Permission denied")
+
+    monkeypatch.setattr(Path, "replace", failing_replace)
+    resp = client.post("/api/llm-judge/configs/one/rename", json={"new_name": "later"})
+
+    assert resp.status_code == 500
+    assert not (root / "later.yaml").exists(), "an empty config was left behind"
+    assert (root / "one.yaml").is_file()
+
+
+def test_renaming_a_config_that_does_not_exist_is_a_404(client):
+    """
+    A name with nothing behind it is not a packaged config. Saying it "ships
+    with the toolkit" invents a config that was never there -- and sends the
+    caller to duplicate something that does not exist.
+    """
+    resp = client.post(
+        "/api/llm-judge/configs/no_such_config/rename", json={"new_name": "other"}
+    )
+    assert resp.status_code == 404, resp.text
+    detail = resp.json()["detail"]
+    assert "no_such_config" in detail
+    assert "ships with the toolkit" not in detail
+
+
+def test_renaming_a_packaged_config_still_says_to_duplicate_it(client):
+    """The other half: a name that does resolve to a packaged config."""
+    resp = client.post(
+        f"/api/llm-judge/configs/{PACKAGED}/rename", json={"new_name": "mine"}
+    )
+    assert resp.status_code == 400
+    assert "duplicate" in resp.json()["detail"].lower()

@@ -4,6 +4,7 @@
 #
 
 from pathlib import Path
+import re
 import yaml
 from text2sql_eval_toolkit.logging import get_logger
 from typing import Callable, Dict, Any, Optional
@@ -50,6 +51,57 @@ def load_llm_judge_config(config_path: Optional[str] = None) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 
+#: Decoration a model may put before its verdict: Markdown emphasis, a heading,
+#: a block quote, a list bullet, an opening quote or bracket.
+_LEADING_DECORATION = re.compile(r"""^[\s>#*_`~\-\u2022"'\[(]+""")
+
+#: A label some models write before answering, e.g. "Verdict: Yes".
+_VERDICT_LABEL = re.compile(
+    r"^(?:verdict|answer|judgment|judgement|assessment)\s*[:\-\u2014]\s*",
+    re.IGNORECASE,
+)
+
+#: The verdict itself, which must be the first word of what is left. The
+#: lookahead rather than ``\b`` because ``_`` is a word character to ``re``, so
+#: ``\b`` does not fire between the "s" and the underscore of ``__Yes__``.
+_VERDICT_WORD = re.compile(r"(yes|no|maybe)(?![A-Za-z0-9])", re.IGNORECASE)
+
+#: Verdict -> score. An unreadable reply scores the same as a rejection, so the
+#: verdict is the field to check when telling the two apart matters.
+_VERDICT_SCORES = {"Yes": 1.0, "Maybe": 0.5, "No": 0.0}
+
+
+def _read_verdict(answer: str) -> Optional[str]:
+    """
+    Find the verdict at the start of a reply, ignoring how it is dressed.
+
+    The prompt asks the model to lead with "Yes", "No" or "Maybe", and models
+    comply -- but they comply in their own house style. Gemini 3 answers
+    ``**Yes**``; others write ``### Yes``, ``> Yes``, ``"Yes"`` or
+    ``Verdict: Yes``. Matching the bare word against the raw first characters
+    scored every one of those N/A, which is to say zero, so a judge run against
+    a Markdown-formatting model marked every prediction wrong.
+
+    Only the head of the reply is examined. Scanning the whole text would find
+    the "No" in "No ground-truth SQL was available" and read a rejection out of
+    an explanation.
+
+    Args:
+        answer: The reply, already stripped.
+
+    Returns:
+        ``"Yes"``, ``"No"``, ``"Maybe"``, or ``None`` if the head of the reply
+        is not one of them.
+    """
+    head = _LEADING_DECORATION.sub("", answer)
+    head = _VERDICT_LABEL.sub("", head)
+    head = _LEADING_DECORATION.sub("", head)
+    match = _VERDICT_WORD.match(head)
+    if match is None:
+        return None
+    return match.group(1).capitalize()
+
+
 def evaluate_sql_prediction_with_llm(
     question: str,
     ground_truth_sql: str,
@@ -93,11 +145,15 @@ def evaluate_sql_prediction_with_llm(
         dict: With keys
 
         - ``verdict``: ``"Yes"``, ``"No"``, ``"Maybe"``, or ``"N/A"`` when the
-          reply could not be interpreted.
+          reply could not be interpreted. The verdict is read from the start of
+          the reply through any Markdown emphasis, heading, quoting or
+          ``Verdict:`` label the model wrapped it in.
         - ``score``: ``1.0``, ``0.0``, ``0.5`` and ``0.0`` respectively. Note
           that an uninterpretable reply scores the same as a rejection, so
           ``verdict`` is the field to check when telling the two apart matters.
-        - ``explanation``: The judge's reasoning.
+        - ``explanation``: The judge's reasoning -- the reply verbatim, kept
+          even when the verdict is ``"N/A"`` so that an unrecognised answer can
+          be read rather than guessed at.
         - ``token_usage``: Prompt and completion counts, or ``None`` when the
           provider reported none. Callers metering spend must handle ``None``
           rather than treating it as zero.
@@ -150,10 +206,6 @@ def evaluate_sql_prediction_with_llm(
         predicted_df=predicted_df,
     )
 
-    verdict = "N/A"
-    score = 0.0
-    explanation = "N/A"
-
     # Run inference
     logger.debug("Running LLM-as-a-judge inference...")
     # generate_text, not generate_sql: the reply is a verdict and an explanation,
@@ -164,23 +216,30 @@ def evaluate_sql_prediction_with_llm(
     if not answer:
         logger.error(f"LLM judge returned no text for model {evaluator_model!r}")
         raise ValueError(f"LLM judge returned no text for model {evaluator_model!r}")
-    elif answer.lower().startswith("yes"):
-        verdict = "Yes"
-        score = 1.0
-        explanation = answer
-    elif answer.lower().startswith("no"):
-        verdict = "No"
-        score = 0.0
-        explanation = answer
-    elif answer.lower().startswith("maybe"):
-        verdict = "Maybe"
-        score = 0.5
-        explanation = answer
+
+    read = _read_verdict(answer)
+    if read is None:
+        # The reply is kept regardless. It used to be replaced with "N/A", which
+        # discarded the evidence in the one case where somebody needs to read it
+        # -- there was no way to tell a model that refused to answer from one
+        # whose answer was simply not recognised.
+        # The reply itself goes to DEBUG, not here. It can carry the question,
+        # the SQL and rows of result data, and a warning is a level production
+        # keeps on -- so the fact is logged where an operator will see it and
+        # the content where the rest of this pipeline already puts content. The
+        # caller gets the full text back as `explanation` either way.
+        logger.warning(
+            "LLM judge reply from %r did not begin with a verdict; scoring N/A.",
+            evaluator_model,
+        )
+        logger.debug("Unrecognised LLM judge reply: %s", answer)
+    verdict = read or "N/A"
+    score = _VERDICT_SCORES.get(verdict, 0.0)
 
     return {
         "verdict": verdict,
         "score": score,
-        "explanation": explanation,
+        "explanation": answer,
         # Present so callers can meter spend. None when the provider did not
         # report usage; callers must handle that rather than assume zero.
         "token_usage": token_usage,

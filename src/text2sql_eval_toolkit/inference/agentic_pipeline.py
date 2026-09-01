@@ -4,7 +4,9 @@
 #
 
 """
-Agentic pipeline for text-to-SQL generation using LangGraph.
+Agentic pipeline for text-to-SQL generation.
+
+The loop below is a hand-written state machine.
 
 This module provides an agentic pipeline that:
 - Generates SQL queries from natural language questions
@@ -22,9 +24,6 @@ from typing import Any, List, Optional, TypedDict, Annotated
 from pathlib import Path
 import pandas as pd
 
-# Note: LangGraph imports are available but we're using a simpler state machine approach
-# from langgraph.graph import StateGraph, END
-# from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.inference.base_pipeline import BasePipeline
 from text2sql_eval_toolkit.inference.inference_tools import (

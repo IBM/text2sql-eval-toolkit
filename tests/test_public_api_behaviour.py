@@ -321,6 +321,30 @@ class TestJudgeConfig:
             ("No, it selects the wrong column", "No", 0.0),
             ("Maybe, it depends on the schema", "Maybe", 0.5),
             ("something unparseable", "N/A", 0.0),
+            # A model that formats its reply has still answered. Gemini 3
+            # returns the first of these, and it used to score N/A -- which is
+            # to say zero, on every record of a run.
+            ("**Yes**\n\nThe query selects the right columns.", "Yes", 1.0),
+            ("**No.** It selects the wrong column.", "No", 0.0),
+            ("*Maybe* -- the question is ambiguous.", "Maybe", 0.5),
+            ("__Yes__", "Yes", 1.0),
+            ("`No`", "No", 0.0),
+            ("### Yes\n\nCorrect.", "Yes", 1.0),
+            ("> Maybe, depending on the schema.", "Maybe", 0.5),
+            ('"Yes"', "Yes", 1.0),
+            ("- No, wrong table.", "No", 0.0),
+            ("Verdict: Yes, the columns match.", "Yes", 1.0),
+            ("Verdict: **No**", "No", 0.0),
+            ("**Verdict:** Maybe", "Maybe", 0.5),
+            ("Answer - Yes", "Yes", 1.0),
+            ("   \n**Yes**", "Yes", 1.0),
+            # Only the head is read. This sentence opens with "No" and is
+            # therefore taken as one -- unchanged behaviour, and the reason the
+            # whole reply is not scanned: doing so would find the "No" here
+            # inside any explanation that mentioned it.
+            ("No ground-truth SQL was available, so I cannot judge.", "No", 0.0),
+            ("The query is fine, so: Yes", "N/A", 0.0),
+            ("Nothing about this reply is a verdict", "N/A", 0.0),
         ],
     )
     def test_verdicts_are_read_from_the_reply(self, monkeypatch, reply, verdict, score):
@@ -353,6 +377,11 @@ class TestJudgeConfig:
             },
         )
         assert result["verdict"] == verdict
+        assert result["score"] == score
+        # The reply is kept whatever the verdict. It used to be replaced with
+        # "N/A" exactly when it was unrecognised, which is when reading it
+        # matters most.
+        assert result["explanation"] == reply.strip()
         assert result["score"] == score
         assert "token_usage" in result
 

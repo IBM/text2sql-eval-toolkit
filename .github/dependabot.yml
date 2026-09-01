@@ -1,0 +1,48 @@
+#
+# Copyright IBM Corp. 2025 - 2026
+# SPDX-License-Identifier: Apache-2.0
+#
+# Security alerts were already on; what was missing is *version* updates. The
+# difference matters: alerts tell you a dependency is vulnerable and wait for
+# someone to act, version updates open the pull request. Between 1.4.0 and
+# 1.5.0 that gap accumulated 158 open alerts across 28 packages, none of which
+# had moved since the lockfile was written.
+#
+# Grouped deliberately. One pull request per package would be ~30 a week here
+# and they would be ignored, which is the same outcome as not running this.
+
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Patches and minors together: individually they are noise, and the
+      # lockfile churn is the same either way.
+      python-minor-and-patch:
+        update-types: ["minor", "patch"]
+    # Majors are opened one at a time so each gets read. pandas 3, sqlglot 30
+    # and starlette 1 were all one `uv lock --upgrade` away during 1.5.0 and
+    # none of them belonged in a security fix.
+    ignore: []
+
+  - package-ecosystem: npm
+    directory: "/dashboard"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

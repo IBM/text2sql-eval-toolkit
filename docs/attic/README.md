@@ -8,8 +8,9 @@ what changed, what it broke, and what that cost. Newest first.
 It is history, not reference. Read it to find out *why* something is the way it
 is; read [`../dashboard/`](../dashboard/) to find out how it works.
 
-Plans live here too while work is in flight, and are deleted once the release
-ships — a plan stops being true the moment it is carried out. What survives a
-plan moves to where it will be met: the *why* into this log, ongoing rules into
-`CONTRIBUTING.md`, and anything a user needs into the guides. There is no plan
-in flight at the moment.
+Plans for work in flight live in `../plan/`, not here, and are deleted once
+their release ships — a plan stops being true the moment it is carried out. What
+survives a plan moves to where it will be met: the *why* into this log, ongoing
+rules into `CONTRIBUTING.md`, and anything a user needs into the guides. The
+1.4.0 and 1.5.0 plans were both retired that way, so there is no `plan/`
+directory at the moment; the next one recreates it.

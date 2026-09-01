@@ -36,6 +36,9 @@ needs no Node.js.
 
 - **Benchmark overview** — every benchmark with its description, database type,
   record count and pipeline count.
+- **Five views of a benchmark**, under a shared tab strip: the summary, metric
+  insights, pipeline compare, profile compare and error analysis. Each is its
+  own address, so any of the five can be linked to.
 - **Per-benchmark results** — pipeline-level metrics (execution-accuracy variants,
   LLM-judge score, token and latency statistics), sortable, and broken down by
   SQL feature category.
@@ -49,6 +52,15 @@ needs no Node.js.
 - **Comparison** — two summary files side by side with per-pipeline deltas.
 - **LLM-judge configuration** — view and edit the judge prompt YAML.
 - **Run evaluations** — trigger a run and follow job status. Local mode only.
+- **Docs** — an index of tiles: the published API reference, and the long-form notes in
+  [`docs/notes/`](https://github.com/IBM/text2sql-eval-toolkit/tree/main/docs/notes) — a survey of how text-to-SQL evaluation is done,
+  a catalogue of the cases where the metrics disagree, and a demo script. Each
+  note has its own address, so a link opens the one being discussed.
+
+  These are read from the repository. `docs/` ships in neither the wheel nor the
+  sdist, so a pip install has the reference tile and no notes, and the index
+  says so rather than showing an unexplained gap. The deployment image copies
+  them in.
 
 Result tables are previewed rather than rendered whole: a query can return
 86,502 rows, and the panel says how many of them it is showing.

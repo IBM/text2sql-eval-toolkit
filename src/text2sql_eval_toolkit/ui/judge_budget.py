@@ -377,6 +377,27 @@ class JudgeStore:
             ).fetchone()
         return dict(row) if row else None
 
+    def delete_verdict(self, cache_key: str) -> bool:
+        """
+        Drop a stored verdict, if there is one.
+
+        Used when a forced re-judge comes back unreadable: an ``N/A`` is not
+        written, so without this the verdict the caller asked to replace would
+        simply still be there on the next request.
+
+        Args:
+            cache_key: The key from ``verdict_cache_key``.
+
+        Returns:
+            Whether a row was removed.
+        """
+        with self._lock, self._connect() as conn:
+            removed = conn.execute(
+                "DELETE FROM verdicts WHERE cache_key = ?", (cache_key,)
+            ).rowcount
+            conn.commit()
+        return bool(removed)
+
     def put_verdict(
         self,
         cache_key: str,

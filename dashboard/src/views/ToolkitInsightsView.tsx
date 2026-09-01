@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@carbon/react";
 import type { BenchmarkSummary } from "../types/benchmark";
+import { BenchmarkSelect } from "./BenchmarkSelect";
 import { apiFetch, apiUrl } from "../lib/api";
 import {
   type MetricDefinitionsResponse,
@@ -395,20 +396,12 @@ export const ToolkitInsightsView: React.FC<Props> = ({
           alignItems: "end",
         }}
       >
-        <div>
-          <ComboBox
-            id="insights-benchmark-select"
-            titleText="Benchmark"
-            items={benchmarks}
-            itemToString={(item) => (item ? item.benchmark_id : "")}
-            selectedItem={benchmarks.find((b) => b.benchmark_id === benchmarkId) ?? null}
-            onChange={(e) => {
-              const selected = e.selectedItem as BenchmarkSummary | null;
-              if (selected) onSelectBenchmark(selected.benchmark_id);
-            }}
-            placeholder="Select benchmark"
-          />
-        </div>
+        <BenchmarkSelect
+          id="insights-benchmark-select"
+          benchmarks={benchmarks}
+          selected={benchmarkId}
+          onSelect={onSelectBenchmark}
+        />
         <div>
           <ComboBox
             id="insights-pipeline-select"

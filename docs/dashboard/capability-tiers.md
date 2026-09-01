@@ -12,7 +12,7 @@ centrally in middleware.
 | Tier | Who | Can do |
 |---|---|---|
 | `public` | Anonymous, or signed in with the `read_only` role (the default) | Every GET endpoint: browse benchmarks, summaries, error analysis, record detail |
-| `judge` | Signed in and granted the `judge` role | `public`, plus on-demand LLM-as-judge on a single record using the server-held watsonx key |
+| `judge` | Signed in and granted the `judge` role | `public`, plus on-demand LLM-as-judge on a single record, billed to the user's own stored provider key when they have one and to the server's otherwise |
 | `full` | Local operator, loopback only | Everything: SQL execution, evaluation runs, registry writes |
 
 Two rules keep this honest:

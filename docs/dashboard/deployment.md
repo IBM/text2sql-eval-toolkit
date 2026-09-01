@@ -187,6 +187,31 @@ curl -s $DOMAIN/api/benchmarks/spider_dev/pipeline-aliases | jq '.aliases | leng
 
 ---
 
+### Deploy a new version
+
+The box runs from a checkout and builds the image locally, so a deploy is a
+fetch, a build and a recreate. Tag the running image first: rollback then costs
+a container restart instead of a five-minute rebuild.
+
+```bash
+cd /root/text2sql-eval-toolkit
+docker image tag text2sql-dashboard-app text2sql-dashboard-app:rollback-$(git describe --tags --always)
+git fetch origin <ref> && git reset --hard origin/<ref>
+docker compose -f deploy/docker-compose.yml build app
+docker compose -f deploy/docker-compose.yml up -d --force-recreate app
+```
+
+Then run the health checks above. Caddy waits on the app with
+`service_started`, not `service_healthy`, so the domain and its ACME endpoint
+stay up even if the new app does not start.
+
+To roll back:
+
+```bash
+docker tag text2sql-dashboard-app:rollback-<ref> text2sql-dashboard-app:latest
+docker compose -f deploy/docker-compose.yml up -d --force-recreate app
+```
+
 ## Routine operations
 
 ### Publish a new results snapshot
