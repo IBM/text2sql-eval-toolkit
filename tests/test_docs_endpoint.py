@@ -363,3 +363,39 @@ def test_an_unparseable_pyproject_is_not_a_root(tmp_path, monkeypatch):
     (tmp_path / "docs" / "notes").mkdir(parents=True)
     monkeypatch.chdir(tmp_path)
     assert routers_docs.docs_dir() is None
+
+
+def test_a_symlinked_notes_directory_is_refused(tmp_path, monkeypatch, client):
+    """
+    Resolving follows symlinks, so `docs/notes -> elsewhere` would have made
+    that directory the docs root and published it at the public tier.
+    """
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "secret.md").write_text("# Secret\n\nNot ours.\n", encoding="utf-8")
+
+    root = tmp_path / "checkout"
+    (root / "docs").mkdir(parents=True)
+    (root / "pyproject.toml").write_text(
+        "[project]\nname='text2sql-eval-toolkit'\n", encoding="utf-8"
+    )
+    (root / "docs" / "notes").symlink_to(outside, target_is_directory=True)
+    monkeypatch.chdir(root)
+
+    assert routers_docs.docs_dir() is None
+    assert client.get("/api/docs").json()["items"] == []
+    assert client.get("/api/docs/secret").status_code == 404
+
+
+def test_a_symlinked_assets_directory_is_refused(repo, client):
+    """Same for the assets subdirectory, which serves raster files."""
+    outside = repo.parent.parent.parent / "outside"
+    outside.mkdir(parents=True, exist_ok=True)
+    (outside / "leak.png").write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 32)
+
+    (repo / "doc.md").write_text("# Doc\n\nBody.\n", encoding="utf-8")
+    (repo / "assets").symlink_to(outside, target_is_directory=True)
+
+    # The document itself still serves; only the assets directory is refused.
+    assert client.get("/api/docs/doc").status_code == 200
+    assert client.get("/api/docs/assets/leak.png").status_code == 404

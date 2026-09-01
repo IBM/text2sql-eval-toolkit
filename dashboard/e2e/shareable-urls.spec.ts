@@ -234,6 +234,28 @@ test.describe("the short-link control hands over a working address", () => {
     await recipient.close();
   });
 
+  test("an alias resolves on a query-based analysis address too", async ({
+    page,
+    request,
+  }) => {
+    // The alias table was fetched with the benchmark from the *path*, so on
+    // `/errors?benchmark=...` there was none to fetch with: the table came back
+    // empty and ready, every alias read as unknown, and the link died as a
+    // not-found. The address moved to a query parameter; the lookup had not.
+    const aliases = await (
+      await request.get(`/api/benchmarks/${BENCHMARK}/pipeline-aliases`)
+    ).json();
+    const short = aliases.by_pipeline[PIPELINE];
+    expect(short, "the fixture pipeline should have an alias").toBeTruthy();
+
+    await openFresh(page, `/errors?benchmark=${BENCHMARK}&pipeline=${short}`);
+    await expect(page.getByText(/does not name a pipeline/i)).toHaveCount(0);
+    // Expanded in place, exactly as it is on the path form.
+    await expect
+      .poll(() => page.url(), { timeout: 15000 })
+      .not.toContain(`pipeline=${short}`);
+  });
+
   test("it stays out of the way where it would change nothing", async ({ page }) => {
     // No pipeline in the address means the short form is the address, and a
     // button that copies what is already in the address bar earns nothing.

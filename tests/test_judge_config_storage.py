@@ -14,6 +14,8 @@ the same name, and deleting the copy restores the original.
 """
 
 import json
+import os
+from pathlib import Path
 
 import pytest
 
@@ -283,3 +285,47 @@ def test_renaming_an_edit_uncovers_the_packaged_config(client):
     assert resp.json()["reverted_to_packaged"] is True
     names = {c["name"] for c in client.get("/api/llm-judge/configs").json()["items"]}
     assert {"moved", PACKAGED} <= names
+
+
+def test_a_rename_cannot_be_raced_into_deleting_a_config(client, tmp_path, monkeypatch):
+    """
+    The existence check and the move are two operations, and POSIX rename()
+    replaces its target silently. Two renames onto one name must not both
+    succeed, because the second would delete the config the first just made.
+
+    The competing request is simulated by creating the target in the window
+    between the check and the claim -- which is exactly when it would arrive.
+    """
+    root = tmp_path / "llm_judge_config"
+    client.put("/api/llm-judge/configs/one", json=BODY)
+    winner = root / "taken.yaml"
+    real_open = os.open
+
+    def racing_open(path, flags, *args, **kwargs):
+        if str(path) == str(winner) and not winner.exists():
+            winner.write_text("model:\n  id: theirs\n", encoding="utf-8")
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", racing_open)
+    resp = client.post("/api/llm-judge/configs/one/rename", json={"new_name": "taken"})
+
+    assert resp.status_code == 409, resp.text
+    # Neither config was destroyed.
+    assert (root / "one.yaml").is_file()
+    assert winner.read_text(encoding="utf-8") == "model:\n  id: theirs\n"
+
+
+def test_a_failed_move_leaves_no_empty_placeholder(client, tmp_path, monkeypatch):
+    """The name is claimed before the move; a failed move must give it back."""
+    root = tmp_path / "llm_judge_config"
+    client.put("/api/llm-judge/configs/one", json=BODY)
+
+    def failing_rename(self, target):
+        raise OSError(13, "Permission denied")
+
+    monkeypatch.setattr(Path, "rename", failing_rename)
+    resp = client.post("/api/llm-judge/configs/one/rename", json={"new_name": "later"})
+
+    assert resp.status_code == 500
+    assert not (root / "later.yaml").exists(), "an empty config was left behind"
+    assert (root / "one.yaml").is_file()

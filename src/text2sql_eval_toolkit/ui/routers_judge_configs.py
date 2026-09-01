@@ -18,6 +18,7 @@ containment asserted on the resolved path -- belt and braces, because the first
 version of this interpolated a URL segment straight into a path.
 """
 
+import os
 from typing import Any, Dict, List
 
 import yaml
@@ -209,11 +210,33 @@ def rename_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
             status_code=409, detail=f'A config named "{new_name}" already exists.'
         )
 
+    # The check above and the move below are two operations, and POSIX rename()
+    # replaces its target silently -- so two renames onto one name could both
+    # pass the check and the second would delete the first's config. Claiming
+    # the name with O_CREAT|O_EXCL first makes the winner a question the
+    # filesystem answers: only one process can create it, and the loser gets the
+    # same 409 it would have got a moment earlier. The rename then replaces our
+    # own empty placeholder.
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
+        os.close(os.open(target, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644))
+    except FileExistsError:
+        raise HTTPException(
+            status_code=409, detail=f'A config named "{new_name}" already exists.'
+        ) from None
+    except OSError as exc:
+        logger.error("Failed to claim judge config name %s: %s", new_name, exc)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not rename the config: {exc.strerror or exc}",
+        ) from None
+
+    try:
         source.rename(target)
     except OSError as exc:
         logger.error("Failed to rename judge config %s: %s", name, exc)
+        # Do not leave the placeholder behind as an empty config.
+        target.unlink(missing_ok=True)
         raise HTTPException(
             status_code=500,
             detail=f"Could not rename the config: {exc.strerror or exc}",
