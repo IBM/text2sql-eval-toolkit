@@ -165,6 +165,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A judge verdict is read through the formatting the model wrapped it in.**
+  The prompt asks for a reply beginning "Yes", "No" or "Maybe", and the parser
+  required those to be the literal first characters — so `**Yes**`, which is
+  what Gemini 3 returns, scored `N/A`, which scores 0. A judge run against any
+  model that writes Markdown marked every prediction wrong. Markdown emphasis,
+  a heading, a block quote, a list bullet, surrounding quotes and a `Verdict:`
+  label are now all read through. Only the start of the reply is examined, so
+  an explanation that mentions "no" further down still cannot flip a verdict.
+- **An unreadable judge reply is kept instead of being thrown away.** The
+  `explanation` was replaced with `"N/A"` in exactly the case where somebody
+  needs to read it, which made an unrecognised answer indistinguishable from a
+  model that refused to answer. The reply is now returned verbatim whatever the
+  verdict, and the server logs its first 200 characters.
+- **An `N/A` verdict is no longer cached.** It records that nobody could read
+  the reply, not a judgement — but it was stored, so the next run answered from
+  the cache without calling the model and **Run judge** had no way to try
+  again. The spend is still metered, because the tokens were still spent.
 - **`openai:` models no longer require `OPENAI_BASE_URL`.** The client demanded
   it, so an OpenAI key alone was not enough and a judge run answered "Missing
   OPENAI_BASE_URL environment variable". The same client serves Ollama and any

@@ -345,18 +345,25 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
             model,
         )
 
-    store.put_verdict(
-        cache_key,
-        benchmark_id=benchmark_id,
-        record_id=req.record_id,
-        pipeline_id=req.pipeline,
-        config_name=config_name,
-        model=model,
-        verdict=str(result.get("verdict", "N/A")),
-        score=result.get("score"),
-        explanation=result.get("explanation"),
-        user_hash=user_hash,
-    )
+    verdict = str(result.get("verdict", "N/A"))
+    # An N/A is not a result, it is a reply nobody could read -- so it is not
+    # cached. Caching it made the failure permanent: the next run answered from
+    # the cache without calling the model, and the only way to try again was to
+    # edit the config. The spend above is still recorded, because the tokens
+    # were still spent.
+    if verdict != "N/A":
+        store.put_verdict(
+            cache_key,
+            benchmark_id=benchmark_id,
+            record_id=req.record_id,
+            pipeline_id=req.pipeline,
+            config_name=config_name,
+            model=model,
+            verdict=verdict,
+            score=result.get("score"),
+            explanation=result.get("explanation"),
+            user_hash=user_hash,
+        )
 
     usage = store.usage()
     if usage.warning:
@@ -370,7 +377,7 @@ async def judge_record(benchmark_id: str, req: JudgeRequest, request: Request):
         benchmark_id=benchmark_id,
         record_id=req.record_id,
         pipeline=req.pipeline,
-        verdict=str(result.get("verdict", "N/A")),
+        verdict=verdict,
         score=result.get("score"),
         explanation=result.get("explanation"),
         model=model,
