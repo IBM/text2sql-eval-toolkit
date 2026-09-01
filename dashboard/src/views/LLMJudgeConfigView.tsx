@@ -6,7 +6,7 @@ import {
   Tag,
   TextInput,
 } from "@carbon/react";
-import { Add, Code, TrashCan } from "@carbon/icons-react";
+import { Add, Code, Copy, Edit, TrashCan } from "@carbon/icons-react";
 import type { Diagnostic } from "@codemirror/lint";
 import { apiFetch, apiUrl } from "../lib/api";
 import {
@@ -66,6 +66,8 @@ export const LLMJudgeConfigView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   // Non-null while naming a new config; the name is only settled on save.
   const [newName, setNewName] = useState<string | null>(null);
+  // Non-null while renaming the selected config.
+  const [renameTo, setRenameTo] = useState<string | null>(null);
 
   const refreshList = useCallback(async (): Promise<ConfigInfo[]> => {
     const res = await apiFetch(apiUrl("/api/llm-judge/configs"));
@@ -97,7 +99,9 @@ export const LLMJudgeConfigView: React.FC = () => {
       try {
         setError(null);
         const items = await refreshList();
-        const defaultCfg = items.find((c) => c.name === DEFAULT_LLM_JUDGE_CONFIG_NAME);
+        const defaultCfg = items.find(
+          (c) => c.name === DEFAULT_LLM_JUDGE_CONFIG_NAME,
+        );
         if (defaultCfg) {
           setSelected(defaultCfg);
           await loadConfig(defaultCfg);
@@ -117,6 +121,68 @@ export const LLMJudgeConfigView: React.FC = () => {
     setRaw(NEW_CONFIG_TEMPLATE);
   };
 
+  /**
+   * Start a new config from the one on screen.
+   *
+   * The editor's contents are kept as they are; only the name is asked for.
+   * Starting from a template meant that adapting an existing judge -- changing
+   * the model, keeping forty lines of prompt -- began by copying the prompt out
+   * of one config and into another by hand.
+   */
+  const duplicateConfig = () => {
+    if (!selected) return;
+    setError(null);
+    setMessage(null);
+    setRenameTo(null);
+    setSelected(null);
+    setNewName(`${selected.name}_copy`);
+  };
+
+  const startRename = () => {
+    if (!selected) return;
+    setError(null);
+    setMessage(null);
+    setRenameTo(selected.name);
+  };
+
+  const renameConfig = async () => {
+    const from = selected?.name;
+    const to = (renameTo || "").trim();
+    if (!from || !to) return;
+    if (!NAME_PATTERN.test(to)) {
+      setError(
+        "A config name must start with a letter or digit and contain only " +
+          "letters, digits, dots, dashes and underscores.",
+      );
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await apiFetch(
+        apiUrl(`/api/llm-judge/configs/${from}/rename`),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ new_name: to }),
+        },
+      );
+      const body = await res.json();
+      const items = await refreshList();
+      setSelected(items.find((c) => c.name === to) ?? null);
+      setRenameTo(null);
+      setMessage(
+        body?.reverted_to_packaged
+          ? `Renamed to "${to}". The packaged "${from}" is back in use under its own name.`
+          : `Renamed "${from}" to "${to}".`,
+      );
+    } catch (e: any) {
+      setError(e.message || "Failed to rename config");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const cancelNewConfig = () => {
     setNewName(null);
     setRaw("");
@@ -131,7 +197,7 @@ export const LLMJudgeConfigView: React.FC = () => {
     if (creating && !NAME_PATTERN.test(name)) {
       setError(
         "A config name must start with a letter or digit and contain only " +
-          "letters, digits, dots, dashes and underscores."
+          "letters, digits, dots, dashes and underscores.",
       );
       return;
     }
@@ -149,7 +215,7 @@ export const LLMJudgeConfigView: React.FC = () => {
       setError(
         line
           ? `The config is not valid YAML: ${message} (line ${line}, column ${column}).`
-          : `The config is not valid YAML: ${message}`
+          : `The config is not valid YAML: ${message}`,
       );
       return;
     }
@@ -162,8 +228,8 @@ export const LLMJudgeConfigView: React.FC = () => {
     if (missing.length > 0) {
       setError(
         `This config is valid YAML but not a usable judge: ${missing.join(
-          " and "
-        )} ${missing.length > 1 ? "are" : "is"} missing.`
+          " and ",
+        )} ${missing.length > 1 ? "are" : "is"} missing.`,
       );
       return;
     }
@@ -184,7 +250,7 @@ export const LLMJudgeConfigView: React.FC = () => {
       setMessage(
         creating
           ? `Created "${name}". It is now selectable in the judge playground.`
-          : `Saved "${name}".`
+          : `Saved "${name}".`,
       );
     } catch (e: any) {
       setError(e.message || "Failed to save config");
@@ -216,7 +282,7 @@ export const LLMJudgeConfigView: React.FC = () => {
       setMessage(
         body?.reverted_to_packaged
           ? `Deleted the edit to "${name}"; the packaged config is back in use.`
-          : `Deleted "${name}".`
+          : `Deleted "${name}".`,
       );
     } catch (e: any) {
       setError(e.message || "Failed to delete config");
@@ -287,6 +353,15 @@ export const LLMJudgeConfigView: React.FC = () => {
           subtitle={message}
           lowContrast
           onCloseButtonClick={() => setMessage(null)}
+        />
+      )}
+      {renameTo !== null && (
+        <TextInput
+          id="llm-config-rename"
+          labelText={`Rename "${selected?.name ?? ""}"`}
+          helperText="Letters, digits, dots, dashes and underscores."
+          value={renameTo}
+          onChange={(e) => setRenameTo(e.target.value)}
         />
       )}
       {newName !== null ? (
@@ -371,19 +446,67 @@ export const LLMJudgeConfigView: React.FC = () => {
         </p>
       )}
       <div style={{ display: "flex", gap: "0.5rem" }}>
-        <Button
-          kind="primary"
-          onClick={() => void saveConfig()}
-          disabled={!editing || loading || parse.ok === false}
-        >
-          {newName !== null ? "Create config" : "Save config"}
-        </Button>
+        {renameTo === null && (
+          <Button
+            kind="primary"
+            onClick={() => void saveConfig()}
+            disabled={!editing || loading || parse.ok === false}
+          >
+            {newName !== null ? "Create config" : "Save config"}
+          </Button>
+        )}
         {newName !== null && (
           <Button kind="secondary" onClick={cancelNewConfig} disabled={loading}>
             Cancel
           </Button>
         )}
-        {newName === null && selected?.user_defined && (
+
+        {/* Renaming replaces the row while it is in progress: confirming or
+            cancelling it is the only thing that makes sense with a half-typed
+            name in the field above. */}
+        {renameTo !== null && (
+          <>
+            <Button
+              kind="primary"
+              onClick={() => void renameConfig()}
+              disabled={loading || !renameTo.trim()}
+            >
+              Rename
+            </Button>
+            <Button
+              kind="secondary"
+              onClick={() => setRenameTo(null)}
+              disabled={loading}
+            >
+              Cancel rename
+            </Button>
+          </>
+        )}
+
+        {newName === null && renameTo === null && selected && (
+          <Button
+            kind="secondary"
+            renderIcon={Copy}
+            onClick={duplicateConfig}
+            disabled={loading}
+          >
+            Duplicate
+          </Button>
+        )}
+        {/* Only a config in the data root can move. A packaged one is shared
+            with every install, so the server refuses; offering the button
+            anyway would be offering a guaranteed error. */}
+        {newName === null && renameTo === null && selected?.user_defined && (
+          <Button
+            kind="secondary"
+            renderIcon={Edit}
+            onClick={startRename}
+            disabled={loading}
+          >
+            Rename
+          </Button>
+        )}
+        {newName === null && renameTo === null && selected?.user_defined && (
           <Button
             kind="danger--tertiary"
             renderIcon={TrashCan}

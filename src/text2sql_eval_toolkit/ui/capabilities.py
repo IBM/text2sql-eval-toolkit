@@ -87,6 +87,7 @@ ROUTE_TIERS: Dict[Tuple[str, str], Tier] = {
     # name; the delete removes that copy and restores the packaged original.
     ("PUT", "/api/llm-judge/configs/{name}"): Tier.FULL,
     ("DELETE", "/api/llm-judge/configs/{name}"): Tier.FULL,
+    ("POST", "/api/llm-judge/configs/{name}/rename"): Tier.FULL,
     # User management. The tier is PUBLIC because the real gate is ADMIN_ROUTES,
     # checked separately: an admin must be able to grant roles on a judge-mode
     # host, and a FULL requirement here would deny exactly that. Nothing reaches

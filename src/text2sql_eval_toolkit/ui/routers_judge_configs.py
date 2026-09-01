@@ -43,6 +43,7 @@ logger = get_logger(__name__)
 # The path resolution and its containment check live with the judge itself, so
 # there is one implementation of "which file does this name mean".
 from text2sql_eval_toolkit.ui.routers_judge import (  # noqa: E402
+    _contained,
     _judge_config_dir,
     _judge_config_write_path,
     _resolve_judge_config_path,
@@ -167,6 +168,64 @@ def update_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
         ) from None
 
     return body
+
+
+@router.post("/api/llm-judge/configs/{name}/rename", response_model=Dict[str, Any])
+def rename_llm_judge_config(name: str, body: Dict[str, Any] = Body(...)):
+    """
+    Give a config a different name.
+
+    Only a config that exists in the data root can move. A packaged config is
+    read-only and shared with every other install, so renaming one is not a
+    rename at all -- it would leave the original in place under its own name.
+    The caller is told to duplicate it instead, which is what they meant.
+
+    Refuses a name that is already taken, packaged names included: writing onto
+    one would silently shadow a shipped config, and a rename should not be a way
+    to do that by accident.
+    """
+    new_name = (body.get("new_name") or "").strip()
+
+    try:
+        source = _judge_config_write_path(name)
+        target = _judge_config_write_path(new_name)
+    except FileNotFoundError:
+        raise HTTPException(status_code=400, detail="Invalid config name") from None
+
+    if source == target:
+        raise HTTPException(status_code=400, detail="That is already its name.")
+
+    if not source.is_file():
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f'"{name}" ships with the toolkit and cannot be renamed. '
+                "Duplicate it under the name you want instead."
+            ),
+        )
+
+    if target.exists() or _contained(_judge_config_dir(), new_name).is_file():
+        raise HTTPException(
+            status_code=409, detail=f'A config named "{new_name}" already exists.'
+        )
+
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        source.rename(target)
+    except OSError as exc:
+        logger.error("Failed to rename judge config %s: %s", name, exc)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not rename the config: {exc.strerror or exc}",
+        ) from None
+
+    # Moving the edit away may uncover the packaged config it was shadowing,
+    # exactly as deleting it would.
+    return {
+        "renamed": name,
+        "to": new_name,
+        "reverted_to_packaged": _resolve_judge_config_path(name).is_file(),
+    }
 
 
 @router.delete("/api/llm-judge/configs/{name}", response_model=Dict[str, Any])

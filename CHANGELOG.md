@@ -103,6 +103,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one line of roughly fifteen hundred characters with `\n` escapes through it.
   Highlighting does not make that editable; a different notation does. The
   endpoint is unchanged and still takes JSON.
+
+  **Duplicate and Rename.** A new config started from an empty editor, so
+  writing a variant of an existing judge meant retyping or pasting a
+  fifteen-hundred-character prompt — and a config named while experimenting
+  kept that name for good. **Duplicate** keeps the open document and offers
+  `<name>_copy` to save it under; **Rename** moves a config to a new name in
+  place. A packaged config cannot be renamed — there is no file of yours to
+  move — and the button says to duplicate it instead. Renaming onto a name
+  already in use is refused rather than silently overwriting it.
 - **The GitHub Release is created by the tag.** Pushing `vX.Y.Z` now builds,
   publishes to PyPI and creates the Release page with that version's changelog
   notes and the built wheel and sdist attached. The page used to be written by
@@ -156,6 +165,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`openai:` models no longer require `OPENAI_BASE_URL`.** The client demanded
+  it, so an OpenAI key alone was not enough and a judge run answered "Missing
+  OPENAI_BASE_URL environment variable". The same client serves Ollama and any
+  OpenAI-compatible server, which genuinely need an address; OpenAI itself has
+  exactly one, and it is now the default. Set the variable only to point
+  elsewhere — an empty value means the same as unset.
 - **Storing a per-user API key no longer fails on an existing deployment.**
   `ciphertext2` was added to the key table in 1.4.0 for watsonx's project id,
   but `CREATE TABLE IF NOT EXISTS` creates nothing when the table already
