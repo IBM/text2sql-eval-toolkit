@@ -31,7 +31,9 @@ from text2sql_eval_toolkit.ui import routers_docs, server  # noqa: E402
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
     """A checkout-shaped directory: pyproject.toml at the root, docs/notes under it."""
-    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname='text2sql-eval-toolkit'\n", encoding="utf-8"
+    )
     notes = tmp_path / "docs" / "notes"
     notes.mkdir(parents=True)
     monkeypatch.chdir(tmp_path)
@@ -143,7 +145,9 @@ def test_no_documents_directory_lists_empty_rather_than_failing(
     tmp_path, monkeypatch, client
 ):
     """What a pip install sees: docs/ ships in neither the wheel nor the sdist."""
-    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname='text2sql-eval-toolkit'\n", encoding="utf-8"
+    )
     monkeypatch.chdir(tmp_path)
     resp = client.get("/api/docs")
     assert resp.status_code == 200
@@ -160,7 +164,9 @@ def test_available_distinguishes_absent_from_empty(repo, client):
 def test_fetching_a_document_with_no_directory_is_404_not_500(
     tmp_path, monkeypatch, client
 ):
-    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname='text2sql-eval-toolkit'\n", encoding="utf-8"
+    )
     monkeypatch.chdir(tmp_path)
     assert client.get("/api/docs/anything").status_code == 404
 
@@ -229,7 +235,9 @@ def test_assets_do_not_shadow_a_document_named_assets(repo, client):
 
 
 def test_no_documents_directory_means_no_assets(tmp_path, monkeypatch, client):
-    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    (tmp_path / "pyproject.toml").write_text(
+        "[project]\nname='text2sql-eval-toolkit'\n", encoding="utf-8"
+    )
     monkeypatch.chdir(tmp_path)
     assert client.get("/api/docs/assets/home.png").status_code == 404
 
@@ -283,3 +291,75 @@ def test_a_symlink_out_of_the_directory_is_refused(repo, client):
     # Resolution follows the link, so containment is asserted on the real path.
     assert resp.status_code == 404
     assert "reached by symlink" not in resp.text
+
+
+# --- whose documents are these ------------------------------------------
+
+
+def _write_project(root, name):
+    (root / "pyproject.toml").write_text(
+        f"[project]\nname='{name}'\n", encoding="utf-8"
+    )
+    notes = root / "docs" / "notes"
+    notes.mkdir(parents=True, exist_ok=True)
+    (notes / "private.md").write_text("# Private\n\nNot ours.\n", encoding="utf-8")
+    return notes
+
+
+def test_another_projects_docs_are_not_served(tmp_path, monkeypatch, client):
+    """
+    These documents are public-tier. A pip-installed dashboard started inside
+    somebody else's project must not publish that project's docs/notes just
+    because it has a pyproject.toml and that directory.
+    """
+    _write_project(tmp_path, "some-other-project")
+    monkeypatch.chdir(tmp_path)
+
+    assert routers_docs.docs_dir() is None
+    listing = client.get("/api/docs").json()
+    assert listing["items"] == []
+    assert listing["available"] is False
+    assert client.get("/api/docs/private").status_code == 404
+
+
+def test_a_checkout_nested_in_another_project_still_resolves(
+    tmp_path, monkeypatch, client
+):
+    """A non-matching ancestor is skipped, not treated as the end of the walk."""
+    _write_project(tmp_path, "some-other-project")
+    inner = tmp_path / "vendor" / "toolkit"
+    inner.mkdir(parents=True)
+    notes = _write_project(inner, "text2sql-eval-toolkit")
+    (notes / "ours.md").write_text("# Ours\n\nOurs.\n", encoding="utf-8")
+    monkeypatch.chdir(inner)
+
+    assert routers_docs.docs_dir() == notes.resolve()
+    names = {item["name"] for item in client.get("/api/docs").json()["items"]}
+    assert "ours" in names
+
+
+@pytest.mark.parametrize(
+    "declared,resolves",
+    [
+        ("text2sql-eval-toolkit", True),
+        # PEP 503: case and runs of -_. are not significant.
+        ("Text2SQL_Eval.Toolkit", True),
+        ("text2sql_eval_toolkit", True),
+        ("text2sql-eval-toolkit-extras", False),
+        ("", False),
+    ],
+)
+def test_the_project_name_is_matched_per_pep_503(
+    tmp_path, monkeypatch, declared, resolves
+):
+    _write_project(tmp_path, declared)
+    monkeypatch.chdir(tmp_path)
+    assert (routers_docs.docs_dir() is not None) is resolves
+
+
+def test_an_unparseable_pyproject_is_not_a_root(tmp_path, monkeypatch):
+    """A root that cannot be identified is not one."""
+    (tmp_path / "pyproject.toml").write_text("this is not toml {[", encoding="utf-8")
+    (tmp_path / "docs" / "notes").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    assert routers_docs.docs_dir() is None

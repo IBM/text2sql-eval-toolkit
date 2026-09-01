@@ -113,6 +113,39 @@ test.describe("a link reproduces the view", () => {
     expect(new URL(page.url()).pathname).toBe(`/run/${BENCHMARK}/record/rec-005`);
   });
 
+  test("the playground follows the address between two records", async ({
+    page,
+  }) => {
+    // The auto-load guard was keyed on the benchmark alone, so moving between
+    // two records of the same benchmark returned early and left the first one
+    // on screen while the URL said the second.
+    await openFresh(page, `/run/${BENCHMARK}/record/rec-005`);
+    await expect(page.getByText("Question 5 about")).toBeVisible({
+      timeout: 15000,
+    });
+
+    // In-app, not page.goto: a full load resets everything and would pass
+    // whatever the guard did. This is the client-side path.
+    await page.locator("#pg-record-manual").fill("rec-009");
+    await page.getByRole("button", { name: "Load record" }).click();
+    await expect(page.getByText("Question 9 about")).toBeVisible({
+      timeout: 15000,
+    });
+    await expect
+      .poll(() => new URL(page.url()).pathname)
+      .toBe(`/run/${BENCHMARK}/record/rec-009`);
+
+    // Back is a popstate the router handles without reloading. The view has to
+    // follow it, rather than leaving 9 on screen under a URL that says 5.
+    await page.goBack();
+    await expect(page.getByText("Question 5 about")).toBeVisible({
+      timeout: 15000,
+    });
+    expect(new URL(page.url()).pathname).toBe(
+      `/run/${BENCHMARK}/record/rec-005`,
+    );
+  });
+
   test("the playground falls back when the address names no record", async ({
     page,
   }) => {

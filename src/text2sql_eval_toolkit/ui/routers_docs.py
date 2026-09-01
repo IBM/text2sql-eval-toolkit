@@ -26,6 +26,7 @@ bug in the same codebase.
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 from typing import List, Optional
 
@@ -91,24 +92,64 @@ _NOT_LISTED = frozenset({"README", "index"})
 _H1 = re.compile(r"^#\s+(?P<title>.+?)\s*$", re.MULTILINE)
 
 
+#: This project's own distribution name, normalised per PEP 503. An ancestor
+#: directory only counts as a root if its ``pyproject.toml`` declares this.
+_PROJECT_NAME = "text2sql-eval-toolkit"
+
+#: PEP 503: runs of ``-``, ``_`` and ``.`` are equivalent, and case is not
+#: significant.
+_NAME_SEPARATORS = re.compile(r"[-_.]+")
+
+
+def _declares_this_project(pyproject: Path) -> bool:
+    """
+    True if *pyproject* is this toolkit's own, rather than some other project's.
+
+    Args:
+        pyproject: Path to a ``pyproject.toml``.
+
+    Returns:
+        Whether its ``[project] name`` is this distribution. Unreadable or
+        malformed files are False: a root that cannot be identified is not one.
+    """
+    try:
+        with pyproject.open("rb") as handle:
+            data = tomllib.load(handle)
+    except (OSError, tomllib.TOMLDecodeError):
+        return False
+    name = (data.get("project") or {}).get("name")
+    if not isinstance(name, str):
+        return False
+    return _NAME_SEPARATORS.sub("-", name.strip().lower()) == _PROJECT_NAME
+
+
 def docs_dir() -> Optional[Path]:
     """
     The directory holding the documents, or ``None`` if there is not one.
 
-    Resolved by walking up from the working directory for a checkout -- the
-    nearest ancestor carrying ``pyproject.toml`` -- which is the same idiom
-    ``get_writable_data_root()`` uses.  The deployment image copies the
-    documents to the same relative place beside its own ``pyproject.toml``, so
-    one rule covers both.
+    Resolved by walking up from the working directory for **this project's**
+    checkout: the nearest ancestor whose ``pyproject.toml`` declares
+    ``text2sql-eval-toolkit``. The deployment image copies the documents to the
+    same relative place beside the toolkit's own ``pyproject.toml``, so one rule
+    covers both.
+
+    Checking the name matters because these documents are served at the public
+    tier. Accepting the nearest ``pyproject.toml`` of *any* project would mean
+    that a pip-installed dashboard, started from inside an unrelated project
+    that happens to have a ``docs/notes/``, would publish that project's files.
+    A non-matching ancestor is skipped rather than ending the walk, so a
+    checkout nested inside another project still resolves.
 
     Returns ``None`` rather than a non-existent path so callers cannot
     accidentally report a filesystem layout that is not there.
     """
     cwd = Path.cwd().resolve()
     for directory in [cwd, *cwd.parents]:
-        if (directory / "pyproject.toml").is_file():
-            candidate = directory.joinpath(*DOCS_SUBDIR)
-            return candidate.resolve() if candidate.is_dir() else None
+        pyproject = directory / "pyproject.toml"
+        if not pyproject.is_file() or not _declares_this_project(pyproject):
+            continue
+        candidate = directory.joinpath(*DOCS_SUBDIR)
+        return candidate.resolve() if candidate.is_dir() else None
     return None
 
 

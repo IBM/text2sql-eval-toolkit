@@ -496,9 +496,7 @@ Question + Schema
 - **v2**: Adds smart error classification to decide if retry is worthwhile
 - **v3**: Adds LLM judge validation - even successful executions are validated for correctness
 
-**How it is built** -- a hand-written state machine, not LangGraph. The
-original design used it and the imports are still in the source, commented out;
-the dependency was dropped in 1.5.0 because nothing imported it.
+**How it is built** -- a hand-written state machine.
 
 - State management for multi-step reasoning
 - Node-based execution (generate → execute → validate)
