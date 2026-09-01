@@ -156,6 +156,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Storing a per-user API key no longer fails on an existing deployment.**
+  `ciphertext2` was added to the key table in 1.4.0 for watsonx's project id,
+  but `CREATE TABLE IF NOT EXISTS` creates nothing when the table already
+  exists — so a deployment whose table predated the column never received it,
+  and since every INSERT names that column, storing a key for *any* provider
+  answered HTTP 500. The store now adds missing columns on open. Existing rows
+  are untouched.
 - **The Eval Playground opens the record its address names.** A link to
   `/run/{benchmark}/record/1480` loaded a different record and rewrote itself
   to say so. On mount the view reported "nothing open", which erased the record

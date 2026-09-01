@@ -91,6 +91,20 @@ CREATE TABLE IF NOT EXISTS user_keys (
 """
 
 
+#: Columns added to `user_keys` after the table first shipped.
+#:
+#: `CREATE TABLE IF NOT EXISTS` creates nothing when the table is already
+#: there, so a deployment whose table predates a column never receives it --
+#: and every save then fails, because the INSERT names the column. That is not
+#: hypothetical: `ciphertext2` was added for watsonx's project id, and the first
+#: deployment to try storing *any* key afterwards answered 500.
+#:
+#: Only nullable columns with constant defaults can be added this way, which is
+#: what SQLite's ALTER TABLE allows and what every entry here is. A column
+#: needing more than that would want a rebuild-and-copy instead.
+_ADDED_COLUMNS: Tuple[Tuple[str, str], ...] = (("ciphertext2", "BLOB"),)
+
+
 class SecretsUnavailable(RuntimeError):
     """Raised when no master key is configured, so nothing can be stored."""
 
@@ -129,6 +143,23 @@ def secrets_available() -> bool:
     return True
 
 
+def _add_missing_columns(conn: sqlite3.Connection) -> None:
+    """
+    Bring an existing `user_keys` table up to the current schema.
+
+    Args:
+        conn: An open connection to the key store.
+    """
+    have = {row[1] for row in conn.execute("PRAGMA table_info(user_keys)")}
+    for column, ddl in _ADDED_COLUMNS:
+        if column in have:
+            continue
+        # Interpolated because SQLite takes no parameters in DDL. The names
+        # come from the module constant above, never from a request.
+        conn.execute(f"ALTER TABLE user_keys ADD COLUMN {column} {ddl}")
+        logger.info("added missing column user_keys.%s", column)
+
+
 class UserKeyStore:
     """
     Encrypted per-user provider credentials.
@@ -143,6 +174,7 @@ class UserKeyStore:
         self._local = threading.local()
         with self._connect() as conn:
             conn.executescript(SCHEMA)
+            _add_missing_columns(conn)
 
     def _connect(self) -> sqlite3.Connection:
         conn = getattr(self._local, "conn", None)
