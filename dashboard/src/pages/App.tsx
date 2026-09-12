@@ -86,6 +86,8 @@ import { LinkTile, TileGrid } from "../views/LinkTile";
 import { BenchmarkViewTabs } from "../views/BenchmarkViewTabs";
 import { BenchmarkSelect, NoBenchmarkYet } from "../views/BenchmarkSelect";
 import { fetchSession } from "../lib/session";
+import { SignInRequiredError } from "../lib/api";
+import { SignInRequired } from "../views/SignInRequired";
 import { REFERENCE_URL, fetchDocs, type DocInfo } from "../services/docs";
 import {
   createBenchmark,
@@ -508,6 +510,35 @@ export const App: React.FC = () => {
     benchmarks.length > 0 &&
     !benchmarks.some((b) => b.benchmark_id === analysisBenchmark);
 
+  // Not in the listing is not the same as not on the server. A benchmark that
+  // requires sign-in is left out of an anonymous listing, and a shared link to
+  // it should ask the reader to sign in rather than call itself not found. The
+  // config route answers 401 for exactly that case and 404 for a benchmark that
+  // really is missing, so ask it which this is.
+  const [missingBenchmark, setMissingBenchmark] = useState<{
+    id: string;
+    needsSignIn: boolean;
+  } | null>(null);
+  useEffect(() => {
+    if (!unknownBenchmark || !analysisBenchmark) return;
+    let cancelled = false;
+    fetchBenchmarkConfig(analysisBenchmark)
+      .then(() => {
+        if (!cancelled)
+          setMissingBenchmark({ id: analysisBenchmark, needsSignIn: false });
+      })
+      .catch((e) => {
+        if (!cancelled)
+          setMissingBenchmark({
+            id: analysisBenchmark,
+            needsSignIn: e instanceof SignInRequiredError,
+          });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [unknownBenchmark, analysisBenchmark]);
+
   const resetBenchmarkModal = () => {
     setShowBenchmarkModal(false);
     setEditingBenchmarkId(null);
@@ -679,6 +710,32 @@ export const App: React.FC = () => {
       );
     }
 
+    // Before the alias check: a benchmark this caller may not see answers its
+    // alias lookup with a refusal too, which would otherwise read as a short
+    // link naming no pipeline.
+    if (unknownBenchmark) {
+      if (missingBenchmark?.id !== analysisBenchmark) {
+        return <DataTableSkeleton role="progressbar" />;
+      }
+      if (missingBenchmark.needsSignIn) {
+        return <SignInRequired benchmarkId={analysisBenchmark} />;
+      }
+      return (
+        <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
+          <NotFound
+            message={`This server has no benchmark called "${analysisBenchmark}". It may be from a deployment with a different results snapshot.`}
+          />
+          <Button
+            kind="tertiary"
+            size="sm"
+            onClick={() => navigate(routes.home())}
+          >
+            Go to benchmarks
+          </Button>
+        </div>
+      );
+    }
+
     // An alias in the address is resolved before anything renders: showing a
     // view built from an unresolved alias would fetch under the wrong name.
     if (unknownAlias) {
@@ -697,23 +754,6 @@ export const App: React.FC = () => {
     }
     if (pendingAlias) {
       return <DataTableSkeleton role="progressbar" />;
-    }
-
-    if (unknownBenchmark) {
-      return (
-        <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
-          <NotFound
-            message={`This server has no benchmark called "${analysisBenchmark}". It may be from a deployment with a different results snapshot.`}
-          />
-          <Button
-            kind="tertiary"
-            size="sm"
-            onClick={() => navigate(routes.home())}
-          >
-            Go to benchmarks
-          </Button>
-        </div>
-      );
     }
 
     if (match.notFound) {

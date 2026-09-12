@@ -142,6 +142,17 @@ export const BenchmarkTiles: React.FC<Props> = ({
             >
               <Tag type="blue">{item.db_type}</Tag>
               <Tag type="purple">{`${item.num_records} records`}</Tag>
+              {/* Only a signed-in reader is ever sent such a benchmark, so this
+                  tells them what a colleague following the same link will
+                  meet: a request to sign in. */}
+              {item.requires_sign_in && (
+                <Tag
+                  type="warm-gray"
+                  title="Visible only to signed-in users, and not indexed by search engines"
+                >
+                  Signed-in only
+                </Tag>
+              )}
             </div>
 
             <div

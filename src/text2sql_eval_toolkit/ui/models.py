@@ -28,6 +28,10 @@ class BenchmarkSummary(BaseModel):
     num_pipelines: int
     logo: Optional[str] = None
     eval_results_bytes: Optional[int] = None
+    # Only ever true in a signed-in caller's listing, since nobody else is sent
+    # such a benchmark at all. It lets the tile say why a colleague who follows
+    # the same link may be asked to sign in.
+    requires_sign_in: bool = False
 
 
 class BenchmarksResponse(BaseModel):

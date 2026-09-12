@@ -17,13 +17,18 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
 
 from text2sql_eval_toolkit.utils import get_benchmarks_info
 from text2sql_eval_toolkit.evaluation.evaluation_tools import split_summary
 from text2sql_eval_toolkit.ui.aliases import alias_map
+from text2sql_eval_toolkit.ui.benchmark_access import (
+    SIGN_IN_FLAG,
+    is_restricted,
+    may_see_restricted,
+)
 from text2sql_eval_toolkit.ui.models import (
     BenchmarkCategorySummaryResponse,
     BenchmarkConfigResponse,
@@ -64,15 +69,23 @@ router = APIRouter()
 
 
 @router.get("/api/benchmarks", response_model=BenchmarksResponse)
-def list_benchmarks() -> BenchmarksResponse:
+def list_benchmarks(request: Request) -> BenchmarksResponse:
     """
     List benchmarks with basic metadata and counts.
+
+    A benchmark that requires sign-in is left out for a caller who is not signed
+    in. The middleware refuses every route that *names* such a benchmark; this
+    is the one route that lists them without naming any.
     """
     benchmarks_info = get_benchmarks_info(is_test=False)
     items: List[BenchmarkSummary] = []
     results_dir = get_results_dir()
+    show_restricted = may_see_restricted(request)
 
     for benchmark_id, info in benchmarks_info.items():
+        restricted = is_restricted(benchmark_id)
+        if restricted and not show_restricted:
+            continue
         name = info.get("name", benchmark_id)
         description = info.get("description", "")
         db_type = info.get("db_engine", {}).get("db_type", "N/A")
@@ -136,6 +149,7 @@ def list_benchmarks() -> BenchmarksResponse:
                 num_pipelines=num_pipelines,
                 logo=logo,
                 eval_results_bytes=eval_results_bytes,
+                requires_sign_in=restricted,
             )
         )
 
@@ -180,6 +194,11 @@ def update_benchmark(
         raise HTTPException(status_code=404, detail="Benchmark not found")
 
     config = normalize_benchmark_config(normalized_id, req)
+    # The edit form has no field for the sign-in flag, so rebuilding the entry
+    # from the form would silently lift the restriction on save.
+    existing = registry[normalized_id]
+    if isinstance(existing, dict) and SIGN_IN_FLAG in existing:
+        config[SIGN_IN_FLAG] = existing[SIGN_IN_FLAG]
     registry[normalized_id] = config
     write_json_atomic(registry_path, registry)
     return BenchmarkConfigResponse(benchmark_id=normalized_id, config=config)

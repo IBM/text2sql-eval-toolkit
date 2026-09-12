@@ -25,14 +25,14 @@ from __future__ import annotations
 import os
 import threading
 import time
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.routing import get_route_path
 
-from text2sql_eval_toolkit.ui import runtime
+from text2sql_eval_toolkit.ui import benchmark_access, runtime
 from text2sql_eval_toolkit.ui.capabilities import (
     Tier,
     iter_routes,
@@ -43,12 +43,13 @@ from text2sql_eval_toolkit.ui.capabilities import (
 from text2sql_eval_toolkit.ui.roles import ROLE_TIERS, Role, effective_role
 
 
-def _route_template(request: Request) -> Optional[str]:
+def _match_route(request: Request) -> Tuple[Any, Dict[str, Any], bool]:
     """
-    The matched route's path template (``/api/benchmarks/{benchmark_id}/execute``).
+    The route Starlette will dispatch to, its path parameters, and whether the
+    match is full.
 
-    Returns None when nothing matches, which leaves the caller with the concrete
-    path -- and therefore the fail-closed FULL default for mutating methods.
+    Mirrors the router: the first full match wins, otherwise the first partial
+    one (right path, wrong method). ``(None, {}, False)`` when nothing matches.
 
     The route table comes from ``request.app`` rather than a module-level
     reference, so this stays correct for any app the stack is installed on, and
@@ -58,14 +59,29 @@ def _route_template(request: Request) -> Optional[str]:
     """
     from starlette.routing import Match
 
+    partial: Optional[Tuple[Any, Dict[str, Any], bool]] = None
     for route in iter_routes(request.app):
         try:
-            match, _ = route.matches(request.scope)
+            match, child_scope = route.matches(request.scope)
         except Exception:  # pragma: no cover - defensive
             continue
         if match is Match.FULL:
-            return getattr(route, "path", None)
-    return None
+            return route, child_scope.get("path_params", {}), True
+        if match is Match.PARTIAL and partial is None:
+            partial = (route, child_scope.get("path_params", {}), False)
+    return partial or (None, {}, False)
+
+
+def _route_template(request: Request) -> Optional[str]:
+    """
+    The matched route's path template (``/api/benchmarks/{benchmark_id}/execute``).
+
+    Returns None when nothing fully matches, which leaves the caller with the
+    concrete path -- and therefore the fail-closed FULL default for mutating
+    methods.
+    """
+    route, _, full = _match_route(request)
+    return getattr(route, "path", None) if full else None
 
 
 async def enforce_capability_tier(request: Request, call_next):
@@ -88,7 +104,16 @@ async def enforce_capability_tier(request: Request, call_next):
     # HTTP middleware runs before routing, so scope["route"] is not set yet;
     # resolve the template ourselves. Matching the template rather than the
     # concrete path means ids in the URL cannot be used to dodge a rule.
-    template = _route_template(request) or path
+    route, path_params, full = _match_route(request)
+    template = (getattr(route, "path", None) if full else None) or path
+
+    # A benchmark that requires sign-in, asked before either gate below:
+    # "sign in" is the one answer that lets an anonymous caller go further, and
+    # it is true whatever the tier would have said. See ui.benchmark_access.
+    refused = benchmark_access.refusal(request, route, path_params)
+    if refused is not None:
+        return refused
+
     email = runtime.current_user_email(request)
     role = effective_role(email, runtime.get_user_store(), runtime.get_admin_emails())
 
@@ -311,6 +336,13 @@ async def add_security_headers(request: Request, call_next):
         # else, which is the other direction entirely.
         "frame-ancestors 'none'; " "base-uri 'self'; " "form-action 'self'",
     )
+    # Any address that mentions a sign-in-only benchmark -- the app shell for
+    # `/benchmark/beaver` as much as its API -- stays out of search results even
+    # though what a crawler is served there is a sign-in prompt.
+    if benchmark_access.mentions_restricted(
+        get_route_path(request.scope), request.url.query
+    ):
+        response.headers["X-Robots-Tag"] = benchmark_access.NOINDEX
     return response
 
 

@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **A benchmark can require sign-in, and Beaver does.** An anonymous visitor to a
+  shared deployment no longer sees Beaver on the home page. Every route that
+  names it answers 401 with `sign_in_required`, its logo included. A shared link
+  to it asks the reader to sign in and returns them to the same address. Any
+  signed-in user sees it, whatever their role, and the local operator tool is
+  unaffected. Mark a benchmark with `"requires_sign_in": true` in its registry
+  entry, or list it in `TEXT2SQL_SIGN_IN_BENCHMARKS`. The flag is honoured in
+  every registry copy, the packaged ones included, because provisioning never
+  overwrites a data root's registry and would otherwise leave an existing
+  deployment unrestricted. The check reads each route's declared parameters, and
+  a test fails on any parameter not classified as naming a benchmark or not, so a
+  new route cannot quietly serve one.
+- **Addresses that mention a sign-in-only benchmark carry `X-Robots-Tag:
+  noindex, nofollow`**, the dashboard's own pages as well as the API, so neither
+  the data nor the addresses and titles reach search results.
+
 - **The chosen judge's config is shown in the playground.** Picking a config by
   name said nothing about what it would ask, and the only way to find out was to
   leave for the config editor and come back. The box names the model and shows

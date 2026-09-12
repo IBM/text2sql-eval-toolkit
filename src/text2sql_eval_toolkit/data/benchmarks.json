@@ -25,6 +25,7 @@
         "logo": "beaver.png",
         "name": "beaver",
         "predictions": "results/beaver-predictions.json",
+        "requires_sign_in": true,
         "schema": "benchmarks/beaver-schema.json"
     },
     "bird_mini_dev_postgres": {

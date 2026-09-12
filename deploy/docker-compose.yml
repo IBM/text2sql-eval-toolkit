@@ -108,6 +108,11 @@ services:
       TEXT2SQL_ADMIN_EMAILS: ${TEXT2SQL_ADMIN_EMAILS:-}
       TEXT2SQL_SECRET_KEY: ${TEXT2SQL_SECRET_KEY:-}
 
+      # Benchmarks hidden from anonymous visitors, in addition to those the
+      # registry flags `requires_sign_in`. It can only add restrictions: a
+      # registry flag is honoured whatever this says.
+      TEXT2SQL_SIGN_IN_BENCHMARKS: ${TEXT2SQL_SIGN_IN_BENCHMARKS:-}
+
       # Judge budget. Rates are an estimate until calibrated against a real
       # invoice; keep an independent budget alert on the watsonx account too.
       TEXT2SQL_JUDGE_MONTHLY_BUDGET_USD: ${TEXT2SQL_JUDGE_MONTHLY_BUDGET_USD:-50}

@@ -19,6 +19,7 @@
         "description": "Test sample of 10 Beaver benchmark questions https://peterbaile.github.io/beaver/",
         "name": "beaver_test_10",
         "predictions": "benchmarks/test_benchmarks/results/beaver_test_10-predictions.json",
+        "requires_sign_in": true,
         "schema": "benchmarks/beaver-schema.json"
     },
     "bird_mini_dev_postgres_test_50": {

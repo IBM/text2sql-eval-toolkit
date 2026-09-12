@@ -183,6 +183,16 @@ curl -s -o /dev/null -w '%{http_code}\n' $DOMAIN/benchmark/spider_dev/errors
 # link open the right pipeline, and it is empty if the summary file is missing.
 curl -s $DOMAIN/api/benchmarks/spider_dev/pipeline-aliases | jq '.aliases | length'
 # expect: the pipeline count for that benchmark, never 0
+
+# A sign-in-only benchmark is hidden from anonymous callers and not indexed.
+# Checked against the running code, not the data root's registry: the flag is
+# also read from the packaged copy, which a stale data root cannot override.
+curl -s -o /dev/null -w '%{http_code}\n' $DOMAIN/api/benchmarks/beaver/summary
+# expect: 401
+curl -s $DOMAIN/api/benchmarks | jq '[.items[].benchmark_id] | index("beaver")'
+# expect: null
+curl -sI $DOMAIN/benchmark/beaver | grep -i '^x-robots-tag'
+# expect: x-robots-tag: noindex, nofollow
 ```
 
 ---
@@ -361,6 +371,7 @@ are covered once created; anything outside that list needs its own grant.
 | Sign-in rejected for a valid account | Google reports `email_verified=false`. Verify the address with Google; the allowlist deliberately does not match unverified addresses. |
 | Startup fails: session secret | Shorter than 32 characters. Regenerate. |
 | Startup fails: `--mode full` refuses to bind | Correct behaviour on a non-loopback interface. Use `--mode public` or `judge`. |
+| A benchmark is missing from the home page, and links to it ask the reader to sign in | Intended: it requires sign-in (Beaver does, from 1.6.0). The flag is read from every registry copy, packaged ones included, and from `TEXT2SQL_SIGN_IN_BENCHMARKS`. Removing it from the data root's `benchmarks.json` alone lifts nothing. See [Capability tiers](capability-tiers.md#benchmarks-that-require-sign-in). |
 | Landing page shows 0 pipelines, `/api/benchmarks` alternates 200 and 500, some 502s, yet `/api/me` is 200 | The app has run out of file descriptors, so it cannot open results files or accept every connection. Compare `docker compose exec app sh -c 'ls /proc/1/fd \| wc -l; ulimit -n'`. `docker compose restart app` recovers. Before 1.6.0, SQLite connections left open on every index lookup caused this, under Docker's default limit of 1024. |
 
 Logs:
