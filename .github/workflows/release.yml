@@ -212,12 +212,16 @@ jobs:
       - name: Delete the rehearsal's draft
         # always(): a rehearsal whose later checks fail must still not leave a
         # draft behind. A delete that fails fails the job, for the same reason.
+        #
+        # No --cleanup-tag. A draft creates no tag, so there is nothing to
+        # clean up, and asking for it made the first rehearsal fail with HTTP
+        # 422 on a ref that does not exist -- after the draft itself was gone.
         if: always() && !startsWith(github.ref, 'refs/tags/v')
         run: |
           tag="rehearsal-${GITHUB_RUN_ID}"
           if gh release view "$tag" --json isDraft,assets \
                --jq '{isDraft, assets: [.assets[].name]}'; then
-            gh release delete "$tag" --yes --cleanup-tag
+            gh release delete "$tag" --yes
             echo "deleted draft $tag"
           else
             echo "no draft $tag to delete"
