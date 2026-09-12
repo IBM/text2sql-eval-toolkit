@@ -33,18 +33,6 @@
             "db_folder": "benchmarks/dbs/spider/database"
         }
     },
-    "beaver_test_10": {
-        "name": "beaver_test_10",
-        "description": "Test sample of 10 Beaver benchmark questions https://peterbaile.github.io/beaver/",
-        "data": "benchmarks/test_benchmarks/beaver_test_10.json",
-        "schema": "benchmarks/beaver-schema.json",
-        "predictions": "benchmarks/test_benchmarks/results/beaver_test_10-predictions.json",
-        "db_engine": {
-            "db_type": "mysql",
-            "connection_string_env_var": "MYSQL_CONNECTION_STRING"
-        },
-        "requires_sign_in": true
-    },
     "archer_en_dev_test_10": {
         "name": "archer_en_dev_test_10",
         "description": "Test sample of 10 Archer English Dev questions https://sig4kg.github.io/archer-bench/",

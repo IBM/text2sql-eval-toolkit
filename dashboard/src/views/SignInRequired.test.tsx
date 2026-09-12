@@ -1,16 +1,17 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SignInRequired } from "./SignInRequired";
 import type { DeploymentInfo } from "../lib/session";
 
 /**
- * A shared link to a sign-in-only benchmark, opened by someone not signed in.
+ * A link into a benchmark's details, opened by someone not signed in.
  *
  * The failure this guards against is the link reading as dead: "not found", or
  * a sign-in that drops the reader on the home page instead of where the link
- * pointed.
+ * pointed -- and, for a benchmark whose overall scores are public, no way to
+ * reach those scores.
  */
 
 const deployment = (over: Partial<DeploymentInfo> = {}): DeploymentInfo => ({
@@ -37,10 +38,21 @@ function stubDeployment(d: DeploymentInfo) {
   );
 }
 
-const at = (url: string) =>
+const at = (url: string, summaryHref?: string) =>
   render(
     <MemoryRouter initialEntries={[url]}>
-      <SignInRequired benchmarkId="beaver" />
+      <Routes>
+        <Route
+          path="/benchmark/:id"
+          element={<div>summary page</div>}
+        />
+        <Route
+          path="*"
+          element={
+            <SignInRequired benchmarkId="beaver" summaryHref={summaryHref} />
+          }
+        />
+      </Routes>
     </MemoryRouter>,
   );
 
@@ -57,13 +69,13 @@ describe("SignInRequired", () => {
     expect(link.getAttribute("href")).toBe(
       `/api/auth/login?next=${encodeURIComponent("/errors?benchmark=beaver&page=2")}`,
     );
-    expect(screen.getByText("Sign in to view this benchmark")).toBeTruthy();
+    expect(screen.getByText("Sign in to view this")).toBeTruthy();
     expect(screen.queryByText(/not found/i)).toBeNull();
   });
 
   it("says so plainly where sign-in is not configured", async () => {
     stubDeployment(deployment({ sign_in_available: false }));
-    at("/benchmark/beaver");
+    at("/run/beaver");
 
     await waitFor(() =>
       expect(
@@ -71,5 +83,16 @@ describe("SignInRequired", () => {
       ).toBeTruthy(),
     );
     expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
+  });
+
+  it("points at the public overall scores when there are some", async () => {
+    stubDeployment(deployment());
+    at("/errors?benchmark=beaver", "/benchmark/beaver");
+
+    expect(
+      await screen.findByText(/publishes its overall scores/),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "See overall scores" }));
+    expect(await screen.findByText("summary page")).toBeTruthy();
   });
 });

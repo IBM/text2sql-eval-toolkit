@@ -9,21 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **A benchmark can require sign-in, and Beaver does.** An anonymous visitor to a
-  shared deployment no longer sees Beaver on the home page. Every route that
-  names it answers 401 with `sign_in_required`, its logo included. A shared link
-  to it asks the reader to sign in and returns them to the same address. Any
-  signed-in user sees it, whatever their role, and the local operator tool is
-  unaffected. Mark a benchmark with `"requires_sign_in": true` in its registry
-  entry, or list it in `TEXT2SQL_SIGN_IN_BENCHMARKS`. The flag is honoured in
-  every registry copy, the packaged ones included, because provisioning never
-  overwrites a data root's registry and would otherwise leave an existing
-  deployment unrestricted. The check reads each route's declared parameters, and
-  a test fails on any parameter not classified as naming a benchmark or not, so a
-  new route cannot quietly serve one.
-- **Addresses that mention a sign-in-only benchmark carry `X-Robots-Tag:
-  noindex, nofollow`**, the dashboard's own pages as well as the API, so neither
-  the data nor the addresses and titles reach search results.
+- **A benchmark can keep its details behind sign-in, and Beaver does.** Beaver's
+  questions, SQL and schema are distributed under gated access, and only its
+  overall scores may be published. An anonymous visitor to a shared deployment
+  sees Beaver's tile and each pipeline's overall scores. Its breakdown by query
+  category, error analysis, record detail, playground, insights and judge answer
+  401 with `sign_in_required`, and the dashboard asks the reader to sign in and
+  returns them to the same address. Any signed-in user sees the details,
+  whatever their role, and the local operator tool is unaffected. The routes that
+  stay open are an allowlist, so a route added later is refused until it is added
+  on purpose, and a test fails on any route parameter not classified as naming a
+  benchmark or not. Mark a benchmark with `"requires_sign_in": true`, or list it
+  in `TEXT2SQL_SIGN_IN_BENCHMARKS`. The flag is honoured in every registry copy,
+  the packaged ones included, because provisioning never overwrites a data root's
+  registry.
+- **Addresses that mention such a benchmark carry `X-Robots-Tag: noindex,
+  nofollow`**, the dashboard's own pages as well as the API.
 
 - **The chosen judge's config is shown in the playground.** Picking a config by
   name said nothing about what it would ask, and the only way to find out was to
@@ -39,6 +40,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pipeline you were looking at. It is an anchor rather than a button with a
   click handler, so the address can be copied and the playground opened in a new
   tab.
+
+### Removed
+
+- **Beaver's questions, SQL, schema and per-record results, from the repository,
+  its history and the public results dataset.** They are distributed under gated
+  access and should not have been published here. They are gone from every branch
+  and tag on GitHub, whose history was rewritten on 2026-09-12, so every commit id
+  changed and existing clones must be re-cloned. They are also gone from every
+  revision of `text2sql-eval-toolkit/text2sql-eval-results`, whose tags were
+  rebuilt; Beaver's overall summary and overall chart remain. The ten-question
+  `beaver_test_10` subset went with them, and so did `deploy/load-beaver.sh` and
+  the curation script that listed Beaver's tables. The MySQL read-only grant now
+  takes its databases from `MYSQL_READONLY_DATABASES` instead of naming them.
 
 ### Fixed
 

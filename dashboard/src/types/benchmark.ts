@@ -9,10 +9,12 @@ export interface BenchmarkSummary {
   /** Size of data/results/{id}-predictions_eval.json on disk, if present. */
   eval_results_bytes?: number | null;
   /**
-   * Visible only to signed-in users. Only ever true in a signed-in caller's
-   * listing: nobody else is sent such a benchmark at all.
+   * Its questions, SQL and per-record results require sign-in; its tile and
+   * overall scores are public.
    */
   requires_sign_in?: boolean;
+  /** Whether this caller is locked out of those details right now. */
+  details_locked?: boolean;
 }
 
 export interface BenchmarksResponse {

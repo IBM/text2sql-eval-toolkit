@@ -4,14 +4,15 @@
 #
 
 """
-A benchmark flagged ``requires_sign_in`` is refused to anonymous callers on
-every route that names it.
+A benchmark flagged ``requires_sign_in`` publishes its overall scores and
+nothing finer to an anonymous caller.
 
 The properties that matter, and why each is tested the way it is:
 
 * **Every route, not a sample.** The refusal tests are parametrized over the
   live route table, filtered by which parameters identify a benchmark -- so a
-  route added tomorrow is in the list without anyone editing this file.
+  route added tomorrow is in the list without anyone editing this file, and is
+  refused unless it is added to ``SUMMARY_ROUTES`` on purpose.
 * **No parameter goes unclassified.** That enumeration is only as good as the
   table of parameter names it filters on, so a parameter that is in neither half
   of the table fails a test. A route that took a benchmark as ``?bench=`` would
@@ -34,16 +35,17 @@ pytest.importorskip("fastapi")
 from fastapi import FastAPI  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
-from text2sql_eval_toolkit.ui import (
+from text2sql_eval_toolkit.ui import (  # noqa: E402
     benchmark_access,
     middleware,
     runtime,
     server,
-)  # noqa: E402
+)
 from text2sql_eval_toolkit.ui.benchmark_access import (  # noqa: E402
     BENCHMARK_ID_PARAMS,
     NOINDEX,
     SIGN_IN_BENCHMARKS_ENV,
+    SUMMARY_ROUTES,
     declared_params,
     unclassified_params,
 )
@@ -97,7 +99,7 @@ def data_root(tmp_path, monkeypatch):
 
     logos = tmp_path / "benchmarks" / "logos"
     logos.mkdir(parents=True)
-    for name in ("demo.png", "secret-logo.png", f"{SECRET}.png"):
+    for name in ("demo.png", "secret-logo.png"):
         (logos / name).write_bytes(b"\x89PNG-not-really")
 
     monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(tmp_path))
@@ -134,6 +136,20 @@ def signed_in(monkeypatch):
     monkeypatch.setattr(runtime, "current_user_email", lambda request: SIGNED_IN)
 
 
+@pytest.fixture
+def local_operator(data_root):
+    mode, remote = runtime.get_mode(), runtime.is_remote_deployment()
+    runtime.set_mode(Tier.FULL)
+    runtime.set_remote_deployment(False)
+    server.invalidate_index_cache()
+    try:
+        yield TestClient(server.app)
+    finally:
+        runtime.set_mode(mode)
+        runtime.set_remote_deployment(remote)
+        server.invalidate_index_cache()
+
+
 # --- which routes name a benchmark ---------------------------------------
 
 
@@ -151,6 +167,8 @@ def _benchmark_routes():
 
 
 BENCHMARK_ROUTES = _benchmark_routes()
+WALLED_ROUTES = [r for r in BENCHMARK_ROUTES if (r[0], r[1]) not in SUMMARY_ROUTES]
+OPEN_ROUTES = [r for r in BENCHMARK_ROUTES if (r[0], r[1]) in SUMMARY_ROUTES]
 
 
 def _request(path, param, benchmark):
@@ -173,18 +191,26 @@ def test_the_enumeration_finds_the_routes_it_exists_for():
     FastAPI upgrade renaming `dependant`, say -- every refusal test below would
     pass over an empty list.
     """
-    paths = {path for _, path, _ in BENCHMARK_ROUTES}
-    assert len(paths) >= 18
+    walled = {path for _, path, _ in WALLED_ROUTES}
+    assert len(walled) >= 15
     for expected in (
-        "/api/benchmarks/{benchmark_id}/summary",
+        "/api/benchmarks/{benchmark_id}/summary/by-category",
+        "/api/benchmarks/{benchmark_id}/errors",
         "/api/benchmarks/{benchmark_id}/errors/{record_id}/detail",
         "/api/benchmarks/{benchmark_id}/playground/{record_id}",
+        "/api/benchmarks/{benchmark_id}/record-ids",
+        "/api/benchmarks/{benchmark_id}/config",
         "/api/benchmarks/{benchmark_id}/judge",
-        "/api/compare",
     ):
-        assert expected in paths
+        assert expected in walled
     compare_params = {p for _, path, p in BENCHMARK_ROUTES if path == "/api/compare"}
     assert compare_params == {"benchmark_id", "left_id", "right_id"}
+
+
+def test_every_summary_route_exists():
+    """An allowlist entry for a route that is gone would hide a typo."""
+    live = {(m, path) for m, path, _ in BENCHMARK_ROUTES}
+    assert SUMMARY_ROUTES <= live, SUMMARY_ROUTES - live
 
 
 def test_every_route_parameter_is_classified():
@@ -227,8 +253,8 @@ def test_no_route_an_anonymous_caller_can_reach_takes_a_benchmark_in_its_body():
 
 
 @pytest.mark.parametrize("spelling", [SECRET, SECRET.upper()])
-@pytest.mark.parametrize("method,path,param", BENCHMARK_ROUTES)
-def test_every_route_naming_it_refuses_an_anonymous_caller(
+@pytest.mark.parametrize("method,path,param", WALLED_ROUTES)
+def test_every_detail_route_refuses_an_anonymous_caller(
     client, method, path, param, spelling
 ):
     url, query = _request(path, param, spelling)
@@ -238,8 +264,17 @@ def test_every_route_naming_it_refuses_an_anonymous_caller(
     assert resp.headers["x-robots-tag"] == NOINDEX
 
 
+@pytest.mark.parametrize("method,path,param", OPEN_ROUTES)
+def test_summary_routes_answer_an_anonymous_caller(client, method, path, param):
+    url, query = _request(path, param, SECRET)
+    resp = client.request(method, url, params=query)
+    assert resp.status_code != 401, (method, url, resp.text)
+    # Public, but still not for search engines.
+    assert resp.headers["x-robots-tag"] == NOINDEX
+
+
 @pytest.mark.parametrize("method,path,param", BENCHMARK_ROUTES)
-def test_the_same_routes_do_not_ask_a_signed_in_caller_to_sign_in(
+def test_no_route_asks_a_signed_in_caller_to_sign_in(
     client, signed_in, method, path, param
 ):
     url, query = _request(path, param, SECRET)
@@ -255,23 +290,20 @@ def test_an_unrestricted_benchmark_is_not_walled(client, method, path, param):
     assert "x-robots-tag" not in resp.headers
 
 
-def test_a_signed_in_caller_gets_the_data(client, signed_in):
+def test_an_anonymous_caller_gets_the_overall_scores(client):
     resp = client.get(f"/api/benchmarks/{SECRET}/summary")
     assert resp.status_code == 200
     assert resp.json()["pipelines"][0]["name"] == "p1"
-    # Signed in or not, the address stays out of search results.
-    assert resp.headers["x-robots-tag"] == NOINDEX
 
 
-def test_the_local_operator_is_not_walled(data_root):
-    mode, remote = runtime.get_mode(), runtime.is_remote_deployment()
-    runtime.set_mode(Tier.FULL)
-    runtime.set_remote_deployment(False)
-    try:
-        resp = TestClient(server.app).get(f"/api/benchmarks/{SECRET}/summary")
-    finally:
-        runtime.set_mode(mode)
-        runtime.set_remote_deployment(remote)
+def test_an_anonymous_caller_does_not_get_the_category_breakdown(client):
+    """Categories are derived from the ground-truth SQL, so they are details."""
+    resp = client.get(f"/api/benchmarks/{SECRET}/summary/by-category")
+    assert resp.status_code == 401
+
+
+def test_the_local_operator_is_not_walled(local_operator):
+    resp = local_operator.get(f"/api/benchmarks/{SECRET}/summary/by-category")
     assert resp.status_code == 200
 
 
@@ -280,7 +312,9 @@ def test_full_mode_on_a_reachable_host_still_asks_for_sign_in(data_root):
     runtime.set_mode(Tier.FULL)
     runtime.set_remote_deployment(True)
     try:
-        resp = TestClient(server.app).get(f"/api/benchmarks/{SECRET}/summary")
+        resp = TestClient(server.app).get(
+            f"/api/benchmarks/{SECRET}/summary/by-category"
+        )
     finally:
         runtime.set_mode(mode)
         runtime.set_remote_deployment(remote)
@@ -328,41 +362,31 @@ def test_an_anonymous_id_outside_the_id_alphabet_is_refused(client, left_id):
     assert resp.json()["detail"] == "'left_id' is not a valid benchmark id."
 
 
-@pytest.mark.parametrize(
-    "logo",
-    [
-        "secret-logo.png",
-        f"{SECRET}.png",
-        f"{SECRET.upper()}.PNG",
-        # Starlette decodes this to x/../secret-logo.png, which the handler's
-        # resolve() turns into the real file.
-        "x/%2e%2e/secret-logo.png",
-    ],
-)
-def test_its_logo_is_walled_too(client, logo):
-    resp = client.get(f"/api/static/benchmarks/logos/{logo}")
-    assert resp.status_code == 401
-
-
-def test_an_unrestricted_logo_is_served(client):
-    assert client.get("/api/static/benchmarks/logos/demo.png").status_code == 200
+def test_its_logo_is_public(client):
+    """The tile stays, logo and all."""
+    resp = client.get("/api/static/benchmarks/logos/secret-logo.png")
+    assert resp.status_code == 200
 
 
 # --- the listing ----------------------------------------------------------
 
 
-def test_the_anonymous_listing_leaves_it_out(client):
-    ids = [b["benchmark_id"] for b in client.get("/api/benchmarks").json()["items"]]
-    assert OPEN in ids
-    assert SECRET not in ids
-
-
-def test_a_signed_in_listing_includes_it_and_says_why(client, signed_in):
+def test_the_anonymous_listing_shows_it_with_details_locked(client):
     items = {
         b["benchmark_id"]: b for b in client.get("/api/benchmarks").json()["items"]
     }
     assert items[SECRET]["requires_sign_in"] is True
+    assert items[SECRET]["details_locked"] is True
     assert items[OPEN]["requires_sign_in"] is False
+    assert items[OPEN]["details_locked"] is False
+
+
+def test_a_signed_in_listing_unlocks_it(client, signed_in):
+    items = {
+        b["benchmark_id"]: b for b in client.get("/api/benchmarks").json()["items"]
+    }
+    assert items[SECRET]["requires_sign_in"] is True
+    assert items[SECRET]["details_locked"] is False
 
 
 # --- where the flag comes from --------------------------------------------
@@ -372,20 +396,20 @@ def test_the_packaged_flag_holds_when_the_data_root_registry_lacks_it(client):
     """
     provision.sh seeds benchmarks.json into the data root once and never
     overwrites it. This data root's registry has no Beaver entry at all -- as a
-    deployment provisioned before 1.6.0 has one without the flag -- and Beaver
-    is refused anyway, because the packaged copy flags it.
+    deployment provisioned before 1.6.0 has one without the flag -- and Beaver's
+    details are refused anyway, because the packaged copy flags it.
     """
     registry = json.loads(
         (Path(os.environ["TEXT2SQL_DATA_ROOT"]) / "benchmarks.json").read_text()
     )
     assert "beaver" not in registry
-    resp = client.get("/api/benchmarks/beaver/summary")
+    resp = client.get("/api/benchmarks/beaver/errors")
     assert resp.status_code == 401
 
 
 def test_the_environment_can_restrict_a_benchmark(client, monkeypatch):
     monkeypatch.setenv(SIGN_IN_BENCHMARKS_ENV, f" {OPEN.upper()} ,other")
-    assert client.get(f"/api/benchmarks/{OPEN}/summary").status_code == 401
+    assert client.get(f"/api/benchmarks/{OPEN}/errors").status_code == 401
 
 
 def test_an_unreadable_registry_keeps_its_last_answer(data_root):
@@ -407,35 +431,35 @@ def test_a_flag_written_as_a_string_still_restricts(data_root):
 
 
 @pytest.mark.parametrize(
-    "registry, benchmark_id",
-    [
-        ("data/benchmarks.json", "beaver"),
-        ("src/text2sql_eval_toolkit/data/benchmarks.json", "beaver"),
-        ("data/test-benchmarks.json", "beaver_test_10"),
-        ("src/text2sql_eval_toolkit/data/test-benchmarks.json", "beaver_test_10"),
-    ],
+    "registry",
+    ["data/benchmarks.json", "src/text2sql_eval_toolkit/data/benchmarks.json"],
 )
-def test_beaver_is_flagged_in_every_registry_copy(registry, benchmark_id):
+def test_beaver_is_flagged_in_every_registry_copy(registry):
     """
     Every copy, because the flag is honoured in every copy: removing it from one
     lifts nothing, and a reader of that one copy would believe otherwise.
     """
     entries = json.loads((REPO_ROOT / registry).read_text(encoding="utf-8"))
-    assert entries[benchmark_id].get("requires_sign_in") is True
+    assert entries["beaver"].get("requires_sign_in") is True
 
 
-def test_editing_a_benchmark_keeps_its_flag(data_root):
+@pytest.mark.parametrize(
+    "registry",
+    [
+        "data/test-benchmarks.json",
+        "src/text2sql_eval_toolkit/data/test-benchmarks.json",
+    ],
+)
+def test_the_beaver_test_subset_is_not_registered(registry):
+    """Its ten questions were gated data; the subset left the repository."""
+    entries = json.loads((REPO_ROOT / registry).read_text(encoding="utf-8"))
+    assert not any("beaver" in benchmark_id for benchmark_id in entries)
+
+
+def test_editing_a_benchmark_keeps_its_flag(local_operator, data_root):
     """The edit form has no field for the flag, so saving it must not drop it."""
-    mode, remote = runtime.get_mode(), runtime.is_remote_deployment()
-    runtime.set_mode(Tier.FULL)
-    runtime.set_remote_deployment(False)
-    try:
-        body = {k: v for k, v in _entry(SECRET).items()}
-        body["description"] = "edited"
-        resp = TestClient(server.app).put(f"/api/benchmarks/{SECRET}", json=body)
-    finally:
-        runtime.set_mode(mode)
-        runtime.set_remote_deployment(remote)
+    body = dict(_entry(SECRET), description="edited")
+    resp = local_operator.put(f"/api/benchmarks/{SECRET}", json=body)
     assert resp.status_code == 200, resp.text
     saved = json.loads((data_root / "benchmarks.json").read_text())[SECRET]
     assert saved["description"] == "edited"

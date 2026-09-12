@@ -4,14 +4,19 @@
 #
 
 """
-Benchmarks that only a signed-in caller may see.
+Benchmarks whose details only a signed-in caller may see.
+
+Beaver is the case this exists for. Its questions, SQL and schema are
+distributed under a gated licence, and only what its own public leaderboard
+shows -- overall scores -- may be published. So an anonymous visitor sees
+Beaver's tile and its overall per-pipeline scores, and nothing that reveals a
+question, a query, a result table, or the breakdown by SQL feature.
 
 A tier says what a caller may *do*, not which data they may read, and an
 anonymous visitor and a signed-in ``read_only`` user are the same ``public``
-tier. So hiding one benchmark from anonymous callers is a check on identity
-rather than a tier setting -- but it is enforced in the same place as the tiers,
-for the same reason: a check added to twenty handlers by hand is missing from
-the twenty-first.
+tier. So this is a check on identity rather than a tier setting -- but it is
+enforced in the same place as the tiers, for the same reason: a check added to
+twenty handlers by hand is missing from the twenty-first.
 
 **What marks a benchmark.** A registry entry with ``"requires_sign_in": true``.
 The flag is honoured in *every* registry copy the server can see -- the data
@@ -19,9 +24,13 @@ root's ``benchmarks.json`` and ``test-benchmarks.json`` and the copies packaged
 with the toolkit -- not only the one it resolves for listing. That is the point
 of the design: ``deploy/provision.sh`` seeds ``benchmarks.json`` into the data
 root once and never overwrites it, so a deployment provisioned before the flag
-existed would otherwise go on serving the benchmark to anyone. Lifting a
+existed would otherwise go on serving the details to anyone. Lifting a
 restriction therefore means removing the flag from every copy.
 ``TEXT2SQL_SIGN_IN_BENCHMARKS`` adds ids without editing a file.
+
+**Fail closed.** ``SUMMARY_ROUTES`` lists the routes such a benchmark still
+answers anonymously. Every other route that names it is refused, so a route
+added later is walled until someone decides otherwise and says so here.
 
 **What a request names.** Read from the matched route's declared parameters, not
 from the URL text: ``/api/compare?left_id=beaver`` names Beaver, while
@@ -34,22 +43,20 @@ benchmark under a new name fails a test instead of serving it.
 already applies to ``full`` on loopback: the operator controls the process and
 has the files.
 
-**Crawlers.** A refused request carries no data to index, but the address and
-the page title still could be. ``mentions_restricted`` is deliberately looser
-than the refusal -- any path segment or query value naming a restricted
-benchmark -- and decides ``X-Robots-Tag: noindex``, which costs nothing when it
-over-matches. There is no ``robots.txt`` entry: it is advisory, and it would
-publish the very paths it asks crawlers to skip.
+**Crawlers.** ``mentions_restricted`` is deliberately looser than the refusal --
+any path segment or query value naming a restricted benchmark -- and decides
+``X-Robots-Tag: noindex``, which costs nothing when it over-matches. There is no
+``robots.txt`` entry: it is advisory, and it would publish the very paths it
+asks crawlers to skip.
 """
 
 from __future__ import annotations
 
 import json
 import os
-import posixpath
 import re
 import threading
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any, Dict, FrozenSet, List, Mapping, Optional, Tuple
 from urllib.parse import parse_qsl
 
@@ -63,7 +70,7 @@ from text2sql_eval_toolkit.ui.paths import get_data_root
 
 logger = get_logger(__name__)
 
-#: The registry field that restricts a benchmark to signed-in callers.
+#: The registry field that restricts a benchmark's details to signed-in callers.
 SIGN_IN_FLAG = "requires_sign_in"
 
 #: Comma-separated benchmark ids restricted in addition to the registry flags.
@@ -72,16 +79,27 @@ SIGN_IN_BENCHMARKS_ENV = "TEXT2SQL_SIGN_IN_BENCHMARKS"
 #: The value of ``X-Robots-Tag`` on anything that mentions such a benchmark.
 NOINDEX = "noindex, nofollow"
 
+#: The routes a restricted benchmark still answers for an anonymous caller: the
+#: numbers its tile and summary page show, and nothing finer. Overall scores per
+#: pipeline are what Beaver's own leaderboard publishes. The breakdown by query
+#: category is *not* here: it is derived from the ground-truth SQL.
+SUMMARY_ROUTES: FrozenSet[Tuple[str, str]] = frozenset(
+    {
+        ("GET", "/api/benchmarks/{benchmark_id}/summary"),
+        # Pipeline ids and their short aliases, which the summary page's links
+        # need. No record content.
+        ("GET", "/api/benchmarks/{benchmark_id}/pipeline-aliases"),
+        # Two summary files side by side: overall metrics only.
+        ("GET", "/api/compare"),
+    }
+)
+
 #: Route parameters whose value is a benchmark id. ``left_id`` and ``right_id``
 #: are the two sides of ``/api/compare`` and name result files by benchmark id.
 BENCHMARK_ID_PARAMS: FrozenSet[str] = frozenset({"benchmark_id", "left_id", "right_id"})
 
-#: ``/api/static/{file_path:path}`` serves benchmark logos, named for their
-#: benchmark, so the path is checked as a logo filename.
-LOGO_PATH_PARAM = "file_path"
-
 #: Route parameters that do not name a benchmark. Every parameter of every
-#: ``/api`` route must be in this set or one of the two above; see
+#: ``/api`` route must be in this set or the one above; see
 #: ``unclassified_params``.
 NON_BENCHMARK_PARAMS: FrozenSet[str] = frozenset(
     {
@@ -113,11 +131,15 @@ NON_BENCHMARK_PARAMS: FrozenSet[str] = frozenset(
         "email",
         "provider",
         "next",
+        # A benchmark logo under /api/static. The tile stays public for a
+        # restricted benchmark, and a logo shows nothing of its content.
+        "file_path",
     }
 )
 
 SIGN_IN_DETAIL = (
-    "This benchmark is only available to signed-in users. Sign in to view it."
+    "This benchmark's questions, SQL and per-record results are only available "
+    "to signed-in users. Sign in to view them."
 )
 
 # The same rule ``registry.normalize_benchmark_id`` applies on create.
@@ -133,9 +155,9 @@ def _is_set(value: Any) -> bool:
     return isinstance(value, str) and value.strip().lower() in _TRUTHY
 
 
-# Per registry file: (size, mtime_ns) -> (restricted ids, their logo filenames).
-# Every API request asks, so an unchanged file is not re-parsed.
-_FLAG_CACHE: Dict[str, Tuple[Tuple[int, int], FrozenSet[str], FrozenSet[str]]] = {}
+# Per registry file: (size, mtime_ns) -> restricted ids. Every API request
+# asks, so an unchanged file is not re-parsed.
+_FLAG_CACHE: Dict[str, Tuple[Tuple[int, int], FrozenSet[str]]] = {}
 _FLAG_LOCK = threading.Lock()
 _EMPTY: FrozenSet[str] = frozenset()
 
@@ -163,17 +185,17 @@ def _registry_files() -> List[Path]:
     return list(seen.values())
 
 
-def _flags_in(path: Path) -> Tuple[FrozenSet[str], FrozenSet[str]]:
+def _flags_in(path: Path) -> FrozenSet[str]:
     try:
         stat = path.stat()
     except OSError:
-        return _EMPTY, _EMPTY
+        return _EMPTY
     key = (stat.st_size, stat.st_mtime_ns)
 
     with _FLAG_LOCK:
         hit = _FLAG_CACHE.get(str(path))
     if hit is not None and hit[0] == key:
-        return hit[1], hit[2]
+        return hit[1]
 
     try:
         with path.open("r", encoding="utf-8") as f:
@@ -182,47 +204,33 @@ def _flags_in(path: Path) -> Tuple[FrozenSet[str], FrozenSet[str]]:
         # Keep the last answer this file gave: a registry that cannot be read
         # right now must not be what lifts a restriction.
         logger.warning("Could not read %s for sign-in restrictions: %s", path, exc)
-        return (hit[1], hit[2]) if hit is not None else (_EMPTY, _EMPTY)
+        return hit[1] if hit is not None else _EMPTY
 
-    ids = set()
-    logos = set()
-    if isinstance(data, dict):
-        for benchmark_id, entry in data.items():
-            if not isinstance(entry, dict) or not _is_set(entry.get(SIGN_IN_FLAG)):
-                continue
-            ids.add(str(benchmark_id).casefold())
-            logo = entry.get("logo")
-            if isinstance(logo, str) and logo.strip():
-                logos.add(PurePosixPath(logo.strip()).name.casefold())
-
-    result = (frozenset(ids), frozenset(logos))
+    ids = frozenset(
+        str(benchmark_id).casefold()
+        for benchmark_id, entry in (data.items() if isinstance(data, dict) else ())
+        if isinstance(entry, dict) and _is_set(entry.get(SIGN_IN_FLAG))
+    )
     with _FLAG_LOCK:
-        _FLAG_CACHE[str(path)] = (key, *result)
-    return result
+        _FLAG_CACHE[str(path)] = (key, ids)
+    return ids
 
 
-def _restrictions() -> Tuple[FrozenSet[str], FrozenSet[str]]:
+def restricted_benchmarks() -> FrozenSet[str]:
+    """Casefolded ids of every benchmark whose details require sign-in."""
     ids = {
         part.strip().casefold()
         for part in os.getenv(SIGN_IN_BENCHMARKS_ENV, "").split(",")
         if part.strip()
     }
-    logos = set()
     for path in _registry_files():
-        file_ids, file_logos = _flags_in(path)
-        ids |= file_ids
-        logos |= file_logos
-    return frozenset(ids), frozenset(logos)
-
-
-def restricted_benchmarks() -> FrozenSet[str]:
-    """Casefolded ids of every benchmark that requires sign-in."""
-    return _restrictions()[0]
+        ids |= _flags_in(path)
+    return frozenset(ids)
 
 
 def is_restricted(benchmark_id: Optional[str]) -> bool:
     """
-    Whether *benchmark_id* requires sign-in.
+    Whether *benchmark_id*'s details require sign-in.
 
     Compared casefolded: on a case-insensitive filesystem ``BEAVER`` opens
     Beaver's files, so it has to be refused as Beaver.
@@ -230,16 +238,6 @@ def is_restricted(benchmark_id: Optional[str]) -> bool:
     if not benchmark_id:
         return False
     return benchmark_id.strip().casefold() in restricted_benchmarks()
-
-
-def _is_restricted_logo(file_path: str) -> bool:
-    ids, logos = _restrictions()
-    if not ids and not logos:
-        return False
-    # Normalised the way the handler's resolve() will see it, so
-    # `benchmarks/logos/x/../beaver.png` is Beaver's logo too.
-    name = PurePosixPath(posixpath.normpath(file_path)).name.casefold()
-    return name in logos or name.split(".", 1)[0] in ids
 
 
 def may_see_restricted(request: Request) -> bool:
@@ -273,7 +271,7 @@ def declared_params(route: Any) -> FrozenSet[str]:
 
 def unclassified_params(app: Any) -> List[Tuple[str, str]]:
     """``(path, parameter)`` for every ``/api`` route parameter not classified above."""
-    known = BENCHMARK_ID_PARAMS | NON_BENCHMARK_PARAMS | {LOGO_PATH_PARAM}
+    known = BENCHMARK_ID_PARAMS | NON_BENCHMARK_PARAMS
     missing: List[Tuple[str, str]] = []
     for route in iter_routes(app):
         path = getattr(route, "path", None)
@@ -296,11 +294,12 @@ def refusal(
     """
     if route is None or may_see_restricted(request):
         return None
-    ids, logos = _restrictions()
-    if not ids and not logos:
+    ids = restricted_benchmarks()
+    if not ids:
         return None
 
     declared = declared_params(route)
+    named: List[str] = []
     for param in sorted(BENCHMARK_ID_PARAMS & declared):
         values = list(request.query_params.getlist(param))
         if param in path_params:
@@ -315,21 +314,17 @@ def refusal(
                     status_code=400,
                     content={"detail": f"'{param}' is not a valid benchmark id."},
                 )
-            if value.casefold() in ids:
-                return _sign_in_required()
+            named.append(value.casefold())
 
-    if LOGO_PATH_PARAM in declared and LOGO_PATH_PARAM in path_params:
-        if _is_restricted_logo(str(path_params[LOGO_PATH_PARAM])):
-            return _sign_in_required()
+    if (request.method.upper(), getattr(route, "path", "")) in SUMMARY_ROUTES:
+        return None
+    if any(value in ids for value in named):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": SIGN_IN_DETAIL, "sign_in_required": True},
+            headers={"X-Robots-Tag": NOINDEX},
+        )
     return None
-
-
-def _sign_in_required() -> JSONResponse:
-    return JSONResponse(
-        status_code=401,
-        content={"detail": SIGN_IN_DETAIL, "sign_in_required": True},
-        headers={"X-Robots-Tag": NOINDEX},
-    )
 
 
 def mentions_restricted(path: str, query_string: str) -> bool:
@@ -341,12 +336,11 @@ def mentions_restricted(path: str, query_string: str) -> bool:
     ``/compare/profile?benchmarks=spider_dev,beaver`` -- without having to know
     them, so a new view is covered without an edit here.
     """
-    ids, logos = _restrictions()
-    if not ids and not logos:
+    ids = restricted_benchmarks()
+    if not ids:
         return False
     for segment in path.split("/"):
-        folded = segment.casefold()
-        if folded in logos or folded.split(".", 1)[0] in ids:
+        if segment.casefold().split(".", 1)[0] in ids:
             return True
     for _key, value in parse_qsl(query_string, keep_blank_values=False):
         if any(part.strip().casefold() in ids for part in value.split(",")):

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button, InlineNotification } from "@carbon/react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   type DeploymentInfo,
@@ -9,17 +9,23 @@ import {
 } from "../lib/session";
 
 /**
- * What a link to a sign-in-only benchmark shows a reader who is not signed in.
+ * What a link into a benchmark's details shows a reader who is not signed in.
  *
- * The server leaves such a benchmark out of an anonymous listing and refuses
- * every route that names it, so without this the reader would be told the
- * server has no such benchmark -- and a link a colleague shared would look
- * dead rather than one sign-in away. Signing in returns to the same address.
+ * Some benchmarks publish only their overall scores; their questions, SQL and
+ * per-record results need sign-in, and the server refuses every route that
+ * would show them. Without this the reader would see a view full of failed
+ * requests -- or, for a benchmark not in their listing, be told the server has
+ * no such benchmark -- and a link a colleague shared would look dead rather
+ * than one sign-in away. Signing in returns to the same address.
+ *
+ * `summaryHref`, when given, is where the public part of the benchmark is.
  */
-export const SignInRequired: React.FC<{ benchmarkId: string }> = ({
-  benchmarkId,
-}) => {
+export const SignInRequired: React.FC<{
+  benchmarkId: string;
+  summaryHref?: string;
+}> = ({ benchmarkId, summaryHref }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [deployment, setDeployment] = useState<DeploymentInfo | null>(null);
 
   useEffect(() => {
@@ -38,27 +44,41 @@ export const SignInRequired: React.FC<{ benchmarkId: string }> = ({
 
   const returnTo = `${location.pathname}${location.search}` || "/";
   const canSignIn = !!deployment?.sign_in_available;
+  const what = summaryHref
+    ? `"${benchmarkId}" publishes its overall scores; its questions, SQL and per-record results are only available to signed-in users`
+    : `"${benchmarkId}" is only available to signed-in users`;
 
   return (
     <div style={{ maxWidth: "760px", margin: "0 auto", padding: "1rem" }}>
       <InlineNotification
         kind="info"
-        title="Sign in to view this benchmark"
+        title="Sign in to view this"
         subtitle={
           canSignIn
-            ? `"${benchmarkId}" is only available to signed-in users.`
-            : `"${benchmarkId}" is only available to signed-in users, and this server does not offer sign-in.`
+            ? `${what}.`
+            : `${what}, and this server does not offer sign-in.`
         }
         lowContrast
         hideCloseButton
       />
-      {canSignIn && (
-        // A plain link, not fetch(): sign-in is a top-level redirect to Google
-        // and back.
-        <Button kind="primary" size="sm" href={signInHref(returnTo)} as="a">
-          Sign in
-        </Button>
-      )}
+      <div style={{ display: "flex", gap: "0.5rem" }}>
+        {canSignIn && (
+          // A plain link, not fetch(): sign-in is a top-level redirect to
+          // Google and back.
+          <Button kind="primary" size="sm" href={signInHref(returnTo)} as="a">
+            Sign in
+          </Button>
+        )}
+        {summaryHref && (
+          <Button
+            kind="tertiary"
+            size="sm"
+            onClick={() => navigate(summaryHref)}
+          >
+            See overall scores
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

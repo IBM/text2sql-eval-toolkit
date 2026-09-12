@@ -10,6 +10,60 @@ finished.
 
 ---
 
+## 2026-09-12 — Beaver's gated data had been public from the first commit
+
+1.6.0's plan asked for Beaver to be visible only when signed in. That was built
+on 2026-09-11: a wall in the tier middleware, an allowlist-free refusal on every
+route that named Beaver, `noindex`. The question it left open was whether hiding
+the page was enough, and the answer was no. Beaver's dataset is gated on the Hub,
+and only its leaderboard's overall scores may be published. This repository had
+tracked the whole benchmark since `Initial commit`: every question and its SQL,
+the schema, a 10-question subset with full results, and a 60 MB errors report
+quoting both. The public results dataset carried another 3.3 GB of predictions,
+evaluation files and run logs. Every tag on both held them.
+
+**What changed in the design.** The wall inverted. Beaver's tile and overall
+scores became public again, and everything finer stayed behind sign-in. That
+turned the refusal from "every route naming Beaver" into "every route naming
+Beaver except an allowlist", which is the better shape anyway: a route added
+later is refused until someone decides otherwise. The breakdown by query category
+is *not* on the allowlist. It looks like a summary, but it is derived from the
+ground-truth SQL.
+
+**The purge.** Backups first, verified against the Hub's sha256 for every LFS
+object, because the Hub copies were about to be deleted permanently and the backup
+would be the only one left. Then:
+
+- **GitHub.** `git filter-repo` over a mirror removed the files and replaced four
+  distinctive database names. Verification looked for content, not paths. Seventy-
+  eight markers were sampled from the data itself — question texts, question ids,
+  table names — and searched for in every blob of every revision. Two of the first
+  candidates were table names Spider also uses, and were dropped before they could
+  report false hits. The search of commit messages found six still naming Beaver's
+  databases, which `--replace-text` does not touch; a second pass with
+  `--replace-message` fixed them.
+- **The first push failed twice without changing anything.** First on a
+  connection reset, then because the Bash tool runs zsh, which does not
+  word-split `$REFS_LIST`. The lease check caught the second before it sent a
+  byte. The push that worked used `--force-with-lease` against the SHAs recorded
+  in the backup mirror, with `main`'s lock lifted and restored by a trap.
+- **The Hub.** Branching from an old tag answered 500 however it was asked — by
+  name, by commit id, with retries — while branching from `main` worked. So the
+  rebuild ran the other way. `main` was cleaned and squashed first, then each tag's
+  snapshot was replayed onto it: server-side copies of unchanged LFS files, bytes
+  for small ones, deletions for the rest. Each tag was moved to its replayed
+  commit, and `main` was put back last. Every surviving file was checked against
+  the original trees, recorded before the first write.
+
+**What could not be done from here.** GitHub keeps pull-request refs and cached
+views that resolve old commits by id until its Support removes them, and nine
+forks and every clone hold the old history. The plan records both as open.
+
+**Worth keeping.** Hiding a page was never the same as not publishing data, and
+the plan said so before any code was written, as an open question rather than a
+decision. Asking it early is what kept the first day's work from being the whole
+answer.
+
 ## 2026-09-11 — the dashboard ran out of files, and its healthcheck said it was fine
 
 The public dashboard listed all six benchmarks with no pipelines and loaded none

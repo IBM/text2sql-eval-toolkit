@@ -736,6 +736,25 @@ export const App: React.FC = () => {
       );
     }
 
+    // A benchmark whose overall scores are public and whose details are not.
+    // Its summary page renders -- it falls back to those scores -- but every
+    // other view would fetch nothing but refusals, so ask for sign-in instead.
+    // Also before the alias check, which reads the pipeline table this caller
+    // may still see but then leads into those views.
+    const lockedBenchmark =
+      !!analysisBenchmark &&
+      benchmarks.some(
+        (b) => b.benchmark_id === analysisBenchmark && b.details_locked,
+      );
+    if (lockedBenchmark && activeView !== "benchmark") {
+      return (
+        <SignInRequired
+          benchmarkId={analysisBenchmark}
+          summaryHref={routes.benchmark(analysisBenchmark)}
+        />
+      );
+    }
+
     // An alias in the address is resolved before anything renders: showing a
     // view built from an unresolved alias would fetch under the wrong name.
     if (unknownAlias) {

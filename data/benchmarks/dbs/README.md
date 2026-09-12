@@ -12,7 +12,7 @@ The following databases are required for the benchmarks:
 | **BIRD Mini-Dev (PostgreSQL)** | `bird_mini_dev_postgres`, `bird_mini_dev_postgres_test_50` | PostgreSQL | PostgreSQL server + import SQL dump + connection string |
 | **Spider 1.0** | `spider_dev`, `spider_realistic`, `spider_dev_test_50` | SQLite | Download `database` folder |
 | **Archer** | `archer_en_dev`, `archer_en_dev_test_10` | SQLite | Download database files |
-| **Beaver** | `beaver`, `beaver_test_10` | MySQL | MySQL server + connection string |
+| **Beaver** | `beaver` | MySQL | Gated access from the Beaver project, MySQL server + connection string |
 
 **Note:** Test benchmarks (e.g., `bird_mini_dev_sqlite_test_50`) use the same databases as their full counterparts but with smaller question subsets.
 
@@ -181,57 +181,25 @@ All 500 gold queries have been verified against a loaded server.
 
 ## Beaver
 
-**Used by:** `beaver`, `beaver_test_10`
+**Used by:** `beaver`
 
-Beaver needs a MySQL server holding several databases; `db_id` is substituted
-into the connection string per record, so the database named in
-`MYSQL_CONNECTION_STRING` is only a default.
+Beaver's questions, SQL, schema and databases are distributed by the Beaver
+project under gated access. None of them are published in this repository or in
+the toolkit's public results, which carry Beaver's overall scores only. Request
+access from the project (https://beaverbench.github.io/) and load its MySQL
+databases as it describes, with the question and schema files placed at the
+paths `data/benchmarks.json` names.
 
-### Steps
+Beaver selects a database per record by substituting `db_id` into the
+connection string, so the database named in `MYSQL_CONNECTION_STRING` is only a
+default:
 
-1. **Obtain the dumps** from the Beaver project:
-   https://peterbaile.github.io/beaver/ — currently `dw.sql`, `nova.sql`, and
-   `neutron.sql` (~2.1 GB in total).
+```bash
+export MYSQL_CONNECTION_STRING="mysql://user:password@127.0.0.1:3306/<default-database>"
+```
 
-2. **Start a MySQL server** (8.x). Locally:
-   ```bash
-   brew install mysql && brew services start mysql
-   ```
-   Or use the `mysql` service in `deploy/docker-compose.yml`.
-
-3. **Load them**, which also renames two databases to the names the questions
-   use:
-   ```bash
-   BEAVER_DUMP_DIR=/path/to/beaver_db MYSQL_USER=root ./deploy/load-beaver.sh
-   ```
-
-4. **Point the toolkit at the server:**
-   ```bash
-   export MYSQL_CONNECTION_STRING="mysql://user:password@127.0.0.1:3306/dw"
-   ```
-
-### Why the loader renames things
-
-The dumps are named after the source systems, but the benchmark addresses two of
-them by a prefixed name. Loading the dumps unchanged produces databases the
-benchmark cannot find:
-
-| Dump | Database it creates | Name the benchmark uses |
-|---|---|---|
-| `dw.sql` | `dw` | `dw` |
-| `nova.sql` | `nova` | **`redacted_db_2`** |
-| `neutron.sql` | `neutron` | **`redacted_db_1`** |
-
-### Coverage
-
-| Database | Questions | Status |
-|---|---|---|
-| `dw` | 121 | Loadable |
-| `redacted_db_2` | 43 | Loadable |
-| `redacted_db_1` | 30 | Loadable |
-| `keystone` | 8 | **No dump published** |
-| `redacted_db_3` | 5 | **No dump published** |
-| `redacted_db_4` | 2 | **No dump published** |
+With the `databases` profile in `deploy/docker-compose.yml`, list the databases in
+`MYSQL_READONLY_DATABASES` so the read-only user can read them.
 
 **194 of 209 questions (93%) are executable** with the dumps currently
 available; all 194 gold queries have been verified to run against a loaded

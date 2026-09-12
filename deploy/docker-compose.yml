@@ -201,6 +201,9 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-}
       # As above: sql/mysql-init refuses to initialise without it.
       MYSQL_READONLY_PASSWORD: ${MYSQL_READONLY_PASSWORD:-}
+      # The databases the read-only user may read. Not listed in the repository;
+      # sql/mysql-init refuses to initialise without it.
+      MYSQL_READONLY_DATABASES: ${MYSQL_READONLY_DATABASES:-}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./sql/mysql-init:/docker-entrypoint-initdb.d:ro

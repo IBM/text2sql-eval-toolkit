@@ -15,7 +15,7 @@ import {
   DataTableSkeleton,
   InlineLoading,
 } from "@carbon/react";
-import { apiFetch, apiUrl } from "../lib/api";
+import { SignInRequiredError, apiFetch, apiUrl } from "../lib/api";
 
 interface Props {
   benchmarkId: string;
@@ -48,6 +48,8 @@ export const BenchmarkDetail: React.FC<Props> = ({
   const [pageSize, setPageSize] = useState(10);
   const [sortMetric, setSortMetric] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("overall");
+  // The breakdown by category was refused and only overall scores are shown.
+  const [detailsLocked, setDetailsLocked] = useState(false);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -55,6 +57,7 @@ export const BenchmarkDetail: React.FC<Props> = ({
         setLoading(true);
         setError(null);
         setData(null);
+        setDetailsLocked(false);
         const res = await apiFetch(
           apiUrl(`/api/benchmarks/${benchmarkId}/summary/by-category`)
         );
@@ -64,6 +67,34 @@ export const BenchmarkDetail: React.FC<Props> = ({
         setSelectedCategory("overall");
         setPage(1);
       } catch (e: any) {
+        if (e instanceof SignInRequiredError) {
+          // A benchmark that publishes only its overall scores: the breakdown
+          // by category is derived from its ground-truth SQL and needs sign-in,
+          // but the overall table is public. Show that rather than an error.
+          try {
+            const res = await apiFetch(
+              apiUrl(`/api/benchmarks/${benchmarkId}/summary`)
+            );
+            const overall: {
+              default_sort_metric: string;
+              pipelines: PipelineMetrics[];
+            } = await res.json();
+            setData({
+              benchmark_id: benchmarkId,
+              default_sort_metric: overall.default_sort_metric,
+              overall: overall.pipelines,
+              categories: {},
+              has_full_results: true,
+            });
+            setSortMetric(overall.default_sort_metric);
+            setSelectedCategory("overall");
+            setPage(1);
+            setDetailsLocked(true);
+          } catch (inner: any) {
+            setError(inner.message || "Failed to load benchmark summary");
+          }
+          return;
+        }
         setError(e.message || "Failed to load benchmark summary");
       } finally {
         setLoading(false);
@@ -180,6 +211,15 @@ export const BenchmarkDetail: React.FC<Props> = ({
 
   return (
     <div style={{ ...style, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      {detailsLocked && (
+        <InlineNotification
+          kind="info"
+          title="Overall scores only"
+          subtitle={`${benchmarkId} publishes its overall scores. Its breakdown by query category, its questions, SQL and per-record results are only available to signed-in users.`}
+          lowContrast
+          hideCloseButton
+        />
+      )}
       {data.has_full_results === false && (
         <InlineNotification
           kind="info"

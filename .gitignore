@@ -199,6 +199,17 @@ data/results/bird_mini_dev_sqlite-predictions_eval.json
 data/results/bird_mini_dev_sqlite-predictions.json
 data/results/beaver-predictions.json
 data/results/beaver-predictions_eval.json
+# Beaver's questions, SQL, schema and per-record results are distributed under a
+# gated licence and are not published here. Local copies stay out of git.
+data/results/beaver-predictions_eval_errors.md
+data/benchmarks/beaver.json
+data/benchmarks/beaver-original.json
+data/benchmarks/beaver-schema.json
+data/benchmarks/test_benchmarks/beaver_test_10*
+data/benchmarks/test_benchmarks/results/beaver_test_10-*
+data/benchmarks/test_benchmarks/results/charts/beaver_test_10-*
+deploy/load-beaver.sh
+scripts/curation/fix_beaver_table_casings.py
 data/results/spider_realistic-predictions.json
 data/results/spider_realistic-predictions_eval.json
 data/results/spider_dev-predictions.json

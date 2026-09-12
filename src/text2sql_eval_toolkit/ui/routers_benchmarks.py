@@ -73,19 +73,18 @@ def list_benchmarks(request: Request) -> BenchmarksResponse:
     """
     List benchmarks with basic metadata and counts.
 
-    A benchmark that requires sign-in is left out for a caller who is not signed
-    in. The middleware refuses every route that *names* such a benchmark; this
-    is the one route that lists them without naming any.
+    A benchmark whose details require sign-in is listed for everyone -- its tile
+    and overall scores are public -- and marked ``details_locked`` for a caller
+    who is not signed in, so the dashboard can say so rather than offer views
+    that would only be refused.
     """
     benchmarks_info = get_benchmarks_info(is_test=False)
     items: List[BenchmarkSummary] = []
     results_dir = get_results_dir()
-    show_restricted = may_see_restricted(request)
+    signed_in = may_see_restricted(request)
 
     for benchmark_id, info in benchmarks_info.items():
         restricted = is_restricted(benchmark_id)
-        if restricted and not show_restricted:
-            continue
         name = info.get("name", benchmark_id)
         description = info.get("description", "")
         db_type = info.get("db_engine", {}).get("db_type", "N/A")
@@ -150,6 +149,7 @@ def list_benchmarks(request: Request) -> BenchmarksResponse:
                 logo=logo,
                 eval_results_bytes=eval_results_bytes,
                 requires_sign_in=restricted,
+                details_locked=restricted and not signed_in,
             )
         )
 

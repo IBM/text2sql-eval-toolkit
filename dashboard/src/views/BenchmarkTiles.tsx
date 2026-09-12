@@ -142,15 +142,14 @@ export const BenchmarkTiles: React.FC<Props> = ({
             >
               <Tag type="blue">{item.db_type}</Tag>
               <Tag type="purple">{`${item.num_records} records`}</Tag>
-              {/* Only a signed-in reader is ever sent such a benchmark, so this
-                  tells them what a colleague following the same link will
-                  meet: a request to sign in. */}
+              {/* Said on the tile so nobody opens the benchmark expecting its
+                  records and meets a sign-in prompt instead. */}
               {item.requires_sign_in && (
                 <Tag
                   type="warm-gray"
-                  title="Visible only to signed-in users, and not indexed by search engines"
+                  title="Overall scores are public. Its questions, SQL and per-record results are visible only to signed-in users, and none of its pages are indexed by search engines."
                 >
-                  Signed-in only
+                  Details need sign-in
                 </Tag>
               )}
             </div>
