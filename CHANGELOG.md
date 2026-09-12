@@ -25,6 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   registry.
 - **Addresses that mention such a benchmark carry `X-Robots-Tag: noindex,
   nofollow`**, the dashboard's own pages as well as the API.
+- **A release can be rehearsed end to end.** A `workflow_dispatch` of
+  `release.yml` now runs the GitHub Release job as well, through the same
+  `gh release create` step a tag uses, as a draft that the run deletes again. On
+  1.5.0 that job was skipped on dispatch, so it first ran on the real tag and
+  failed there, after PyPI had published. A rehearsal's TestPyPI upload skips a
+  version already there, so it can be re-run. `CONTRIBUTING.md` says how to
+  rehearse and what a rehearsal does not cover.
+- **Archer has LLM-judge scores**, for 1,093 of its 1,144 predictions across all 11
+  pipelines, so its Metric Insights page shows the judge comparison instead of
+  *No evidence available*. Published in the `v1.6.0` results snapshot.
 
 - **The chosen judge's config is shown in the playground.** Picking a config by
   name said nothing about what it would ask, and the only way to find out was to
@@ -74,6 +84,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The deployment's app container no longer runs with Docker's default
   open-file limit.** `deploy/docker-compose.yml` raises it to 65536, and CI fails
   a compose file that drops it.
+- **The results upload script no longer publishes what it should not.** It sent
+  everything under `results/` except logs, so run from a maintainer's checkout it
+  would have published the query indices in `results/.index/`, which carry every
+  record's raw bytes, along with backups and local copies of Beaver's gated
+  per-record files. It now uploads an explicit list of files, and a benchmark whose
+  details require sign-in contributes only its overall summary and overall chart.
+  The manifest lists only what is uploaded.
+- **No published summary lists a pipeline its own evaluation file does not
+  contain.** The summaries for `bird_mini_dev_postgres`, `bird_mini_dev_sqlite`,
+  `spider_dev` and `spider_realistic` listed a Gemini pipeline that none of those
+  benchmarks' results contain.
 - **"Judge again ignores the cache" had no space in it.** JSX drops a newline
   between an element and the text after it, so the sentence rendered as
   "Judge againignores the cache".
