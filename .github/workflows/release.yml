@@ -26,6 +26,14 @@
 # One-time setup, on PyPI under the project's Publishing settings, before the
 # first tag: owner `IBM`, repository `text2sql-eval-toolkit`, workflow
 # `release.yml`, environment `pypi`.
+#
+# Rehearsal. A workflow_dispatch runs all three jobs: it publishes to TestPyPI
+# (the default), skipping a version already there so it can be re-run, and
+# creates the Release as a draft under a throwaway name, then deletes it. The
+# `gh release create` it runs is the same step a tag runs, so a broken Release
+# job fails the rehearsal instead of the next real tag. Until 1.6.0 that job was
+# skipped on dispatch, which is how it reached the 1.5.0 tag never having run.
+# CONTRIBUTING.md says how to rehearse and what a rehearsal does not cover.
 
 name: Release
 
@@ -89,20 +97,26 @@ jobs:
       - name: Metadata renders on PyPI
         run: twine check dist/*
 
-      - name: Release notes exist for this tag
+      - name: Release notes exist for this version
         # Checked *here*, in the job before `publish`, because publishing is
         # irreversible: a tag with no changelog section must stop the release,
         # not produce a PyPI version alongside an empty Release page. The
         # extraction happens once, and the notes travel to the release job as an
         # artifact so both are reading the same bytes.
         #
+        # A rehearsal has no tag, so it extracts the section for the version in
+        # pyproject.toml -- the one the next tag would publish.
+        #
         # `scripts/ci/extract_changelog.py` has tests; this step is the reason
         # it is a script rather than shell inside this file.
-        if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          python scripts/ci/extract_changelog.py "$GITHUB_REF_NAME" \
-            -o release-notes.md
-          echo "--- release notes ---"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="$GITHUB_REF_NAME"
+          else
+            version=$(python -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          fi
+          python scripts/ci/extract_changelog.py "$version" -o release-notes.md
+          echo "--- release notes for $version ---"
           cat release-notes.md
 
       - uses: actions/upload-artifact@v4
@@ -111,7 +125,6 @@ jobs:
           path: dist/
 
       - uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/v')
         with:
           name: release-notes
           path: release-notes.md
@@ -136,20 +149,34 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: ${{ (github.event_name == 'workflow_dispatch' && inputs.testpypi) && 'https://test.pypi.org/legacy/' || '' }}
+          # A rehearsal publishes the version in pyproject.toml, which an
+          # earlier rehearsal may already have put on TestPyPI; refusing it
+          # would stop the run before the Release job it exists to reach. Never
+          # on PyPI, where an existing version means something is wrong.
+          skip-existing: ${{ github.event_name == 'workflow_dispatch' && inputs.testpypi }}
 
   github-release:
     name: GitHub Release
     # After `publish`, never beside it. A Release page pointing at a version
     # PyPI rejected is worse than a missing one.
     needs: publish
-    # Only a real tag gets a Release. A workflow_dispatch to TestPyPI has no tag
-    # to attach one to.
-    if: startsWith(github.ref, 'refs/tags/v')
+    # A tag creates the Release. A workflow_dispatch rehearses it -- the same
+    # `gh release create`, as a draft under a throwaway name, deleted at the
+    # end of the job -- so this job is exercised before a tag depends on it.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       # The only thing this job needs, and the only thing it gets. Kept as
       # narrow as the publish job's `id-token: write`.
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # This job downloads artifacts and never checks the repository out, so
+      # there is no git remote for `gh` to infer the repository from -- and it
+      # exited "not a git repository" on the 1.5.0 tag, after PyPI had already
+      # published. Naming the repository is cheaper than cloning one just to
+      # give `gh` its bearings.
+      GH_REPO: ${{ github.repository }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -161,20 +188,37 @@ jobs:
           name: release-notes
 
       - name: Create the Release
-        # --verify-tag refuses to invent a tag if the ref is somehow not one.
-        # The wheel and sdist are attached so the page is a complete record of
-        # what was published rather than only a pointer at PyPI.
-        env:
-          GH_TOKEN: ${{ github.token }}
-          # This job downloads artifacts and never checks the repository out,
-          # so there is no git remote for `gh` to infer the repository from --
-          # and it exited "not a git repository" on the 1.5.0 tag, after PyPI
-          # had already published. Naming the repository is cheaper than
-          # cloning one just to give `gh` its bearings.
-          GH_REPO: ${{ github.repository }}
+        # One step for both, so the rehearsal runs the command a tag runs and
+        # not a lookalike that could drift from it.
+        #
+        # On a tag, --verify-tag refuses to invent a tag if the ref is somehow
+        # not one. On a rehearsal, --draft keeps the page invisible and creates
+        # no tag; the next step deletes it. The wheel and sdist are attached so
+        # the page is a complete record of what was published rather than only
+        # a pointer at PyPI.
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --verify-tag \
-            --title "$GITHUB_REF_NAME" \
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="$GITHUB_REF_NAME"
+            flags=(--verify-tag)
+          else
+            tag="rehearsal-${GITHUB_RUN_ID}"
+            flags=(--draft --target "$GITHUB_SHA")
+          fi
+          gh release create "$tag" "${flags[@]}" \
+            --title "$tag" \
             --notes-file release-notes.md \
             dist/*.whl dist/*.tar.gz
+
+      - name: Delete the rehearsal's draft
+        # always(): a rehearsal whose later checks fail must still not leave a
+        # draft behind. A delete that fails fails the job, for the same reason.
+        if: always() && !startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="rehearsal-${GITHUB_RUN_ID}"
+          if gh release view "$tag" --json isDraft,assets \
+               --jq '{isDraft, assets: [.assets[].name]}'; then
+            gh release delete "$tag" --yes --cleanup-tag
+            echo "deleted draft $tag"
+          else
+            echo "no draft $tag to delete"
+          fi
