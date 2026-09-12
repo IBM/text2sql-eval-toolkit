@@ -26,6 +26,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The dashboard left SQLite connections open until it could open nothing.**
+  Checking whether an index was stale opened it with `with sqlite3.connect(...)`,
+  which commits or rolls back on exit but does not close — and a connection
+  refers to itself through its statement cache, so it stayed open until the
+  cyclic garbage collector ran. That check runs on every cached index lookup,
+  six on each landing-page load, and the judge's spend ledger did the same on
+  every `/api/me` from a signed-in caller. On the public deployment this reached
+  Docker's default limit of 1024 open files: the landing page listed every
+  benchmark with no pipelines, `/api/benchmarks` alternated between 200 and 500,
+  and `/api/me` — the healthcheck — kept answering 200. Both now close what they
+  open.
+- **An index no longer keeps the connection of a worker thread that has
+  exited.** It held every connection it opened so that closing the index could
+  reach them all, and the server retires idle worker threads after a burst of
+  requests.
+- **The deployment's app container no longer runs with Docker's default
+  open-file limit.** `deploy/docker-compose.yml` raises it to 65536, and CI fails
+  a compose file that drops it.
 - **"Judge again ignores the cache" had no space in it.** JSX drops a newline
   between an element and the text after it, so the sentence rendered as
   "Judge againignores the cache".

@@ -10,6 +10,63 @@ finished.
 
 ---
 
+## 2026-09-11 — the dashboard ran out of files, and its healthcheck said it was fine
+
+The public dashboard listed all six benchmarks with no pipelines and loaded none
+of them. `/api/benchmarks` answered 200 about one time in five and a bare
+`Internal Server Error` otherwise; some requests got 502 from caddy, and a PNG was
+cut off mid-stream. `/api/me` answered 200 every time, and so did
+`/api/deployment` -- which was reporting `data_revision: null`, a value read from
+a file on the data volume. Recreating the app container fixed all of it, from the
+same volume.
+
+That last part was the clue. The files were fine; the process could not open
+them. The container's soft `nofile` limit was 1024, Docker's default, which
+Python does not raise the way caddy's Go runtime does. There was no OOM kill. The
+old container's logs went with it, so the error itself was never read. The
+healthcheck is `/api/me`, which for an anonymous caller opens nothing new per
+request, so it would have called the container healthy throughout.
+
+**The first diagnosis was wrong, and was fixed and unit-tested before that came
+out.** Counting descriptors on the restarted app showed six more per
+`/api/benchmarks` -- one per benchmark -- and `EvalIndex` keeps a list of every
+connection it opens, under a comment saying worker threads are long-lived. They
+are not; anyio retires idle ones. That story fit. A fix reaped connections whose
+thread had exited, and a test with fifty short-lived threads failed before it and
+passed after. Then a local server on the fixed code climbed six per request
+exactly as before -- with back-to-back requests, no idle gaps, and the thread
+count flat at six. Growth without new threads means new connections on old
+threads, which the list cannot explain.
+
+The cause was one line in `is_stale`:
+
+```python
+with sqlite3.connect(f"file:{index_path}?mode=ro", uri=True) as conn:
+```
+
+A connection's context manager commits or rolls back; it does not close. Nor does
+dropping the last reference, because a connection refers to itself through its
+statement cache, so it waits for the cyclic collector. `get_index()` calls
+`is_stale` on every cached lookup, and the landing page looks up all six. The
+sudden drops on both servers -- 73 to 29 on the host, 66 to 7 locally -- were
+collections. Twenty `is_stale` calls in a bare interpreter held twenty
+descriptors until `gc.collect()`. `JudgeStore` used the same idiom in every
+method, so `/api/me` from a signed-in caller left one more on the spend ledger.
+
+Two things worth keeping. `with sqlite3.connect(...)` reads as resource
+management and is not; the new tests spy on `sqlite3.connect` and require every
+connection to be closed on return, rather than counting descriptors, which a
+collector makes nondeterministic. And a unit test that reproduces a mechanism
+proves the mechanism exists, not that it is the one in production. The check that
+mattered was the same measurement, repeated against the fix, on a real server.
+
+The retired-thread fix was kept: that leak is real, only smaller. Compose now
+raises the limit to 65536 as headroom, not as the fix. Until this is deployed, the
+host restarts the app every twelve hours from root's crontab, logging the
+descriptor count first.
+
+---
+
 ## 2026-09-01 — the release automation failed on the release it was written for
 
 1.5.0's second plan item was automating the GitHub Release, because the page had

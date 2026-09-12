@@ -61,6 +61,16 @@ services:
     # whose parsed form costs several hundred more -- so a limit below about
     # 1 GB turns the first deploy into an OOM kill.
     mem_limit: ${MEM_LIMIT_APP:-1500m}
+    # Docker's default soft limit is 1024 open files, and Python -- unlike
+    # caddy's Go runtime -- does not raise it on startup. 1.5.0 left a SQLite
+    # connection open on every index lookup, and on the live host that reached
+    # 1024: the app could no longer open the results it serves, while /api/me
+    # kept answering 200. Headroom, not a substitute for closing what is
+    # opened: a leak still gets there, it just takes longer.
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     # Appended to the image's entrypoint. Needed only for
     # TEXT2SQL_DASHBOARD_MODE=full on a reachable host, and kept here rather than
     # in the Dockerfile so the image carries no capability decision.

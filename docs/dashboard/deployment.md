@@ -361,6 +361,7 @@ are covered once created; anything outside that list needs its own grant.
 | Sign-in rejected for a valid account | Google reports `email_verified=false`. Verify the address with Google; the allowlist deliberately does not match unverified addresses. |
 | Startup fails: session secret | Shorter than 32 characters. Regenerate. |
 | Startup fails: `--mode full` refuses to bind | Correct behaviour on a non-loopback interface. Use `--mode public` or `judge`. |
+| Landing page shows 0 pipelines, `/api/benchmarks` alternates 200 and 500, some 502s, yet `/api/me` is 200 | The app has run out of file descriptors, so it cannot open results files or accept every connection. Compare `docker compose exec app sh -c 'ls /proc/1/fd \| wc -l; ulimit -n'`. `docker compose restart app` recovers. Before 1.6.0, SQLite connections left open on every index lookup caused this, under Docker's default limit of 1024. |
 
 Logs:
 ```bash

@@ -17,6 +17,7 @@ failing. It surfaced only when ten browser contexts hit the dashboard at once.
 """
 
 import json
+import sqlite3
 import threading
 
 import pytest
@@ -131,26 +132,105 @@ def test_mixed_traffic_is_safe(index):
     assert _run_concurrently(work) == []
 
 
-def test_closing_releases_every_thread_s_connection(tmp_path):
-    """
-    Each thread opens its own connection, so closing must reach all of them
-    rather than just the closer's.
-    """
+def _tiny_handle(tmp_path):
     artifact = tmp_path / "demo-predictions_eval.json"
     artifact.write_text(
         json.dumps([{"id": "r1", "question": "q", "predictions": {}}]), encoding="utf-8"
     )
-    handle = EvalIndex(build_index(artifact), artifact)
+    return EvalIndex(build_index(artifact), artifact)
+
+
+def test_closing_releases_every_thread_s_connection(tmp_path):
+    """
+    Each thread opens its own connection, so closing must reach all of them
+    rather than just the closer's.
+
+    The threads are held alive until after close(): a thread that has exited no
+    longer owns its connection, and the next one opened reaps it.
+    """
+    handle = _tiny_handle(tmp_path)
+    touched = threading.Barrier(5)  # four workers and this thread
+    release = threading.Event()
 
     def touch():
         handle.record_count()
+        touched.wait(timeout=10)
+        release.wait(timeout=10)
 
     threads = [threading.Thread(target=touch) for _ in range(4)]
     for t in threads:
         t.start()
-    for t in threads:
+    touched.wait(timeout=10)
+    try:
+        assert len(handle._open_connections) == 4, "each thread should have its own"
+        handle.close()
+        assert handle._open_connections == []
+    finally:
+        release.set()
+        for t in threads:
+            t.join()
+
+
+def test_a_retired_thread_s_connection_is_closed_not_kept(tmp_path):
+    """
+    The server's threadpool is not fixed. After a burst of concurrent requests
+    anyio retires the workers left idle for ten seconds and starts new ones for
+    the next burst, so over its life one cached handle is reached from far more
+    threads than are ever alive at once.
+
+    Each retired thread used to leave its connection open. The thread-local slot
+    went with the thread, but the list close() walks still held the connection
+    until the whole index was dropped.
+    """
+    handle = _tiny_handle(tmp_path)
+    opened = []
+
+    def touch():
+        handle.record_count()
+        opened.append(handle._local.conn)
+
+    for _ in range(50):
+        t = threading.Thread(target=touch)
+        t.start()
         t.join()
 
-    assert len(handle._open_connections) >= 2, "each thread should have its own"
+    try:
+        # Only the most recent thread's connection can still be waiting: it is
+        # reaped when the next one is opened.
+        assert len(handle._open_connections) <= 1
+        for conn in opened[:-1]:
+            with pytest.raises(sqlite3.ProgrammingError):
+                conn.execute("SELECT 1")
+    finally:
+        handle.close()
+
+
+def test_reaping_leaves_a_live_thread_s_connection_alone(tmp_path):
+    """A thread between two queries still owns its connection."""
+    handle = _tiny_handle(tmp_path)
+    failures: list[str] = []
+    opened = threading.Event()
+    release = threading.Event()
+
+    def hold():
+        try:
+            handle.record_count()
+            opened.set()
+            release.wait(timeout=10)
+            handle.record_count()
+        except Exception as exc:  # noqa: BLE001 - reported below
+            failures.append(f"{type(exc).__name__}: {exc}")
+            opened.set()
+
+    holder = threading.Thread(target=hold)
+    holder.start()
+    opened.wait(timeout=10)
+    for _ in range(5):
+        t = threading.Thread(target=handle.record_count)
+        t.start()
+        t.join()
+    release.set()
+    holder.join()
     handle.close()
-    assert handle._open_connections == []
+
+    assert failures == []

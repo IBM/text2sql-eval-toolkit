@@ -334,11 +334,12 @@ jobs:
           POSTGRES_SUPERUSER_PASSWORD: ci
           MYSQL_ROOT_PASSWORD: ci
 
-      - name: Compose bounds memory and does not gate the edge on app health
-        # Both are about what a failure looks like on the box: unbounded
-        # containers take the host down with them, and gating caddy on app
-        # health takes the domain down -- including the ACME endpoint -- while
-        # the app is broken.
+      - name: Compose bounds memory, raises the app's file limit, and does not gate the edge on app health
+        # All three are about what a failure looks like on the box: unbounded
+        # containers take the host down with them, gating caddy on app health
+        # takes the domain down -- including the ACME endpoint -- while the app
+        # is broken, and Docker's default of 1024 open files is what the app ran
+        # out of on the live host, serving 500s while its healthcheck passed.
         # `--format json` + stdlib python: no yq, no PyYAML, nothing to assume
         # about what the runner image ships.
         run: |
@@ -351,6 +352,9 @@ jobs:
           for svc in ("app", "postgres", "mysql", "caddy"):
               if not cfg["services"][svc].get("mem_limit"):
                   problems.append(f"{svc} has no memory limit")
+          nofile = cfg["services"]["app"].get("ulimits", {}).get("nofile", {})
+          if int(nofile.get("soft", 0)) <= 1024:
+              problems.append(f"app keeps Docker's default open-file limit: {nofile!r}")
           cond = (
               cfg["services"]["caddy"]
               .get("depends_on", {})
