@@ -9,8 +9,10 @@ Refreshes execution accuracy, SQL equivalence (sqlglot, sqlparse, exact match), 
 related fields from stored ``predicted_sql`` / ``predicted_df`` values. Does not
 call the model or re-execute SQL on the database.
 
-By default LLM-as-judge is skipped. Use ``--preserve-llm-judge`` to recompute other
-metrics while keeping cached ``llm_score`` / ``llm_explanation`` from the output file.
+By default LLM-as-judge is skipped. ``--use-llm-judge`` judges each prediction
+that needs it, reusing a stored verdict only if the same judge config gave it.
+``--preserve-llm-judge`` recomputes other metrics while keeping stored
+``llm_score`` / ``llm_explanation`` whichever config gave them.
 """
 
 from __future__ import annotations
@@ -141,8 +143,9 @@ Examples:
         "--preserve-llm-judge",
         action="store_true",
         help=(
-            "Re-run non-LLM metrics but reuse cached llm_score/llm_explanation from the "
-            "output eval file (implies --use-llm-judge)."
+            "Re-run non-LLM metrics but keep stored llm_score/llm_explanation from the "
+            "output eval file, whichever judge config gave them (implies "
+            "--use-llm-judge; predictions with no stored verdict are still judged)."
         ),
     )
     parser.add_argument(
@@ -219,9 +222,9 @@ Examples:
             if force_rerun_llm:
                 print(" (force re-run)")
             elif args.preserve_llm_judge:
-                print(" (preserve cached scores)")
+                print(" (keeping stored verdicts from any config)")
             else:
-                print(" (cached when available)")
+                print(" (reusing stored verdicts from this config only)")
         else:
             print()
 
@@ -236,6 +239,7 @@ Examples:
                 max_concurrency=max(1, args.max_concurrency),
                 force_rerun_llm_judge=force_rerun_llm,
                 force_rerun=False,
+                llm_judge_reuse="any" if args.preserve_llm_judge else "matching",
             )
         )
         elapsed = time.time() - start

@@ -128,11 +128,28 @@ Fifty-two items is a small sample, and the labels were written by the
 assistant that developed the prompts. Read the numbers as a comparison between
 configs on the same items, not as a precise error rate.
 
-!!! warning "Scores already stored are not re-judged"
-    The batch judge reuses a prediction's stored `llm_score` whichever config
-    produced it. Evaluating results that already carry Llama verdicts with the
-    new default keeps those verdicts, and records the new config in the summary.
-    Pass `force_rerun_llm_judge` to judge them again.
+### Stored verdicts
+
+A verdict the judge gives is stored with `llm_judge_config_digest`, a digest of
+the config — model, parameters and prompt — that gave it. Evaluating again
+reuses a stored verdict only under the same digest, so changing the judge
+judges again, and a score is never reported under a judge that did not give it.
+Verdicts stored before 1.6.0 carry no digest and are judged again.
+
+- `force_rerun_llm_judge` calls the judge even where the digest matches.
+- `llm_judge_reuse="any"` — `rerun_metrics.py --preserve-llm-judge` — keeps
+  stored verdicts whichever config gave them, each with the digest it was
+  stored with, and the run warns that the summary records the current config.
+- A score decided without the judge — 1 for a result that already matches, 0
+  for a prediction with no result — carries no digest and is worked out afresh
+  each time.
+- A prediction with several ground-truth queries is judged once, about the
+  query that decided its result.
+
+!!! warning "Changed in 1.6.0"
+    Until 1.6.0 the batch judge reused any stored verdict. Evaluating
+    Llama-judged results with a different config kept every Llama score and
+    recorded the new config in the summary.
 
 ## Editing configs
 

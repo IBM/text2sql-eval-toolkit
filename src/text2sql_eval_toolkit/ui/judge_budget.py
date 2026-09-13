@@ -33,6 +33,8 @@ import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
+
+from text2sql_eval_toolkit.evaluation.llm_as_judge import judge_config_digest
 from pathlib import Path
 from typing import Any, Dict, Iterator, Optional, Tuple
 
@@ -161,14 +163,10 @@ def verdict_cache_key(
     # JSON-encoded rather than space-joined: joining is not injective, so
     # (record="r1", pipeline="p1") and (record="r1 p1", pipeline="") collided
     # and could serve one record's verdict for another.
-    config_digest = ""
-    if config is not None:
-        # sort_keys so an unrelated reordering of the YAML does not invalidate
-        # every cached verdict; default=str so an unexpected value cannot make
-        # the key un-computable and take the whole endpoint down with it.
-        config_digest = hashlib.sha256(
-            json.dumps(config, sort_keys=True, default=str).encode("utf-8")
-        ).hexdigest()
+    # The same digest the batch judge stores with each verdict: sorted keys, so
+    # an unrelated reordering of the YAML does not invalidate every cached
+    # verdict, and computable whatever the config holds.
+    config_digest = judge_config_digest(config) if config is not None else ""
     payload = json.dumps(
         [benchmark_id, record_id, pipeline_id, config_name, model, config_digest],
         separators=(",", ":"),

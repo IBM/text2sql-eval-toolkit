@@ -98,6 +98,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"Judge again ignores the cache" had no space in it.** JSX drops a newline
   between an element and the text after it, so the sentence rendered as
   "Judge againignores the cache".
+- **Evaluating with a different judge config no longer keeps the old judge's
+  scores.** The batch judge reused any stored `llm_score`, whichever config had
+  given it, so evaluating Llama-judged results with another config kept every
+  Llama score and recorded the new config in the summary. Each verdict now
+  carries `llm_judge_config_digest` and is reused only under the same config;
+  verdicts stored before 1.6.0 carry none and are judged again.
+  `rerun_metrics.py --preserve-llm-judge` still calls no judge for a stored
+  verdict: it passes the new `llm_judge_reuse="any"`, and the verdicts it keeps
+  keep their own digest. The dashboard's verdict cache keys on the same digest.
+- **A prediction with several ground-truth queries is judged once.** The judge
+  was asked about each query in turn and every answer but the last discarded;
+  it is now asked once, about the query that decided the result, which is the
+  answer that was kept.
 - **The LLM judge was shown an agentic prediction without its schema or hints.**
   The judge's context for an agentic pipeline is the agent's trace, and every
   message in it was cut to 500 characters — including the first, which carries

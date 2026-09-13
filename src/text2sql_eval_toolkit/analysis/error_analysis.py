@@ -251,7 +251,7 @@ def format_failed_example(record, pipeline_id, example_index, total_failed):
     llm_explanation = None
     if "llm_explanation" in eval_df.columns:
         llm_explanation = eval_df.at[0, "llm_explanation"]
-    columns_to_drop = ["gt_sql", "gt_df", "llm_explanation"]
+    columns_to_drop = ["gt_sql", "gt_df", "llm_explanation", "llm_judge_config_digest"]
     eval_df.drop(columns=columns_to_drop, errors="ignore", inplace=True)
     md.append(eval_df.to_markdown(index=False))
 

@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+import hashlib
+import json
 from pathlib import Path
 import re
 import yaml
@@ -24,6 +26,28 @@ RETIRED_JUDGE_CONFIGS = {
     "llm_judge_no_gt_v1": "llm_judge_no_gt",
     "llm_judge_no_gt_v2": "llm_judge_no_gt",
 }
+
+
+def judge_config_digest(llm_judge_config: Dict[str, Any]) -> str:
+    """
+    A digest of a judge config: its model, generation parameters and prompt.
+
+    Stored with every verdict the judge gives, so a later evaluation can tell a
+    verdict given under this config from one given under another -- and the
+    dashboard's verdict cache keys on the same value. Keys are sorted, so
+    reordering the YAML changes nothing; comments are not part of a loaded
+    config, so editing one changes nothing either.
+
+    Args:
+        llm_judge_config: A loaded judge config.
+
+    Returns:
+        str: A SHA-256 hex digest.
+    """
+    # default=str so an unexpected value cannot make the digest un-computable.
+    return hashlib.sha256(
+        json.dumps(llm_judge_config, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()
 
 
 def retired_judge_config_replacement(config_path: Path) -> Optional[Path]:

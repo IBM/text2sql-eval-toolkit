@@ -8,7 +8,7 @@ import json
 import threading
 import pandas as pd
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from tqdm.asyncio import tqdm_asyncio
 from text2sql_eval_toolkit.metrics.text2sql_utils import (
     compare_result_dfs,
@@ -30,6 +30,7 @@ from text2sql_eval_toolkit.utils import (
 )
 from text2sql_eval_toolkit.evaluation.llm_as_judge import (
     evaluate_sql_prediction_with_llm,
+    judge_config_digest,
     load_llm_judge_config,
 )
 from text2sql_eval_toolkit.evaluation.judge_inputs import build_llm_judge_inputs
@@ -41,9 +42,108 @@ logger = get_logger(__name__)
 #: It sits alongside pipeline ids; see [`split_summary`][text2sql_eval_toolkit.split_summary].
 JUDGE_CONFIG_KEY = "llm_judge_config"
 
+#: Key under which a verdict the judge gave records the config that gave it.
+JUDGE_DIGEST_KEY = "llm_judge_config_digest"
+
+#: Which stored verdicts evaluation may reuse instead of calling the judge.
+LLM_JUDGE_REUSE_MODES = ("matching", "any")
+
+#: How an explanation starts when the judge was never asked.
+_NOT_JUDGED = "N/A (did not use LLM"
+
+
+def _is_judge_verdict(evaluation: Dict[str, Any]) -> bool:
+    """Whether *evaluation* carries a verdict the judge itself gave."""
+    return (
+        "llm_score" in evaluation
+        and "llm_judge_error" not in evaluation
+        and not str(evaluation.get("llm_explanation", "")).startswith(_NOT_JUDGED)
+    )
+
+
+def _stored_verdict(
+    evaluation: Optional[Dict[str, Any]], digest: str, reuse: str
+) -> Optional[Dict[str, Any]]:
+    """
+    A stored verdict that may stand in for calling the judge, or ``None``.
+
+    Under ``"matching"`` only a verdict recorded with *digest* qualifies, which
+    is what stops a score given by one judge being reported under another: the
+    batch judge used to reuse any stored score, so evaluating Llama-judged
+    results with a different config kept every Llama score and recorded the new
+    config in the summary. Under ``"any"`` a verdict from any config qualifies,
+    and keeps the digest it was stored with -- or none, if it predates them.
+    """
+    if not evaluation or not _is_judge_verdict(evaluation):
+        return None
+    if "llm_explanation" not in evaluation:
+        return None
+    stored_digest = evaluation.get(JUDGE_DIGEST_KEY)
+    if reuse == "matching" and stored_digest != digest:
+        return None
+    try:
+        score = float(evaluation["llm_score"])
+    except (TypeError, ValueError):
+        logger.warning("Invalid stored llm_score, will re-run LLM judge")
+        return None
+    verdict = {"llm_score": score, "llm_explanation": evaluation["llm_explanation"]}
+    if stored_digest is not None:
+        verdict[JUDGE_DIGEST_KEY] = stored_digest
+    return verdict
+
+
+def _llm_judge_verdict(
+    record: Dict[str, Any],
+    prediction: Dict[str, Any],
+    gold_sql: str,
+    gold_df: Any,
+    subset_match: int,
+    pred_df: Any,
+    llm_judge_config: Dict[str, Any],
+    force_rerun_llm_judge: bool,
+    llm_judge_reuse: str,
+) -> Dict[str, Any]:
+    """
+    The judge's fields for one prediction, compared with one ground truth.
+
+    Where the outcome does not need the judge -- no result to judge, or a result
+    that already matches -- the score is decided without it and carries no
+    digest, since no config gave it.
+    """
+    if pred_df is None:
+        return {
+            "llm_score": 0.0,
+            "llm_explanation": f"{_NOT_JUDGED} due to missing prediction dataframe)",
+        }
+    if subset_match:
+        return {
+            "llm_score": 1.0,
+            "llm_explanation": f"{_NOT_JUDGED} due to subset match)",
+        }
+    digest = judge_config_digest(llm_judge_config)
+    if not force_rerun_llm_judge:
+        stored = _stored_verdict(prediction.get("evaluation"), digest, llm_judge_reuse)
+        if stored is not None:
+            return stored
+    # Built in one place so a judge calibration run sends the judge exactly
+    # what this does.
+    response = evaluate_sql_prediction_with_llm(
+        llm_judge_config=llm_judge_config,
+        **build_llm_judge_inputs(record, prediction, gold_sql, gold_df, pred_df),
+    )
+    return {
+        "llm_score": float(response["score"]),
+        "llm_explanation": response["explanation"],
+        JUDGE_DIGEST_KEY: digest,
+    }
+
 
 def evaluate_prediction(
-    record, prediction, llm_judge_config=None, force_rerun_llm_judge=False
+    record,
+    prediction,
+    llm_judge_config=None,
+    force_rerun_llm_judge=False,
+    llm_judge_reuse="matching",
 ):
     """
     Evaluates a predicted SQL query against one or more ground truth SQL queries and their corresponding result dataframes.
@@ -80,8 +180,14 @@ def evaluate_prediction(
         and prompt template for LLM-based evaluation. If not provided, LLM judge will not be used.
 
     force_rerun_llm_judge : bool, optional
-        If True, forces re-evaluation with LLM judge even if cached results exist.
-        If False (default), reuses existing LLM judge results when available.
+        If True, the judge is called even where a stored verdict could be reused.
+
+    llm_judge_reuse : {"matching", "any"}, optional
+        Which stored verdicts may be reused instead of calling the judge.
+        "matching" (the default) reuses only a verdict recorded under the same
+        judge config -- model, parameters and prompt -- so evaluating with a
+        different config judges again. "any" reuses a stored verdict whichever
+        config gave it, and keeps the digest it was recorded with.
 
     Returns
     -------
@@ -124,6 +230,9 @@ def evaluate_prediction(
                 Error message if evaluation failed.
             - "llm_explanation" (optional): str
                 If llm_judge_config is provided, LLM judge explanation of the accuracy of the prediction
+            - "llm_judge_config_digest" (optional): str
+                The digest of the judge config that gave the verdict, present only when the judge
+                was actually asked
             - "gt_sql" (optional): str
                 The ground truth SQL query that was used for final evaluation, only present
                 if subset_non_empty_execution_accuracy == 1.
@@ -140,10 +249,16 @@ def evaluate_prediction(
     - The final result reflects the evaluation against the first ground truth SQL that yields
       subset_non_empty_execution_accuracy == 1, or the last one evaluated if no perfect match is found.
     - The "gt_sql" and "gt_df" fields are only included in the result if a perfect execution match is found.
-    - LLM judge caching: If the prediction already has an "evaluation" dict with valid "llm_score" and
-      "llm_explanation" fields (and no "llm_judge_error"), those cached results will be reused unless
-      force_rerun_llm_judge is True. This significantly improves performance when re-evaluating the same data.
+    - LLM judge caching: a verdict the judge gives is stored with "llm_judge_config_digest". Evaluating
+      again reuses it only under the same config (see llm_judge_reuse), so a score is never reported
+      under a judge that did not give it; verdicts stored before 1.6.0 carry no digest and are judged
+      again. The judge is asked once per prediction, about the ground truth that decided the result.
     """
+    if llm_judge_reuse not in LLM_JUDGE_REUSE_MODES:
+        raise ValueError(
+            f"llm_judge_reuse must be one of {LLM_JUDGE_REUSE_MODES}, "
+            f"not {llm_judge_reuse!r}"
+        )
     result = {}
 
     # Check for inference error - skip evaluation if inference failed
@@ -193,6 +308,8 @@ def evaluate_prediction(
                 "execution stage for this record first."
             )
 
+        decided_by = None
+        matched_gold = None
         # strict=False deliberately: some records carry more ground-truth SQLs
         # than dataframes, and truncating is the behaviour the published
         # results were produced under.
@@ -284,64 +401,36 @@ def evaluate_prediction(
             if execution_time is not None:
                 result["execution_time_ms"] = execution_time
 
-            if llm_judge_config:
-                try:
-                    llm_score = None
-                    llm_explanation = None
-
-                    # Check if we can reuse existing LLM judge results
-                    use_cached_results = False
-                    if not force_rerun_llm_judge:
-                        existing_eval = prediction.get("evaluation", {})
-                        if (
-                            "llm_score" in existing_eval
-                            and "llm_explanation" in existing_eval
-                            and "llm_judge_error" not in existing_eval
-                        ):
-                            # Validate that llm_score is a valid number
-                            try:
-                                cached_score = float(existing_eval["llm_score"])
-                                llm_score = cached_score
-                                llm_explanation = existing_eval["llm_explanation"]
-                                use_cached_results = True
-                                logger.info(
-                                    f"Reusing cached LLM judge results (score: {llm_score})"
-                                )
-                            except (ValueError, TypeError):
-                                logger.warning(
-                                    "Invalid cached llm_score, will re-run LLM judge"
-                                )
-
-                    if not use_cached_results:
-                        if pred_df is None:
-                            llm_score = 0.0
-                            llm_explanation = "N/A (did not use LLM due to missing prediction dataframe)"
-                        elif subset_match:
-                            llm_score = 1.0
-                            llm_explanation = (
-                                "N/A (did not use LLM due to subset match)"
-                            )
-                        else:
-                            # Built in one place so a judge calibration run
-                            # sends the judge exactly what this does.
-                            llm_as_judge_response = evaluate_sql_prediction_with_llm(
-                                llm_judge_config=llm_judge_config,
-                                **build_llm_judge_inputs(
-                                    record, prediction, gold_sql, gold_df, pred_df
-                                ),
-                            )
-                            llm_score = float(llm_as_judge_response["score"])
-                            llm_explanation = llm_as_judge_response["explanation"]
-                    result["llm_score"] = llm_score
-                    result["llm_explanation"] = llm_explanation
-                except Exception as e:
-                    logger.error(f"LLM judge error: {repr(e)}")
-                    result["llm_judge_error"] = repr(e)
-
+            # The judge is asked once, after the loop, about the ground truth
+            # that decided the result. Asking inside the loop called it once
+            # per ground truth and kept only the last answer.
+            decided_by = (gold_sql, gold_df, subset_match)
             if result["subset_non_empty_execution_accuracy"] == 1:
-                result["gt_sql"] = gold_sql
-                result["gt_df"] = gold_df_raw
+                matched_gold = (gold_sql, gold_df_raw)
                 break
+
+        if llm_judge_config and decided_by is not None:
+            gold_sql, gold_df, subset_match = decided_by
+            try:
+                result.update(
+                    _llm_judge_verdict(
+                        record,
+                        prediction,
+                        gold_sql,
+                        gold_df,
+                        subset_match,
+                        pred_df,
+                        llm_judge_config,
+                        force_rerun_llm_judge,
+                        llm_judge_reuse,
+                    )
+                )
+            except Exception as e:
+                logger.error(f"LLM judge error: {repr(e)}")
+                result["llm_judge_error"] = repr(e)
+
+        if matched_gold is not None:
+            result["gt_sql"], result["gt_df"] = matched_gold
 
     except Exception as e:
         result["eval_error"] = 1
@@ -455,6 +544,7 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
                     "df_error_message",
                     "llm_judge_error",
                     "llm_explanation",
+                    JUDGE_DIGEST_KEY,
                     "gt_sql",
                     "gt_df",
                 ]:
@@ -726,6 +816,7 @@ async def async_evaluate_predictions(
     max_concurrency: int = 16,
     force_rerun_llm_judge: bool = False,
     force_rerun: bool = False,
+    llm_judge_reuse: str = "matching",
 ):
     """
     Evaluate a predictions file, awaitable.
@@ -750,14 +841,23 @@ async def async_evaluate_predictions(
             this takes the config itself, where the synchronous wrapper takes a
             path.
         max_concurrency: Records evaluated at once.
-        force_rerun_llm_judge: Re-run the judge for records that already have a
-            verdict.
+        force_rerun_llm_judge: Call the judge even where a stored verdict could
+            be reused.
         force_rerun: Re-evaluate everything, ignoring stored results.
+        llm_judge_reuse: ``"matching"`` (the default) reuses a stored verdict
+            only if the same judge config gave it; ``"any"`` keeps a stored
+            verdict whichever config gave it. See
+            [`evaluate_prediction`][text2sql_eval_toolkit.evaluate_prediction].
 
     Returns:
         tuple[dict, pandas.DataFrame]: The full evaluation data, and the
         per-pipeline summary table.
     """
+    if llm_judge_reuse not in LLM_JUDGE_REUSE_MODES:
+        raise ValueError(
+            f"llm_judge_reuse must be one of {LLM_JUDGE_REUSE_MODES}, "
+            f"not {llm_judge_reuse!r}"
+        )
     output_file = output_file or get_default_eval_filename(input_file)
     summary_file = summary_file or add_summary_json_suffix(output_file)
     csv_summary_file = csv_summary_file or add_summary_csv_suffix(output_file)
@@ -772,6 +872,7 @@ async def async_evaluate_predictions(
                 prediction,
                 llm_judge_config,
                 force_rerun_llm_judge,
+                llm_judge_reuse,
             )
 
     with open(input_file, "r") as f:
@@ -834,6 +935,22 @@ async def async_evaluate_predictions(
         token_usage = prediction.get("token_usage")
         if token_usage:
             token_usage_by_model[model_name].append(token_usage)
+
+    if llm_judge_config:
+        # Only reachable with llm_judge_reuse="any". Said out loud, because the
+        # summary records the current config either way.
+        digest = judge_config_digest(llm_judge_config)
+        foreign = sum(
+            1
+            for evaluation in evaluations
+            if _is_judge_verdict(evaluation)
+            and evaluation.get(JUDGE_DIGEST_KEY) != digest
+        )
+        if foreign:
+            logger.warning(
+                f"{foreign} LLM judge verdicts were kept from a different judge "
+                "config; the summary records the current config."
+            )
 
     summary = compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model)
 
