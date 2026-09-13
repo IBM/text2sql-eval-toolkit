@@ -113,15 +113,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the names and ages of all singers of the release of the song &quot;Gentleman&quot;, but the predicted SQL query only returns the name and age of the singer who has &quot;Gentleman&quot; as their song name. 
-
-The ground truth SQL query calculates the age of each singer at the time of the song&#x27;s release by adding the release year to their age and subtracting the current year. However, the predicted SQL query does not perform this calculation and only returns the current age of the singer.
-
-Additionally, the predicted SQL query only returns one singer, whereas the ground truth result returns multiple singers, suggesting that the question is asking for all singers who released a song called &quot;Gentleman&quot;, not just the singer who has &quot;Gentleman&quot; as their song name. 
-
-Therefore, the predicted SQL query does not accurately answer the question and is considered incorrect.</pre>
+<pre>No: the prediction filters singers by Song_Name = &#x27;Gentleman&#x27; and returns their current Age, whereas the question (as interpreted by the reference) requires ages at the time of the song’s release (computed from Song_release_year), not the current Age.</pre>
 
 ---
 
@@ -234,13 +226,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it only selects the singer who has a song named &quot;Gentleman&quot;, which is John Nizinik, and returns their current age, which is 43. However, the question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;. The predicted SQL does not take into account the release year of the song &quot;Gentleman&quot; and does not calculate the age of each singer at that time.
-
-The ground truth SQL calculates the age of each singer at the time of the release of the song &quot;Gentleman&quot; by subtracting the current year from the release year of the song and adding the result to the singer&#x27;s age. This calculation is not present in the predicted SQL, which is why it is incorrect.
-
-Additionally, the predicted SQL only returns one singer, John Nizinik, whereas the ground truth SQL returns all singers with their calculated ages at the time of the release of the song &quot;Gentleman&quot;. Therefore, the predicted SQL does not fully answer the question and is incorrect.</pre>
+<pre>No: the prediction filters to only the singer of “Gentleman” and returns the current Age, without calculating age at the song’s release or listing all singers as required.</pre>
 
 ---
 
@@ -352,15 +338,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately interpret the natural language question. The question asks for the name and age of each singer at the time of the song&#x27;s release, given that the song &quot;Gentleman&quot; was released in the first year of the 21st century (2001). However, the predicted SQL query only selects singers who have a song named &quot;Gentleman&quot; and released it in 2001, which is not the correct interpretation.
-
-The ground truth SQL query calculates the age of each singer at the time of the song&#x27;s release (2001) by subtracting the current year from 2001 and adding the result to the singer&#x27;s age. This is a more accurate interpretation of the question, as it takes into account the release year of the song and calculates the singer&#x27;s age at that time.
-
-The predicted SQL query, on the other hand, only selects singers who meet the specific conditions of having a song named &quot;Gentleman&quot; and releasing it in 2001, which is not the correct interpretation of the question. As a result, the predicted result is an empty dataframe, which does not provide the correct information.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters only singers with Song_Name=&#x27;Gentleman&#x27; and does not compute ages at the 2001 release (it returns current Age), whereas the question requires ages of all singers at the time of the song’s release.</pre>
 
 ---
 
@@ -474,15 +452,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not account for the age of the singers at the time of the concert. The ground truth SQL calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s current age. The predicted SQL, on the other hand, simply returns the singer&#x27;s current age.
-
-As a result, the predicted result shows the current ages of the singers (32, 29, and 43), whereas the ground truth result shows their ages at the time of the concert (20, 17, and 31). This discrepancy makes the predicted SQL incorrect, even though it is a valid and executable query. 
-
-To fix this, the predicted SQL should be modified to calculate the age of the singers at the time of the concert, similar to the ground truth SQL. However, since the current year is not provided in the schema, the predicted SQL cannot accurately calculate the age at the time of the concert. 
-
-Therefore, the verdict is &quot;No&quot;, indicating that the predicted SQL is incorrect.</pre>
+<pre>No: the prediction returns singers’ current ages, ignoring the concert year, whereas the question asks for ages “at that time,” which requires adjusting ages based on the concert’s year.</pre>
 
 ---
 
@@ -594,19 +564,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the names and ages of singers born before 1985 who participated in the &quot;Free Choice&quot; themed concert, along with their ages at the time of the concert. However, the predicted SQL query has several issues:
-
-1. The `WHERE` clause condition `s.Age &gt; 32` is incorrect. This condition filters singers based on their current age, not their birth year. To determine if a singer was born before 1985, we should be using the `Age` column in relation to the current year or the year of the concert, not just a fixed value like 32.
-
-2. The predicted SQL query does not calculate the age of the singers at the time of the concert. It simply returns their current age. The ground truth SQL calculates the age at the time of the concert by subtracting the concert year from the current year and adding this difference to the singer&#x27;s current age.
-
-3. The `OR` condition in the ground truth SQL regarding `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985` is intended to ensure that singers born before 1985 are included, even if the specific year of the concert is not directly relevant. The predicted SQL does not account for this logic.
-
-4. The predicted result only includes one singer, whereas the ground truth result includes three singers. This discrepancy suggests that the predicted SQL query is not capturing all the relevant singers who participated in the &quot;Free Choice&quot; themed concert and were born before 1985.
-
-Given these issues, the predicted SQL query does not accurately reflect the requirements outlined in the natural language question, leading to the verdict of &quot;No&quot;.</pre>
+<pre>No: the prediction filters on `s.Age &gt; 32` instead of selecting singers born before 1985 (i.e., `strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - s.Age &lt; 1985`) and does not compute ages at the concert time, so it does not answer the question.</pre>
 
 ---
 
@@ -720,13 +678,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the question because it does not account for the age of the singers at the time of the concert. The question asks for the names and ages of all singers who participated in the &quot;Free Choice&quot; themed concert at the time of the concert, which implies that the age should be calculated based on the year of the concert, not the current age. 
-
-The ground truth SQL query calculates the age at the time of the concert by adding the difference between the concert year and the current year to the singer&#x27;s age. The predicted SQL query, on the other hand, simply selects the current age of the singers. As a result, the predicted result shows the current ages of the singers, not their ages at the time of the concert. 
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns the singers&#x27; current ages instead of calculating their ages at the time of the concert.</pre>
 
 ---
 
@@ -838,19 +790,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not account for the age of the singers at the time of the song&#x27;s release. The query only selects the names and ages of singers who have a song named &quot;Gentleman&quot; and released in 2001, but it does not calculate their age at that time. 
-
-In contrast, the ground truth SQL query calculates the age of each singer at the time of the song&#x27;s release by adding the difference between the release year (2001) and the current year to their age. However, this calculation seems to be incorrect as it&#x27;s using the current year instead of the release year of the song for each singer.
-
-The predicted result is an empty dataframe, which means that there are no rows in the singer table where the song name is &quot;Gentleman&quot; and the release year is 2001. This could be due to the data not being present in the table or the release year being stored differently.
-
-A correct predicted SQL query should calculate the age of the singers at the time of the song&#x27;s release and should not filter the results based on the release year being exactly 2001, as the question assumes the song was released in the first year of the 21st century, which is 2001, but the data might not exactly match this. 
-
-The correct query would be more complex and would involve calculating the age of each singer based on their age and the release year of the song &quot;Gentleman&quot;, which is assumed to be 2001. 
-
-However, given the provided schema and data, the predicted SQL query does not provide the correct result, hence the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction only selects current ages and filters by a literal release year, returning no rows, and does not compute singers’ ages at the assumed 2001 release as required.</pre>
 
 ---
 
@@ -963,19 +903,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the question for several reasons. 
-
-1. **Incorrect Age Calculation**: The predicted SQL query does not calculate the age of the singers at the time of the concert. It simply selects the current age of the singers, which does not take into account the year the concert was held. The ground truth SQL query attempts to calculate the age at the time of the concert by subtracting the current year from the concert year and adding this difference to the singer&#x27;s age.
-
-2. **Inaccurate Filtering**: The predicted SQL query filters singers based on their current age being greater than the difference between the current year (2014) and 1985. This is not equivalent to selecting singers born before 1985, as the ground truth SQL query attempts to do by checking if the current year minus the singer&#x27;s age is less than 1985.
-
-3. **Missing Concert Year Consideration**: The predicted SQL query does not consider the year the &quot;Free Choice&quot; concert was held, which is crucial for calculating the singers&#x27; ages at the time of the concert. The ground truth SQL query tries to account for this by selecting the year from the concert table where the theme is &quot;Free choice&quot;.
-
-4. **Different Results**: The predicted result and the ground truth result are different, which indicates that the predicted SQL query is not selecting the same set of singers as the ground truth SQL query. The predicted result includes Timbaland and John Nizinik with ages 32 and 43, respectively, whereas the ground truth result includes John Nizinik, Justin Brown, and Timbaland with ages 31, 17, and 20, respectively, at the time of the concert.
-
-Overall, while the predicted SQL query attempts to answer the question, it does so incorrectly due to the reasons mentioned above, leading to a verdict of &quot;No&quot;.</pre>
+<pre>No: the prediction filters on current age &gt; 29 (using 2014‑1985) instead of selecting singers born before 1985, doesn’t include those assumed participants who aren’t in the join, and returns the current age rather than the age at the concert.</pre>
 
 ---
 
@@ -1085,11 +1013,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the concert. The ground truth SQL query calculates the target age by adding 20 to the singer&#x27;s current age, which is calculated by subtracting the current year from the concert year and adding the singer&#x27;s age. In contrast, the predicted SQL query simply adds 20 to the singer&#x27;s current age, without considering the concert year. This results in an incorrect age calculation, as seen in the predicted result (63) compared to the ground truth result (52). Additionally, the predicted SQL query does not account for the fact that the concert year is stored as a string in the &quot;Year&quot; column of the concert table, which may lead to incorrect results if the concert year is not in the same format as the current year. 
-
-The correct calculation should consider the year of the concert and the current year to determine the singer&#x27;s age on the 20th anniversary of the concert. The predicted SQL query does not take this into account, resulting in an incorrect calculation. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a flat 20 to the singer’s current age, ignoring the concert’s year; the correct age on the 20‑year anniversary should be Age + (concert_year + 20 − current_year). This missing term makes the answer incorrect.</pre>
 
 ---
 
@@ -1303,15 +1227,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the &quot;Home Visits&quot; concert. The predicted query simply adds 20 to the singer&#x27;s current age, which is not the correct interpretation of the question.
-
-The ground truth SQL query, on the other hand, calculates the age of the singer on the 20th anniversary of the concert by subtracting the current year from the year of the concert and adding the singer&#x27;s current age plus 20. This is a more accurate interpretation of the question.
-
-The predicted result also differs from the ground truth result, with the predicted result showing an age of 63 and the ground truth result showing an age of 52. This further supports the conclusion that the predicted SQL query is incorrect.
-
-Overall, while the predicted SQL query is close, it does not accurately capture the nuances of the question, and therefore, it is incorrect.</pre>
+<pre>No: the prediction adds a flat 20 years to the singer’s current age (s.Age + 20) instead of calculating the age at the concert’s 20th anniversary using the concert year (as the reference query does). This ignores the required year offset.</pre>
 
 ---
 
@@ -1420,13 +1336,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately reflect the conditions stated in the question. The question specifies that the Hampden Park stadium has twice the capacity of the Balmoor stadium, but the predicted SQL query does not account for this relationship. Instead, it directly selects the capacity of Hampden Park from the stadium table, which may not necessarily be twice the capacity of Balmoor.
-
-In contrast, the ground truth SQL query correctly calculates the total revenue by first selecting the capacity of Balmoor stadium and then using this value to calculate the revenue for both Balmoor (at $20 per ticket) and Hampden Park (at $5.5 per ticket, with twice the capacity of Balmoor).
-
-The predicted result of 368750 also does not match the expected calculation based on the question&#x27;s conditions. Without knowing the actual capacities, we can&#x27;t directly calculate the correct total revenue, but the approach taken in the predicted SQL does not align with the information provided in the question. Therefore, the predicted SQL query is incorrect.</pre>
+<pre>No: the prediction ignores the “Hampden Park stadium has twice the capacity of the Balmoor stadium” condition, using Hampden’s actual capacity instead of 2 × Balmoor’s capacity.</pre>
 
 ---
 
@@ -1456,7 +1366,7 @@ WHERE Name IN ('Balmoor stadium', 'Hampden Park')
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             881 |                  58 |            939 |             2991.13 |              155.34 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             881 |                  58 |            939 |             2991.13 |              155.34 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1530,23 +1440,13 @@ Table: singer_in_concert
 Question: If the ticket price for Balmoor stadium is $20 and for Hampden Park stadium is $5.5, and all tickets are sold out, how much money can be generated from ticket sales?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is a reasonable interpretation of the question. Although it differs from the ground truth SQL, it still correctly calculates the total amount of money that can be generated from ticket sales for both stadiums.
-
-The predicted SQL uses a `CASE` statement within a `SUM` aggregation function to calculate the total sales for each stadium, based on their respective ticket prices. The `WHERE` clause filters the results to only include the two stadiums mentioned in the question.
-
-The difference in results between the ground truth and predicted SQL is likely due to the fact that the ground truth SQL assumes that the capacity of Balmoor stadium is the only relevant capacity, and multiplies it by $20, then adds the capacity of Hampden Park multiplied by $5.5. In contrast, the predicted SQL uses the actual capacities of both stadiums, as listed in the database.
-
-However, upon closer inspection, it appears that the ground truth SQL is actually incorrect, as it does not take into account the actual capacity of Balmoor stadium. The predicted SQL, on the other hand, correctly calculates the total sales based on the capacities of both stadiums.
-
-Therefore, despite the difference in results, the predicted SQL is a correct and reasonable interpretation of the question, and the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the predicted query filters on the wrong stadium name (&#x27;Balmoor stadium&#x27; instead of &#x27;Balmoor&#x27;), so it only counts Hampden Park tickets and omits Balmoor’s revenue.</pre>
 
 ---
 
@@ -1583,7 +1483,7 @@ AND sic.Singer_ID IN (
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             879 |                 132 |           1011 |             4196.66 |              179.92 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             879 |                 132 |           1011 |             4196.66 |              179.92 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1659,21 +1559,13 @@ Table: singer_in_concert
 Question: What will be the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, if all the singers who performed at concerts in Stark Park also took part in it?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. It correctly joins the necessary tables (singer, singer_in_concert, concert, and stadium) to identify the singers who performed at the &quot;Home Visits&quot; concert and also performed at concerts in Stark Park. The query then calculates the age of each singer 20 years after the concert.
-
-Although the predicted SQL query differs from the ground truth SQL, it achieves the same goal. The ground truth SQL uses a more complex subquery to calculate the target age, while the predicted SQL simply adds 20 to the singer&#x27;s current age. However, since the question asks for the ages and names of the singers on the 20th anniversary of the concert, both queries are valid.
-
-The predicted result shows only one singer, John Nizinik, with an age of 63, which is 20 years older than his current age. The ground truth result shows three singers, but the predicted SQL query is still correct because it only returns the singers who meet the specified conditions.
-
-Overall, the predicted SQL query is a correct and reasonable interpretation of the natural language question, and therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction adds a flat +20 to the current age and only returns singers who also performed at Stark’s Park, yielding a different calculation (e.g., John Nizinik 63 vs. reference 52) and omitting other required singers.</pre>
 
 ---
 
@@ -1793,17 +1685,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the total amount spent on paying singers for concerts held in Somerset Park stadium. 
-
-The main issue with the predicted SQL is the condition in the CASE statement, which checks if the singer&#x27;s age is greater than 52. This is not equivalent to checking if the singer was born before or after 1980, as the ground truth SQL does. The ground truth SQL calculates the year of birth by subtracting the singer&#x27;s age from the current year, which is a more accurate approach.
-
-Additionally, the predicted SQL does not correctly handle the case where a singer&#x27;s age is exactly 52, which could correspond to a birth year of 1980 or earlier, depending on the current year. 
-
-The ground truth SQL, on the other hand, correctly calculates the total amount spent by counting the number of concerts for singers born before and after 1980, and multiplying these counts by the corresponding payment amounts. 
-
-Therefore, the predicted SQL does not provide a reasonable interpretation of the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction uses an incorrect age cutoff (Age &gt; 52) instead of calculating birth year from the current year, so it misclassifies singers and gives the wrong total.</pre>
 
 ---
 
@@ -1843,7 +1725,7 @@ WHERE
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 105 |            988 |             3670.01 |               168.9 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 105 |            988 |             3670.01 |               168.9 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1917,28 +1799,13 @@ Table: singer_in_concert
 Question: What was the total expenditure on paying singers for concerts held at Somerset Park stadium, given that singers born before 1980 earned $355 per concert and those born after 1980 earned $228 per concert?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. Although it differs from the ground truth SQL, it accurately calculates the total expenditure on paying singers for concerts held at Somerset Park stadium. 
-
-The predicted SQL uses a `CASE` statement within the `SUM` function to apply the correct payment amount based on the singer&#x27;s age. This approach is more concise and efficient than the ground truth SQL, which uses subqueries to calculate the payments for singers born before and after 1980 separately.
-
-The predicted result of 938 is different from the ground truth result, but this discrepancy may be due to the ambiguity in the question or schema. The predicted SQL is a reasonable interpretation of the question, and its result is plausible given the provided data.
-
-The key factors that support the verdict of &quot;Yes&quot; are:
-
-1. The predicted SQL correctly joins the relevant tables (`singer`, `singer_in_concert`, `concert`, and `stadium`) to retrieve the necessary data.
-2. The `CASE` statement accurately applies the payment amounts based on the singer&#x27;s age.
-3. The `WHERE` clause correctly filters the results to only include concerts held at Somerset Park stadium.
-4. The `SUM` function correctly calculates the total expenditure.
-
-Overall, the predicted SQL is a valid and reasonable interpretation of the question, and its result is plausible given the provided data.</pre>
+<pre>No: the CASE logic reverses the rates (assigns $228 to older singers) and uses a fixed age cutoff (42) instead of computing birth year as in the question.</pre>
 
 ---
 
@@ -1969,7 +1836,7 @@ LIMIT 1
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                  70 |            999 |              4846.8 |              164.34 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                  70 |            999 |              4846.8 |              164.34 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2043,23 +1910,13 @@ Table: singer_in_concert
 Question: If the capacity of the Hampden Park stadium is twice that of the Balmoor stadium, when all tickets sold out, how much money can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly calculates the revenue from ticket sales at both the Balmoor stadium and the Hampden Park stadium.
-
-The predicted SQL query uses subqueries to calculate the capacity of the Balmoor stadium and the Hampden Park stadium (which is twice that of the Balmoor stadium). It then multiplies these capacities by the respective ticket prices to calculate the revenue.
-
-The result of the predicted SQL query is a dataframe with two columns: Balmoor_Revenue and Hampden_Park_Revenue. The values in these columns are 80000 and 44000, respectively, which are the correct revenues based on the given capacities and ticket prices.
-
-In contrast, the ground truth SQL query calculates the total revenue from both stadiums in a single column. However, the predicted SQL query provides a more detailed breakdown of the revenue from each stadium, which can be useful in certain scenarios.
-
-Overall, the predicted SQL query is a valid and reasonable interpretation of the natural language question, and it provides the correct revenue calculations. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the predicted query returns separate revenues for each stadium instead of the combined total money asked for (the reference expects a single total value).</pre>
 
 ---
 
@@ -2097,7 +1954,7 @@ GROUP BY
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             841 |                 106 |            947 |             3584.17 |               85.74 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             841 |                 106 |            947 |             3584.17 |               85.74 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2172,21 +2029,13 @@ Table: singer_in_concert
 Question: Which stadiums have the lowest and highest average attendance rates respectively, and how many concerts have they each held?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly identifies the stadiums with the lowest and highest average attendance rates and returns the number of concerts held at each stadium.
-
-The predicted SQL uses a LEFT JOIN to combine the stadium and concert tables, and then filters the results to include only the stadiums with the minimum and maximum average attendance rates. The use of the OR operator in the WHERE clause ensures that both the lowest and highest average attendance rates are included in the results.
-
-The predicted result shows that the stadium with the lowest average attendance rate is Glebe Park with an average of 552, and the stadium with the highest average attendance rate is Stark&#x27;s Park with an average of 2106. The concert count for each stadium is also correctly returned.
-
-The ground truth SQL query uses a more complex approach with multiple subqueries and joins, but the predicted SQL query achieves the same result in a more concise and efficient manner. Therefore, the predicted SQL query is considered correct.</pre>
+<pre>No: the prediction selects stadiums by the raw Average value, not by the attendance rate (Average / Capacity) that the question (and reference) require.</pre>
 
 ---
 
@@ -2216,7 +2065,7 @@ SELECT
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             855 |                 144 |            999 |             4431.02 |              159.36 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             855 |                 144 |            999 |             4431.02 |              159.36 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2290,24 +2139,13 @@ Table: singer_in_concert
 Question: What are the names of the stadiums with the highest and lowest average attendance rates, and how many concerts have been held in each of them?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. Although it differs from the ground truth SQL, it still accurately answers the natural language question. The predicted SQL query correctly identifies the stadiums with the highest and lowest average attendance rates and counts the number of concerts held in each of them.
-
-The key differences between the predicted SQL and the ground truth SQL are:
-
-1. The predicted SQL uses subqueries to find the stadiums with the highest and lowest average attendance rates, whereas the ground truth SQL uses joins and grouping.
-2. The predicted SQL uses the `MAX` and `MIN` aggregation functions to find the highest and lowest average attendance rates, whereas the ground truth SQL uses `ORDER BY` and `LIMIT` to achieve the same result.
-
-Despite these differences, the predicted SQL query produces the correct result, which is similar to the ground truth result. The predicted result shows the correct stadium names and concert counts, although the actual values may differ due to the ambiguity in the question or schema.
-
-Overall, the predicted SQL query is a reasonable interpretation of the natural language question, and its result is consistent with the expected output. Therefore, the verdict is &quot;Yes&quot;, indicating that the predicted SQL query is correct.</pre>
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) required by the question, leading to different stadiums and concert counts.</pre>
 
 ---
 
@@ -2348,7 +2186,7 @@ JOIN stadium s ON c.Stadium_ID = s.Stadium_ID
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             837 |                  90 |            927 |             3865.53 |              170.58 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             837 |                  90 |            927 |             3865.53 |              170.58 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2434,24 +2272,13 @@ Table: singer_in_concert
 Question: What percentage of the concerts were held in the top three stadiums in terms of average attendance rate?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly calculates the percentage of concerts held in the top three stadiums in terms of average attendance rate.
-
-The key differences between the predicted SQL and the ground truth SQL are:
-
-1. Joining the `concert` and `stadium` tables: The predicted SQL joins these tables to access the `Stadium_ID` and `Average` columns, whereas the ground truth SQL uses a subquery to filter the `concert` table based on the top three stadiums.
-2. Calculating the percentage: The predicted SQL uses a `CASE` statement to count the concerts held in the top three stadiums and then divides by the total number of concerts, whereas the ground truth SQL uses a subquery to count the total number of concerts and then divides the count of concerts held in the top three stadiums by this total.
-
-Despite these differences, both SQL queries produce the correct result. The predicted SQL query is more explicit in its calculation, using a `JOIN` and a `CASE` statement, whereas the ground truth SQL query is more concise, using a subquery and a simple `COUNT` aggregation.
-
-The predicted result (50) differs from the ground truth result (33.333333) due to the specific data in the tables, but both results are valid calculations based on the provided schema and data. Therefore, the predicted SQL query is a correct interpretation of the natural language question.</pre>
+<pre>No: the prediction orders stadiums by raw Average instead of the average attendance rate (Average / Capacity) required by the question.</pre>
 
 ---
 
@@ -2568,15 +2395,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it only selects the singers who have &quot;Gentleman&quot; as their song name, but it does not consider the release year of the song or calculate the target age as required by the question. The ground truth SQL query calculates the target age by adding the release year of the song &quot;Gentleman&quot; to the singer&#x27;s age and then subtracting the current year, which is not present in the predicted SQL query. 
-
-Additionally, the predicted SQL query only returns one row, whereas the ground truth result returns multiple rows, indicating that the predicted query is not considering all singers who may have released the song &quot;Gentleman&quot; in different years. 
-
-The predicted query seems to be answering a different question, such as &quot;What is the name and age of the singer who sang the song &#x27;Gentleman&#x27;?&quot;, rather than the original question which asks for the names and ages of all singers of the release of the song &quot;Gentleman&quot;. 
-
-Therefore, the predicted SQL query does not accurately answer the original question, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the prediction only returns current ages and filters by Song_Name, but the question asks for ages at the time of the song’s release (and should compute age = Age + Song_release_year − current year for singers of “Gentleman”). The predicted query omits this calculation.</pre>
 
 ---
 
@@ -2689,15 +2508,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;, but the predicted SQL query only returns the name and age of the singer who released the song &quot;Gentleman&quot;, which is John Nizinik. 
-
-The ground truth SQL query, on the other hand, calculates the age of each singer at the time of the release of the song &quot;Gentleman&quot; by adding the release year of the song to the singer&#x27;s age and subtracting the current year. This calculation is not present in the predicted SQL query.
-
-The predicted SQL query is incorrect because it does not consider the ages of all singers at the time of the song&#x27;s release, but rather only returns the singer who released the song &quot;Gentleman&quot;. The result is also incomplete, as it only includes one singer, whereas the ground truth result includes all singers. 
-
-Therefore, the predicted SQL query does not accurately answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters to singers whose Song_Name is &quot;Gentleman&quot; and returns their current Age, instead of computing each singer’s age at the release year of the song and listing all singers.</pre>
 
 ---
 
@@ -2726,7 +2537,7 @@ LIMIT 1
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             797 |                  47 |            844 |             1354.41 |              163.88 |           1 |
+|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             797 |                  47 |            844 |             1354.41 |              163.88 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2800,23 +2611,13 @@ Table: singer_in_concert
 Question: How many years ago did the first concert occur?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it still correctly calculates the number of years ago the first concert occurred.
-
-The key difference between the two queries is how they handle the `Year` column in the `concert` table. The ground truth SQL simply subtracts the minimum `Year` value from the current year, whereas the predicted SQL uses the `strftime` function to extract the year from the `Year` column and then performs the subtraction.
-
-The predicted SQL also includes an `ORDER BY` clause to ensure that the earliest concert is selected, and a `LIMIT 1` clause to return only one result. This is not necessary in the ground truth SQL because the `MIN` function already returns the smallest value.
-
-The results of the two queries are equivalent, with both returning a value of 0 (or a value close to 0, depending on the current year). The predicted result shows a value of 0 and an additional column with a value of 6733, which is likely due to the way the `strftime` function is used in the predicted SQL. However, the first column of the predicted result, which corresponds to the answer, matches the ground truth result.
-
-Overall, the predicted SQL query is a valid and reasonable interpretation of the natural language question, and its result is consistent with the ground truth result. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the predicted query miscalculates the year difference (using strftime on the Year text) and returns an incorrect value (6733) instead of the correct years‑ago count.</pre>
 
 ---
 
@@ -2930,15 +2731,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately answer the natural language question. The question asks for the name and age of each singer at the time of the song&#x27;s release, given that the song &quot;Gentleman&quot; was released in the first year of the 21st century. However, the predicted SQL only selects the singer with the song name &quot;Gentleman&quot; and does not calculate the age at the time of release.
-
-The predicted SQL uses the condition `Song_release_year LIKE &#x27;20%&#x27;`, which is incorrect because it does not specifically check for the year 2001, but rather any year in the 21st century. Additionally, the predicted SQL does not calculate the age at the time of release, but instead returns the current age of the singer.
-
-The ground truth SQL, on the other hand, calculates the age at the time of release by adding 2001 (the release year) to the singer&#x27;s age and subtracting the current year. This ensures that the age is calculated correctly, regardless of the singer&#x27;s current age.
-
-Therefore, the predicted SQL does not accurately answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters only singers with Song_Name=&#x27;Gentleman&#x27; and returns their current Age, without adjusting for the assumed 2001 release year, and does not compute age at that time.</pre>
 
 ---
 
@@ -3052,18 +2845,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not take into account the age of the singers at the time of the concert. The ground truth SQL calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age. The predicted SQL simply returns the current age of the singers, which may not be the same as their age at the time of the concert. This is evident from the predicted result, which shows the current ages of the singers (32, 29, and 43), whereas the ground truth result shows their ages at the time of the concert (20, 17, and 31). 
-
-To correctly answer the question, the predicted SQL should also calculate the age of the singers at the time of the concert, similar to the ground truth SQL. The predicted SQL should be modified to include the calculation of the age at the time of the concert, like this:
-```sql
-SELECT s.Name, s.Age + (c.Year - strftime(&quot;%Y&quot;, &quot;now&quot;)) AS age_at_concert
-FROM singer s
-JOIN singer_in_concert sic ON s.Singer_ID = sic.Singer_ID
-JOIN concert c ON sic.concert_ID = c.concert_ID
-WHERE c.Theme = &#x27;Free choice&#x27;
-```</pre>
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, ignoring the required adjustment based on the concert year.</pre>
 
 ---
 
@@ -3176,15 +2958,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The main issue lies in the condition `s.Age &gt; (CAST(strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) AS INTEGER) - 1985)`, which is used to filter singers born before 1985. However, this condition is incorrect because it is comparing the singer&#x27;s current age with the difference between the current year and 1985.
-
-To correctly identify singers born before 1985, we should be comparing their birth year (which can be calculated by subtracting their age from the current year) with 1985, not their age directly. The correct condition should be `strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - s.Age &lt; 1985` or simply `s.Age &gt; (CAST(strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) AS INTEGER) - 1985)` should be `strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - s.Age &gt; 1985` if we are considering the age at the time of the concert.
-
-Additionally, the predicted SQL does not calculate the age of the singers at the time of the concert, which is part of the question. It only returns their current age. The ground truth SQL calculates the age at the time of the concert by subtracting the concert year from the current year and adding that difference to the singer&#x27;s age.
-
-The predicted result only includes one singer, John Nizinik, with an age of 43, which does not match the ground truth result that includes three singers with their ages at the time of the concert. Therefore, the predicted SQL query does not correctly answer the question.</pre>
+<pre>No: the prediction returns the singers’ current ages and filters incorrectly, while the question requires ages at the time of the “Free choice” concert (adjusted to the concert year). The query also omits singers that should be included.</pre>
 
 ---
 
@@ -3298,13 +3072,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not take into account the age of the singers at the time of the concert. The ground truth SQL calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age. The predicted SQL simply returns the current age of the singers, which is not what the question asks for. 
-
-Additionally, the predicted result shows different ages for the singers compared to the ground truth result, which further confirms that the predicted SQL does not correctly answer the question. The ages in the predicted result (32, 29, 43) are likely the current ages of the singers, whereas the ground truth result shows their ages at the time of the concert (20, 17, 31). 
-
-Therefore, the predicted SQL does not correctly answer the question and is considered incorrect.</pre>
+<pre>No: the prediction returns the singers’ current ages instead of calculating their ages at the time of the “Free Choice” concert. It omits the age‑at‑concert computation required by the question.</pre>
 
 ---
 
@@ -3417,17 +3185,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately reflect the question being asked. The question assumes that the song &quot;Gentleman&quot; was released in the first year of the 21st century, which is 2001, but the predicted SQL query filters for songs released in 2000. Additionally, the predicted SQL query does not calculate the age of the singers at the time of the song&#x27;s release, it simply returns their current age. The ground truth SQL query calculates the age of the singers at the time of the song&#x27;s release by subtracting the current year from 2001 and adding the result to the singer&#x27;s age. The predicted SQL query also returns an empty result set because it is filtering for songs released in 2000, which does not match the assumption in the question. 
-
-The predicted SQL query should have filtered for songs released in 2001 and calculated the age of the singers at the time of the song&#x27;s release. A more accurate predicted SQL query would be:
-```sql
-SELECT Name, Age + 2001 - strftime(&quot;%Y&quot;, &quot;now&quot;) AS target_age
-FROM singer
-WHERE Song_Name = &#x27;Gentleman&#x27;
-  AND Song_release_year = &#x27;2001&#x27;
-```</pre>
+<pre>No: the prediction filters on Song_release_year = &#x27;2000&#x27; (the wrong year) and returns the stored Age unchanged instead of calculating each singer’s age in 2001, so it does not answer the question.</pre>
 
 ---
 
@@ -3540,19 +3298,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question for several reasons:
-
-1. **Incorrect Age Calculation**: The predicted SQL query does not calculate the age of the singers at the time of the concert. It simply selects the current age of the singers from the `singer` table. In contrast, the ground truth SQL query calculates the age at the time of the concert by adding the difference between the concert year and the current year to the singer&#x27;s age.
-
-2. **Incorrect Age Filter**: The predicted SQL query filters singers with an age of 40 or more, which does not align with the assumption that all singers born before 1985 participated in the concert. The ground truth SQL query uses the condition `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985` to filter singers born before 1985.
-
-3. **Missing Concert Year Consideration**: The predicted SQL query does not consider the year of the concert when calculating the age of the singers. The ground truth SQL query takes into account the year of the concert with the &quot;Free Choice&quot; theme.
-
-4. **Distinct vs. Group By**: The predicted SQL query uses `SELECT DISTINCT` to remove duplicate rows, whereas the ground truth SQL query uses `GROUP BY` to group the results by singer name. While both approaches can be used to remove duplicates, the `GROUP BY` clause is more suitable in this case since it allows for the calculation of the age at the time of the concert.
-
-Overall, the predicted SQL query does not accurately capture the requirements of the natural language question, and its results differ significantly from the ground truth results. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters by current age ≥ 40 and returns current ages, ignoring the “born before 1985” condition and not computing ages at the concert time.</pre>
 
 ---
 
@@ -3663,13 +3409,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the concert. The ground truth SQL calculates the age by adding 20 to the singer&#x27;s current age, which is calculated by subtracting the current year from the concert year and adding the singer&#x27;s age. In contrast, the predicted SQL simply adds 20 to the singer&#x27;s current age, without considering the concert year. This results in an incorrect age calculation, as seen in the predicted result (63) compared to the ground truth result (52). 
-
-Additionally, the predicted SQL does not take into account the current year, which is necessary to accurately calculate the singer&#x27;s age on the 20th anniversary of the concert. The ground truth SQL uses the `strftime` function to get the current year, whereas the predicted SQL does not. 
-
-Therefore, the predicted SQL does not correctly answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a flat +20 to the singer’s current Age, ignoring the concert’s year and thus not computing the age on the 20th anniversary as required.</pre>
 
 ---
 
@@ -3695,7 +3435,7 @@ SELECT CAST(strftime('%Y','now') AS INTEGER) - CAST((SELECT MIN(Year) FROM conce
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  45 |            872 |             5737.41 |              221.13 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  45 |            872 |             5737.41 |              221.13 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3769,21 +3509,13 @@ Table: singer_in_concert
 Question: How many years ago did the earliest concert occur if the concert with the theme &quot;Wide Awake&quot; took place three years earlier?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it still correctly calculates the number of years ago the earliest concert occurred, considering the concert with the theme &quot;Wide Awake&quot; took place three years earlier.
-
-The key difference between the ground truth and predicted SQL is how they handle the &quot;three years earlier&quot; condition. The ground truth SQL uses a subquery with a UNION ALL to combine the years of all concerts, adjusting the year of the &quot;Wide Awake&quot; concert by subtracting 3. In contrast, the predicted SQL directly subtracts 3 from the current year after calculating the difference between the current year and the year of the &quot;Wide Awake&quot; concert.
-
-Both approaches are valid, but they yield different results due to the ambiguity in the question. The ground truth result (15) suggests that the earliest concert occurred 15 years ago, considering the adjusted year of the &quot;Wide Awake&quot; concert. The predicted result (9) also provides a plausible answer, calculating the years ago based on the actual year of the &quot;Wide Awake&quot; concert and then subtracting 3.
-
-Given the ambiguity in the question and the schema, both SQL queries can be considered correct interpretations. However, since the predicted SQL directly addresses the question by calculating the years ago based on the current year and the year of the &quot;Wide Awake&quot; concert, and then applying the &quot;three years earlier&quot; adjustment, it is a reasonable and valid interpretation of the natural language question.</pre>
+<pre>No: the prediction only subtracts 3 from the minimum Year of the “Wide Awake” concert, ignoring other concerts, whereas the question (and reference) require adjusting the Wide Awake year by 3 years and then finding the earliest concert overall. This logical error changes the answer.</pre>
 
 ---
 
@@ -3898,19 +3630,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the question. The query is attempting to find the difference between the year of the &quot;Wide Awake&quot; themed concert (held three years earlier) and the earliest concert year. However, it has several issues:
-
-1. The query uses a subquery to find the maximum year of all concerts, subtracts 3, and then compares it with the earliest year. This approach is incorrect because it does not consider the actual year of the &quot;Wide Awake&quot; themed concert.
-
-2. The query uses a CASE statement to check if the adjusted year of the &quot;Wide Awake&quot; themed concert is greater than or equal to the earliest year. If true, it calculates the difference; otherwise, it returns NULL. This logic is flawed because it does not account for the scenario where the adjusted year is less than the earliest year.
-
-3. The query does not consider the fact that the &quot;Wide Awake&quot; themed concert&#x27;s year should be adjusted by subtracting 3, and then this adjusted year should be compared with the earliest year of all concerts (including the adjusted &quot;Wide Awake&quot; themed concert).
-
-In contrast, the ground truth SQL query correctly adjusts the year of the &quot;Wide Awake&quot; themed concert by subtracting 3 and then finds the minimum year among all concerts (including the adjusted &quot;Wide Awake&quot; themed concert). It then calculates the difference between the current year and this minimum year, providing the correct answer to the question.
-
-The predicted result is also incorrect, as it returns NULL, indicating that the query did not consider the correct scenario. The ground truth result, on the other hand, provides a meaningful answer (15 years) based on the correct calculation.</pre>
+<pre>No: the prediction subtracts 3 from the maximum concert year and compares it to the earliest year, never uses the current year or adjusts only the “Wide Awake” concert, so it does not compute “years since the earliest concert” as required.</pre>
 
 ---
 
@@ -3940,7 +3660,7 @@ WHERE c.concert_Name = 'Home Visits'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             831 |                  72 |            903 |             3367.51 |              223.01 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             831 |                  72 |            903 |             3367.51 |              223.01 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4014,19 +3734,13 @@ Table: singer_in_concert
 Question: What are the names of the &quot;Home Visits&quot; concert singer, and how old will they be on its 20th anniversary?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. Although it differs from the ground truth SQL, it still accurately answers the question. The predicted SQL query joins the necessary tables (singer, singer_in_concert, and concert) and applies the correct filter (concert_Name = &#x27;Home Visits&#x27;). It also calculates the singer&#x27;s age on the 20th anniversary of the concert by adding 20 to their current age.
-
-The difference in results between the ground truth and predicted SQL is due to the way the age calculation is performed. The ground truth SQL calculates the age by subtracting the current year from the concert year and adding the singer&#x27;s age and 20. However, this approach is incorrect because it doesn&#x27;t take into account the current year. The predicted SQL, on the other hand, simply adds 20 to the singer&#x27;s current age, which is a more straightforward and accurate approach.
-
-Given the schema and the question, the predicted SQL is a reasonable interpretation and provides the correct result. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the predicted query adds a flat 20 to the singer’s current age and ignores the concert’s year, missing the required adjustment (concert year – current year) to compute the age on the 20th anniversary.</pre>
 
 ---
 
@@ -4134,13 +3848,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately reflect the conditions stated in the question. The question specifies that the Hampden Park stadium has twice the capacity of the Balmoor stadium, but the predicted SQL query does not account for this relationship. Instead, it directly selects the capacity of Hampden Park from the stadium table, which may not necessarily be twice the capacity of Balmoor.
-
-In contrast, the ground truth SQL query correctly calculates the total revenue by first selecting the capacity of Balmoor stadium and then multiplying it by the ticket price, and adding twice that capacity (to account for Hampden Park&#x27;s capacity being twice that of Balmoor) multiplied by the ticket price for Hampden Park.
-
-The predicted result (368750) is also different from the ground truth result (124000), which further indicates that the predicted SQL query does not accurately answer the question based on the given conditions. Therefore, the predicted SQL query is incorrect.</pre>
+<pre>No: the prediction uses the actual Hampden Park capacity instead of applying the given condition that its capacity is twice Balmoor’s, thus ignoring the required relationship.</pre>
 
 ---
 
@@ -4249,19 +3957,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the question. The query calculates the revenue for each stadium separately, but it does not sum up the revenues from both stadiums. The ground truth SQL query, on the other hand, calculates the total revenue by multiplying the capacity of Balmoor stadium by $20 and adding the revenue from Hampden Park stadium (which is calculated by multiplying its capacity by $5.5). 
-
-The predicted result shows two separate revenue values for Balmoor and Hampden Park, whereas the ground truth result provides a single total revenue value. To match the ground truth result, the predicted SQL query should be modified to sum up the revenues from both stadiums, like this:
-
-```sql
-SELECT SUM((CASE WHEN Name = &#x27;Balmoor&#x27; THEN 20 ELSE 5.5 END) * Capacity) AS total
-FROM stadium
-WHERE Name IN (&#x27;Balmoor&#x27;, &#x27;Hampden Park&#x27;)
-```
-
-This modified query would produce a single total revenue value, which is the sum of the revenues from both stadiums.</pre>
+<pre>No: the predicted query returns separate revenues per stadium instead of the combined total revenue required by the question. It lacks the aggregation (SUM) to produce a single amount.</pre>
 
 ---
 
@@ -4386,19 +4082,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not produce the same result as the ground truth SQL query. The predicted result is an empty DataFrame, indicating that no rows match the conditions specified in the query. 
-
-There are several issues with the predicted SQL query:
-
-1. The subquery `home_visits` filters concerts with `concert_Name = &#x27;Home Visits&#x27;` and also applies a condition on the `Year` column, which is not present in the ground truth SQL query. This condition seems to be attempting to calculate the 20th anniversary of the concert, but it is not clear why this is necessary.
-
-2. The `EXISTS` clause in the predicted SQL query checks if there is a concert in &#x27;Stark&#x27;&#x27;s Park&#x27; with a `concert_ID` that is also in the `home_visits` CTE. However, this condition is not equivalent to the condition in the ground truth SQL query, which checks if a singer has performed in a concert in &#x27;Stark&#x27;&#x27;s Park&#x27; or has performed in the &#x27;Home Visits&#x27; concert.
-
-3. The `HAVING` clause in the predicted SQL query checks if the number of distinct `concert_ID` values for each singer is equal to the number of rows in the `home_visits` CTE. This condition is not present in the ground truth SQL query and seems to be unnecessary.
-
-Overall, the predicted SQL query does not accurately capture the conditions specified in the natural language question, and therefore produces an incorrect result.</pre>
+<pre>No: the query’s condition for the 20th anniversary (`CAST((strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) || substr(Year, -2)) AS INTEGER) = CAST(Year AS INTEGER) + 20`) never matches, making the CTE empty and returning no rows, so it fails to retrieve the required singers.</pre>
 
 ---
 
@@ -4433,7 +4117,7 @@ FROM (
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                 109 |            972 |             6428.73 |              161.82 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                 109 |            972 |             6428.73 |              161.82 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4507,23 +4191,13 @@ Table: singer_in_concert
 Question: Singers born before 1980 earn $355 per concert, while singers born after 1980 earn $228 per concert. How much was spent on paying the singers for the concerts held in Somerset Park stadium?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it still correctly calculates the total amount spent on paying singers for concerts held in Somerset Park stadium.
-
-The key differences between the predicted SQL and the ground truth SQL are:
-
-1. Age calculation: The ground truth SQL calculates the birth year of the singer by subtracting their age from the current year, whereas the predicted SQL uses the age directly. However, since the age is given in the singer table, we can assume that the age is current, and using it directly is a valid approach.
-2. Payment calculation: The ground truth SQL uses two separate subqueries to calculate the payment for singers born before and after 1980, whereas the predicted SQL uses a single query with a CASE statement to determine the payment amount. Both approaches are valid, but the predicted SQL is more concise and efficient.
-3. Join order: The predicted SQL joins the tables in a different order than the ground truth SQL. However, the join order does not affect the result, and the predicted SQL is still correct.
-
-The predicted result (938) is different from the ground truth result (684), but this could be due to the ambiguity in the question or schema. Without more information, it&#x27;s difficult to determine which result is correct. However, based on the SQL query alone, the predicted SQL is a reasonable interpretation of the question, and therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction uses `CASE WHEN s.Age &lt; 40` to decide the rate, ignoring the required birth‑year calculation (current year – Age vs 1980), so it applies the wrong $355/$228 thresholds.</pre>
 
 ---
 
@@ -4642,17 +4316,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. Although it attempts to calculate the total expenditure on paying singers for concerts held at Somerset Park stadium, there are several issues with the query.
-
-Firstly, the predicted SQL query uses the singer&#x27;s age to determine the payment amount, but it does not correctly calculate the age. The query uses `s.Age &lt; 40` to determine if the singer was born before 1980, which is incorrect. The correct calculation should be based on the current year and the singer&#x27;s age.
-
-Secondly, the predicted SQL query groups the results by `s.Singer_ID`, which means it will calculate the total expenditure for each singer separately. However, the natural language question asks for the total expenditure on paying singers for all concerts held at Somerset Park stadium.
-
-Lastly, the predicted SQL query uses `COUNT(DISTINCT c.concert_ID)` to count the number of concerts, but this will not give the correct count if a singer performs in multiple concerts. The correct approach would be to count the number of rows in the `singer_in_concert` table that match the concert and singer.
-
-In contrast, the ground truth SQL query correctly calculates the total expenditure by joining the relevant tables, filtering the results to only include concerts held at Somerset Park stadium, and using the correct age calculation to determine the payment amount. It also correctly counts the number of concerts for each age group and calculates the total expenditure accordingly. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction uses s.Age &lt; 40 instead of computing birth year (current year – Age) to distinguish singers born before/after 1980, violating the given hint.</pre>
 
 ---
 
@@ -4760,13 +4424,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total amount of money that can be made from ticket sales at both the Balmoor stadium and the Hampden Park stadium, given that the capacity of the Hampden Park stadium is twice that of the Balmoor stadium. However, the predicted SQL query only calculates the revenue for each stadium separately and does not account for the relationship between the capacities of the two stadiums.
-
-In contrast, the ground truth SQL query correctly calculates the total revenue by multiplying the capacity of the Balmoor stadium by the ticket price and adding twice the capacity of the Balmoor stadium multiplied by the ticket price of the Hampden Park stadium. This correctly reflects the relationship between the capacities of the two stadiums.
-
-Additionally, the predicted SQL query returns two separate columns for the revenue of each stadium, whereas the ground truth SQL query returns a single column with the total revenue. Therefore, the predicted SQL query does not provide the correct answer to the question.</pre>
+<pre>No: the prediction ignores the “twice that of the Balmoor stadium” condition and uses Hampden’s actual capacity, and it returns separate revenues instead of the combined total required.</pre>
 
 ---
 
@@ -4796,7 +4454,7 @@ WHERE Average = (SELECT MIN(Average) FROM stadium)
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             819 |                  57 |            876 |             2625.02 |              186.53 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             819 |                  57 |            876 |             2625.02 |              186.53 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4871,21 +4529,13 @@ Table: singer_in_concert
 Question: Which stadiums have the lowest and highest average attendance rates respectively, and how many concerts have they each held?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly identifies the stadiums with the lowest and highest average attendance rates and returns the number of concerts held at each stadium.
-
-The predicted SQL query uses a simple and efficient approach to solve the problem. It selects the `Name` column from the `stadium` table and uses a subquery to count the number of concerts held at each stadium. The `WHERE` clause filters the results to include only the stadiums with the minimum or maximum average attendance rate.
-
-The predicted result shows that the stadiums with the lowest and highest average attendance rates are Stark&#x27;s Park and Glebe Park, respectively, and that each has held 1 concert. Although the result differs from the ground truth result, it is still a valid interpretation of the question.
-
-The ground truth SQL query is more complex and uses joins and subqueries to solve the problem. However, the predicted SQL query is more efficient and easier to understand. Overall, the predicted SQL query is a correct and reasonable interpretation of the natural language question.</pre>
+<pre>No: the prediction selects stadiums by the raw Average value, not by the attendance rate (Average / Capacity) that the question (and reference) require. Consequently it returns the wrong stadiums and counts.</pre>
 
 ---
 
@@ -5002,13 +4652,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the names and ages of all singers of the release of the song &quot;Gentleman&quot;, but the predicted SQL query only returns the name and age of the singer(s) who have &quot;Gentleman&quot; as their song name. 
-
-In contrast, the ground truth SQL query returns the names and ages of all singers, with their ages adjusted based on the release year of the song &quot;Gentleman&quot;. This suggests that the question is asking for the ages of all singers at the time of the song&#x27;s release, not just the singers who sang &quot;Gentleman&quot;.
-
-The predicted SQL query is too narrow and does not take into account the release year of the song or the ages of all singers at that time. Therefore, it does not provide a complete or accurate answer to the question.</pre>
+<pre>No: it returns only current ages and filters by Song_Name, but the question asks for ages at the time of the song’s release (as the reference query calculates), which the prediction does not compute.</pre>
 
 ---
 
@@ -5121,15 +4765,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it only selects the name and age of the singer who sang the song &quot;Gentleman&quot;, whereas the question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;. The predicted query does not take into account the release year of the song and does not calculate the age of each singer at that time. 
-
-In contrast, the ground truth SQL query calculates the age of each singer at the time of the release of the song &quot;Gentleman&quot; by adding the release year to their current age and subtracting the current year. However, the ground truth SQL query seems to have an error as well, because it subtracts the current year from the sum of the age and the release year, which would result in an incorrect calculation.
-
-A correct predicted SQL query would need to calculate the age of each singer at the time of the release of the song &quot;Gentleman&quot; by subtracting the release year from the current year and adding the result to the singer&#x27;s age at that time. But since the release year is the same for all singers in the ground truth result, the correct query would be more complex and would likely involve a subquery to get the release year of the song &quot;Gentleman&quot;. 
-
-The predicted SQL query provided does not meet the requirements of the question, hence the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters to singers whose Song_Name is “Gentleman” and returns their current Age, instead of computing each singer’s age at the release year of “Gentleman” for all singers.</pre>
 
 ---
 
@@ -5245,18 +4881,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not match the logic of the ground truth SQL. The ground truth SQL calculates the age of each singer at the time of the song&#x27;s release in the year 2000 by adding the difference between 2001 and the current year to the singer&#x27;s age. However, the predicted SQL only selects singers with the song name &#x27;Gentleman&#x27; and release year &#x27;2000&#x27;, and then calculates their age at release by subtracting the difference between the release year and 2000 from their current age.
-
-The predicted SQL has two main issues: 
-
-1. It only selects singers with the song name &#x27;Gentleman&#x27;, whereas the ground truth SQL considers all singers.
-2. It calculates the age at release based on the singer&#x27;s current age and release year, whereas the ground truth SQL calculates the age at release based on the singer&#x27;s current age and the year 2001.
-
-As a result, the predicted SQL returns an empty dataframe because there is no singer with the song name &#x27;Gentleman&#x27; and release year &#x27;2000&#x27; in the database, whereas the ground truth SQL returns a list of singers with their ages at the time of the song&#x27;s release. 
-
-Therefore, the predicted SQL does not correctly answer the natural language question.</pre>
+<pre>No: the prediction filters for Song_release_year = &#x27;2000&#x27; (the wrong first year) and uses an incorrect age calculation, resulting in an empty result instead of the singers’ ages at the 2001 release.</pre>
 
 ---
 
@@ -5286,7 +4911,7 @@ WHERE T1.Theme = 'Free choice'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  71 |            898 |             1009.31 |              159.46 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  71 |            898 |             1009.31 |              159.46 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5364,19 +4989,13 @@ Table: singer_in_concert
 Question: What are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. Although the result dataframes differ between the ground truth and the predicted result, this discrepancy arises from the interpretation of &quot;at that time&quot; in the question. The ground truth SQL calculates the age of the singers at the time of the concert by subtracting the current year from the concert year and adding this difference to the singers&#x27; current ages. In contrast, the predicted SQL simply retrieves the singers&#x27; current ages without adjusting for the time of the concert.
-
-However, given the ambiguity in the question and the schema, both interpretations can be considered valid. The question does not explicitly state how &quot;at that time&quot; should be interpreted, and without additional context, it is reasonable to assume that the current ages of the singers are sufficient to answer the question. Therefore, the predicted SQL can be seen as a reasonable interpretation of the natural language question, even if it differs from the ground truth SQL. 
-
-The predicted SQL correctly joins the necessary tables (concert, singer_in_concert, and singer) and applies the correct filter (Theme = &quot;Free choice&quot;) to retrieve the names and ages of the participating singers. The difference in results is due to the differing interpretations of the question&#x27;s temporal aspect, rather than any flaw in the predicted SQL&#x27;s logic or syntax.</pre>
+<pre>No: the prediction returns the singers&#x27; current ages instead of their ages at the time of the &quot;Free choice&quot; concert, ignoring the required age‑at‑concert calculation.</pre>
 
 ---
 
@@ -5406,7 +5025,7 @@ WHERE T3.Theme = 'Free choice' AND (strftime('%Y', 'now') - T1.Age) < 1985
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                1024 |           1887 |             14129.1 |              204.55 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                1024 |           1887 |             14129.1 |              204.55 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5482,23 +5101,13 @@ Table: singer_in_concert
 Question: If all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. It accurately identifies the singers who participated in the &quot;Free Choice&quot; themed concert and were born before 1985. The query joins the `singer`, `singer_in_concert`, and `concert` tables to filter the results based on the concert theme and the singer&#x27;s age.
-
-The key differences between the predicted SQL and the ground truth SQL are:
-
-1. The ground truth SQL calculates the age of the singers at the time of the concert by subtracting the current year from the concert year and adding it to the singer&#x27;s age. In contrast, the predicted SQL simply selects the singer&#x27;s current age.
-2. The ground truth SQL uses an `OR` condition in the `WHERE` clause, which is not necessary in this case, as the condition `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985` is already filtering the results to include only singers born before 1985.
-3. The predicted SQL uses a more straightforward and efficient approach to filter the results, using a single condition in the `WHERE` clause.
-
-Despite these differences, the predicted SQL produces a correct result, identifying John Nizinik as a singer who participated in the &quot;Free Choice&quot; themed concert and was born before 1985. The result may not be identical to the ground truth result, but it is a reasonable interpretation of the question. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No – the query returns the singers’ current Age and filters with an AND, whereas the question requires the ages at the time of the “Free choice” concert (i.e., age at concert) and the premise that all singers born before 1985 participated. The logic and calculated column do not match the required answer.</pre>
 
 ---
 
@@ -5612,15 +5221,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly calculate the age of the singers at the time of the concert. The ground truth SQL query calculates the age at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age. The predicted SQL query, on the other hand, simply returns the singer&#x27;s current age. This results in different ages being returned for the same singers, as seen in the predicted result compared to the ground truth result. For example, Timbaland&#x27;s age is 20 in the ground truth result, but 32 in the predicted result. This discrepancy indicates that the predicted SQL query does not accurately answer the question. 
-
-To correctly answer the question, the predicted SQL query should be modified to include the calculation of the age at the time of the concert, similar to the ground truth SQL query. 
-
-It&#x27;s also worth noting that the predicted SQL query is missing the calculation of the age at the time of the concert, which is a crucial part of the question. The question asks for the names and ages of the singers &quot;at the time of the concert&quot;, which implies that the age should be calculated based on the year of the concert, not just the current age of the singer. 
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns singers&#x27; current ages instead of calculating their ages at the time of the “Free Choice” concert.</pre>
 
 ---
 
@@ -5733,13 +5334,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the names and ages of all singers of the song &quot;Gentleman&quot; at the time of its release, assuming it was released in the first year of the 21st century (2001). However, the predicted SQL query only selects the release year of the song &quot;Gentleman&quot; from the singer table, without considering the names and ages of the singers.
-
-The ground truth SQL query calculates the age of each singer at the time of the song&#x27;s release by subtracting the current year from 2001 and adding the result to the singer&#x27;s age. In contrast, the predicted SQL query does not perform any age calculations and only returns the release year of the song, which is not relevant to the question.
-
-Furthermore, the predicted result shows a release year of 2014, which contradicts the assumption in the question that the song was released in 2001. This suggests that the predicted SQL query is not only incorrect but also inconsistent with the given information. Therefore, the verdict is &quot;No&quot;, indicating that the predicted SQL query is incorrect.</pre>
+<pre>No: the predicted query only selects the song&#x27;s release year and does not return the singers&#x27; names and ages as required.</pre>
 
 ---
 
@@ -5850,19 +5445,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect for several reasons. Firstly, the condition `T1.Age + 1985 &gt; 2024` in the WHERE clause is incorrect. This condition is trying to filter singers born before 1985, but it&#x27;s doing so by adding the singer&#x27;s age to 1985 and checking if it&#x27;s greater than 2024, which is not the correct way to calculate the birth year.
-
-The correct way to filter singers born before 1985 would be to subtract the singer&#x27;s age from the current year and check if the result is less than 1985. However, since the current year is not directly available in the database, we would need to use a different approach, such as using the year of the concert.
-
-Another issue with the predicted SQL query is that it&#x27;s trying to calculate the age of the singer at the time of the concert by subtracting the difference between the concert year and 2024 from the singer&#x27;s age. This is incorrect because it&#x27;s assuming that the singer&#x27;s age is their current age, and it&#x27;s not taking into account the fact that the concert may have taken place in a different year.
-
-The ground truth SQL query uses a different approach to calculate the age of the singer at the time of the concert. It first calculates the year of the concert, and then adds the difference between the concert year and the current year to the singer&#x27;s age. This approach is correct because it&#x27;s taking into account the fact that the concert may have taken place in a different year.
-
-Finally, the predicted SQL query is not returning any results, which suggests that the conditions in the WHERE clause are not being met. This is likely due to the incorrect condition `T1.Age + 1985 &gt; 2024`, which is filtering out all the singers.
-
-In contrast, the ground truth SQL query is returning the correct results, which suggests that it&#x27;s correctly filtering the singers and calculating their ages at the time of the concert. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the query filters on `Theme = &#x27;Free Choice&#x27;` (capital C) which doesn’t match the stored value “Free choice”, yielding no rows, and it also computes the age at the concert with the wrong sign (subtracting instead of adding the year difference).</pre>
 
 ---
 
@@ -5971,15 +5554,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not consider the current year when calculating the age of the singer on the 20th anniversary of the concert. The ground truth SQL takes into account the current year by using the `strftime` function, whereas the predicted SQL simply adds 20 to the singer&#x27;s current age.
-
-Additionally, the predicted SQL includes an unnecessary condition `T3.Year = &#x27;2014&#x27;` in the `WHERE` clause, which is not present in the ground truth SQL. This condition may filter out some relevant results if the concert &quot;Home Visits&quot; took place in a different year.
-
-The predicted result is an empty DataFrame, which suggests that the predicted SQL did not match any rows in the database. This is likely due to the incorrect condition `T3.Year = &#x27;2014&#x27;` in the `WHERE` clause.
-
-In contrast, the ground truth SQL correctly calculates the age of the singer on the 20th anniversary of the concert and returns the expected result. Therefore, the predicted SQL is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a flat +20 to the singer’s current age and unnecessarily filters on a specific Year, missing the required calculation that accounts for the time between now and the concert’s 20th anniversary, resulting in an empty/incorrect answer.</pre>
 
 ---
 
@@ -6087,15 +5662,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the number of years ago the earliest concert occurred, given that the concert with the theme &quot;Wide Awake&quot; took place three years earlier. 
-
-The ground truth SQL query first adjusts the year of the &quot;Wide Awake&quot; concert by subtracting 3, then combines this with the years of all other concerts. It finds the minimum year among these adjusted years and subtracts this minimum year from the current year to find the number of years ago the earliest concert occurred.
-
-In contrast, the predicted SQL query simply finds the minimum year among the &quot;Wide Awake&quot; concerts, adds 3 to this minimum year, and then subtracts the result from the current year. This approach does not consider the years of the other concerts and does not adjust the year of the &quot;Wide Awake&quot; concert correctly in the context of finding the earliest concert.
-
-As a result, the predicted SQL query does not provide the correct answer to the question, leading to a verdict of &quot;No&quot;.</pre>
+<pre>No: the prediction only looks at “Wide Awake” concerts, adds 3 years instead of subtracting 3, and ignores other concerts, unlike the reference logic that adjusts the “Wide Awake” year by –3 and then finds the earliest overall year.</pre>
 
 ---
 
@@ -6122,7 +5689,7 @@ FROM concert
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  44 |            871 |              1182.7 |              216.59 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  44 |            871 |              1182.7 |              216.59 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6196,23 +5763,13 @@ Table: singer_in_concert
 Question: If the &quot;Wide Awake&quot; themed concert was held three years earlier, how many years has it been since the earliest concert?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it still correctly calculates the number of years since the earliest concert, assuming the &quot;Wide Awake&quot; themed concert was held three years earlier.
-
-The predicted SQL uses a single query to calculate the difference between the minimum year of all concerts and the year of the &quot;Wide Awake&quot; concert minus 3. This approach is valid and produces the correct result.
-
-In contrast, the ground truth SQL uses a subquery with a UNION ALL operator to combine the years of all concerts, including the &quot;Wide Awake&quot; concert with its year adjusted by 3 years. While this approach is also valid, it is more complex than the predicted SQL.
-
-The predicted result of 3 is plausible, considering the question asks for the number of years since the earliest concert. The ground truth result of 15 may be incorrect or based on different data, as the predicted SQL query is a reasonable interpretation of the question.
-
-Overall, the predicted SQL query is correct, and the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the predicted query computes the difference between the earliest concert year and the adjusted Wide Awake year, not the number of years from the current year to the earliest (adjusted) concert. This misinterprets the required calculation.</pre>
 
 ---
 
@@ -6322,15 +5879,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect. Although it attempts to calculate the age of the singer on the 20th anniversary of the &quot;Home Visits&quot; concert, the calculation is flawed. The predicted SQL uses the current year (2023) and subtracts the concert year twice, which results in an incorrect calculation. 
-
-In contrast, the ground truth SQL calculates the target age by subtracting the current year from the concert year, adding the singer&#x27;s current age, and then adding 20. This approach ensures that the calculation is based on the correct time frame.
-
-The predicted result also shows an incorrect age (-1944), which further supports the conclusion that the predicted SQL is incorrect. The ground truth result, on the other hand, shows a reasonable age (52) for the singer John Nizinik.
-
-Therefore, based on the incorrect calculation and result, the predicted SQL is deemed incorrect.</pre>
+<pre>No: the predicted query miscalculates the age (uses 2023 - Year + 20 - Year instead of Year + 20 - current_year) resulting in an incorrect negative age.</pre>
 
 ---
 
@@ -6439,13 +5988,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the total revenue generated from ticket sales if all tickets are sold out at both stadiums, given the ticket prices for Balmoor and Hampden Park stadiums. However, the predicted SQL query only retrieves the capacities of the two stadiums, without calculating the total revenue.
-
-The ground truth SQL query, on the other hand, correctly calculates the total revenue by multiplying the capacity of the Balmoor stadium by its ticket price ($20) and adding twice the capacity of the Balmoor stadium (since Hampden Park has twice the capacity) multiplied by the ticket price of Hampden Park ($5.5).
-
-The predicted SQL query lacks the necessary calculations to determine the total revenue, and its result only provides the capacities of the two stadiums, which is not sufficient to answer the question. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction only returns capacities and does not compute revenue using the given ticket prices or the twice‑capacity relationship.</pre>
 
 ---
 
@@ -6564,17 +6107,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The main issue lies in the fact that it does not consider all the singers who performed at concerts in Stark Park and also took part in the &quot;Home Visits&quot; concert. 
-
-The first part of the predicted SQL query selects singers who performed in &quot;Home Visits&quot; and in a concert held at Stark&#x27;s Park, but it does not account for singers who performed in other concerts at Stark&#x27;s Park and also in &quot;Home Visits&quot;. The second part of the query selects all singers who performed in &quot;Home Visits&quot;, but it does not filter those who also performed at Stark&#x27;s Park.
-
-In contrast, the ground truth SQL query correctly identifies all the singers who performed in &quot;Home Visits&quot; and also in any concert held at Stark&#x27;s Park, by using an OR condition and a subquery to select the relevant Singer_IDs. 
-
-Additionally, the predicted SQL query does not calculate the target age correctly, as it simply adds 20 to the current age, whereas the ground truth query calculates the target age by subtracting the current year from the year of the &quot;Home Visits&quot; concert and adding the result to the singer&#x27;s age, then adding 20.
-
-Therefore, the predicted SQL query does not accurately answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the query incorrectly filters by stadium name for the Home Visits concert and simply adds 20 to each singer’s current age, rather than ensuring that all singers who performed at Stark Park concerts also performed at Home Visits and computing the age on the 20th anniversary.</pre>
 
 ---
 
@@ -6789,13 +6322,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total amount of money that can be made from ticket sales at both the Balmoor stadium and the Hampden Park stadium, given that the capacity of the Hampden Park stadium is twice that of the Balmoor stadium. However, the predicted SQL query only calculates the revenue for each stadium separately and does not account for the relationship between the capacities of the two stadiums.
-
-The ground truth SQL query correctly calculates the total revenue by first finding the capacity of the Balmoor stadium and then multiplying it by the ticket price, and adding twice the capacity of the Balmoor stadium (which is the capacity of the Hampden Park stadium) multiplied by the ticket price of the Hampden Park stadium.
-
-In contrast, the predicted SQL query does not calculate the total revenue and does not account for the relationship between the capacities of the two stadiums. It simply calculates the revenue for each stadium separately, which is not the correct interpretation of the question. Therefore, the predicted SQL query is incorrect.</pre>
+<pre>No: the prediction uses the actual Hampden Park capacity instead of twice the Balmoor capacity and does not compute the combined total revenue as required.</pre>
 
 ---
 
@@ -6833,7 +6360,7 @@ WHERE Average = (SELECT MAX(Average) FROM stadium)
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             821 |                 146 |            967 |             3187.31 |              240.47 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             821 |                 146 |            967 |             3187.31 |              240.47 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6908,21 +6435,13 @@ Table: singer_in_concert
 Question: Which stadiums have the lowest and highest average attendance rates respectively, and how many concerts have they each held?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is a reasonable interpretation of the natural language question. It correctly identifies the stadiums with the lowest and highest average attendance rates and returns the number of concerts held at each stadium. 
-
-The predicted SQL uses a common table expression (CTE) to calculate the concert count for each stadium, which is then used to select the stadiums with the minimum and maximum average attendance rates. The use of `UNION ALL` allows the results for both the lowest and highest average attendance rates to be combined into a single result set.
-
-The predicted result matches the expected output, with the stadium having the lowest average attendance rate and the stadium having the highest average attendance rate, along with their respective concert counts.
-
-The ground truth SQL is more complex and uses subqueries to achieve the same result, but the predicted SQL is more efficient and easier to read. Overall, the predicted SQL is a correct and reasonable interpretation of the natural language question.</pre>
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (average divided by capacity) required by the question, so it answers a different metric.</pre>
 
 ---
 
@@ -6980,7 +6499,7 @@ JOIN stadium_concert_count scc ON l.Name = scc.Name
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             835 |                 257 |           1092 |             4395.64 |              201.67 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             835 |                 257 |           1092 |             4395.64 |              201.67 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7055,21 +6574,13 @@ Table: singer_in_concert
 Question: What are the names of the stadiums with the highest and lowest average attendance rates, and how many concerts have been held in each of them?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. It correctly identifies the stadiums with the highest and lowest average attendance rates and joins this information with the number of concerts held in each stadium. 
-
-Although the predicted SQL query differs from the ground truth SQL, it achieves the same goal. The ground truth SQL uses subqueries and joins to find the stadiums with the highest and lowest average attendance rates and then joins this information with the concert count. In contrast, the predicted SQL query uses Common Table Expressions (CTEs) to break down the problem into smaller, more manageable parts. 
-
-The predicted result shows that the stadium with the highest average attendance rate is &quot;Stark&#x27;s Park&quot; with 1 concert, and the stadium with the lowest average attendance rate is &quot;Glebe Park&quot; with 1 concert. However, the ground truth result shows that the stadium with the highest average attendance rate is &quot;Bayview Stadium&quot; with 0 concerts. This discrepancy may be due to differences in the data or the interpretation of the question.
-
-Despite these differences, the predicted SQL query is a valid and reasonable interpretation of the question. It correctly identifies the stadiums with the highest and lowest average attendance rates and provides the correct concert count for each stadium. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction uses the raw Average column instead of the required Average/Capacity attendance rate and joins only stadiums that have at least one concert, so it omits the correct lowest‑rate stadium (which may have zero concerts) and returns wrong stadium names.</pre>
 
 ---
 
@@ -7110,7 +6621,7 @@ SELECT (SELECT count FROM concerts_in_top_stadiums) * 100.0 / (SELECT count FROM
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             817 |                 124 |            941 |             4374.54 |              170.79 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             817 |                 124 |            941 |             4374.54 |              170.79 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7184,23 +6695,13 @@ Table: singer_in_concert
 Question: What percentage of the concerts were held in the top three stadiums in terms of average attendance rate?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. It correctly identifies the top three stadiums in terms of average attendance rate and calculates the percentage of concerts held in those stadiums.
-
-The predicted SQL query uses Common Table Expressions (CTEs) to break down the calculation into smaller, more manageable pieces. The first CTE, `avg_attendance_stadiums`, selects the top three stadiums with the highest average attendance rate. The second CTE, `concerts_in_top_stadiums`, counts the number of concerts held in those top three stadiums. The third CTE, `total_concerts`, counts the total number of concerts.
-
-The final SELECT statement calculates the percentage of concerts held in the top three stadiums by dividing the count of concerts in those stadiums by the total count of concerts and multiplying by 100.
-
-The predicted result, 50, is different from the ground truth result, 33.333333. However, this difference can be attributed to the ambiguity in the question or schema, rather than an error in the predicted SQL query. The predicted SQL query is a valid and reasonable interpretation of the question, and therefore, the verdict is &quot;Yes&quot;. 
-
-It&#x27;s worth noting that the ground truth SQL query and the predicted SQL query differ in their approach to calculating the average attendance rate. The ground truth query uses the ratio of average attendance to capacity, while the predicted query uses only the average attendance. This difference in approach could lead to different results, but both queries are still reasonable interpretations of the question.</pre>
+<pre>No: the prediction orders stadiums by raw Average instead of the required average attendance rate (Average / Capacity), so it selects the wrong top‑three stadiums.</pre>
 
 ---
 
@@ -7238,7 +6739,7 @@ AND T3.Singer_ID IN (
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 182 |           1065 |             2738.65 |              121.36 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 182 |           1065 |             2738.65 |              121.36 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7314,19 +6815,13 @@ Table: singer_in_concert
 Question: If all the singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert, what are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly identifies the singers who participated in concerts held in Stark Park and also participated in the &quot;Home Visits&quot; concert. The predicted SQL uses a subquery to find the Singer_IDs of singers who performed in Stark Park, and then joins this result with the concert and singer tables to find the names and ages of these singers in the &quot;Home Visits&quot; concert.
-
-The main difference between the predicted SQL and the ground truth SQL is the way they calculate the target age. The predicted SQL uses a fixed year (2023) to calculate the target age, whereas the ground truth SQL uses the current year (obtained using the `strftime` function). However, this difference does not affect the correctness of the predicted SQL, as the question only asks for the names and ages of the singers on the 20th anniversary of the &quot;Home Visits&quot; concert, without specifying the current year.
-
-The predicted result shows only one singer, John Nizinik, with a target age of 71, whereas the ground truth result shows three singers with different target ages. This discrepancy may be due to the differences in the SQL queries or the data used to generate the results. However, based on the provided schema and question, the predicted SQL is a valid and reasonable interpretation, and therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction restricts to singers who performed both at Stark Park and at “Home Visits” (using an IN subquery) instead of returning all singers in “Home Visits” as the reference does, and it also hard‑codes the current year. This does not satisfy the question’s requirement.</pre>
 
 ---
 
@@ -7358,7 +6853,7 @@ WHERE Song_Name = 'Gentleman'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 167 |           1040 |             1211.16 |              221.95 |           0 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 167 |           1040 |             1211.16 |              221.95 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7437,15 +6932,13 @@ Table: singer_in_concert
 Question: What were the names and ages of all singers of the release of the song &quot;Gentleman&quot;</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `0.0`
+LLM judge score: `1.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it only selects the singers who have &quot;Gentleman&quot; as their song name, but it does not consider the release year of the song or calculate the target age as required by the question. The ground truth SQL query calculates the target age by adding the release year of the song to the singer&#x27;s age and subtracting the current year, which is not done in the predicted SQL query. Additionally, the predicted SQL query only returns one singer, John Nizinik, whereas the ground truth result returns multiple singers. The predicted SQL query does not accurately answer the question, so the verdict is &quot;No&quot;.</pre>
+<pre>Yes: the predicted query correctly filters singers where Song_Name = &#x27;Gentleman&#x27; and returns their Name and Age, matching the intended interpretation of “singers of the release of the song ‘Gentleman’”.</pre>
 
 ---
 
@@ -7558,13 +7051,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it only selects the singer who has a song named &quot;Gentleman&quot;, which is John Nizinik, and returns their current age, which is 43. However, the question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;. The predicted query does not take into account the release year of the song &quot;Gentleman&quot; and does not calculate the age of each singer at that time.
-
-The ground truth SQL query calculates the age of each singer at the time of the release of the song &quot;Gentleman&quot; by subtracting the current year from the release year of the song and adding the result to the singer&#x27;s age. The predicted query does not perform this calculation and therefore does not provide the correct answer to the question.
-
-Additionally, the predicted query only returns one singer, John Nizinik, who has a song named &quot;Gentleman&quot;, whereas the ground truth query returns all singers with their ages at the time of the release of the song &quot;Gentleman&quot;. This further highlights the incorrectness of the predicted query.</pre>
+<pre>No: the prediction filters to singers whose Song_Name is “Gentleman” and returns their current Age, ignoring the required calculation of age at the song’s release year.</pre>
 
 ---
 
@@ -7677,13 +7164,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the name and age of each singer at the time of the song&#x27;s release, given that the song &quot;Gentleman&quot; was released in the first year of the 21st century (2001). However, the predicted SQL query only selects the singers who have a song named &quot;Gentleman&quot; and released in 2001, which results in an empty dataframe because there is no such data in the provided schema.
-
-The ground truth SQL query, on the other hand, calculates the age of each singer at the time of the song&#x27;s release (2001) by subtracting the current year from 2001 and adding the result to the singer&#x27;s age. This approach assumes that the current year is not relevant to the calculation, which is a reasonable interpretation given the context of the question.
-
-The predicted SQL query fails to consider the age calculation and only focuses on selecting singers who match the specific song and release year, which is not the correct interpretation of the question. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction wrongly filters on Song_release_year = &#x27;2001&#x27; and returns the stored Age unchanged, instead of computing each singer’s age for the assumed 2001 release of “Gentleman”.</pre>
 
 ---
 
@@ -7797,9 +7278,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not take into account the age of the singers at the time of the concert. The ground truth SQL calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age. The predicted SQL simply returns the current age of the singers, which may not be the same as their age at the time of the concert. This is evident from the difference in the ages returned by the ground truth and predicted results. For example, Timbaland&#x27;s age at the time of the concert is 20 according to the ground truth result, but 32 according to the predicted result. This discrepancy suggests that the predicted SQL does not accurately answer the question.</pre>
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, ignoring the required year‑based age calculation.</pre>
 
 ---
 
@@ -7829,7 +7308,7 @@ WHERE LOWER(c.Theme) = LOWER('Free choice')
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 787 |           1706 |             6368.24 |              190.57 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 787 |           1706 |             6368.24 |              190.57 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7907,19 +7386,13 @@ Table: singer_in_concert
 Question: If all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. Although it differs from the ground truth SQL, it still accurately answers the natural language question. The predicted SQL joins the `singer`, `singer_in_concert`, and `concert` tables to retrieve the names and ages of singers who participated in the &quot;Free Choice&quot; themed concert. The `WHERE` clause filters the results to only include concerts with the theme &quot;Free choice&quot;.
-
-The ground truth SQL is more complex, as it attempts to calculate the age of each singer at the time of the concert. However, this calculation is not necessary to answer the question, as the question only asks for the names and ages of the participating singers. The predicted SQL provides the correct information, which is the names and current ages of the singers who participated in the concert.
-
-The results of the predicted SQL and the ground truth SQL differ slightly, but this is due to the different approaches taken by the two queries. The predicted SQL provides the current ages of the singers, while the ground truth SQL attempts to calculate their ages at the time of the concert. However, the predicted SQL is still a reasonable interpretation of the question, and its results are consistent with the information provided in the database schema. Therefore, the verdict is &quot;Yes&quot;, indicating that the predicted SQL is correct.</pre>
+<pre>No: the prediction returns current ages and includes all singers in the concert, ignoring the “born before 1985” condition and not calculating ages at the concert time.</pre>
 
 ---
 
@@ -8033,13 +7506,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the question because it does not account for the age of the singers at the time of the concert. The ground truth SQL query calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age. The predicted SQL query simply returns the current age of the singers, which is not what the question asks for. 
-
-Additionally, the predicted result shows different ages for the singers compared to the ground truth result, which further confirms that the predicted SQL query is incorrect. The use of LOWER() function for case-insensitive comparison in the predicted SQL is a good practice, but it does not compensate for the error in calculating the age at the time of the concert. 
-
-Therefore, the predicted SQL query is not a reasonable interpretation of the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns the singers’ current ages instead of calculating their ages at the time of the “Free Choice” concert.</pre>
 
 ---
 
@@ -8152,13 +7619,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not take into account the age of the singers at the time of the song&#x27;s release. The ground truth SQL calculates the target age by adding the difference between the release year (2001) and the current year to the singer&#x27;s age. The predicted SQL simply selects the name and age of the singers who sang the song &quot;Gentleman&quot; and were released in 2001, without considering the age at the time of release.
-
-Additionally, the predicted SQL returns an empty result set because there is no singer with the song name &quot;Gentleman&quot; and release year &quot;2001&quot; in the provided data. The ground truth SQL, on the other hand, returns a result set with the names and ages of all singers, assuming that the song &quot;Gentleman&quot; was released in 2001.
-
-The predicted SQL is not a reasonable interpretation of the question because it does not consider the age of the singers at the time of the song&#x27;s release, which is the key aspect of the question. A correct predicted SQL would need to calculate the age of the singers at the time of the song&#x27;s release, similar to the ground truth SQL.</pre>
+<pre>No: the prediction does not calculate ages at the 2001 release (it returns the current Age unchanged) and therefore fails to answer the question.</pre>
 
 ---
 
@@ -8270,13 +7731,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately reflect the conditions stated in the question. The question assumes that all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, which implies that the singers&#x27; age at the time of the concert should be calculated based on the concert year and their current age. However, the predicted SQL simply selects singers who are currently older than 41 years and participated in a &quot;Free Choice&quot; themed concert, without considering the concert year or the singers&#x27; age at the time of the concert.
-
-Additionally, the predicted SQL uses the condition `s.Age &gt; 41`, which seems arbitrary and not related to the condition of being born before 1985. The ground truth SQL, on the other hand, correctly calculates the singers&#x27; age at the time of the concert by subtracting the current year from the concert year and adding the result to the singers&#x27; current age.
-
-The predicted result is an empty DataFrame, which suggests that the predicted SQL did not match any rows in the database, likely due to the incorrect conditions used in the query. In contrast, the ground truth result provides a list of singers who participated in the &quot;Free Choice&quot; themed concert, along with their ages at the time of the concert.</pre>
+<pre>No: the prediction filters on current age (&gt;41) instead of birth year, ignores singers who would be assumed to participate, and does not compute age at the concert time. It also returns no rows, contrary to the expected result.</pre>
 
 ---
 
@@ -8387,15 +7842,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the question. The question asks for the names of the singers participating in the &quot;Home Visits&quot; concert and how old they will be on its 20th anniversary. The predicted SQL query calculates the age of the singer by adding 20 to their current age, but it does not take into account the year the concert was held. 
-
-In contrast, the ground truth SQL query calculates the target age by subtracting the current year from the year the concert was held, adding the singer&#x27;s current age, and then adding 20. This ensures that the age calculated is the singer&#x27;s age on the 20th anniversary of the concert.
-
-The predicted result shows John Nizinik&#x27;s age on the 20th anniversary as 63, while the ground truth result shows it as 52. This discrepancy arises from the predicted SQL query&#x27;s failure to account for the year the concert was held. 
-
-Therefore, the predicted SQL query does not correctly answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a flat 20 years to the singer’s current age instead of computing age at the concert’s 20th anniversary (it omits the concert Year – current year adjustment).</pre>
 
 ---
 
@@ -8502,13 +7949,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the number of years ago the earliest concert occurred, given that the concert with the theme &quot;Wide Awake&quot; took place three years earlier. However, the predicted SQL query simply calculates the difference between the current year and the earliest concert year without considering the condition related to the &quot;Wide Awake&quot; theme.
-
-The ground truth SQL query correctly addresses this by first adjusting the year of the &quot;Wide Awake&quot; concert by subtracting 3, then combining this with the years of all other concerts (excluding the &quot;Wide Awake&quot; concert) to find the minimum year among all these adjusted years. It then calculates the difference between the current year and this minimum year to find out how many years ago the earliest concert (considering the adjustment for the &quot;Wide Awake&quot; theme) occurred.
-
-In contrast, the predicted SQL query does not account for the specific condition regarding the &quot;Wide Awake&quot; concert and thus does not accurately reflect the intent of the question. It simply finds the earliest concert year without any adjustments, leading to a different calculation that does not align with the question&#x27;s requirements. Therefore, the predicted SQL query is incorrect in the context of the given natural language question.</pre>
+<pre>No: the prediction ignores the required three‑year earlier adjustment for the “Wide Awake” concert, simply using the raw MIN(Year) instead of the adjusted earliest year.</pre>
 
 ---
 
@@ -8624,11 +8065,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the &quot;Home Visits&quot; concert. The ground truth SQL calculates the age by subtracting the current year from the year of the concert and adding the singer&#x27;s current age plus 20. In contrast, the predicted SQL simply adds 20 to the singer&#x27;s current age, which does not take into account the year of the concert or the current year. This results in an incorrect age calculation, as seen in the predicted result (63) compared to the ground truth result (52). 
-
-To correctly calculate the age on the 20th anniversary, the predicted SQL should also consider the year of the concert and the current year, similar to the ground truth SQL.</pre>
+<pre>No – the prediction adds a flat 20 to the singer’s current age (`s.Age + 20`) instead of calculating the age at the concert’s 20‑year anniversary using the concert year and the current year as required.</pre>
 
 ---
 
@@ -8736,13 +8173,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it attempts to join the stadium table with itself based on the capacity of Hampden Park being twice that of Balmoor. However, this join condition is not guaranteed to work as expected because it relies on the exact capacity values matching between the two stadiums, which may not be the case due to the data type (integer) and potential rounding issues. Moreover, the join will only return rows where both stadiums have a matching capacity relationship, which may not be unique or may not exist at all, resulting in an empty dataframe as seen in the predicted result.
-
-In contrast, the ground truth SQL query assumes that the capacity of Balmoor stadium can be used directly to calculate the revenue for both stadiums, with Hampden Park having twice the capacity of Balmoor. This approach is more straightforward and does not rely on joining the table with itself, avoiding potential issues with data matching and uniqueness.
-
-Therefore, the predicted SQL query does not correctly answer the question, and its result is empty, indicating a failure to retrieve the required data. The ground truth SQL query provides a more accurate and reliable solution to calculate the total revenue from ticket sales at both stadiums.</pre>
+<pre>No: the prediction adds a join condition `h.Capacity = 2 * b.Capacity`, forcing the data to satisfy the “twice capacity” relationship, which the question treats as an assumption, not a filter; this yields no rows and does not compute the intended revenue.</pre>
 
 ---
 
@@ -8878,7 +8309,7 @@ WHERE st.Name = 'Somerset Park'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 723 |           1642 |             7207.13 |              143.53 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 723 |           1642 |             7207.13 |              143.53 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -8952,21 +8383,13 @@ Table: singer_in_concert
 Question: Singers born before 1980 earn $355 per concert, while singers born after 1980 earn $228 per concert. How much was spent on paying the singers for the concerts held in Somerset Park stadium?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly calculates the total amount spent on paying singers for concerts held in Somerset Park stadium.
-
-The key difference between the two SQL queries is how they determine the age group of the singers. The ground truth SQL uses the current year and the singer&#x27;s age to calculate their birth year, whereas the predicted SQL uses a simple age threshold (40 years old) to determine the payment amount. While this approach may not be entirely accurate, it is a reasonable simplification given the available data.
-
-The predicted SQL also uses a more efficient and concise approach to calculate the total amount spent, using a single `SUM` aggregation with a `CASE` statement to determine the payment amount for each singer.
-
-The predicted result (811) is different from the ground truth result (684), but this discrepancy can be attributed to the different age calculation methods used in the two SQL queries. Nevertheless, the predicted SQL is a valid and reasonable interpretation of the natural language question, and therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction uses `CASE WHEN s.Age &gt; 40` to decide the rate, which does not correctly implement “born before 1980” (the reference uses `strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - Age &lt; 1980`). This logical error leads to a different total (811 vs 684).</pre>
 
 ---
 
@@ -9003,7 +8426,7 @@ WHERE st.Name = 'Somerset Park'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 637 |           1554 |             7214.97 |              211.13 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 637 |           1554 |             7214.97 |              211.13 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9077,21 +8500,13 @@ Table: singer_in_concert
 Question: What was the total expenditure on paying singers for concerts held at Somerset Park stadium, given that singers born before 1980 earned $355 per concert and those born after 1980 earned $228 per concert?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. It correctly joins the necessary tables (concert, stadium, singer_in_concert, and singer) and applies the correct conditions to filter the results. The use of a CASE statement within the SUM function effectively handles the different payment rates for singers born before and after 1980.
-
-Although the predicted SQL query differs from the ground truth SQL, it produces a result that is plausible given the ambiguity in the question and the schema. The ground truth result is 684, while the predicted result is 811. This discrepancy could be due to differences in how the queries handle the calculation of the singer&#x27;s birth year or the payment rates.
-
-However, upon closer examination, it appears that the predicted SQL query may be more accurate than the ground truth SQL. The ground truth SQL uses the current year and the singer&#x27;s age to estimate their birth year, which may not be accurate. In contrast, the predicted SQL query uses the concert year and the singer&#x27;s age to estimate their birth year, which may be more reliable.
-
-Overall, the predicted SQL query is a reasonable interpretation of the natural language question, and its result is plausible given the ambiguity in the question and the schema. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction calculates birth year as `c.Year - s.Age` (using the concert year) instead of using the current year, so it applies the wrong rates.</pre>
 
 ---
 
@@ -9199,13 +8614,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not produce any results due to the join condition `h.Capacity = 2 * b.Capacity`. This condition is not met in the provided schema, as there is no guarantee that the capacity of &#x27;Hampden Park&#x27; is exactly twice that of &#x27;Balmoor&#x27;. 
-
-The question states &quot;If the capacity of the Hampden Park stadium is twice that of the Balmoor stadium&quot;, which implies a hypothetical scenario, not an actual condition in the database. The ground truth SQL correctly calculates the total revenue by multiplying the capacity of &#x27;Balmoor&#x27; by 20 and adding twice the capacity of &#x27;Balmoor&#x27; multiplied by 5.5, without relying on the actual capacity of &#x27;Hampden Park&#x27; being twice that of &#x27;Balmoor&#x27;. 
-
-In contrast, the predicted SQL attempts to join the stadium table with itself based on the capacity condition, which is not a valid approach to solve this problem. Therefore, the predicted SQL is incorrect.</pre>
+<pre>No: the prediction adds a `WHERE h.Capacity = 2 * b.Capacity` filter, which eliminates rows when the actual data doesn’t satisfy the “twice” condition, resulting in an empty result instead of computing the revenue under the hypothetical relationship.</pre>
 
 ---
 
@@ -9330,17 +8739,7 @@ LLM judge score: `1.0`
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. It accurately identifies the stadiums with the lowest and highest average attendance rates and returns the number of concerts held at each stadium. 
-
-The query uses a UNION ALL operator to combine two separate queries: one for the stadium with the lowest average attendance and one for the stadium with the highest average attendance. Each query joins the stadium table with the concert table on the Stadium_ID column and groups the results by stadium. The WHERE clause filters the results to only include the stadium with the minimum or maximum average attendance.
-
-The predicted result shows that the stadium with the lowest average attendance is Glebe Park with an average attendance of 552 and 1 concert, and the stadium with the highest average attendance is Stark&#x27;s Park with an average attendance of 2106 and 1 concert.
-
-Although the predicted SQL query differs from the ground truth SQL, it achieves the same result and is a more efficient and readable query. The ground truth SQL uses subqueries and joins to achieve the same result, but the predicted SQL query uses a more straightforward approach with UNION ALL and grouping. 
-
-Therefore, the predicted SQL query is a reasonable interpretation of the natural language question and is considered correct.</pre>
+<pre>Yes: the prediction correctly selects the stadiums with the minimum and maximum Average values (the average attendance) and counts their concerts, matching the question’s intent.</pre>
 
 ---
 
@@ -9374,7 +8773,7 @@ GROUP BY s.Stadium_ID, s.Name
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 354 |           1245 |             3463.94 |              187.68 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 354 |           1245 |             3463.94 |              187.68 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9449,21 +8848,13 @@ Table: singer_in_concert
 Question: What are the names of the stadiums with the highest and lowest average attendance rates, and how many concerts have been held in each of them?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly identifies the stadiums with the highest and lowest average attendance rates and counts the number of concerts held in each.
-
-The predicted SQL uses a LEFT JOIN to combine the stadium and concert tables, and then applies a WHERE clause to filter the results to only include the stadiums with the maximum and minimum average attendance rates. The results are then grouped by stadium ID and name, and the count of concerts is calculated for each group.
-
-The predicted result shows that the stadiums with the highest and lowest average attendance rates are &quot;Stark&#x27;s Park&quot; and &quot;Glebe Park&quot;, respectively, with 1 concert held in each. Although the ground truth result only shows one row with the highest stadium, the predicted result provides more information by including both the highest and lowest stadiums.
-
-The main difference between the predicted SQL and the ground truth SQL is that the predicted SQL uses a simpler and more efficient approach to join the tables and filter the results, whereas the ground truth SQL uses subqueries and joins to achieve the same result. However, both queries produce reasonable results, and the predicted SQL is a valid and executable query that answers the natural language question.</pre>
+<pre>No: the prediction filters on the raw Average column (MAX/MIN) instead of the attendance rate (Average / Capacity) used in the question, so it selects the wrong stadiums and gives an incorrect answer.</pre>
 
 ---
 
@@ -9497,7 +8888,7 @@ WHERE Stadium_ID IN (
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 367 |           1240 |             5606.37 |              155.55 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 367 |           1240 |             5606.37 |              155.55 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9571,19 +8962,13 @@ Table: singer_in_concert
 Question: What percentage of the concerts were held in the top three stadiums in terms of average attendance rate?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL query, it still correctly answers the question. The main difference between the two queries is the ordering of stadiums by average attendance rate. The ground truth query orders stadiums by the average attendance rate as a percentage of capacity (100.0 * Average / Capacity), while the predicted query orders stadiums by the average attendance rate in descending order (Average DESC).
-
-However, since the question asks for the top three stadiums in terms of average attendance rate, and the average attendance rate is not normalized by capacity in the question, the predicted query&#x27;s approach is a valid interpretation. The predicted query&#x27;s result (50) may differ from the ground truth result (33.333333) due to the difference in ordering, but it is still a plausible answer given the ambiguity in the question.
-
-Therefore, I conclude that the predicted SQL query is correct, and the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction orders stadiums by raw Average instead of the average attendance rate (Average / Capacity) required by the question.</pre>
 
 ---
 
@@ -9733,7 +9118,7 @@ WHERE
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             916 |                 110 |           1026 |              874.63 |              154.32 |           0 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             916 |                 110 |           1026 |              874.63 |              154.32 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9875,19 +9260,13 @@ WHERE
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `0.0`
+LLM judge score: `1.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not account for the calculation of the target age, which is the age of the singer at the time of the song&#x27;s release. The ground truth SQL calculates the target age by adding the song&#x27;s release year to the singer&#x27;s age and then subtracting the current year. The predicted SQL simply selects the singer&#x27;s name and age without performing this calculation.
-
-Additionally, the predicted result only returns one singer, John Nizinik, whereas the ground truth result returns five singers. This suggests that the predicted SQL is not correctly identifying all singers associated with the song &quot;Gentleman&quot;.
-
-The predicted SQL is a reasonable starting point, but it does not fully capture the nuances of the question, which asks for the names and ages of all singers of the release of the song &quot;Gentleman&quot;. The ground truth SQL provides a more accurate answer by calculating the target age and returning all relevant singers. Therefore, the predicted SQL is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>Yes – the prediction correctly selects the singers whose Song_Name is “Gentleman” and returns their Name and Age, which matches the intended interpretation of the question.</pre>
 
 ---
 
@@ -10067,15 +9446,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately answer the natural language question. The question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;, but the predicted SQL only returns the current age of the singers who sang the song &quot;Gentleman&quot;. 
-
-The ground truth SQL calculates the age of each singer at the time of the song&#x27;s release by adding the song&#x27;s release year to the singer&#x27;s age and then subtracting the current year. This calculation is not present in the predicted SQL, resulting in an incorrect answer. 
-
-Furthermore, the predicted result only returns one singer, John Nizinik, whereas the ground truth result returns multiple singers, indicating that the predicted SQL is also missing the correct join or filter to include all relevant singers. 
-
-Therefore, the predicted SQL does not provide the correct information to answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction only returns singers whose Song_Name is “Gentleman” and uses their current Age, ignoring the required calculation of age at the song’s release year.</pre>
 
 ---
 
@@ -10255,15 +9626,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately answer the natural language question. The question asks for the name and age of each singer at the time of the song&#x27;s release, assuming the song &quot;Gentleman&quot; was released in the first year of the 21st century (2001). However, the predicted SQL query calculates the age of the singer by subtracting the difference between the song&#x27;s release year and 2001 from the singer&#x27;s current age. This approach is incorrect because it assumes that the singer&#x27;s age is stored in the database as their current age, and that the song&#x27;s release year is stored in the database.
-
-Moreover, the predicted SQL query includes a WHERE clause that filters the results to only include singers who have a song named &quot;Gentleman&quot;. This is not necessary, as the question assumes that the song &quot;Gentleman&quot; was released in 2001, and we want to calculate the age of each singer at that time.
-
-The ground truth SQL query, on the other hand, calculates the age of each singer at the time of the song&#x27;s release by adding 2001 to their age and subtracting the current year. This approach is correct because it takes into account the fact that the song was released in 2001, and calculates the age of each singer at that time.
-
-The predicted result only includes one singer, John Nizinik, with an age of 30, whereas the ground truth result includes multiple singers with different ages. This suggests that the predicted SQL query is not only incorrect but also incomplete. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the query filters to singers whose Song_Name is &#x27;Gentleman&#x27; and uses the stored Song_release_year instead of assuming the release year is 2001, so it omits most singers and does not follow the “first year of the 21st century” assumption.</pre>
 
 ---
 
@@ -10460,11 +9823,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not account for the age of the singers at the time of the concert. The ground truth SQL query calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding this difference to the singer&#x27;s age. The predicted SQL query simply retrieves the current age of the singers, which is not the correct interpretation of the question.
-
-The predicted result shows the current ages of the singers (32, 29, and 43), whereas the ground truth result shows their ages at the time of the concert (20, 17, and 31). This discrepancy indicates that the predicted SQL query does not accurately answer the question. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, omitting the required calculation using the concert year.</pre>
 
 ---
 
@@ -10650,15 +10009,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singers at the time of the concert. The query simply selects the current age of the singers, whereas the ground truth SQL query calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s current age.
-
-Additionally, the predicted SQL query does not match the ground truth result. The ground truth result includes the names and ages of the singers at the time of the concert, which are 31 for John Nizinik, 17 for Justin Brown, and 20 for Timbaland. In contrast, the predicted result includes the current ages of the singers, which are 43 for John Nizinik and 32 for Timbaland, and does not include Justin Brown.
-
-The predicted SQL query also uses a different condition to filter the singers, using `(CAST(c.Year AS INTEGER) - s.Age) &lt; 1985`, which is not equivalent to the condition used in the ground truth SQL query, `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985`. This condition is also incorrect, as it does not accurately determine the singers who were born before 1985.
-
-Overall, the predicted SQL query does not accurately answer the question, and the result does not match the ground truth result. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No – the query computes birth year as concert year – age (and filters on that) instead of using the current year, so it does not correctly select singers born before 1985, and its result differs from the expected ages.</pre>
 
 ---
 
@@ -10855,13 +10206,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the names and ages of all singers who participated in the &quot;Free Choice&quot; themed concert at the time of the concert. However, the predicted SQL query only selects the current age of the singers, not their age at the time of the concert.
-
-In contrast, the ground truth SQL query calculates the age of each singer at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s current age. This ensures that the result reflects the singers&#x27; ages at the time of the concert, not their current ages.
-
-As a result, the predicted result differs significantly from the ground truth result, with the predicted ages being much higher than the actual ages at the time of the concert. This indicates that the predicted SQL query does not accurately capture the intent of the natural language question, and therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns the singers’ current ages instead of computing their ages at the time of the “Free Choice” concert (it lacks the age‑at‑concert calculation using the concert year).</pre>
 
 ---
 
@@ -11043,13 +10388,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the names and ages of the singers at the time of the song&#x27;s release, assuming it was released in the first year of the 21st century (2001). However, the predicted SQL query simply selects the names and ages of singers where the song name is &#x27;Gentleman&#x27; and the release year is &#x27;2001&#x27;, without considering the age of the singers at the time of release.
-
-The ground truth SQL query, on the other hand, calculates the age of the singers at the time of release by subtracting the current year from 2001 and adding it to their age. This suggests that the age column in the singer table represents the current age of the singers, and the ground truth query is adjusting for the passage of time since the song&#x27;s release.
-
-The predicted SQL query&#x27;s result is an empty dataframe, which further indicates that the query is not correctly formulated to answer the question. The query&#x27;s conditions (Song_Name = &#x27;Gentleman&#x27; and Song_release_year = &#x27;2001&#x27;) may not be met in the database, or the database schema may not match the assumptions made by the predicted query. In contrast, the ground truth query produces a result with the names and ages of the singers at the time of the song&#x27;s release, demonstrating a correct understanding of the question&#x27;s intent.</pre>
+<pre>No: the prediction neither filters correctly for the “Gentleman” singers nor computes their ages at the 2001 release (it just returns current Age and yields no rows).</pre>
 
 ---
 
@@ -11231,15 +10570,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singers at the time of the concert. The query simply selects the current age of the singers, whereas the ground truth SQL calculates the age at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age.
-
-Additionally, the predicted SQL query does not account for the fact that the concert&#x27;s year is not provided in the schema, and it assumes that the year of the concert is the same as the current year. The ground truth SQL query, on the other hand, correctly retrieves the year of the concert from the concert table and uses it to calculate the age of the singers at the time of the concert.
-
-The results of the predicted SQL query also differ significantly from the ground truth result, with different ages and a missing singer (Justin Brown). This suggests that the predicted SQL query is not a reasonable interpretation of the natural language question. 
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the query uses the concert year to test birth‑year (&lt;1985) and returns the singers’ current Age instead of computing their age at the concert, so it does not answer the question.</pre>
 
 ---
 
@@ -11419,15 +10750,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the &quot;Home Visits&quot; concert. The predicted query simply adds 20 to the singer&#x27;s current age, which is not the correct way to calculate their age on a future date.
-
-The ground truth SQL query, on the other hand, correctly calculates the age of the singer on the 20th anniversary by subtracting the current year from the year of the concert and adding the singer&#x27;s current age plus 20. This takes into account the actual year of the concert and the passage of time.
-
-The difference in results between the predicted and ground truth queries also highlights the error in the predicted query. The predicted result shows the singer&#x27;s age as 63, while the ground truth result shows it as 52, which is a significant difference.
-
-Therefore, the predicted SQL query does not accurately answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the query adds a flat 20 years to the singer’s current age instead of computing the age at the concert’s 20th anniversary (it ignores the concert’s Year column).</pre>
 
 ---
 
@@ -11462,7 +10785,7 @@ SELECT
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             921 |                 773 |           1694 |             10833.8 |              246.44 |           0 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             921 |                 773 |           1694 |             10833.8 |              246.44 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -11601,19 +10924,13 @@ SELECT
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `0.0`
+LLM judge score: `1.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the number of years ago the earliest concert occurred, given that the concert with the theme &quot;Wide Awake&quot; took place three years earlier. However, the predicted SQL query calculates the difference between the current year and the year of the earliest concert with the theme &quot;Wide Awake&quot; plus 3, which is not the correct interpretation.
-
-The ground truth SQL query correctly answers the question by first adjusting the year of the concert with the theme &quot;Wide Awake&quot; by subtracting 3, then finding the minimum year among all concerts (including the adjusted &quot;Wide Awake&quot; concert and all other concerts), and finally subtracting this minimum year from the current year.
-
-In contrast, the predicted SQL query only considers the year of the concert with the theme &quot;Wide Awake&quot; and does not take into account the years of other concerts. As a result, the predicted result (9) is different from the ground truth result (15), indicating that the predicted SQL query is incorrect.</pre>
+<pre>Yes – the prediction correctly computes “current year − (Year of the “Wide Awake” concert + 3)”, which matches the question’s requirement. The key clause is the `MIN(CAST(Year AS INTEGER)) FROM concert WHERE Theme = &#x27;Wide Awake&#x27;) + 3`.</pre>
 
 ---
 
@@ -11793,15 +11110,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the singer&#x27;s age on the 20th anniversary of the &quot;Home Visits&quot; concert. The predicted SQL simply adds 20 to the singer&#x27;s current age, which is not the correct interpretation of the question. 
-
-The ground truth SQL, on the other hand, calculates the target age by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s current age, then adding 20. This correctly accounts for the time that has passed since the concert and the additional 20 years.
-
-The difference in results between the predicted SQL (63) and the ground truth result (52) further highlights the error in the predicted SQL. The predicted result is 11 years older than the ground truth result, which is a significant discrepancy. 
-
-Therefore, the predicted SQL does not provide a reasonable interpretation of the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds 20 to the singer’s current age (s.Age + 20) and ignores the concert’s year, whereas the question requires the age at the concert’s 20th anniversary (which depends on the concert year).</pre>
 
 ---
 
@@ -12182,17 +11491,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, given that all singers who performed at concerts in Stark Park also took part in it. However, the predicted SQL query does not calculate the age of the singers on the 20th anniversary of the &quot;Home Visits&quot; concert. 
-
-Instead, it simply selects the names and current ages of singers who performed at the &quot;Home Visits&quot; concert and also performed at concerts in Stark Park. The query also does not account for the 20th anniversary condition, which is a crucial part of the question.
-
-The ground truth SQL query, on the other hand, correctly calculates the age of the singers on the 20th anniversary of the &quot;Home Visits&quot; concert by subtracting the current year from the year of the concert and adding 20 to the singer&#x27;s current age. The ground truth query also correctly identifies the singers who performed at both the &quot;Home Visits&quot; concert and concerts in Stark Park.
-
-The predicted result is an empty dataframe, which suggests that the query is not correctly identifying the singers who meet the conditions specified in the question. In contrast, the ground truth result provides a list of singers with their calculated ages on the 20th anniversary of the &quot;Home Visits&quot; concert.
-
-Overall, the predicted SQL query does not accurately answer the natural language question, and therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No – the prediction only returns current ages (and none at that) and does not compute ages on the 20‑year anniversary; it also mis‑applies the “all singers from Stark Park” condition, leading to an empty result unlike the reference.</pre>
 
 ---
 
@@ -12383,13 +11682,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it contains a logical error in the CASE statement. The query pays $228 to singers born before 1980 and $355 to singers born after 1980, which is the opposite of the conditions stated in the question. 
-
-In the predicted SQL, the CASE statement says `WHEN (2024 - s.Age) &lt; 1980 THEN 228`, which means that if the singer&#x27;s birth year is before 1980, they are paid $228, and if their birth year is after 1980, they are paid $355. However, according to the question, singers born before 1980 should be paid $355, and singers born after 1980 should be paid $228.
-
-This error results in an incorrect total amount spent on paying the singers, as shown in the predicted result. The ground truth SQL and result are correct, and the predicted SQL does not match the logic of the question. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the CASE expression reverses the rates (assigns $228 to singers born before 1980 and $355 to those born after), contradicting the question’s rates.</pre>
 
 ---
 
@@ -12427,7 +11720,7 @@ WHERE st.Name = 'Somerset Park'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             938 |                 832 |           1770 |             10006.6 |              221.44 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             938 |                 832 |           1770 |             10006.6 |              221.44 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12569,19 +11862,13 @@ WHERE st.Name = 'Somerset Park'
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. It correctly joins the necessary tables (concert, stadium, singer_in_concert, and singer) and applies the payment conditions based on the singer&#x27;s age. The use of a CASE statement in the SUM function effectively calculates the total expenditure by considering the different payment rates for singers born before and after 1980.
-
-The predicted SQL query also correctly filters the concerts to only those held at Somerset Park stadium using the WHERE clause. The result of the predicted query may not exactly match the ground truth result due to differences in how the age condition is applied (the predicted query uses `s.Age &gt; 40` assuming the current year is around 2020, while the ground truth query uses `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1980`), but both methods aim to achieve the same goal of distinguishing between singers born before and after 1980.
-
-Given the potential ambiguity in the question and the schema, and considering the predicted SQL query&#x27;s logic and correctness in calculating the total expenditure based on the provided conditions, the predicted SQL query can be considered a valid interpretation of the question. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No – the query uses an arbitrary “Age &gt; 40” rule instead of the required birth‑year calculation (strftime‑now minus Age) and thus does not implement the given $355/$228 payment rule correctly.</pre>
 
 ---
 
@@ -12814,7 +12101,7 @@ ORDER BY rank_type
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             918 |                 749 |           1667 |             7118.81 |              172.45 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             918 |                 749 |           1667 |             7118.81 |              172.45 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12977,23 +12264,13 @@ ORDER BY rank_type
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. Although it differs from the ground truth SQL, it achieves the same goal of finding the stadiums with the lowest and highest average attendance rates and counting the number of concerts held in each.
-
-The predicted SQL uses a Common Table Expression (CTE) to calculate the average attendance and concert count for each stadium, and then joins this CTE with the minimum and maximum average attendance values to get the stadiums with the lowest and highest average attendance rates.
-
-The predicted result shows that the stadium with the highest average attendance rate is &quot;Stark&#x27;s Park&quot; with an average attendance of 2106 and 1 concert held, and the stadium with the lowest average attendance rate is &quot;Glebe Park&quot; with an average attendance of 552 and 1 concert held.
-
-In contrast, the ground truth SQL uses subqueries to achieve the same result, but the predicted SQL is more efficient and easier to read. The ground truth result shows that the stadium with the highest average attendance rate is &quot;Bayview Stadium&quot; with 0 concerts held, but this may be due to differences in the data or the calculation of average attendance.
-
-Overall, the predicted SQL query is a reasonable interpretation of the natural language question and provides a correct result. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No – the prediction uses the raw Average column, while the question’s “average attendance rate” requires the average divided by capacity (as used in the reference). This mismatch means the query does not answer the intended question.</pre>
 
 ---
 
@@ -13027,7 +12304,7 @@ GROUP BY s.Stadium_ID, s.Name
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             925 |                 371 |           1296 |             6719.15 |              188.05 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             925 |                 371 |           1296 |             6719.15 |              188.05 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -13166,26 +12443,13 @@ GROUP BY s.Stadium_ID, s.Name
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it still correctly identifies the stadiums with the highest and lowest average attendance rates and counts the number of concerts held in each of them.
-
-The key differences between the predicted SQL and the ground truth SQL are:
-
-1. The ground truth SQL uses subqueries to separately calculate the highest and lowest average attendance rates, whereas the predicted SQL uses a single query with OR conditions to filter the results.
-2. The ground truth SQL joins the results of the subqueries to combine the information, whereas the predicted SQL uses a single query with GROUP BY to aggregate the results.
-
-Despite these differences, the predicted SQL query produces a result that is consistent with the question being asked. The predicted result shows the names of two stadiums (Stark&#x27;s Park and Glebe Park) along with the number of concerts held in each, which is a plausible interpretation of the question.
-
-However, it&#x27;s worth noting that the predicted result differs from the ground truth result, which shows only one stadium (Bayview Stadium) with zero concerts. This discrepancy could be due to various factors, such as differences in the database schema, data, or the interpretation of the question.
-
-Overall, considering the predicted SQL query and its result, I conclude that it is a reasonable interpretation of the natural language question, and therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction filters on the raw Average column instead of the attendance rate (Average / Capacity) required by the question, so it returns the wrong stadiums.</pre>
 
 ---
 
@@ -13226,7 +12490,7 @@ FROM concert_counts
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             916 |                 508 |           1424 |             6966.33 |              208.94 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             916 |                 508 |           1424 |             6966.33 |              208.94 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -13374,23 +12638,13 @@ FROM concert_counts
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. Although it differs from the ground truth SQL, it achieves the same goal of calculating the percentage of concerts held in the top three stadiums in terms of average attendance rate.
-
-The predicted SQL uses a common table expression (CTE) to first identify the top three stadiums with the highest average attendance rate, and then calculates the total number of concerts and the number of concerts held in these top three stadiums. The final result is the percentage of concerts held in the top three stadiums, which is calculated by dividing the number of concerts in the top three stadiums by the total number of concerts and multiplying by 100.
-
-The ground truth SQL query uses a subquery to calculate the percentage directly, but the predicted SQL query uses a CTE to break down the calculation into smaller steps. Both queries produce the same result, but the predicted SQL query is more readable and maintainable due to its modular design.
-
-The difference in the results (33.333333 vs 50) is likely due to the ambiguity in the question or the schema, as mentioned in the problem statement. However, based on the provided schema and the question, both results seem plausible, and the predicted SQL query is a reasonable interpretation of the question.
-
-Therefore, the predicted SQL query is correct, and the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction orders stadiums by raw Average instead of by average attendance rate (Average / Capacity), so it selects the wrong top‑3 stadiums.</pre>
 
 ---
 
@@ -13594,17 +12848,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the condition stated in the question. The question asks for the names of the singers participating in the &quot;Home Visits&quot; concert and their age on its 20th anniversary, given that all singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert. 
-
-The predicted SQL query attempts to find singers who participated in the &quot;Home Visits&quot; concert and did not participate in any concert held in Stark Park, unless they also participated in the &quot;Home Visits&quot; concert. However, this logic is flawed because it does not consider the scenario where a singer participated in a concert at Stark Park and also in the &quot;Home Visits&quot; concert, which should be included in the results.
-
-Furthermore, the predicted SQL query does not calculate the age of the singers on the 20th anniversary of the &quot;Home Visits&quot; concert correctly. It simply adds 20 to the current age of the singers, without considering the year the &quot;Home Visits&quot; concert was held.
-
-The ground truth SQL query, on the other hand, correctly identifies the singers who participated in the &quot;Home Visits&quot; concert and calculates their age on its 20th anniversary. It also considers the condition that all singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert.
-
-Therefore, the predicted SQL query does not accurately answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the predicted query returns only John Nizinik, omitting the other singers (e.g., Timbaland and Justin Brown) that should be listed as participants in “Home Visits.” The missing singers indicate the query does not correctly answer the question.</pre>
 
 ---
 
@@ -13762,13 +13006,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the original question. The question asks for the names and ages of all singers of the release of the song &quot;Gentleman&quot;, but it implies that the age should be calculated based on the current year and the song&#x27;s release year. The predicted SQL query simply selects the names and ages of singers who sang the song &quot;Gentleman&quot; without considering the release year.
-
-In contrast, the ground truth SQL query calculates the age of each singer by adding the difference between the current year and the song&#x27;s release year to their age. This suggests that the question is asking for the singers&#x27; ages at the time of the song&#x27;s release, rather than their current age.
-
-The predicted result only contains one row, whereas the ground truth result contains multiple rows, indicating that the predicted SQL query is not only incorrect but also incomplete. Therefore, the predicted SQL query does not reasonably interpret the original question, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the prediction only selects singers with Song_Name = &#x27;Gentleman&#x27; and returns their current Age, whereas the question (as interpreted by the reference) requires ages at the song’s release (Age + release_year − current_year) for all singers. The query lacks this calculation and the necessary rows.</pre>
 
 ---
 
@@ -13922,13 +13160,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;, which implies that the age should be calculated based on the release year of the song. However, the predicted SQL query simply selects the name and age of singers who have a song named &quot;Gentleman&quot;, without considering the release year.
-
-In contrast, the ground truth SQL query calculates the age of each singer by adding the difference between the release year of the song &quot;Gentleman&quot; and the current year to their age. This suggests that the ground truth query is attempting to calculate the age of the singer at the time of the song&#x27;s release, which is the correct interpretation of the question.
-
-The predicted result also differs significantly from the ground truth result, with only one singer being returned compared to five in the ground truth result. This further suggests that the predicted SQL query is not accurately capturing the intent of the question. Therefore, the verdict is &quot;No&quot;, indicating that the predicted SQL query is incorrect.</pre>
+<pre>No: the prediction just returns the current Age for singers whose Song_Name is “Gentleman” and does not compute the age at the song’s release (it omits the calculation using Song_release_year and the current year).</pre>
 
 ---
 
@@ -14084,15 +13316,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the name and age of each singer at the time of the song&#x27;s release, which implies that the age should be calculated based on the release year of the song. However, the predicted SQL simply selects the name and age of singers where the song name is &quot;Gentleman&quot; and the release year is 2001, without calculating the age at the time of release.
-
-In contrast, the ground truth SQL calculates the age at the time of release by adding the release year (2001) to the singer&#x27;s age and subtracting the current year. This ensures that the age is calculated correctly based on the release year of the song.
-
-Furthermore, the predicted result is an empty dataframe, which suggests that the predicted SQL is not correctly filtering the data. The ground truth result, on the other hand, returns a list of singers with their calculated ages at the time of release.
-
-Overall, while the predicted SQL may seem reasonable at first glance, it does not accurately capture the intent of the natural language question and does not produce the correct result. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters singers by the song and uses their current Age instead of calculating age at 2001, and returns no rows, whereas the question requires the age of every singer at the year 2001.</pre>
 
 ---
 
@@ -14251,13 +13475,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singers at the time of the concert. The ground truth SQL query takes into account the year of the concert and the current year to calculate the age of the singers at the time of the concert, whereas the predicted SQL query simply returns the current age of the singers.
-
-The predicted result shows the current ages of the singers (32, 29, and 43), whereas the ground truth result shows the ages of the singers at the time of the concert (20, 17, and 31). This discrepancy indicates that the predicted SQL query does not correctly answer the natural language question, which asks for the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time.
-
-To correctly answer the question, the predicted SQL query should have included a calculation to determine the age of the singers at the time of the concert, similar to the ground truth SQL query. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns the singers’ current ages instead of computing their ages at the time of the “Free choice” concert, ignoring the required adjustment based on the concert year.</pre>
 
 ---
 
@@ -14416,19 +13634,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question for several reasons:
-
-1. **Age Calculation**: The predicted SQL query simply selects the current age of the singers, whereas the question asks for the ages of the singers at the time of the &quot;Free Choice&quot; themed concert. The ground truth SQL query calculates the age at the time of the concert by subtracting the current year from the year of the concert and adding this difference to the singer&#x27;s age.
-
-2. **Year of Concert**: The predicted SQL query does not consider the year the concert took place, which is crucial in determining the age of the singers at that time. The ground truth SQL query takes into account the year of the concert by selecting it from the concert table.
-
-3. **Birth Year Condition**: Although the predicted SQL does not explicitly filter singers based on their birth year, the join with the concert table implicitly includes only singers who participated in the &quot;Free Choice&quot; concert. However, the question&#x27;s condition that all singers born before 1985 participated is not directly addressed in the predicted query. The ground truth SQL includes an alternative condition in the WHERE clause (`OR strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985`) that seems to aim at addressing the birth year condition indirectly, but its relevance and correctness are questionable given the context.
-
-4. **Result Difference**: The predicted result and the ground truth result differ significantly in terms of the ages listed for each singer. This discrepancy arises from the predicted SQL not adjusting the singers&#x27; ages to reflect their age at the time of the concert, as discussed above.
-
-Given these differences, the predicted SQL query does not accurately capture the nuances of the natural language question, particularly concerning the calculation of the singers&#x27; ages at the time of the concert and the consideration of the concert&#x27;s year. Therefore, it is considered incorrect in the context provided.</pre>
+<pre>No: the predicted query does not filter singers born before 1985 nor compute their ages at the concert time, unlike the reference logic.</pre>
 
 ---
 
@@ -14587,9 +13793,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the age of the singers at the time of the concert. The ground truth SQL takes into account the year of the concert and the current year to calculate the age of the singers at the time of the concert, whereas the predicted SQL simply retrieves the current age of the singers. This results in different ages being returned in the predicted result compared to the ground truth result. For example, Timbaland&#x27;s age in the predicted result is 32, but in the ground truth result, his age at the time of the concert was 20. This discrepancy indicates that the predicted SQL does not correctly answer the natural language question.</pre>
+<pre>No: the prediction returns the singers’ current ages, not their ages at the time of the “Free Choice” concert, missing the required age‑at‑concert calculation.</pre>
 
 ---
 
@@ -14745,15 +13949,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the names and ages of the singers of the song &quot;Gentleman&quot; at the time of its release, assuming it was released in the first year of the 21st century (2001). However, the predicted SQL query simply filters the singers by the song name and release year, without considering the age of the singers at the time of release.
-
-The ground truth SQL query, on the other hand, calculates the age of the singers at the time of release by subtracting the current year from 2001 and adding the result to the singer&#x27;s age. This suggests that the database stores the current age of the singers, and the query needs to adjust it to find their age in 2001.
-
-The predicted SQL query does not perform this calculation, and instead returns an empty result set, indicating that there are no singers with the song name &quot;Gentleman&quot; and release year &quot;2001&quot; in the database. This is likely due to the fact that the database schema is not provided, and the query assumes that the song name and release year are stored in the same table as the singer&#x27;s information.
-
-Overall, while the predicted SQL query may be syntactically correct, it does not accurately capture the intent of the natural language question, and therefore is considered incorrect.</pre>
+<pre>No – the prediction just returns the current Age (and filters on Song_release_year = &#x27;2001&#x27;, which yields no rows) instead of calculating each singer’s age at the 2001 release as required.</pre>
 
 ---
 
@@ -14914,17 +14110,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the age of the singers at the time of the concert. The predicted SQL simply selects the names and ages of the singers who participated in the &quot;Free Choice&quot; themed concert, without considering the year the concert took place. 
-
-In contrast, the ground truth SQL calculates the age of the singers at the time of the concert by subtracting the current year from the year the concert took place and adding this difference to the singer&#x27;s age. This ensures that the result reflects the singers&#x27; ages at the time of the concert, not their current age.
-
-Additionally, the predicted SQL and ground truth SQL have different results, with the predicted SQL returning Timbaland and John Nizinik with ages 32 and 43, respectively, while the ground truth result returns John Nizinik, Justin Brown, and Timbaland with ages 31, 17, and 20, respectively. This discrepancy further supports the conclusion that the predicted SQL is incorrect.
-
-The condition in the predicted SQL, `(CAST(c.Year AS INTEGER) - s.Age) &lt; 1985`, is also incorrect. It seems to be attempting to filter singers born before 1985, but it is doing so in a way that is not consistent with the question or the ground truth SQL. The ground truth SQL uses the condition `A.Theme = &quot;Free choice&quot; OR strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985`, which is a more accurate representation of the assumption that all singers born before 1985 participated in the concert. 
-
-Overall, the predicted SQL does not accurately answer the question, and its result differs significantly from the ground truth result. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction joins only singers actually linked to the concert, uses the wrong birth‑year condition (concert year instead of current year) and returns current ages instead of ages at the concert, missing singers that should be included.</pre>
 
 ---
 
@@ -15097,13 +14283,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not take into account the current year when calculating the age of the singer on the 20th anniversary of the concert. The ground truth SQL uses the expression `A.Year - strftime(&quot;%Y&quot;, &quot;now&quot;) + C.Age + 20` to calculate the target age, which considers the year the concert took place and the current year. In contrast, the predicted SQL simply adds 20 to the singer&#x27;s current age, which is incorrect.
-
-The difference in results between the ground truth and predicted SQL also highlights this issue. The ground truth result shows the singer&#x27;s age on the 20th anniversary as 52, while the predicted result shows it as 63, which is likely an overestimation due to the incorrect calculation.
-
-To correctly answer the question, the predicted SQL should have accounted for the year the concert took place and the current year when calculating the singer&#x27;s age on the 20th anniversary. Therefore, the predicted SQL is not a reasonable interpretation of the natural language question.</pre>
+<pre>No: the predicted query adds a flat 20 years to the singer’s current age and never uses the concert’s Year column, so it does not compute the age on the concert’s 20th anniversary.</pre>
 
 ---
 
@@ -15255,17 +14435,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the number of years ago the earliest concert occurred, given that the concert with the theme &quot;Wide Awake&quot; took place three years earlier. 
-
-The predicted SQL query calculates the difference between the current year and the year of the concert with the theme &quot;Wide Awake&quot; plus 3. This does not take into account the fact that the earliest concert may not be the one with the theme &quot;Wide Awake&quot;. 
-
-In contrast, the ground truth SQL query first adjusts the year of the concert with the theme &quot;Wide Awake&quot; by subtracting 3, then combines this with the years of all other concerts and finds the minimum year. It then calculates the difference between the current year and this minimum year, which correctly answers the question.
-
-The predicted result (9) is also different from the ground truth result (15), which further supports the conclusion that the predicted SQL query is incorrect. 
-
-Therefore, the predicted SQL query does not accurately answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds 3 years to the “Wide Awake” concert year and ignores other concerts, whereas the question (and reference) require subtracting 3 years from that concert’s year and then finding the earliest concert overall.</pre>
 
 ---
 
@@ -15423,11 +14593,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it retrieves the names of the singers and calculates their age, it does so incorrectly. The predicted query simply adds 20 to the singer&#x27;s current age, whereas the ground truth query calculates the singer&#x27;s age on the 20th anniversary of the concert by subtracting the current year from the concert year and then adding 20 to the singer&#x27;s age.
-
-The difference in results between the predicted and ground truth queries (63 vs 52) highlights this discrepancy. The predicted query does not account for the concert&#x27;s year, which is essential in determining the singer&#x27;s age on the 20th anniversary. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a flat 20 years to the singer’s current age instead of accounting for the concert’s original year (i.e., it ignores the concert Year column needed to compute the age at the 20th anniversary).</pre>
 
 ---
 
@@ -15592,13 +14758,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total amount of money that can be made from ticket sales at both the Balmoor stadium and the Hampden Park stadium when all tickets are sold out. However, the predicted SQL query returns the revenue for each stadium separately, rather than calculating the total revenue.
-
-The ground truth SQL query, on the other hand, correctly calculates the total revenue by multiplying the capacity of the Balmoor stadium by 20 and adding the result of multiplying the capacity of the Hampden Park stadium by 5.5. This returns a single value representing the total revenue, which is 368750.
-
-The predicted SQL query, by contrast, returns two separate values: 288750 for Hampden Park and 80000 for Balmoor. While these values are individually correct, they do not answer the question of what the total revenue would be. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns separate revenues per stadium instead of the combined total money asked for.</pre>
 
 ---
 
@@ -15884,17 +15044,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately capture the conditions specified in the natural language question. The question asks for the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, if all the singers who performed at concerts in Stark Park also took part in it. 
-
-The predicted SQL query attempts to filter singers who performed at &quot;Home Visits&quot; and also did not perform at any concert in Stark Park, unless they also performed at &quot;Home Visits&quot;. This logic is flawed because it does not consider singers who performed at both &quot;Home Visits&quot; and concerts in Stark Park.
-
-In contrast, the ground truth SQL query correctly identifies singers who performed at &quot;Home Visits&quot; and also performed at concerts in Stark Park, by using an OR condition to include singers who performed at either &quot;Home Visits&quot; or concerts in Stark Park. The ground truth query also correctly calculates the target age by adding 20 to the singer&#x27;s current age.
-
-The predicted result is an empty DataFrame, which suggests that the query is too restrictive and does not return any singers who meet the conditions. In contrast, the ground truth result returns three singers with their corresponding target ages. 
-
-Therefore, the predicted SQL query does not accurately answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the query adds a flat +20 to the current age (ignoring the concert year vs. current year offset) and its NOT EXISTS condition yields no rows, whereas the question requires ages at the 20‑year anniversary of the “Home Visits” concert.</pre>
 
 ---
 
@@ -16048,13 +15198,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it attempts to join the `stadium` table with itself based on the condition that the capacity of &#x27;Hampden Park&#x27; is twice that of &#x27;Balmoor&#x27;. However, this join condition is not necessary to answer the question, and it also leads to an incorrect result because the join operation is based on an equality condition (`h.Capacity = 2 * b.Capacity`) that is not guaranteed to be true in the database.
-
-The correct approach, as shown in the ground truth SQL, is to simply select the capacity of &#x27;Balmoor&#x27; and calculate the total revenue based on the given ticket prices and the relationship between the capacities of the two stadiums. The ground truth SQL query correctly calculates the total revenue as `Capacity * 20 + 2 * Capacity * 5.5`, which is the revenue from &#x27;Balmoor&#x27; plus the revenue from &#x27;Hampden Park&#x27;, assuming its capacity is twice that of &#x27;Balmoor&#x27;.
-
-The predicted SQL query&#x27;s result is an empty dataframe, which indicates that the join operation did not match any rows, likely because the capacity of &#x27;Hampden Park&#x27; is not exactly twice that of &#x27;Balmoor&#x27; in the database. This further supports the conclusion that the predicted SQL query is incorrect.</pre>
+<pre>No: the prediction adds the condition `h.Capacity = 2 * b.Capacity`, which filters out rows (resulting in an empty set) instead of using the hypothetical “twice” relationship as the reference query does. This extra clause makes the answer incorrect.</pre>
 
 ---
 
@@ -16225,17 +15369,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately capture the intent of the original question. The question asks for the stadiums with the lowest and highest average attendance rates, along with the number of concerts held at each. However, the predicted SQL query does not consider the capacity of the stadiums when calculating the average attendance rate, which is a crucial factor in determining the correct answer.
-
-In contrast, the ground truth SQL query takes into account the capacity of the stadiums by using the expression `100.0 * Average / Capacity` to calculate the average attendance rate. This ensures that the query returns the correct stadiums with the lowest and highest average attendance rates.
-
-Furthermore, the predicted SQL query returns multiple rows (one for each stadium with the minimum or maximum average attendance rate), whereas the ground truth SQL query returns a single row with the names of the stadiums with the lowest and highest average attendance rates, along with the number of concerts held at each.
-
-Additionally, the predicted SQL query uses a `LEFT JOIN` to join the `stadium` and `concert` tables, which may return incorrect results if there are stadiums with no concerts. The ground truth SQL query uses subqueries to count the number of concerts at each stadium, which ensures that the results are accurate even if there are stadiums with no concerts.
-
-Overall, while the predicted SQL query may return some relevant information, it does not accurately capture the intent of the original question and therefore is incorrect.</pre>
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) that the question asks for, so it selects the wrong stadiums.</pre>
 
 ---
 
@@ -16399,17 +15533,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it attempts to find the stadiums with the highest and lowest average attendance rates and the number of concerts held in each, it fails to provide the specific information requested.
-
-The predicted SQL query returns two rows, one for the stadium with the highest average attendance rate and one for the stadium with the lowest average attendance rate. However, it does not explicitly label these stadiums as the highest or lowest, nor does it provide a clear comparison between the two.
-
-In contrast, the ground truth SQL query returns a single row with four columns, providing the names of the stadiums with the highest and lowest average attendance rates, as well as the number of concerts held in each. This suggests that the ground truth query is attempting to provide a more direct comparison between the two stadiums.
-
-Furthermore, the predicted SQL query uses a simple `MAX` and `MIN` aggregation to find the highest and lowest average attendance rates, whereas the ground truth query uses a more complex subquery approach to achieve the same result. This may indicate that the predicted query is oversimplifying the problem or failing to account for certain nuances in the data.
-
-Overall, while the predicted SQL query is not entirely incorrect, it does not provide the same level of detail or clarity as the ground truth query, and therefore does not fully answer the natural language question.</pre>
+<pre>No: the prediction uses the raw Average column to find highest/lowest stadiums, while the question’s “average attendance rates” require computing Average / Capacity (as the reference does), so it selects the wrong stadiums and gives incorrect counts.</pre>
 
 ---
 
@@ -16576,25 +15700,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the average attendance rate for each stadium. The query orders the stadiums by the `Average` column in descending order, but it does not consider the capacity of each stadium. The ground truth SQL query, on the other hand, orders the stadiums by the average attendance rate as a percentage of capacity (`100.0 * Average / Capacity DESC`), which is a more accurate measure of attendance rate.
-
-As a result, the predicted SQL query returns a different set of top three stadiums, leading to a different percentage of concerts held in those stadiums. The predicted result (50%) is significantly different from the ground truth result (33.333333%), indicating that the predicted SQL query does not correctly answer the natural language question.
-
-To correctly answer the question, the predicted SQL query should be modified to order the stadiums by the average attendance rate as a percentage of capacity, like the ground truth SQL query. The correct predicted SQL query would be:
-
-```sql
-SELECT
-    (COUNT(*) * 100.0) / (SELECT COUNT(*) FROM concert) AS percentage
-FROM concert
-WHERE Stadium_ID IN (
-    SELECT Stadium_ID
-    FROM stadium
-    ORDER BY 100.0 * Average / Capacity DESC
-    LIMIT 3
-)
-```</pre>
+<pre>No: the prediction orders stadiums by raw Average instead of the attendance rate (Average / Capacity) required by the question.</pre>
 
 ---
 
@@ -16751,17 +15857,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not fully capture the conditions specified in the natural language question. The question states that if all the singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert, what are the names of the singers participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary? 
-
-The predicted SQL query only selects singers who participated in the &quot;Home Visits&quot; concert and calculates their age 20 years from now, but it does not consider the condition related to concerts held in Stark Park. The ground truth SQL query, on the other hand, takes into account both conditions by using an OR clause to include singers who either participated in the &quot;Home Visits&quot; concert or participated in concerts held in Stark Park.
-
-Additionally, the predicted result only includes one singer, John Nizinik, whereas the ground truth result includes three singers: Timbaland, Justin Brown, and John Nizinik. This discrepancy further supports the conclusion that the predicted SQL query is incorrect.
-
-The predicted SQL query also calculates the age at the 20th anniversary incorrectly, as it simply adds 20 to the current age, whereas the ground truth SQL query calculates the age at the 20th anniversary of the &quot;Home Visits&quot; concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s current age, and then adding 20. 
-
-Therefore, the predicted SQL query does not accurately represent the natural language question, and its result differs significantly from the ground truth result.</pre>
+<pre>No: the prediction omits the Stark Park condition and computes age as Age+20 instead of adjusting for the concert year, resulting in missing singers and an incorrect age calculation.</pre>
 
 ---
 
@@ -16926,15 +16022,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the percentage of concerts that took place in the three stadiums with the highest average attendance rates. 
-
-The issue lies in the subquery that selects the top 3 stadiums: `SELECT Stadium_ID FROM stadium ORDER BY Average DESC LIMIT 3`. This query orders the stadiums by their average attendance in descending order, but it does not take into account the capacity of the stadiums. The ground truth SQL query, on the other hand, orders the stadiums by the average attendance as a percentage of the capacity: `SELECT Stadium_ID FROM stadium ORDER BY 100.0 * Average / Capacity DESC LIMIT 3`. 
-
-This means that the predicted SQL query may select stadiums with high average attendance, but low capacity, whereas the ground truth SQL query selects stadiums with high average attendance as a percentage of their capacity. As a result, the predicted SQL query may not accurately identify the top 3 stadiums with the highest average attendance rates, leading to an incorrect calculation of the percentage of concerts that took place in these stadiums. 
-
-The difference in results between the predicted SQL query (50) and the ground truth SQL query (33.333333) further supports this conclusion, indicating that the predicted SQL query is not a reasonable interpretation of the natural language question.</pre>
+<pre>No: the prediction orders stadiums by Average only, ignoring the required attendance rate (Average / Capacity) used in the question, so it selects the wrong three stadiums.</pre>
 
 ---
 
@@ -16969,7 +16057,7 @@ GROUP BY c.concert_ID, c.concert_Name
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                 557 |           1486 |             9637.78 |              183.64 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                 557 |           1486 |             9637.78 |              183.64 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -17097,21 +16185,13 @@ GROUP BY c.concert_ID, c.concert_Name
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. Although it differs from the ground truth SQL, it still accurately answers the natural language question. The question asks for the ID and name of each concert held at Somerset Park stadium, and the percentage of female singers in each concert. The predicted SQL query joins the necessary tables, filters for concerts held at Somerset Park stadium, and calculates the percentage of female singers for each concert.
-
-The key difference between the predicted SQL and the ground truth SQL is that the ground truth SQL also considers the concert named &quot;Week 2&quot; regardless of the stadium, whereas the predicted SQL only considers concerts held at Somerset Park stadium. However, according to the question, the condition &quot;If the &#x27;Week 2&#x27; concert was held at Somerset Park stadium&quot; implies that we should focus on concerts held at Somerset Park stadium. 
-
-The predicted result matches the ground truth result in terms of the concerts held at Somerset Park stadium, with the same concert IDs, names, and female singer percentages. The ground truth result includes the &quot;Week 2&quot; concert, but this is because the ground truth SQL considers the &quot;Week 2&quot; concert separately, whereas the predicted SQL only considers concerts held at Somerset Park stadium.
-
-Overall, the predicted SQL is a reasonable interpretation of the natural language question, and it produces the correct result for the given condition. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the query filters only concerts where the stadium name is “Somerset Park” and omits the “Week 2” concert that should be included by the “if … was held at Somerset Park” condition.</pre>
 
 ---
 
@@ -17269,13 +16349,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not account for the calculation of the singers&#x27; ages at the time of the song&#x27;s release. The ground truth SQL includes a subquery to retrieve the song&#x27;s release year and calculates the target age by subtracting the current year from the release year and adding the singer&#x27;s age. In contrast, the predicted SQL simply selects the singers&#x27; names and ages without considering the release year.
-
-Additionally, the predicted result only includes one singer, John Nizinik, whereas the ground truth result includes multiple singers. This suggests that the predicted SQL may not be capturing all the relevant information.
-
-While the predicted SQL is a reasonable attempt to answer the question, it does not fully address the query&#x27;s requirements, and the result is incomplete. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No – the prediction only selects singers whose Song_Name is “Gentleman” and returns their current Age, ignoring the required calculation of age at the song’s release (and the need to include all singers).</pre>
 
 ---
 
@@ -17429,13 +16503,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;, which implies that the age should be calculated based on the release year of the song and the current year. However, the predicted SQL query only selects the name and age of the singer(s) who have a song named &quot;Gentleman&quot;, without considering the release year or calculating the age at that time.
-
-In contrast, the ground truth SQL query correctly calculates the age of each singer at the time of the release of the song &quot;Gentleman&quot; by adding the difference between the release year and the current year to their age. The predicted SQL query does not perform this calculation, resulting in an incorrect output.
-
-Furthermore, the predicted result only returns one singer, John Nizinik, whereas the ground truth result returns multiple singers, indicating that the predicted SQL query may not be considering all relevant data. Overall, the predicted SQL query does not accurately answer the natural language question, and therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction just returns the current Age column and does not compute the singer’s age at the song’s release (i.e., it omits the calculation using Song_release_year and the current year).</pre>
 
 ---
 
@@ -17591,15 +16659,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the name and age of each singer at the time of the song&#x27;s release, assuming it was released in the first year of the 21st century (2001). However, the predicted SQL query filters the results to only include singers who have a song named &quot;Gentleman&quot; and released in 2001, which is not the correct interpretation.
-
-The ground truth SQL query, on the other hand, calculates the age of each singer at the time of the song&#x27;s release by subtracting the current year from 2001 and adding the result to the singer&#x27;s age. This query does not filter the results based on the song name or release year, which is the correct approach given the ambiguity of the question.
-
-The predicted result is an empty dataframe, which suggests that there are no singers who have a song named &quot;Gentleman&quot; and released in 2001, which is not the expected outcome. The ground truth result, on the other hand, provides a list of singers with their calculated ages at the time of the song&#x27;s release, which is the correct outcome.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the prediction just filters singers with Song_Name=&#x27;Gentleman&#x27; released in 2001 and returns their current Age, yielding no rows, instead of calculating each singer’s age at the 2001 release (as the reference does).</pre>
 
 ---
 
@@ -17758,15 +16818,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it joins the necessary tables (singer, singer_in_concert, and concert) and applies the correct filter for the concert theme, it fails to account for the age of the singers at the time of the concert. 
-
-The ground truth SQL query calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding this difference to the singer&#x27;s age. This adjustment is crucial because the question asks for the ages of the singers &quot;at that time,&quot; implying the time of the concert, not their current age.
-
-In contrast, the predicted SQL query simply selects the current age of the singers without considering the time of the concert. As a result, the predicted result shows the current ages of the singers (32, 29, and 43), which are different from the ages calculated at the time of the concert in the ground truth result (20, 17, and 31). 
-
-Therefore, the predicted SQL query does not accurately answer the question, leading to a verdict of &quot;No&quot;.</pre>
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, ignoring the required age‑at‑concert calculation.</pre>
 
 ---
 
@@ -17925,17 +16977,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at the time of the concert, given that all singers born before 1985 participated. However, the predicted SQL query simply joins the singer, singer_in_concert, and concert tables and filters for concerts with the theme &quot;Free choice&quot;, without considering the age of the singers at the time of the concert.
-
-The ground truth SQL query, on the other hand, calculates the age of each singer at the time of the concert by subtracting the current year from the year of the concert and adding this difference to the singer&#x27;s age. This ensures that the ages returned are the ages of the singers at the time of the concert, not their current ages.
-
-The predicted result also differs significantly from the ground truth result, with different ages for the same singers. This suggests that the predicted SQL query is not correctly interpreting the question.
-
-Furthermore, the predicted SQL query does not filter for singers born before 1985, which is a key condition in the natural language question. The ground truth SQL query includes this filter, either explicitly or implicitly, by using the condition `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985`, which ensures that only singers born before 1985 are included in the result.
-
-Overall, while the predicted SQL query may be a reasonable interpretation of part of the question, it does not fully capture the nuances of the question and does not produce the correct result. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the predicted query omits the required filter for singers born before 1985 and does not calculate ages at the concert time, simply returning current ages for all singers in the “Free choice” concert.</pre>
 
 ---
 
@@ -18091,15 +17133,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singers at the time of the concert. The query simply selects the current age of the singers who participated in the &quot;Free Choice&quot; themed concert, without considering the year the concert took place.
-
-In contrast, the ground truth SQL query calculates the age of the singers at the time of the concert by subtracting the current year from the year the concert took place and adding the result to the singer&#x27;s current age. This ensures that the age of the singers is accurately represented as it was at the time of the concert.
-
-Additionally, the predicted result is an empty dataframe, which suggests that the query did not return any results, whereas the ground truth result returns three rows with the names and ages of the singers who participated in the concert.
-
-The predicted SQL query is a reasonable attempt, but it lacks the necessary calculation to determine the age of the singers at the time of the concert, making it an incorrect interpretation of the natural language question.</pre>
+<pre>No: it filters on the wrong Theme string (&#x27;Free Choice&#x27; vs the actual &quot;Free choice&quot;) and returns the singers&#x27; current Age instead of calculating their age at the time of the concert.</pre>
 
 ---
 
@@ -18255,19 +17289,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the names and ages of the singers of the song &quot;Gentleman&quot; at the time of its release, assuming it was released in the first year of the 21st century (2001). However, the predicted SQL query filters the results to only include rows where the song name is &quot;Gentleman&quot; and the release year is 2001. 
-
-This approach is flawed for several reasons:
-
-1. The schema provided does not include a table with columns for Song_Name and Song_release_year, which are used in the predicted SQL query. The ground truth SQL query, on the other hand, does not use these columns, suggesting that the information about the song &quot;Gentleman&quot; and its release year is either not necessary or is inferred from the context.
-
-2. The predicted SQL query does not calculate the age of the singers at the time of the song&#x27;s release. It simply selects the current age of the singers, which is not what the question asks for. The ground truth SQL query, however, calculates the target age by subtracting the current year from 2001 and adding the age, which is a correct interpretation of the question.
-
-3. The predicted SQL query returns an empty result set, which suggests that there are no rows in the singer table that match the conditions specified in the query. This could be due to the fact that the schema does not include columns for Song_Name and Song_release_year, or that the data in the table does not match the conditions.
-
-In contrast, the ground truth SQL query returns a result set with the names and ages of the singers at the time of the song&#x27;s release, which is a more accurate interpretation of the natural language question. Therefore, the predicted SQL query is incorrect.</pre>
+<pre>No: the prediction filters on Song_release_year = &#x27;2001&#x27; and returns the current Age instead of computing each singer’s age at the 2001 release, contrary to the question’s requirement.</pre>
 
 ---
 
@@ -18428,17 +17450,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the age of the singers at the time of the concert. The predicted SQL simply selects the singers who were born before 1985 and participated in the &quot;Free Choice&quot; themed concert, but it does not take into account the year the concert was held. 
-
-In contrast, the ground truth SQL calculates the age of the singers at the time of the concert by subtracting the current year from the year the concert was held and adding this difference to the singer&#x27;s age. This ensures that the age of the singers is calculated correctly, regardless of when the query is executed.
-
-Additionally, the predicted result only includes two singers, while the ground truth result includes three singers. This suggests that the predicted SQL is missing some relevant data, likely due to the incorrect age calculation.
-
-The condition `s.Age &gt; (c.Year - 1985)` in the predicted SQL is also incorrect. This condition is attempting to filter singers who were born before 1985, but it is doing so by comparing the singer&#x27;s age to the difference between the concert year and 1985. This will not produce the correct results, as the singer&#x27;s age is not necessarily related to the concert year.
-
-Overall, while the predicted SQL is attempting to answer the question, it contains several errors that make it an incorrect interpretation of the natural language question.</pre>
+<pre>No: the prediction filters with `s.Age &gt; (c.Year - 1985)` instead of selecting singers born before 1985, and it returns the current Age instead of the age at the concert, so it does not answer the question.</pre>
 
 ---
 
@@ -18611,15 +17623,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the &quot;Home Visits&quot; concert. The predicted query simply adds 20 to the singer&#x27;s current age, which does not take into account the year the concert took place.
-
-In contrast, the ground truth SQL query calculates the target age by subtracting the current year from the year the concert took place, adding the singer&#x27;s current age, and then adding 20. This ensures that the age calculation is accurate and takes into account the passage of time since the concert.
-
-The difference in results between the predicted and ground truth queries (63 vs 52) further highlights the error in the predicted query. The predicted query&#x27;s result is likely incorrect because it does not account for the year the concert took place, resulting in an age that is too high.
-
-Therefore, the predicted SQL query does not reasonably interpret the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the query adds a flat 20 years to the singer’s current age instead of calculating the age on the concert’s 20th anniversary using the concert year.</pre>
 
 ---
 
@@ -18771,17 +17775,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the number of years ago the earliest concert occurred, given that the concert with the theme &quot;Wide Awake&quot; took place three years earlier. The predicted SQL query attempts to calculate this by adding 3 to the year of the &quot;Wide Awake&quot; concert and then subtracting the minimum year from the concert table.
-
-However, the predicted SQL query does not take into account the condition that the &quot;Wide Awake&quot; concert took place three years earlier. It simply adds 3 to the year of the &quot;Wide Awake&quot; concert, which is not the correct interpretation.
-
-The ground truth SQL query correctly handles this condition by subtracting 3 from the year of the &quot;Wide Awake&quot; concert and then unioning it with the years of the other concerts. This ensures that the &quot;Wide Awake&quot; concert is considered to have taken place three years earlier, as specified in the question.
-
-Additionally, the ground truth SQL query uses the `strftime` function to get the current year, which is not present in the predicted SQL query. This is necessary to calculate the number of years ago the earliest concert occurred.
-
-Overall, while the predicted SQL query attempts to calculate the correct answer, it does not correctly interpret the condition specified in the question and does not use the current year to calculate the number of years ago. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds 3 to the “Wide Awake” year and compares it to the earliest concert year, whereas the question (and reference) require subtracting 3 from that concert’s year and measuring the earliest concert’s distance from the current year.</pre>
 
 ---
 
@@ -18941,13 +17935,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the number of years since the earliest concert if the &quot;Wide Awake&quot; themed concert was held three years earlier. The predicted SQL query calculates the difference between the maximum year and the minimum year (either the actual year of the &quot;Wide Awake&quot; concert minus 3 or the actual year of other concerts). However, this approach does not consider the current year, which is a crucial factor in determining the number of years since the earliest concert.
-
-The ground truth SQL query correctly addresses this by using the `strftime` function to get the current year and then subtracting the minimum year from the current year. The minimum year is calculated by considering two scenarios: one where the &quot;Wide Awake&quot; concert was held three years earlier, and another where the concert was held in its actual year. The `UNION ALL` operator is used to combine these two scenarios.
-
-In contrast, the predicted SQL query simply calculates the difference between the maximum and minimum years, which does not take into account the current year and the hypothetical scenario of the &quot;Wide Awake&quot; concert being held three years earlier. As a result, the predicted SQL query produces an incorrect result, which is 4, whereas the ground truth result is 15. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction subtracts the earliest adjusted year from the latest concert year in the table, whereas the question (and reference) require subtracting the earliest adjusted year from the current year. The use of MAX(Year) instead of the current year makes the answer incorrect.</pre>
 
 ---
 
@@ -19105,13 +18093,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the &quot;Home Visits&quot; concert. The predicted query simply adds 20 to the singer&#x27;s current age, which is not the correct way to calculate the age on a specific future date.
-
-The ground truth SQL query, on the other hand, calculates the age correctly by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s current age, then adding 20. This ensures that the age is calculated relative to the anniversary date, not just by adding a fixed number of years to the singer&#x27;s current age.
-
-The difference in results between the predicted and ground truth queries (63 vs 52) also indicates that the predicted query is not producing the correct result. Therefore, the predicted SQL query is not a reasonable interpretation of the natural language question.</pre>
+<pre>No: the prediction simply adds 20 to the singer’s current Age and omits the required adjustment using the concert’s Year (as the reference query does), so it does not correctly compute the age on the 20‑year anniversary.</pre>
 
 ---
 
@@ -19260,15 +18242,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not take into account the relationship between the capacities of the two stadiums. The question states that Hampden Park stadium has twice the capacity of Balmoor stadium, but the predicted SQL query treats them as independent. 
-
-In contrast, the ground truth SQL query correctly calculates the total revenue by first calculating the revenue from Balmoor stadium (Capacity * 20) and then adding the revenue from Hampden Park stadium, which has twice the capacity of Balmoor (2 * Capacity * 5.5). 
-
-The predicted SQL query would be correct if the capacities of the two stadiums were independent, but given the relationship between them, it does not accurately reflect the problem. The predicted result (368750) is also different from the ground truth result (124000), which further supports the verdict that the predicted SQL query is incorrect. 
-
-To correctly solve this problem, the predicted SQL query should be modified to account for the relationship between the capacities of the two stadiums, similar to the ground truth SQL query.</pre>
+<pre>No: the prediction uses the real Hampden Park capacity from the table instead of assuming it is twice Balmoor’s capacity, violating the condition that Hampden’s capacity = 2 × Balmoor’s.</pre>
 
 ---
 
@@ -19300,7 +18274,7 @@ WHERE Name IN ('Balmoor', 'Hampden Park')
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             923 |                 524 |           1447 |             6289.17 |              198.19 |           1 |
+|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             923 |                 524 |           1447 |             6289.17 |              198.19 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -19423,21 +18397,13 @@ WHERE Name IN ('Balmoor', 'Hampden Park')
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly calculates the total revenue from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars.
-
-The ground truth SQL uses a subquery to calculate the revenue from each stadium separately and then adds them together. In contrast, the predicted SQL uses a single query with a CASE statement to calculate the revenue for each stadium and then sums them up using the SUM aggregation function.
-
-Both approaches are valid, but the predicted SQL is more concise and efficient. The difference in results between the ground truth and predicted SQL (368750 vs 80000) may be due to differences in the data or assumptions made about the data, but without more information about the data, it is difficult to determine which result is correct.
-
-However, based on the SQL queries alone, the predicted SQL is a correct and reasonable interpretation of the natural language question, so the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the predicted query misses the Hampden Park row (due to a non‑breaking space in the name), so it only multiplies Balmoor’s capacity by 20 and returns 80000 instead of the correct total.</pre>
 
 ---
 
@@ -19618,15 +18584,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not produce the expected result. The predicted result is an empty DataFrame, which means that the query did not return any rows. This is likely due to the fact that the query is trying to join the `singer` table with the `concert` table on the `Singer_ID` and `concert_ID` columns, and then filter the results to only include rows where the `concert_Name` is &#x27;Home Visits&#x27; and the `Year` is 20 years after the minimum year of the &#x27;Home Visits&#x27; concert.
-
-However, the ground truth SQL query uses a different approach, joining the `concert` table with the `singer_in_concert` table and then with the `singer` table, and using a subquery to calculate the target age of each singer. The ground truth query also uses an `OR` condition to include singers who performed at concerts in Stark Park, which is not present in the predicted SQL query.
-
-Additionally, the predicted SQL query is missing the calculation of the target age, which is present in the ground truth SQL query. The target age is calculated by subtracting the current year from the year of the &#x27;Home Visits&#x27; concert, adding the singer&#x27;s age, and then adding 20.
-
-Overall, while the predicted SQL query is attempting to answer the same question as the ground truth SQL query, it is using a different approach and is missing some key elements, resulting in an incorrect result.</pre>
+<pre>No – the prediction filters the “Home Visits” concert to a year = its earliest year + 20 (which doesn’t exist) and thus returns no rows, whereas the question requires the singers (including those from Stark Park) for the 20th‑anniversary scenario, not an empty set.</pre>
 
 ---
 
@@ -19783,17 +18741,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the total amount spent on paying singers for concerts held in Somerset Park stadium. 
-
-The main issue lies in the condition used in the CASE statement: `s.Age &gt; 40`. This condition is used to determine whether a singer earns $355 or $228 per concert. However, the question states that singers born before 1980 earn $355, while singers born after 1980 earn $228. 
-
-The ground truth SQL query correctly calculates the total amount spent by counting the number of concerts for singers born before and after 1980 separately and multiplying these counts by the respective earnings per concert. 
-
-In contrast, the predicted SQL query uses the singer&#x27;s age to determine their earnings, which is not equivalent to the birth year condition specified in the question. This discrepancy can lead to incorrect results, especially since the predicted result (811) differs from the ground truth result (684). 
-
-Therefore, the predicted SQL query does not accurately answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction uses `s.Age &gt; 40` to decide the rate, ignoring the required birth‑year calculation (strftime‑based comparison to 1980), leading to a different total (811 vs the correct 684).</pre>
 
 ---
 
@@ -19824,7 +18772,7 @@ WHERE st.Name = 'Somerset Park'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 883 |           1800 |             9855.73 |              208.68 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 883 |           1800 |             9855.73 |              208.68 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -19944,21 +18892,13 @@ WHERE st.Name = 'Somerset Park'
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it still correctly calculates the total expenditure on paying singers for concerts held at Somerset Park stadium.
-
-The key difference between the predicted SQL and the ground truth SQL is how they determine the age group of the singers. The predicted SQL uses a simple `Age &gt; 40` condition, whereas the ground truth SQL uses `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1980` to calculate the birth year of the singer. However, assuming that the current year is 2024, the `Age &gt; 40` condition is equivalent to being born before 1984, which is close to the intended condition of being born before 1980.
-
-The predicted result (811) is different from the ground truth result (684), but this could be due to the slight difference in the age calculation or ambiguity in the question. Nevertheless, the predicted SQL query is still a valid and reasonable interpretation of the question, and the result is not drastically different from the ground truth.
-
-Overall, considering the complexity of the question and the potential for ambiguity, the predicted SQL query is a correct and reasonable interpretation of the natural language question.</pre>
+<pre>No: the prediction uses `s.Age &gt; 40` instead of the required birth‑year check (`strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - s.Age &lt; 1980`), violating the hint and yielding a different total.</pre>
 
 ---
 
@@ -20118,15 +19058,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it attempts to calculate the revenue from ticket sales at both the Balmoor stadium and the Hampden Park stadium, it does so in a way that is not consistent with the question&#x27;s requirements.
-
-The main issue with the predicted SQL is that it returns two separate columns for the revenue of each stadium, whereas the question asks for the total amount of money that can be made from ticket sales at both stadiums. The ground truth SQL, on the other hand, correctly calculates the total revenue by multiplying the capacity of the Balmoor stadium by its ticket price and adding twice the capacity of the Balmoor stadium multiplied by the ticket price of the Hampden Park stadium.
-
-Furthermore, the predicted SQL query returns an empty result set, which suggests that the join condition `h.Capacity = 2 * b.Capacity` is not met. This is likely because the capacity of the Hampden Park stadium is not exactly twice that of the Balmoor stadium in the database. The ground truth SQL, however, does not rely on this condition and instead uses the capacity of the Balmoor stadium to calculate the total revenue.
-
-Overall, while the predicted SQL query attempts to address the question, it does not provide the correct answer due to its incorrect calculation of the total revenue and its reliance on a join condition that may not be met. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a join condition `h.Capacity = 2 * b.Capacity`, which filters out all rows (resulting in an empty set) instead of applying the assumed “twice” relationship, so it does not compute the required revenue.</pre>
 
 ---
 
@@ -20163,7 +19095,7 @@ ORDER BY s.Average ASC
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 465 |           1342 |             8907.82 |              182.76 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 465 |           1342 |             8907.82 |              182.76 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -20293,23 +19225,13 @@ ORDER BY s.Average ASC
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly identifies the stadiums with the lowest and highest average attendance rates and retrieves the number of concerts held at each stadium.
-
-The predicted SQL uses a simpler approach by joining the `stadium` table with a subquery that counts the concerts for each stadium, and then filters the results to include only the stadiums with the minimum and maximum average attendance rates. This approach is more efficient and easier to understand than the ground truth SQL.
-
-The predicted result shows two stadiums, `Glebe Park` and `Stark&#x27;s Park`, with their respective average attendance rates and concert counts. This result is consistent with the question&#x27;s request for the stadiums with the lowest and highest average attendance rates, along with the number of concerts held at each stadium.
-
-The ground truth SQL, on the other hand, uses a more complex approach with multiple subqueries and joins to retrieve the same information. While it produces a result with the same information, the predicted SQL is a more straightforward and efficient solution to the problem.
-
-Therefore, based on the predicted SQL and result, I conclude that the predicted SQL is a correct interpretation of the natural language question, and I give it a score of 1.</pre>
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) that the question asks for, so it returns the wrong stadiums and concert counts.</pre>
 
 ---
 
@@ -20343,7 +19265,7 @@ GROUP BY s.Stadium_ID, s.Name
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 435 |           1326 |              6614.8 |              188.33 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 435 |           1326 |              6614.8 |              188.33 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -20470,23 +19392,13 @@ GROUP BY s.Stadium_ID, s.Name
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it still attempts to find the names of the stadiums with the highest and lowest average attendance rates and the number of concerts held in each.
-
-The predicted SQL query joins the `stadium` table with the `concert` table on the `Stadium_ID` column and applies a filter to only include rows where the `Average` column is either the maximum or minimum value in the `stadium` table. The results are then grouped by the `Stadium_ID` and `Name` columns, and the count of concerts is calculated for each group.
-
-The predicted result shows two stadiums, &quot;Stark&#x27;s Park&quot; and &quot;Glebe Park&quot;, with their respective concert counts. This suggests that the predicted SQL query is correctly identifying the stadiums with the highest and lowest average attendance rates and providing the number of concerts held in each.
-
-In contrast, the ground truth SQL query uses subqueries to first find the stadium with the highest average attendance rate, then the stadium with the lowest average attendance rate, and finally joins these results with the count of concerts held in each stadium. While the ground truth SQL query is more complex, the predicted SQL query achieves a similar result in a more straightforward manner.
-
-Overall, the predicted SQL query is a valid and reasonable interpretation of the natural language question, and the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction filters on the raw Average column instead of the attendance rate (Average / Capacity) required, and therefore returns the wrong stadiums (e.g., “Glebe Park” which isn’t in the schema).</pre>
 
 ---
 
@@ -20518,7 +19430,7 @@ WHERE Song_Name = 'Gentleman'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2985 |                 580 |           3565 |             34909.5 |              163.03 |           0 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2985 |                 580 |           3565 |             34909.5 |              163.03 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -21232,23 +20144,13 @@ REASONING:
 **Total Attempts:** 3
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `0.0`
+LLM judge score: `1.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the original question for several reasons:
-
-1. **Incorrect Age Calculation**: The ground truth SQL calculates the age of the singers by adding their age to the song release year and then subtracting the current year. This implies that the age in the table is not their current age but perhaps their age at the time of the song&#x27;s release or some other reference point. The predicted SQL simply selects the age without any adjustments, which does not align with the ground truth&#x27;s intention of calculating a &quot;target age&quot; based on the song&#x27;s release year.
-
-2. **Missing Information**: The ground truth SQL result includes multiple singers with calculated ages, indicating that the question seeks information on all singers associated with the song &quot;Gentleman,&quot; considering some form of age adjustment based on the song&#x27;s release year. The predicted SQL result only returns one singer, John Nizinik, without any age adjustment, suggesting it misses the broader scope of the question and the specific age calculation required.
-
-3. **Schema Mismatch**: The predicted SQL assumes the existence of a `singer` table with columns `Name`, `Age`, and `Song_Name`. However, the provided schema only mentions a `stadium` table without any relevant columns for singers or songs. This discrepancy suggests a fundamental misunderstanding of the database structure or a mistake in the question&#x27;s context.
-
-Given these discrepancies, the predicted SQL does not accurately reflect the intent of the original question as captured by the ground truth SQL and its result. Therefore, the predicted SQL is incorrect.</pre>
+<pre>Yes – the prediction correctly selects Name and Age from singer where Song_Name = &#x27;Gentleman&#x27;, which directly answers “the names and ages of all singers of the release of the song ‘Gentleman’”. The reference query misinterprets the request by computing ages at the release year for all singers.</pre>
 
 ---
 
@@ -21996,13 +20898,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the original question. The question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;, but the predicted SQL query only selects the name and age of the singer(s) who have a song named &quot;Gentleman&quot;. It does not calculate the age of the singer at the time of the song&#x27;s release.
-
-In contrast, the ground truth SQL query calculates the age of each singer at the time of the song&#x27;s release by adding the difference between the current year and the song&#x27;s release year to the singer&#x27;s age. The ground truth result shows the correct ages of the singers at the time of the song&#x27;s release, whereas the predicted result only shows the current age of one singer, John Nizinik.
-
-The predicted SQL query is missing the calculation of the age at the time of the song&#x27;s release, which is a crucial part of the original question. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction only returns the current age of the singer whose Song_Name is “Gentleman” and omits the required calculation (Age + release_year − current_year) and the other singers, so it does not answer the question.</pre>
 
 ---
 
@@ -22421,15 +21317,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the name and age of each singer at the time of the song&#x27;s release, which is assumed to be in the year 2001. However, the predicted SQL query only selects singers where the song name is &quot;Gentleman&quot; and the release year is 2001, but it does not calculate the age of the singers at that time.
-
-In contrast, the ground truth SQL query calculates the target age of each singer by subtracting the current year from 2001 and adding the singer&#x27;s age. This suggests that the age of the singers is being calculated relative to the year 2001, which is the correct interpretation of the question.
-
-The predicted SQL query also assumes that the song &quot;Gentleman&quot; was actually released in 2001, which may not be the case. The ground truth SQL query does not make this assumption, and instead calculates the age of the singers as if the song were released in 2001.
-
-Furthermore, the predicted result is an empty DataFrame, which suggests that the query did not match any rows in the database. This could be because the song &quot;Gentleman&quot; does not exist in the database, or because the release year is not actually 2001. In any case, the predicted SQL query does not provide a reasonable interpretation of the natural language question.</pre>
+<pre>No: the prediction filters by Song_Name = &#x27;Gentleman&#x27; and Song_release_year = 2001 and returns the current Age, instead of computing each singer’s age in 2001 (as the reference does), and thus yields an empty result.</pre>
 
 ---
 
@@ -23206,9 +22094,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it joins the relevant tables (`singer`, `singer_in_concert`, and `concert`) and filters on the correct theme (&#x27;Free choice&#x27;), it fails to account for the age of the singers at the time of the concert. The ground truth SQL query calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding this difference to the singer&#x27;s age. The predicted SQL query simply returns the current age of the singers, which does not match the question&#x27;s requirement for the age &quot;at that time.&quot; As a result, the predicted result set contains different ages for the singers compared to the ground truth result set. Therefore, the predicted SQL query is incorrect.</pre>
+<pre>No – the prediction returns the singers’ current ages (s.Age) instead of their ages at the time of the “Free choice” concert, ignoring the required year‑based calculation.</pre>
 
 ---
 
@@ -23987,15 +22873,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the given natural language question. The main issue is that it does not filter singers based on their birth year. The question explicitly asks for singers born before 1985, but the predicted SQL only selects singers who participated in the &quot;Free Choice&quot; themed concert, without considering their age or birth year.
-
-In contrast, the ground truth SQL query takes into account the condition of singers being born before 1985 by using the condition `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985` in the WHERE clause. This ensures that only singers who meet the age criterion are included in the result.
-
-Additionally, the ground truth SQL query calculates the age of the singers at the time of the concert by adding the difference between the concert year and the current year to their age, which is not done in the predicted SQL query.
-
-The predicted result includes singers who may not have been born before 1985 (e.g., Timbaland, age 32), which does not satisfy the condition specified in the question. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the query omits the birth‑year filter (singers born before 1985) and returns current ages instead of ages at the concert, so it does not answer the question.</pre>
 
 ---
 
@@ -24771,9 +23649,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it correctly joins the relevant tables, selects the required columns, and filters the results to the &quot;Free Choice&quot; themed concert, it does not account for the age of the singers at the time of the concert. The ground truth SQL query calculates the age at the time of the concert by subtracting the current year from the concert year and adding the result to the singer&#x27;s age. In contrast, the predicted SQL query simply returns the singer&#x27;s current age. As a result, the predicted result differs from the ground truth result, with the predicted ages being higher than the actual ages at the time of the concert. Therefore, the predicted SQL query is incorrect.</pre>
+<pre>No: the query returns singers’ current Age column instead of calculating their age at the time of the concert, ignoring the required “at the time of the concert” adjustment.</pre>
 
 ---
 
@@ -25427,15 +24303,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not account for the age of the singers at the time of the song&#x27;s release. The query simply selects the names and ages of the singers who sang the song &quot;Gentleman&quot; and were released in 2001, but it does not calculate their age at that time.
-
-The ground truth SQL query, on the other hand, calculates the age of the singers at the time of the song&#x27;s release by subtracting the current year from 2001 and adding the result to their current age. This is done using the expression `Age + 2001 - strftime(&quot;%Y&quot;, &quot;now&quot;)`.
-
-The predicted result is an empty DataFrame, which suggests that there are no rows in the database that match the conditions specified in the predicted SQL query. This is likely because the query is filtering on the `Song_release_year` column, which may not contain the value &#x27;2001&#x27; for the song &quot;Gentleman&quot;.
-
-In contrast, the ground truth result shows the names and ages of the singers at the time of the song&#x27;s release, which is what the original question was asking for. Therefore, the predicted SQL query does not correctly answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the query filters on Song_release_year = &#x27;2001&#x27; and returns the current Age column, without adjusting the age to the release year, and thus does not compute singers’ ages at the time of release (and returns no rows).</pre>
 
 ---
 
@@ -26217,19 +25085,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the given natural language question. Although it attempts to filter singers based on their participation in the &quot;Free Choice&quot; themed concert and their birth year, there are several issues with the query.
-
-Firstly, the query only considers singers who are explicitly recorded as participating in the &quot;Free Choice&quot; concert, due to the join with the `singer_in_concert` table. However, the question states that all singers born before 1985 are assumed to have participated in the concert, regardless of whether they are recorded in the `singer_in_concert` table.
-
-Secondly, the query calculates the birth year of the singers by subtracting their age from the concert year, which is correct. However, it does not account for the fact that the age of the singers at the time of the concert may be different from their current age.
-
-Lastly, the predicted result does not match the ground truth result, which suggests that the query is not correctly filtering the singers based on their birth year and participation in the concert.
-
-In contrast, the ground truth SQL query correctly calculates the age of the singers at the time of the concert and filters them based on their participation in the &quot;Free Choice&quot; concert and their birth year. It also handles the case where the concert year is not explicitly stored in the database.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the query filters incorrectly (uses current age instead of birth year) and returns the stored Age rather than age at the concert, so it does not answer the question.</pre>
 
 ---
 
@@ -27031,15 +25887,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it joins the correct tables (`singer`, `singer_in_concert`, and `concert`) and filters on the concert named &quot;Home Visits&quot;, the calculation for the singer&#x27;s age on the 20th anniversary of the concert is incorrect.
-
-The ground truth SQL query calculates the target age by subtracting the current year from the concert year, adding the singer&#x27;s current age, and then adding 20. This takes into account the actual year of the concert, which is not considered in the predicted SQL query.
-
-The predicted SQL query simply adds 20 to the singer&#x27;s current age, which does not account for the concert year and will result in an incorrect age calculation. This is evident in the predicted result, where John Nizinik&#x27;s age at the 20th anniversary is calculated to be 63, whereas the ground truth result calculates it to be 52.
-
-Therefore, the predicted SQL query does not accurately answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the prediction adds a flat 20 to the singer’s current age, ignoring the years that have already passed since the concert; the reference query adjusts for the concert year, so the predicted ages (e.g., 63) are incorrect.</pre>
 
 ---
 
@@ -27068,7 +25916,7 @@ SELECT
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3114 |                1781 |           4895 |             35977.6 |              229.74 |           0 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3114 |                1781 |           4895 |             35977.6 |              229.74 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -27650,21 +26498,13 @@ REASONING:
 **Total Attempts:** 3
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `0.0`
+LLM judge score: `1.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the number of years ago the earliest concert occurred, given that the concert with the theme &quot;Wide Awake&quot; took place three years earlier. However, the predicted SQL query simply subtracts the year of the &quot;Wide Awake&quot; concert plus 3 from the current year, which does not take into account the actual earliest concert year.
-
-The ground truth SQL query correctly calculates the earliest concert year by considering all concerts, including the one with the theme &quot;Wide Awake&quot; shifted 3 years earlier, and then subtracts this year from the current year. The predicted SQL query does not consider all concerts and does not correctly calculate the earliest concert year.
-
-Additionally, the predicted SQL query assumes that there is only one concert with the theme &quot;Wide Awake&quot;, which may not be the case. If there are multiple concerts with this theme, the query will return multiple results, which is not what the question asks for.
-
-The predicted result of 9 also does not match the ground truth result, which is 15. This further suggests that the predicted SQL query is not accurate. Therefore, the verdict is &quot;No&quot;, indicating that the predicted SQL query is incorrect.</pre>
+<pre>Yes – the query adds three years to the “Wide Awake” concert’s year (as required) and subtracts that from the current year, correctly computing “years ago” for the earliest concert.</pre>
 
 ---
 
@@ -27841,15 +26681,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not take into account the current year. The question asks how many years have passed since the earliest concert if the &quot;Wide Awake&quot; themed concert was held three years earlier. The predicted SQL simply calculates the difference between the year the &quot;Wide Awake&quot; concert was held (minus 3) and the earliest concert year, which is not the correct interpretation of the question.
-
-The ground truth SQL, on the other hand, correctly calculates the number of years that have passed since the earliest concert by first adjusting the year of the &quot;Wide Awake&quot; concert to be three years earlier, then finding the minimum year among all concerts (including the adjusted &quot;Wide Awake&quot; concert), and finally subtracting this minimum year from the current year.
-
-The predicted result is also incorrect, as it returns a negative value, which does not make sense in the context of the question. The ground truth result, 15, is a plausible answer, as it represents the number of years that have passed since the earliest concert. 
-
-Therefore, the predicted SQL does not correctly answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction subtracts the adjusted Wide Awake year from the original earliest year instead of computing years since the earliest concert (using the current year and the adjusted earliest year). This logic does not match the question.</pre>
 
 ---
 
@@ -28627,9 +27459,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the concert. The ground truth SQL calculates the age by subtracting the current year from the year of the concert and adding the singer&#x27;s age and 20, whereas the predicted SQL simply adds 20 to the singer&#x27;s current age. This results in a different age being calculated, as seen in the predicted result (63) compared to the ground truth result (52). Additionally, the predicted SQL does not take into account the year of the concert, which is a crucial factor in calculating the age on the 20th anniversary. Therefore, the predicted SQL does not correctly answer the natural language question.</pre>
+<pre>No – the prediction adds 20 to the singer’s current age, ignoring the years already elapsed since the concert; the reference query correctly adjusts for the time passed (using concert year vs. current year). This mismatch means the answer is wrong.</pre>
 
 ---
 
@@ -29545,19 +28375,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it attempts to filter the &quot;Home Visits&quot; concert by its 20th anniversary and ensure that all singers who performed at concerts in Stark Park also took part in it, there are several issues with the query.
-
-Firstly, the query uses a subquery to calculate the 20th anniversary year of the &quot;Home Visits&quot; concert, but it does not consider the actual date of the concert. It simply adds 20 to the minimum year of the &quot;Home Visits&quot; concert, which may not be accurate.
-
-Secondly, the query uses a NOT EXISTS clause to exclude singers who performed at concerts in Stark Park but not in the &quot;Home Visits&quot; concert. However, this clause is not correctly implemented, as it only checks if the singer is not in any &quot;Home Visits&quot; concert, not specifically the 20th anniversary one.
-
-Lastly, the predicted result is an empty DataFrame, which suggests that the query does not return any rows. This could be due to the incorrect implementation of the NOT EXISTS clause or the anniversary filter.
-
-In contrast, the ground truth SQL query correctly answers the natural language question by joining the concert, singer_in_concert, and singer tables, and filtering the results to include only singers who performed in the &quot;Home Visits&quot; concert on its 20th anniversary, or singers who performed at concerts in Stark Park. The ground truth result shows three singers with their target ages, which is a more reasonable outcome.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the query’s NOT EXISTS clause checks that Stark Park singers appear in any “Home Visits” concert instead of specifically the 20th‑anniversary concert, and the year filter mis‑matches, resulting in an empty result contrary to the expected answer.</pre>
 
 ---
 
@@ -29593,7 +28411,7 @@ WHERE st.Name = 'Somerset Park'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3084 |                2187 |           5271 |             47865.4 |              129.32 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3084 |                2187 |           5271 |             47865.4 |              129.32 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -30119,19 +28937,13 @@ WHERE st.Name = 'Somerset Park'
 **Total Attempts:** 3
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. It accurately joins the relevant tables (`concert`, `stadium`, `singer_in_concert`, and `singer`) and applies the correct pay rates based on the singer&#x27;s birth year. The `CASE` expression correctly assigns $355 to singers born before 1980 and $228 to singers born after 1980. The `SUM` aggregation function calculates the total amount spent on singer fees for concerts held in Somerset Park stadium.
-
-Although the predicted SQL query differs from the ground truth SQL, it is still a valid and reasonable interpretation of the natural language question. The ground truth SQL uses subqueries to calculate the total cost for singers born before and after 1980 separately, whereas the predicted SQL uses a single `CASE` expression to assign the pay rates. Both approaches produce the correct result, but the predicted SQL is more concise and efficient.
-
-The predicted result (811) is different from the ground truth result (684), but this discrepancy may be due to differences in the data or the specific database instance used. Without access to the actual data, it is impossible to determine which result is correct. However, based on the SQL query alone, the predicted SQL is a correct and reasonable interpretation of the natural language question.</pre>
+<pre>No: the predicted query uses a hard‑coded year (2022) to compute birth year, causing a different classification of singers than the reference (which uses the current year), leading to a mismatched total (811 vs 684).</pre>
 
 ---
 
@@ -30168,7 +28980,7 @@ WHERE st.Name = 'Somerset Park'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 712 |           1629 |             20663.2 |              222.11 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 712 |           1629 |             20663.2 |              222.11 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -30326,21 +29138,13 @@ WHERE st.Name = 'Somerset Park'
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is a reasonable interpretation of the natural language question. It correctly identifies the stadium, joins the relevant tables, and applies the payment logic based on the singer&#x27;s age. The use of a `CASE` statement within the `SUM` aggregation function is a valid approach to calculate the total expenditure.
-
-Although the predicted SQL differs from the ground truth SQL, it achieves the same goal. The ground truth SQL uses subqueries to calculate the total expenditure for singers born before and after 1980 separately, whereas the predicted SQL uses a single query with a `CASE` statement. Both approaches are valid, and the predicted SQL is more concise.
-
-The predicted result is `None`, which might indicate that there are no rows in the database that match the conditions, or there might be an issue with the data. However, based on the SQL query itself, it is a correct interpretation of the natural language question.
-
-The main difference between the predicted SQL and the ground truth SQL is the way they calculate the age of the singer. The predicted SQL uses `2022 - s.Age`, which assumes that the `Age` column represents the singer&#x27;s age at the time of the query. The ground truth SQL uses `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age`, which calculates the singer&#x27;s age based on the current year. However, this difference does not affect the overall correctness of the predicted SQL, as it is still a reasonable interpretation of the question.</pre>
+<pre>No: the WHERE clause uses a mismatched stadium name (and a hard‑coded year), resulting in no rows and a NULL sum instead of the correct total.</pre>
 
 ---
 
@@ -30375,7 +29179,7 @@ WHERE
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 474 |           1433 |             13479.8 |               71.87 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 474 |           1433 |             13479.8 |               71.87 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -30531,23 +29335,13 @@ WHERE
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly captures the relationship between the capacities of the two stadiums and calculates the total revenue from ticket sales.
-
-The key difference between the predicted SQL and the ground truth SQL is the approach to calculating the revenue. The ground truth SQL uses a single row from the stadium table where the name is &#x27;Balmoor&#x27; and calculates the total revenue as the capacity of Balmoor multiplied by 20 plus twice the capacity of Balmoor multiplied by 5.5.
-
-The predicted SQL, on the other hand, joins the stadium table with itself to find the rows corresponding to &#x27;Balmoor&#x27; and &#x27;Hampden Park&#x27; and then applies the condition that the capacity of &#x27;Hampden Park&#x27; is twice that of &#x27;Balmoor&#x27;. However, this approach is not necessary in this case, as the relationship between the capacities can be expressed using a simple multiplication.
-
-The empty predicted result is likely due to the fact that the join condition `hamp.Capacity = 2 * bal.Capacity` is not met, which means that there is no row in the stadium table where the capacity of &#x27;Hampden Park&#x27; is exactly twice that of &#x27;Balmoor&#x27;. However, this does not affect the correctness of the predicted SQL, as it is still a valid interpretation of the question.
-
-Overall, the predicted SQL is a correct and reasonable interpretation of the natural language question, and the difference in approach does not affect the correctness of the result. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction adds a join and a filter `hamp.Capacity = 2 * bal.Capacity`, which eliminates rows (producing an empty result) instead of simply applying the “twice” relationship as a calculation, so it does not answer the question.</pre>
 
 ---
 
@@ -30582,7 +29376,7 @@ ORDER BY s.Average ASC
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3234 |                1763 |           4997 |             49163.5 |              190.57 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3234 |                1763 |           4997 |             49163.5 |              190.57 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -31362,19 +30156,13 @@ REASONING:
 **Total Attempts:** 3
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct because it accurately answers the natural language question. The query selects the stadium name and its average attendance from the stadium table, filters for the rows whose average value equals the overall minimum or maximum, and computes the concert count per stadium with a correlated sub-query. The result set includes exactly the two stadiums (one with the lowest average, one with the highest) and the three columns the question asks for (stadium name, average attendance, concert count).
-
-Although the predicted SQL query differs from the ground truth SQL, it still achieves the desired outcome. The ground truth SQL uses a more complex approach with sub-queries and joins, whereas the predicted SQL uses a simpler approach with a single query and a correlated sub-query. Both queries produce the correct results, but the predicted SQL is more efficient and easier to understand.
-
-The predicted result also matches the expected output, with two rows representing the stadiums with the lowest and highest average attendance rates, along with their respective concert counts. Therefore, the predicted SQL query is a reasonable interpretation of the natural language question and produces the correct results.</pre>
+<pre>No: the prediction filters on the raw Average column instead of the attendance rate (Average ÷ Capacity) that the question (and reference query) require, so it returns the wrong stadiums.</pre>
 
 ---
 
@@ -31411,7 +30199,7 @@ GROUP BY
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3114 |                1621 |           4735 |             54370.5 |              211.88 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3114 |                1621 |           4735 |             54370.5 |              211.88 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -32218,19 +31006,13 @@ REASONING:
 **Total Attempts:** 3
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. It targets the correct tables, filters the stadiums with the highest and lowest average attendance rates, and counts the number of concerts held in each of them. The use of a LEFT JOIN ensures that stadiums with no concerts are still included in the results. The GROUP BY clause groups the results by stadium name, which is consistent with the question&#x27;s requirements.
-
-Although the predicted SQL query differs from the ground truth SQL, it achieves the same goal and provides the required information. The ground truth SQL uses subqueries and joins to calculate the concert counts for the highest and lowest average stadiums, whereas the predicted SQL uses a simpler approach with a single JOIN and WHERE clause. However, both queries produce the desired output, which is the names of the stadiums with the highest and lowest average attendance rates, along with the number of concerts held in each of them.
-
-The predicted result shows two rows, one for each of the stadiums with the highest and lowest average attendance rates, along with the concert count for each. This matches the expected output, although the actual stadium names and concert counts may differ from the ground truth result due to differences in the data or query implementation. Overall, the predicted SQL query is a reasonable interpretation of the natural language question and provides the required information.</pre>
+<pre>No: the prediction uses the raw Average column to pick highest/lowest stadiums, while the question asks for the highest and lowest average attendance rates (average divided by capacity), so it selects the wrong stadiums.</pre>
 
 ---
 
@@ -33071,15 +31853,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the percentage of concerts held in the top three stadiums in terms of average attendance rate. However, the predicted SQL query calculates the average attendance rate based solely on the `Average` column in the `stadium` table, without considering the capacity of the stadiums.
-
-In contrast, the ground truth SQL query calculates the average attendance rate as `100.0 * Average / Capacity`, which takes into account both the average attendance and the capacity of the stadiums. This is a more accurate representation of the average attendance rate.
-
-Additionally, the predicted SQL query returns a result of 50, whereas the ground truth result is 33.333333. This discrepancy suggests that the predicted SQL query is not correctly calculating the percentage of concerts held in the top three stadiums.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction orders stadiums by the raw Average column instead of the average attendance rate (Average / Capacity) required by the question, leading to a different percentage.</pre>
 
 ---
 
@@ -33800,17 +32574,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the logic of the original question. The question asks for the names of the singers participating in the &quot;Home Visits&quot; concert and their age on its 20th anniversary, given that all singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert. 
-
-The predicted SQL query attempts to implement this logic using a NOT EXISTS clause to ensure that all singers in Stark Park concerts are also in the &quot;Home Visits&quot; concert. However, it does not account for the scenario where a singer participates in multiple concerts, including those in Stark Park and the &quot;Home Visits&quot; concert. 
-
-In contrast, the ground truth SQL query uses a more complex logic involving OR and IN operators to include singers who participated in either the &quot;Home Visits&quot; concert or concerts held in Stark Park. It also calculates the target age by subtracting the current year from the year of the &quot;Home Visits&quot; concert and adding 20 to the singer&#x27;s age.
-
-The predicted result is an empty DataFrame, which suggests that the query did not match any singers, whereas the ground truth result returns three singers with their target ages. This discrepancy indicates that the predicted SQL query is not a reasonable interpretation of the original question. 
-
-Therefore, the verdict is &quot;No&quot;, indicating that the predicted SQL query is incorrect.</pre>
+<pre>No – the query’s NOT EXISTS clause makes it return no rows (the condition fails) and it only adds 20 to the current age, not the age on the 20‑year anniversary as required, so it does not produce the expected singers or ages.</pre>
 
 ---
 
@@ -34115,15 +32879,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the natural language question. The question asks for the names and ages of all singers of the release of the song &quot;Gentleman&quot;, but it implies that the age should be calculated based on the current year and the song&#x27;s release year. The predicted SQL query only selects the Name and Age columns from the singer table where the Song_Name is &#x27;Gentleman&#x27;, without considering the release year.
-
-In contrast, the ground truth SQL query calculates the target age by adding the song&#x27;s release year to the singer&#x27;s age and then subtracting the current year. This suggests that the question is asking for the singers&#x27; ages at the time of the song&#x27;s release, not their current age.
-
-The predicted result only returns one row with a singer&#x27;s name and age, whereas the ground truth result returns multiple rows with the singers&#x27; names and calculated target ages. This discrepancy further supports the conclusion that the predicted SQL query is incorrect. 
-
-To better answer the question, the predicted SQL query should be revised to calculate the target age based on the song&#x27;s release year and the singer&#x27;s age, similar to the ground truth SQL query.</pre>
+<pre>No: the prediction only selects singers whose Song_Name is “Gentleman” and returns their current Age, ignoring the required calculation of age at the song’s release (and omitting other singers).</pre>
 
 ---
 
@@ -34571,13 +33327,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not take into account the age of the singer at the time of the release of the song &quot;Gentleman&quot;. The query simply filters the singer table for rows where the Song_Name is &#x27;Gentleman&#x27; and returns the Name and Age columns. However, the Age column likely represents the current age of the singer, not their age at the time of the song&#x27;s release.
-
-In contrast, the ground truth SQL query calculates the age of each singer at the time of the song&#x27;s release by adding the difference between the current year and the song&#x27;s release year to the singer&#x27;s age. This suggests that the database schema includes a column for the song&#x27;s release year, which is not accounted for in the predicted SQL query.
-
-Therefore, the predicted SQL query does not accurately answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters by Song_Name = &#x27;Gentleman&#x27; and returns the current Age, instead of calculating each singer’s age at the release year of the song as required.</pre>
 
 ---
 
@@ -35030,14 +33780,7 @@ LLM judge explanation (if applicable):
 
 
 <pre>Yes
-
-The predicted SQL is correct. Although it differs from the ground truth SQL, it achieves the same goal of calculating the age of each singer at the time of the song&#x27;s release in 2001. The predicted SQL uses the current year (2023) to calculate the age at release, whereas the ground truth SQL uses the `strftime` function to get the current year. Both approaches are valid, and the predicted SQL is a reasonable interpretation of the natural language question.
-
-The predicted result shows only one singer, John Nizinik, with an age at release of 21, whereas the ground truth result shows multiple singers with different ages at release. This discrepancy is likely due to the filter condition `WHERE Song_Name = &#x27;Gentleman&#x27;` in the predicted SQL, which is not present in the ground truth SQL. However, since the question asks for the age of each singer at the time of the song&#x27;s release, and the predicted SQL correctly calculates this age, the verdict is &quot;Yes&quot;. 
-
-To confirm the correctness of the predicted SQL, I would like to execute it and compare the result with the ground truth result. However, based on the provided information, the predicted SQL appears to be a valid and reasonable interpretation of the natural language question. 
-
-It&#x27;s worth noting that the ground truth SQL does not include a filter condition for the song name, which might be an oversight. The predicted SQL includes this filter condition, which could be a more accurate representation of the natural language question. Nevertheless, the predicted SQL correctly calculates the age at release, and the verdict is &quot;Yes&quot;.</pre>
+The prediction filters to singers of “Gentleman” and computes Age − (2023 − 2001), i.e., age at the 2001 release, which matches the intended interpretation; the reference query missed the Song_Name condition.</pre>
 
 ---
 
@@ -35341,15 +34084,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time. However, the predicted SQL query only returns the current names and ages of the singers, without considering their ages at the time of the concert.
-
-In contrast, the ground truth SQL query takes into account the year of the concert and calculates the age of each singer at that time by subtracting the current year from the concert year and adding the result to the singer&#x27;s current age. This is a crucial difference, as the predicted SQL query would return incorrect ages for the singers if the concert took place in a different year.
-
-The predicted result also differs from the ground truth result, with the ages being higher in the predicted result. This is because the predicted SQL query returns the current ages of the singers, whereas the ground truth SQL query returns their ages at the time of the concert.
-
-Therefore, the predicted SQL query is not a reasonable interpretation of the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns singers&#x27; current ages, ignoring the required calculation of age at the concert year (“at that time”).</pre>
 
 ---
 
@@ -35380,7 +34115,7 @@ WHERE c.Theme = 'Free choice'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6050 |                2190 |           8240 |              195380 |              195.37 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6050 |                2190 |           8240 |              195380 |              195.37 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -35957,21 +34692,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 3
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. Although it differs from the ground truth SQL, it still accurately answers the natural language question. The question asks for the names and ages of singers born before 1985 who participated in the &quot;Free Choice&quot; themed concert. The predicted SQL query joins the singer, singer_in_concert, and concert tables to filter singers who participated in concerts with the theme &quot;Free choice&quot; and were born before 1985 (assuming the current year is 2026, Age &gt;= 41). 
-
-The ground truth SQL calculates the age of the singers at the time of the concert, which is not explicitly requested in the question. The predicted SQL, on the other hand, returns the current age of the singers, which is a reasonable interpretation of the question. 
-
-The predicted result returns one singer, John Nizinik, who is 43 years old, indicating that he was born before 1985 and participated in the &quot;Free Choice&quot; themed concert. The ground truth result returns three singers with their ages at the time of the concert, but the predicted SQL is still a valid and correct interpretation of the question. 
-
-Therefore, the predicted SQL is considered correct, and the verdict is &quot;Yes&quot;.</pre>
+<pre>No – the prediction filters on current Age ≥ 41 (an approximation of birth year) and returns the singers’ current ages, not their ages at the “Free choice” concert, and it omits singers who meet the birth‑year condition but are younger than 41, yielding an incorrect answer.</pre>
 
 ---
 
@@ -36276,9 +35003,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not account for the age of the singers at the time of the concert. The ground truth SQL query calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age. The predicted SQL query simply retrieves the current age of the singers. As a result, the predicted result shows the current ages of the singers (32, 29, and 43), whereas the ground truth result shows their ages at the time of the concert (20, 17, and 31). This discrepancy indicates that the predicted SQL query does not accurately answer the natural language question.</pre>
+<pre>No: the prediction returns singers&#x27; current ages, ignoring the required calculation of age at the time of the concert. The reference query adjusts age using the concert year, which the predicted query does not do.</pre>
 
 ---
 
@@ -36949,15 +35674,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the names and ages of all singers of the song &quot;Gentleman&quot; at the time of its release, assuming it was released in the first year of the 21st century (2001). However, the predicted SQL query only selects the names, ages, and release years of singers where the song name is &#x27;Gentleman&#x27;, without considering the release year or calculating the age at the time of release.
-
-The ground truth SQL query, on the other hand, correctly calculates the age of each singer at the time of release by adding the difference between the release year (2001) and the current year to the singer&#x27;s age. The predicted SQL query does not perform this calculation and also does not filter the results based on the release year.
-
-Furthermore, the predicted result shows only one singer, John Nizinik, with a release year of 2014, which does not match the assumption of the song being released in 2001. In contrast, the ground truth result shows multiple singers with calculated ages at the time of release.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction just selects current Age (and release year) for singers of “Gentleman” without adjusting the age to 2001, and it does not compute the age at the assumed release year as required.</pre>
 
 ---
 
@@ -37658,19 +36375,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question for several reasons:
-
-1. **Incorrect Age Calculation**: The predicted SQL calculates the age of the singers at the time of the concert by subtracting their current age from the concert year, which is incorrect. The correct approach, as seen in the ground truth SQL, is to add the difference between the concert year and the current year to the singer&#x27;s current age.
-
-2. **Missing Concert Year Adjustment**: The predicted SQL does not account for the current year when calculating the age at the time of the concert. It directly uses the concert year and the singer&#x27;s age without considering the time elapsed since the concert.
-
-3. **Inconsistent Results**: The predicted result and the ground truth result have different ages for the same singers, indicating that the predicted SQL does not accurately calculate the ages at the time of the concert.
-
-4. **Different Conditions**: The predicted SQL uses the condition `(CAST(c.Year AS INT) - s.Age) &lt; 1985`, which is intended to filter singers born before 1985 but does so incorrectly due to the age calculation issue mentioned above. The ground truth SQL, on the other hand, uses `OR strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1985`, which is part of a more complex condition that also considers the theme of the concert.
-
-In summary, while the predicted SQL attempts to address the question, it contains critical errors in age calculation and condition application, leading to incorrect results compared to the ground truth SQL and result.</pre>
+<pre>No: the query uses the concert year to infer birth year and returns current ages instead of ages at the concert, deviating from the required calculation.</pre>
 
 ---
 
@@ -38115,9 +36820,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the concert. The ground truth SQL query takes into account the year the concert was held and the current year to calculate the age of the singer on the 20th anniversary, whereas the predicted SQL query simply adds 20 to the singer&#x27;s current age. This results in a different predicted result (63) compared to the ground truth result (52). The predicted SQL query does not fully capture the nuances of the question, leading to an incorrect calculation.</pre>
+<pre>No: the query simply adds 20 to the singer’s current Age, ignoring the concert’s year offset required to compute age on the 20‑year anniversary.</pre>
 
 ---
 
@@ -38417,13 +37120,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the number of years ago the earliest concert occurred, given that the concert with the theme &quot;Wide Awake&quot; took place three years earlier. The predicted SQL query calculates several values, including the earliest year, the year of the concert with theme &quot;Wide Awake&quot;, the number of years ago the earliest concert occurred, and the number of years ago the concert with theme &quot;Wide Awake&quot; occurred. However, it does not take into account the condition that the concert with theme &quot;Wide Awake&quot; took place three years earlier.
-
-The ground truth SQL query correctly addresses this condition by subtracting 3 from the year of the concert with theme &quot;Wide Awake&quot; and then unioning this with the years of the other concerts. It then calculates the difference between the current year and the minimum of these years, which gives the correct answer.
-
-In contrast, the predicted SQL query does not modify the year of the concert with theme &quot;Wide Awake&quot; and calculates the number of years ago separately for the earliest concert and the concert with theme &quot;Wide Awake&quot;. This does not provide a direct answer to the question, which requires considering the relationship between the two concerts. Therefore, the predicted SQL query is incorrect.</pre>
+<pre>No: the prediction fails to apply the “three years earlier” adjustment to the Wide Awake concert’s year, so it computes the wrong number of years ago.</pre>
 
 ---
 
@@ -38449,7 +37146,7 @@ SELECT (MAX(CAST(Year AS INT)) - MIN(CASE WHEN Theme = 'Wide Awake' THEN CAST(Ye
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2510 |                1173 |           3683 |              109624 |              185.41 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2510 |                1173 |           3683 |              109624 |              185.41 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -38712,21 +37409,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 2
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly calculates the number of years since the earliest concert after adjusting the &quot;Wide Awake&quot; themed concert three years earlier.
-
-The key difference between the predicted SQL and the ground truth SQL is how they handle the adjustment of the &quot;Wide Awake&quot; concert year. The predicted SQL uses a CASE statement to subtract 3 from the Year column when the Theme is &quot;Wide Awake&quot;, while the ground truth SQL uses a UNION ALL operator to combine two separate queries: one that subtracts 3 from the Year column for the &quot;Wide Awake&quot; themed concert, and another that selects the Year column for all other concerts.
-
-Despite this difference, both queries produce a result that answers the question. The predicted SQL query returns 4, which is a plausible answer given the question&#x27;s ambiguity. The ground truth SQL query returns 15, which is also a possible answer depending on the specific data in the concert table.
-
-Given the complexity of the question and the potential for ambiguity in the database schema, I consider the predicted SQL query to be a correct interpretation of the natural language question. Therefore, I verdict the predicted SQL query as &quot;Yes&quot; (score: 1).</pre>
+<pre>No: the prediction subtracts the earliest adjusted year from the latest concert year (MAX‑MIN) instead of from the current year, unlike the reference which uses the current year minus the earliest adjusted year.</pre>
 
 ---
 
@@ -39171,13 +37860,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the concert. The predicted SQL simply adds 20 to the current age of the singer, whereas the ground truth SQL takes into account the year the concert was held and the current year to calculate the age on the 20th anniversary.
-
-The ground truth SQL uses the expression `A.Year - strftime(&quot;%Y&quot;, &quot;now&quot;) + C.Age + 20` to calculate the target age, which correctly accounts for the passage of time since the concert was held. In contrast, the predicted SQL uses the expression `s.Age + 20`, which does not consider the year the concert was held and the current year.
-
-As a result, the predicted result (63) is different from the ground truth result (52), indicating that the predicted SQL does not accurately answer the question. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a flat 20 to the singer’s current age, ignoring the concert’s year, whereas the question requires the age at the concert’s 20‑year anniversary (needs the A.Year ‑ current year adjustment).</pre>
 
 ---
 
@@ -39846,13 +38529,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total revenue generated from ticket sales if all tickets are sold out at both stadiums, given the ticket prices for Balmoor and Hampden Park stadiums and the capacity relationship between them. 
-
-The predicted SQL query only retrieves the Stadium_ID, Name, and Capacity of the two stadiums, but it does not calculate the total revenue. The ground truth SQL query, on the other hand, correctly calculates the total revenue by multiplying the capacity of the Balmoor stadium by its ticket price and adding twice the capacity of the Balmoor stadium (which is the capacity of the Hampden Park stadium) multiplied by the ticket price of the Hampden Park stadium.
-
-The predicted result provides the capacities of the two stadiums, which could be used to calculate the total revenue, but the predicted SQL query itself does not perform this calculation. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the predicted query only retrieves stadium IDs, names, and capacities; it does not calculate the total revenue as required.</pre>
 
 ---
 
@@ -40154,15 +38831,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total amount of money that can be made from ticket sales at both the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars when all tickets are sold out. 
-
-The ground truth SQL query calculates this total by multiplying the capacity of the Balmoor stadium by 20 and adding the product of the capacity of the Hampden Park stadium and 5.5. This results in a single total value.
-
-In contrast, the predicted SQL query returns the revenue for each stadium separately, without calculating the total. It also returns the stadium names and capacities, which are not requested in the question. 
-
-While the predicted SQL query does correctly calculate the revenue for each stadium, it does not provide the total revenue for both stadiums, which is the main question being asked. Therefore, the predicted SQL query is not a correct answer to the question.</pre>
+<pre>No: the predicted query returns separate revenues per stadium instead of the combined total revenue requested.</pre>
 
 ---
 
@@ -40200,7 +38869,7 @@ WHERE c.concert_Name = 'Home Visits'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1162 |                1010 |           2172 |             70118.2 |              182.54 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1162 |                1010 |           2172 |             70118.2 |              182.54 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -40335,19 +39004,13 @@ Please help me write the SQL query to answer this question.</pre>
 **Total Attempts:** 1
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. Although it differs from the ground truth SQL, it still accurately captures the essence of the question. The predicted SQL joins the `singer`, `singer_in_concert`, and `concert` tables to find singers who performed at the &quot;Home Visits&quot; concert and also performed at concerts in &quot;Stark&#x27;s Park&quot;. It then calculates their ages on the 20th anniversary of the &quot;Home Visits&quot; concert by adding 20 to their current age.
-
-The main difference between the predicted SQL and the ground truth SQL is the way they handle the condition for singers who performed at concerts in &quot;Stark&#x27;s Park&quot;. The ground truth SQL uses an `OR` condition, which could potentially include singers who only performed at &quot;Stark&#x27;s Park&quot; but not at &quot;Home Visits&quot;. In contrast, the predicted SQL uses an `AND` condition, which ensures that only singers who performed at both &quot;Home Visits&quot; and &quot;Stark&#x27;s Park&quot; are included.
-
-The predicted result shows only one singer, John Nizinik, with an age of 63 on the 20th anniversary of the &quot;Home Visits&quot; concert. Although this result differs from the ground truth result, it is still a reasonable interpretation of the question, given the ambiguity in the schema and the question itself. Therefore, the predicted SQL is considered correct.</pre>
+<pre>No: the prediction uses an IN subquery (intersection) instead of the OR condition required, so it omits singers like Timbaland and Justin Brown that should be included.</pre>
 
 ---
 
@@ -41023,13 +39686,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total revenue that can be made from ticket sales at the Balmoor stadium and the Hampden Park stadium, given their capacities and ticket prices. However, the predicted SQL query only retrieves the stadium IDs, locations, names, and capacities from the stadium table, without performing any calculations to determine the revenue.
-
-The ground truth SQL query, on the other hand, correctly calculates the total revenue by multiplying the capacity of the Balmoor stadium by the ticket price of $20 and adding twice the capacity of the Balmoor stadium multiplied by the ticket price of $5.5 (since the capacity of the Hampden Park stadium is twice that of the Balmoor stadium).
-
-The predicted result shows a list of stadiums with their IDs, locations, names, and capacities, but it does not provide the total revenue that can be made from ticket sales. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the predicted query only lists stadium rows and does not compute the required revenues based on capacities and ticket prices.</pre>
 
 ---
 
@@ -41060,7 +39717,7 @@ WHERE s.Average = (SELECT MIN(Average) FROM stadium)
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2499 |                 893 |           3392 |             71177.6 |              222.39 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2499 |                 893 |           3392 |             71177.6 |              222.39 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -41324,19 +39981,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 2
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. Although it differs from the ground truth SQL, it still accurately answers the natural language question. The predicted SQL query selects the stadiums with the minimum and maximum average attendance rates and counts the number of concerts held at each stadium. The ground truth SQL query also achieves this, but it uses a more complex approach with subqueries and joins.
-
-The predicted SQL query is more straightforward and efficient, as it directly selects the stadiums with the minimum and maximum average attendance rates and counts the concerts using a subquery. The result preview shows that the query returned two rows, which corresponds to the expected output of two stadiums with the lowest and highest average attendance rates.
-
-The difference in the SQL queries can be attributed to the ambiguity in the question or schema, as mentioned in the task description. However, the predicted SQL query is a reasonable interpretation of the natural language question and provides the required information. Therefore, the verdict is &quot;Yes&quot;, indicating that the predicted SQL query is correct.</pre>
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) required, and returns the wrong stadiums for lowest/highest rates.</pre>
 
 ---
 
@@ -41368,7 +40019,7 @@ GROUP BY s.Stadium_ID, s.Name;
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2515 |                 762 |           3277 |             67721.2 |              189.16 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2515 |                 762 |           3277 |             67721.2 |              189.16 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -41632,24 +40283,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 2
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. It correctly identifies the stadiums with the highest and lowest average attendance rates and returns the number of concerts held in each of them. Although the predicted SQL query differs from the ground truth SQL, it achieves the same goal in a more straightforward and efficient manner.
-
-The key differences between the predicted SQL and the ground truth SQL are:
-
-1. The predicted SQL uses a simpler join and filtering approach, whereas the ground truth SQL uses subqueries and joins to achieve the same result.
-2. The predicted SQL returns the results in a single table with two rows (one for the highest average attendance stadium and one for the lowest), whereas the ground truth SQL returns a single row with multiple columns.
-
-Despite these differences, the predicted SQL query correctly answers the question and provides the required information. The use of the `LEFT JOIN` and `GROUP BY` clauses ensures that the query returns the correct results, even if there are no concerts held in one of the stadiums.
-
-Overall, the predicted SQL query is a valid and efficient solution to the problem, and it provides the required information in a clear and concise manner. Therefore, the verdict is &quot;Yes&quot;, indicating that the predicted SQL query is correct.</pre>
+<pre>No – the prediction uses the raw Average column instead of the attendance rate (Average ÷ Capacity) that the question (and reference) require, and therefore returns the wrong stadiums.</pre>
 
 ---
 
@@ -41952,17 +40592,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. Although it attempts to calculate the percentage of concerts held in the top three stadiums by average attendance, there are a few issues with the query.
-
-Firstly, the subquery in the predicted SQL orders the stadiums by `Average` in descending order, whereas the ground truth SQL orders the stadiums by `100.0 * Average / Capacity` in descending order. This difference in ordering criteria may lead to different sets of top three stadiums being selected.
-
-Secondly, the predicted SQL uses `CAST(c.Stadium_ID AS INT)` to cast the `Stadium_ID` column to an integer, which is not necessary according to the ground truth SQL. However, this does not affect the correctness of the query.
-
-Lastly, the predicted SQL uses `SUM(CASE ...)` to count the number of concerts in the top three stadiums, whereas the ground truth SQL uses `COUNT(*)` with a `WHERE` clause to achieve the same result. Although both approaches are valid, the ground truth SQL is more straightforward and efficient.
-
-The predicted result (50) also differs significantly from the ground truth result (33.333333), which further suggests that the predicted SQL query is incorrect. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction orders stadiums by raw Average instead of the required average attendance rate (Average / Capacity), so it selects the wrong top‑three stadiums and yields an incorrect percentage.</pre>
 
 ---
 
@@ -42134,15 +40764,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not fully capture the complexity of the original question. The question asks for the names of singers who participated in the &quot;Home Visits&quot; concert and their age on its 20th anniversary, given that all singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert. 
-
-The predicted SQL query only selects singers who participated in the &quot;Home Visits&quot; concert and calculates their age by adding 20 to their current age. However, it does not consider the condition that all singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert.
-
-In contrast, the ground truth SQL query takes into account this condition by using an OR clause to include singers who either participated in the &quot;Home Visits&quot; concert or participated in concerts held in Stark Park. The ground truth query also calculates the target age by subtracting the current year from the year of the &quot;Home Visits&quot; concert and adding the singer&#x27;s age and 20, which is a more accurate calculation.
-
-The predicted result only includes one singer, John Nizinik, with an age of 63, whereas the ground truth result includes three singers with different ages. This discrepancy suggests that the predicted SQL query does not accurately capture the complexity of the original question and therefore is incorrect.</pre>
+<pre>No – the query only returns singers from “Home Visits” (and misses two such singers in the data), and it ignores the condition relating Stark Park concerts, so it does not produce the full correct answer.</pre>
 
 ---
 
@@ -42172,7 +40794,7 @@ SELECT Name, Age FROM singer WHERE Song_Name = 'Gentleman';
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6852 |                 605 |           7457 |              160367 |              127.99 |           0 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6852 |                 605 |           7457 |              160367 |              127.99 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -42832,19 +41454,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 2
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `0.0`
+LLM judge score: `1.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately capture the intent of the question. The question asks for the names and ages of all singers of the release of the song &quot;Gentleman&quot;, but the predicted SQL query only returns the names and ages of singers who have a song named &quot;Gentleman&quot; in the singer table. 
-
-The ground truth SQL query, on the other hand, calculates the age of the singers at the time of the song&#x27;s release by subtracting the current year from the song&#x27;s release year and adding the result to the singer&#x27;s age. This suggests that the question is asking for the ages of the singers at the time the song &quot;Gentleman&quot; was released, not their current ages.
-
-The predicted SQL query does not take into account the release year of the song and only returns one row, whereas the ground truth result returns multiple rows with the calculated ages. Therefore, the predicted SQL query does not accurately answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>Yes – the predicted query correctly selects Name and Age from singer where Song_Name = &#x27;Gentleman&#x27;, matching the question; the reference query omits the filter and computes a derived “target_age”, which does not answer the asked‑for names and ages.</pre>
 
 ---
 
@@ -43537,15 +42153,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer at the time of the song&#x27;s release. The predicted query simply selects the Name and Age columns from the singer table where the Song_Name is &#x27;Gentleman&#x27;, without considering the current year or the song&#x27;s release year.
-
-In contrast, the ground truth SQL query calculates the target age by adding the song&#x27;s release year to the singer&#x27;s age and subtracting the current year. This suggests that the Age column in the singer table represents the singer&#x27;s age at a different point in time, and the ground truth query is attempting to adjust for this.
-
-The predicted result only returns one row, whereas the ground truth result returns five rows, indicating that the predicted query is not only incorrect but also incomplete. The predicted result also does not provide the correct age, as it simply returns the Age column without any adjustments.
-
-Overall, the predicted SQL query does not accurately answer the question, and the ground truth SQL query provides a more accurate calculation of the singer&#x27;s age at the time of the song&#x27;s release.</pre>
+<pre>No – the prediction just returns the current Age (and only for singers whose Song_Name is “Gentleman”), whereas the question requires the age at the song’s release (i.e., Age adjusted by the release year), and for every singer, not just those who performed that song.</pre>
 
 ---
 
@@ -44498,15 +43106,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of each singer at the time of the song&#x27;s release in 2001. The query filters for singers who have a song named &quot;Gentleman&quot; and calculates their age by adjusting their recorded age based on the difference between the actual release year and 2001. However, this approach is flawed because it assumes that the singer&#x27;s age is stored as their age at the time of data collection, not at the time of the song&#x27;s release.
-
-In contrast, the ground truth SQL query calculates the target age by adding the difference between 2001 and the current year to the singer&#x27;s age. This approach takes into account the fact that the singer&#x27;s age is stored as their age at the time of data collection, and adjusts it to reflect their age at the time of the song&#x27;s release in 2001.
-
-Furthermore, the predicted SQL query returns only one row, whereas the ground truth result returns multiple rows, indicating that the predicted query is not retrieving all the relevant data. The predicted result also has a different age calculation, which is not consistent with the ground truth result.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the prediction adds a WHERE Song_Name = &#x27;Gentleman&#x27; filter and computes age using each singer’s own Song_release_year, whereas the question (and reference) require the age of every singer at the fixed year 2001, not just those with that song. This mismatch makes the query incorrect.</pre>
 
 ---
 
@@ -45875,9 +44475,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. Although it correctly joins the `singer`, `singer_in_concert`, and `concert` tables and filters by the theme &#x27;Free choice&#x27;, it fails to account for the age of the singers at the time of the concert. The ground truth SQL query calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding this difference to the singer&#x27;s current age. The predicted SQL query simply returns the current age of the singers, which is not the correct interpretation of the question. Therefore, the predicted SQL query is incorrect.</pre>
+<pre>No: the prediction returns the singers&#x27; current ages, ignoring the “at that time” requirement to compute ages at the concert year.</pre>
 
 ---
 
@@ -45908,7 +44506,7 @@ WHERE LOWER(c.Theme) = 'free choice'
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           13169 |                2611 |          15780 |              307694 |              213.44 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           13169 |                2611 |          15780 |              307694 |              213.44 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -47238,21 +45836,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 2
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. It accurately identifies the singers who were born before 1985 (approximated by Age &gt; 38, assuming the current year is 2023) and participated in a concert with the theme &#x27;Free choice&#x27;. The query joins the singer, singer_in_concert, and concert tables, filters on the theme and the age condition, and selects only the required columns (Name and Age).
-
-Although the predicted SQL query differs from the ground truth SQL, it is a reasonable interpretation of the question. The ground truth SQL calculates the age of the singers at the time of the concert, whereas the predicted SQL returns their current age. However, since the question asks for the names and ages of the participating singers, and the predicted SQL returns the correct names and their current ages, it can be considered correct.
-
-The predicted result matches one of the rows in the ground truth result, with John Nizinik being 43 years old, which is consistent with the assumption that he was born before 1985. The other singers in the ground truth result (Justin Brown and Timbaland) are not included in the predicted result because their current ages are not greater than 38, according to the predicted SQL&#x27;s filtering condition.
-
-Overall, the predicted SQL query is a valid and reasonable interpretation of the question, and its result is consistent with the ground truth result, considering the differences in calculation and filtering.</pre>
+<pre>No – the prediction filters on current Age &gt; 38 and returns the current age, missing singers (e.g., Justin Brown, Timbaland) and not calculating age at the concert as required. The WHERE clause and selected column are therefore incorrect.</pre>
 
 ---
 
@@ -48970,12 +47560,7 @@ LLM judge explanation (if applicable):
 
 
 <pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the names and ages of all singers who participated in the &quot;Free Choice&quot; themed concert at the time of the concert. However, the predicted SQL query only selects the current names and ages of the singers, without considering their ages at the time of the concert.
-
-In contrast, the ground truth SQL query correctly calculates the age of each singer at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s current age. This ensures that the query returns the correct ages of the singers at the time of the concert, rather than their current ages.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+The prediction returns the singers’ current Age column only, but the question asks for their ages at the time of the concert. It fails to adjust Age by the concert year (as the reference query does), so the ages are incorrect.</pre>
 
 ---
 
@@ -49925,13 +48510,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the names and ages of all singers of the song &quot;Gentleman&quot; at the time of its release, assuming it was released in the first year of the 21st century (2001). However, the predicted SQL query only retrieves the Singer_ID, Name, Age, and Song_release_year for the singers of the song &quot;Gentleman&quot;, without considering the release year or calculating the age at the time of release.
-
-The ground truth SQL query, on the other hand, correctly calculates the age of each singer at the time of release by subtracting the current year from 2001 and adding the result to the singer&#x27;s current age. The ground truth result shows the names and ages of the singers at the time of release, which is not provided by the predicted SQL query.
-
-The predicted SQL query seems to be an intermediate step in the process of answering the question, but it does not provide the final answer. The predicted result only shows one singer, John Nizinik, with a Song_release_year of 2014, which is not relevant to the question. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the predicted query returns current Age and extra columns without calculating the singers&#x27; ages in 2001, and it does not match the required age-at-release computation.</pre>
 
 ---
 
@@ -51213,15 +49792,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The query attempts to filter singers based on their age being greater than 38, assuming that this corresponds to singers born before 1985. However, this assumption is incorrect, as the age column in the singer table does not necessarily represent the singer&#x27;s age at the time of the concert.
-
-The ground truth SQL query, on the other hand, correctly calculates the age of each singer at the time of the concert by joining the singer table with the concert table and using the year of the concert to calculate the singer&#x27;s age. The query then filters the results to include only singers who participated in the &quot;Free Choice&quot; themed concert and were born before 1985.
-
-The predicted SQL query also does not account for the fact that the age column in the singer table may not represent the singer&#x27;s age at the time of the concert. The query simply selects the names and ages of singers who are older than 38, without considering the year of the concert.
-
-Overall, the predicted SQL query is incorrect because it makes incorrect assumptions about the data and does not accurately calculate the age of each singer at the time of the concert. The ground truth SQL query, on the other hand, provides a more accurate and nuanced solution to the problem.</pre>
+<pre>No: the prediction filters on current Age &gt; 38 and returns the current Age, not the age at the concert, and thus misses the singers shown in the reference (e.g., ages 31, 17, 20). This logic does not answer the question.</pre>
 
 ---
 
@@ -52227,9 +50798,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the concert. The ground truth SQL query calculates the age by subtracting the current year from the concert year, adding the singer&#x27;s current age, and then adding 20. In contrast, the predicted SQL query simply adds 20 to the singer&#x27;s current age, which does not take into account the number of years that have passed since the concert. As a result, the predicted result (63) is different from the ground truth result (52), indicating an error in the predicted SQL query.</pre>
+<pre>No: the prediction adds a flat 20 years to the singer’s current age instead of accounting for the concert’s year (Age + concert.Year − current year + 20), so it gives the wrong age.</pre>
 
 ---
 
@@ -52919,13 +51488,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the number of years since the earliest concert if the &quot;Wide Awake&quot; themed concert was held three years earlier. The predicted SQL query calculates the difference between the maximum year and the minimum year (with the &quot;Wide Awake&quot; concert year adjusted by subtracting 3) in the concert table. However, this approach does not consider the current year or the year the question is being asked, which is a crucial factor in determining the number of years since the earliest concert.
-
-The ground truth SQL query, on the other hand, correctly calculates the number of years since the earliest concert by subtracting the minimum year (with the &quot;Wide Awake&quot; concert year adjusted) from the current year. This approach ensures that the result is accurate and relevant to the current time.
-
-The predicted result (4) also differs from the ground truth result (15), which further supports the conclusion that the predicted SQL query is incorrect. Therefore, the verdict is &quot;No&quot;, indicating that the predicted SQL query does not correctly answer the natural language question.</pre>
+<pre>No: the prediction uses MAX(Year) (latest concert) instead of the current year and thus computes a different interval than the required “years since the earliest concert”.</pre>
 
 ---
 
@@ -54291,12 +52854,7 @@ LLM judge explanation (if applicable):
 
 
 <pre>No
-
-The predicted SQL query is close to the ground truth SQL but contains a crucial difference in the calculation of the singer&#x27;s age on the concert&#x27;s 20th anniversary. The ground truth SQL calculates the target age as `A.Year - strftime(&quot;%Y&quot;, &quot;now&quot;) + C.Age + 20`, which takes into account the current year and the year the concert was held, whereas the predicted SQL simply adds 20 to the singer&#x27;s current age (`s.Age + 20`).
-
-This difference in calculation results in a different predicted result (63) compared to the ground truth result (52). The predicted result does not accurately reflect the singer&#x27;s age on the concert&#x27;s 20th anniversary, considering the concert&#x27;s year and the current year.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+The prediction adds a flat 20 years to the singer’s current age, ignoring the concert’s year; the reference correctly adjusts for the time since the concert, so the predicted query does not answer the question.</pre>
 
 ---
 
@@ -54753,15 +53311,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not produce any results due to the condition in the WHERE clause. The query attempts to join the capacities of the two stadiums with the condition that Hampden Park&#x27;s capacity is twice that of Balmoor&#x27;s. However, this condition is not necessary to calculate the total revenue, as the capacities and ticket prices are already given.
-
-The ground truth SQL query correctly calculates the total revenue by multiplying the capacity of Balmoor stadium by its ticket price ($20) and adding the capacity of Hampden Park stadium (which is twice that of Balmoor) multiplied by its ticket price ($5.5). The result is a total revenue of $124,000.
-
-The predicted SQL query, on the other hand, tries to retrieve the capacities of the two stadiums and then apply the condition that Hampden Park&#x27;s capacity is twice that of Balmoor&#x27;s. However, since the capacities are not actually retrieved from the database, but rather assumed to be in a specific ratio, this query does not produce any results.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the prediction adds a WHERE clause enforcing hampden.Capacity = 2 * balmoor.Capacity, which filters out rows (resulting in an empty set) instead of simply applying the assumed relationship as the reference query does.</pre>
 
 ---
 
@@ -55708,13 +54258,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total revenue that can be generated from ticket sales, given the ticket prices for Balmoor stadium and Hampden Park stadium. However, the predicted SQL query only retrieves the Stadium_ID, Name, Location, and Capacity of the stadium where the Name or Location contains &#x27;Balmoor&#x27;. It does not calculate the total revenue.
-
-In contrast, the ground truth SQL query correctly calculates the total revenue by multiplying the capacity of Balmoor stadium by its ticket price ($20) and adding the product of the capacity of Hampden Park stadium and its ticket price ($5.5). The predicted SQL query does not perform this calculation and therefore does not provide the correct answer to the question.
-
-To correctly answer the question, the predicted SQL query should have been similar to the ground truth SQL query, which calculates the total revenue based on the ticket prices and capacities of the two stadiums. The predicted query&#x27;s focus on finding a stadium with &#x27;Balmoor&#x27; in its name or location, without calculating revenue, makes it an incorrect interpretation of the question.</pre>
+<pre>No: the prediction only selects Balmoor’s stadium record and does not calculate revenue or include Hampden Park’s capacity and ticket price.</pre>
 
 ---
 
@@ -56142,23 +54686,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total amount of money that can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars when all tickets are sold out. However, the predicted SQL query returns the revenue for each stadium separately, rather than the total revenue.
-
-The ground truth SQL query correctly calculates the total revenue by multiplying the capacity of the Balmoor stadium by 20 and adding the result of multiplying the capacity of the Hampden Park stadium by 5.5. The predicted SQL query, on the other hand, uses a CASE statement to apply the correct ticket price to each stadium, but it does not combine the results to give the total revenue.
-
-To correctly answer the question, the predicted SQL query would need to be modified to sum the revenues for the two stadiums, such as:
-
-```sql
-SELECT SUM(Capacity * (CASE WHEN Name = &#x27;Balmoor&#x27; THEN 20
-                             WHEN Name = &#x27;Hampden Park&#x27; THEN 5.5
-                        END)) AS total_revenue
-FROM stadium
-WHERE Name IN (&#x27;Balmoor&#x27;, &#x27;Hampden Park&#x27;);
-```
-
-This query would return the total revenue for both stadiums, which is the correct answer to the question.</pre>
+<pre>No: the predicted query returns separate revenues per stadium instead of the combined total revenue requested.</pre>
 
 ---
 
@@ -57874,12 +56402,7 @@ LLM judge explanation (if applicable):
 
 
 <pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The predicted query is attempting to retrieve the table definition for &quot;singer_in_concert&quot; using the sqlite_master table, which is not relevant to calculating the total payment for singers at Somerset Park stadium.
-
-The ground truth SQL query, on the other hand, correctly joins the relevant tables (concert, singer_in_concert, singer, and stadium) to calculate the total payment for singers born before and after 1980 who performed at Somerset Park stadium. The query uses subqueries to count the number of singers in each age group and multiplies the count by the corresponding payment rate (355 or 228).
-
-The predicted result is also not relevant to the question, as it returns the table definition for &quot;singer_in_concert&quot; instead of the total payment amount. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+The prediction only returns the table definition (`SELECT sql FROM sqlite_master …`) and does not compute any payment amount, so it fails to answer the question.</pre>
 
 ---
 
@@ -58833,13 +57356,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The predicted query is selecting the Stadium_ID, Name, Location, and Capacity from the stadium table and ordering the results by Stadium_ID. However, this query does not calculate the revenue from ticket sales at the Balmoor stadium and the Hampden Park stadium when all tickets are sold out.
-
-The ground truth SQL query correctly calculates the total revenue by selecting the capacity of the Balmoor stadium, multiplying it by the ticket price ($20), and adding twice the capacity of the Balmoor stadium multiplied by the ticket price of the Hampden Park stadium ($5.5). The ground truth result shows a total revenue of 124000.
-
-In contrast, the predicted SQL query does not perform any calculations related to revenue and instead returns a list of stadiums with their capacities. Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the predicted query only lists stadium information and does not compute the ticket‑sale revenue (Balmoor capacity × 20 + Hampden capacity × 5.5) required by the question.</pre>
 
 ---
 
@@ -58887,7 +57404,7 @@ ORDER BY average_attendance ASC;
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9933 |                1935 |          11868 |              210678 |              180.25 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9933 |                1935 |          11868 |              210678 |              180.25 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -59856,23 +58373,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 2
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. It accurately identifies the stadiums with the lowest and highest average attendance rates and returns the number of concerts held at each stadium. 
-
-The query uses a common table expression (CTE) to count the concerts for each stadium and another CTE to find the minimum and maximum average attendance. It then selects the stadium name, average attendance, and concert count from the concert counts CTE where the average attendance equals the minimum or maximum average attendance.
-
-The predicted result shows two stadiums, one with the lowest average attendance (Glebe Park) and one with the highest average attendance (Stark&#x27;s Park), along with their respective concert counts.
-
-The ground truth SQL query and result seem to be incorrect or incomplete, as they only return one row with the highest average attendance stadium and do not provide the lowest average attendance stadium. The predicted SQL query is a more accurate and complete solution to the problem. 
-
-Therefore, the predicted SQL query is correct, and the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) that the question (and reference) require. This changes which stadiums are identified as lowest and highest.</pre>
 
 ---
 
@@ -59910,7 +58417,7 @@ GROUP BY s.Name;
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            7103 |                1532 |           8635 |              122431 |              182.77 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            7103 |                1532 |           8635 |              122431 |              182.77 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60566,23 +59073,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 2
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is correct. It successfully retrieves the names of the stadiums with the highest and lowest average attendance rates and the number of concerts held in each of them. 
-
-The query uses a UNION ALL operator to combine the results of two separate queries: one for the stadium with the highest average attendance and one for the stadium with the lowest average attendance. Each query joins the stadium table with the concert table on the Stadium_ID column, using a LEFT JOIN to include stadiums with no concerts. The results are then grouped by stadium name and the concert count is calculated.
-
-The predicted result shows that the stadiums with the highest and lowest average attendance rates are Stark&#x27;s Park and Glebe Park, respectively, with 1 concert held in each of them.
-
-Although the predicted SQL query differs from the ground truth SQL, it is still a valid and reasonable interpretation of the natural language question. The ground truth SQL uses subqueries to calculate the stadium IDs with the highest and lowest average attendance rates, whereas the predicted SQL uses simple WHERE clauses to filter the stadiums. Both approaches are correct, but the predicted SQL query is more straightforward and easier to understand. 
-
-Therefore, the predicted SQL query is correct, and the verdict is &quot;Yes&quot;.</pre>
+<pre>No – it selects stadiums by raw Average instead of the average attendance rate (Average / Capacity) required by the question. Consequently it returns the wrong stadiums.</pre>
 
 ---
 
@@ -60614,7 +59111,7 @@ FROM concert c;
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6936 |                1555 |           8491 |              151447 |              204.31 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6936 |                1555 |           8491 |              151447 |              204.31 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61269,27 +59766,13 @@ What&#x27;s your next action?</pre>
 **Total Attempts:** 2
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it correctly calculates the percentage of concerts held in the top three stadiums by average attendance.
-
-The key differences between the predicted and ground truth SQL queries are:
-
-1. The predicted SQL uses a `CASE` expression within a `SUM` aggregation function to count the concerts in the top three stadiums, whereas the ground truth SQL uses a subquery with `COUNT(*)` to achieve the same result.
-2. The predicted SQL multiplies the result by 100.0 to get the percentage, whereas the ground truth SQL uses `100.0 * COUNT(*) / (SELECT COUNT(*) FROM concert)` to calculate the percentage.
-3. The predicted SQL does not explicitly filter the concerts using a `WHERE` clause, whereas the ground truth SQL uses `WHERE Stadium_ID IN (...)` to filter the concerts.
-
-Despite these differences, the predicted SQL query produces a result (50) that is different from the ground truth result (33.333333). However, this discrepancy may be due to the ambiguity in the question or schema, as mentioned in the problem statement.
-
-Upon closer inspection, the ground truth SQL query calculates the average attendance rate as `100.0 * Average / Capacity DESC`, whereas the predicted SQL query uses `Average DESC` to rank the stadiums. This difference in calculation may contribute to the discrepancy in results.
-
-Considering the systematic approach taken by the SQL agent and the reasonable interpretation of the question, I conclude that the predicted SQL query is correct, despite the differences in results. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No – it orders stadiums by raw Average instead of the average attendance rate (Average / Capacity) required by the question, so it computes the wrong percentage.</pre>
 
 ---
 
@@ -63007,12 +61490,7 @@ LLM judge explanation (if applicable):
 
 
 <pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The query is attempting to retrieve the SQL statement used to create the &#x27;singer_in_concert&#x27; table, rather than calculating the percentage of female singers in each concert held at Somerset Park stadium.
-
-The ground truth SQL query is a complex query that joins multiple tables, filters concerts held at Somerset Park, counts the number of female singers in each concert, and calculates the proportion of female singers. In contrast, the predicted SQL query is a simple metadata query that does not perform any calculations or filtering related to the question.
-
-To correctly answer the question, the predicted SQL query should have been similar to the ground truth SQL query, which involves joining the concert, singer_in_concert, singer, and stadium tables, filtering by stadium name, and calculating the proportion of female singers. The predicted query does not demonstrate this level of complexity or relevance to the question, resulting in a verdict of &quot;No&quot;.</pre>
+The prediction only queries the table definition (`SELECT sql FROM sqlite_master …`) and returns schema text, not the concert IDs, names, or female singer percentages required. Hence it does not answer the question.</pre>
 
 ---
 
@@ -63127,13 +61605,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it only selects the singers who have &quot;Gentleman&quot; as their Song_Name, which is not the same as finding all singers of the release of the song &quot;Gentleman&quot;. The ground truth SQL calculates the age of each singer at the time of the song&#x27;s release, which is not considered in the predicted SQL. Additionally, the predicted SQL only returns one row, whereas the ground truth result returns multiple rows, indicating that the predicted SQL is not capturing all the relevant information. The predicted SQL is too narrow and does not account for the release year of the song, which is an important factor in determining the target age of the singers. 
-
-The ground truth SQL uses a subquery to calculate the target age of each singer by adding the release year of the song &quot;Gentleman&quot; to their age and then subtracting the current year, which provides a more accurate result. The predicted SQL, on the other hand, simply selects the name and age of the singer who has &quot;Gentleman&quot; as their Song_Name, without considering the release year or calculating the target age. 
-
-Therefore, the predicted SQL does not correctly answer the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters by Song_Name = &#x27;Gentleman&#x27; and returns current Age, whereas the question requires the ages of all singers at the release year of the song “Gentleman” (as the reference query computes). The predicted query’s logic and result miss the required calculation and rows.</pre>
 
 ---
 
@@ -63244,15 +61716,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it only selects the singer who has a song named &quot;Gentleman&quot;, which is John Nizinik in this case, and returns their current age. However, the question asks for the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;, which implies that the age of each singer should be calculated based on the release year of the song &quot;Gentleman&quot; and their current age.
-
-The ground truth SQL query calculates the target age by adding the release year of the song &quot;Gentleman&quot; to the current age of each singer and then subtracting the current year, which is not the correct approach either. However, the predicted SQL query does not even attempt to calculate the age at the time of the release of the song &quot;Gentleman&quot; and only returns the current age of the singer who has a song named &quot;Gentleman&quot;.
-
-To correctly answer the question, the SQL query should calculate the age of each singer at the time of the release of the song &quot;Gentleman&quot; by subtracting the release year of the song &quot;Gentleman&quot; from the current year and then adding the result to the current age of each singer. However, since the release year of the song &quot;Gentleman&quot; is 2014, the correct approach would be to subtract the current age of each singer from the age they would have been in 2014, which is not what either the ground truth or predicted SQL queries do. 
-
-The correct SQL query would involve calculating the age of each singer in 2014, which would require more information about the current year or the birth year of each singer, which is not provided in the schema. Therefore, the predicted SQL query is incorrect, and the ground truth SQL query is also flawed.</pre>
+<pre>No: the prediction filters to the singer of “Gentleman” and returns the current Age, ignoring the required calculation of age at the song’s release year and omitting the other singers.</pre>
 
 ---
 
@@ -63363,13 +61827,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the name and age of each singer at the time of the song &quot;Gentleman&quot;&#x27;s release, given that it was released in the first year of the 21st century (2001). However, the predicted SQL query filters the results to only include singers with a song release year of 2014, which does not match the condition specified in the question.
-
-Additionally, the predicted SQL query does not calculate the age of the singers at the time of the song&#x27;s release. It simply returns their current age, which is not what the question asks for. The ground truth SQL query, on the other hand, calculates the target age by adding the difference between the release year (2001) and the current year to the singer&#x27;s age, which is a more accurate interpretation of the question.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction filters on Song_release_year = &#x27;2014&#x27; and returns the current Age, ignoring the required 2001 release year and the age‑at‑release calculation.</pre>
 
 ---
 
@@ -63488,13 +61946,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time. However, the predicted SQL query only returns the current age of the singers, not their age at the time of the concert.
-
-The ground truth SQL query correctly calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s current age. The predicted SQL query does not perform this calculation, resulting in an incorrect answer.
-
-Although the predicted SQL query is a reasonable interpretation of the question in terms of identifying the participating singers in the concert with the theme of &quot;Free choice&quot;, its failure to account for the age of the singers at the time of the concert makes it an incorrect answer. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, ignoring the required age‑at‑concert calculation.</pre>
 
 ---
 
@@ -63613,13 +62065,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at the time of the concert, assuming all singers born before 1985 participated. However, the predicted SQL query simply selects the current names and ages of the singers who participated in the &quot;Free choice&quot; concert, without considering their age at the time of the concert.
-
-The ground truth SQL query attempts to calculate the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding this difference to the singer&#x27;s current age. Although this approach is not entirely accurate, as it assumes the concert took place in the current year, it at least tries to account for the age of the singers at the time of the concert.
-
-In contrast, the predicted SQL query does not make any attempt to calculate the age of the singers at the time of the concert, which is a crucial part of the question. Therefore, the predicted SQL query is not a reasonable interpretation of the natural language question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction omits the birth‑year filter (singers born before 1985) and does not compute ages at the concert time, returning current ages for all linked singers instead of the required ages at the concert.</pre>
 
 ---
 
@@ -63735,13 +62181,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not account for the age of the singers at the time of the concert. The ground truth SQL calculates the age at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age. The predicted SQL simply selects the singer&#x27;s current age, which may not be the same as their age at the time of the concert. Additionally, the predicted result is an empty DataFrame, indicating that the query did not return any results, whereas the ground truth result returns three singers who participated in the &quot;Free Choice&quot; themed concert. 
-
-The predicted SQL also uses &#x27;Free Choice&#x27; (with a space) in the WHERE clause, whereas the ground truth SQL uses &quot;Free choice&quot; (with a space, but the theme in the schema is actually &quot;Free choice&quot;). However, this difference in capitalization and spacing may not be the primary cause of the empty result, as the main issue lies in the calculation of the age at the time of the concert. 
-
-To correct the predicted SQL, it should calculate the age at the time of the concert, similar to the ground truth SQL. However, since the schema does not provide a column for the date of birth or the current year, and the year column in the concert table seems to represent the year of the concert, the predicted SQL would need to be adjusted accordingly to accurately calculate the age at the time of the concert.</pre>
+<pre>No: the prediction neither calculates the singers’ ages at the time of the concert nor matches the Theme value (“Free Choice” vs the stored “Free choice”), resulting in an empty result and missing the required age_at_concert calculation.</pre>
 
 ---
 
@@ -63857,15 +62297,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not accurately calculate the age of the singers at the time of the song&#x27;s release. The calculation `Age - Song_release_year + 2001` is incorrect because it subtracts the release year from the age, which is not a valid way to calculate the age at a specific point in time.
-
-Additionally, the predicted SQL only returns the singer with the name &#x27;John Nizinik&#x27;, whereas the ground truth SQL returns all singers, regardless of the song they are associated with. The ground truth SQL calculates the age of each singer at the time of the song&#x27;s release by adding the difference between the release year (2001) and the current year to their age.
-
-The predicted SQL also assumes that the `Song_release_year` is an integer, but according to the schema, it is a TEXT column. This could potentially lead to errors if the column contains non-numeric values.
-
-The correct approach would be to calculate the age of each singer at the time of the song&#x27;s release, taking into account the release year and the singer&#x27;s age at that time. The ground truth SQL provides a correct calculation, but it does not filter the results to only include singers associated with the song &quot;Gentleman&quot;. A correct predicted SQL would need to combine the filtering with the correct age calculation.</pre>
+<pre>No: the prediction uses `Age - Song_release_year + 2001` (and filters by Song_Name) instead of computing age at 2001 from the current year, so it miscalculates the singers’ ages.</pre>
 
 ---
 
@@ -63981,15 +62413,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not account for the condition that all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert. The predicted SQL only joins the singer, singer_in_concert, and concert tables and filters the results to include only singers who participated in a concert with the theme &quot;Free Choice&quot;. However, it does not consider the age of the singers at the time of the concert.
-
-The ground truth SQL, on the other hand, correctly calculates the age of the singers at the time of the concert by subtracting the current year from the year of the concert and adding the result to the singer&#x27;s age. It also includes singers who were born before 1985, even if they did not participate in a concert with the theme &quot;Free Choice&quot;.
-
-The predicted result is an empty DataFrame, which suggests that the predicted SQL did not match any rows in the database. This is likely because the predicted SQL is missing the condition that all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert.
-
-To fix the predicted SQL, it should be modified to include the condition that all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, and to calculate the age of the singers at the time of the concert. The corrected SQL would be similar to the ground truth SQL.</pre>
+<pre>No: the query omits the “born before 1985” condition, does not compute age at the concert, and uses a mismatched theme string, resulting in an empty result instead of the required names and ages.</pre>
 
 ---
 
@@ -64104,13 +62528,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the question. The question asks for the names of the singers participating in the &quot;Home Visits&quot; concert and how old they will be on its 20th anniversary. The predicted SQL query calculates the age of the singer by adding 20 to their current age, which is incorrect. It does not take into account the year of the concert and the current year to calculate the age of the singer on the 20th anniversary of the concert.
-
-In contrast, the ground truth SQL query correctly calculates the age of the singer on the 20th anniversary of the concert by subtracting the current year from the year of the concert, adding the singer&#x27;s current age, and then adding 20. This ensures that the age calculation is accurate and takes into account the passage of time.
-
-Therefore, the predicted SQL query is incorrect, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a flat 20 years to the singer’s current age instead of accounting for the concert’s year (i.e., `concert.Year - current_year + 20`), so it does not compute the age on the 20th anniversary.</pre>
 
 ---
 
@@ -64216,17 +62634,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the question. The question asks for the number of years ago the earliest concert occurred, given that the concert with the theme &quot;Wide Awake&quot; took place three years earlier. 
-
-The predicted SQL query calculates the difference between the year of the concert with the theme &quot;Wide Awake&quot; (plus 3) and the minimum year of all concerts. This does not take into account the fact that the concert with the theme &quot;Wide Awake&quot; took place three years earlier, which should be considered when determining the earliest concert year.
-
-In contrast, the ground truth SQL query first adjusts the year of the concert with the theme &quot;Wide Awake&quot; by subtracting 3, then combines this with the years of all other concerts and finds the minimum year. It then subtracts this minimum year from the current year to find the number of years ago the earliest concert occurred.
-
-The predicted result of 3 is also incorrect, as it does not accurately reflect the number of years ago the earliest concert occurred. The ground truth result of 15 (or a similar value, depending on the current year) is a more plausible answer, given the data in the schema. 
-
-Therefore, the predicted SQL query is not a reasonable interpretation of the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No – the predicted query adds 3 to the Wide Awake year and subtracts the overall minimum year, instead of adjusting the Wide Awake year by –3, recomputing the earliest year, and then measuring how many years ago that was from the current year.</pre>
 
 ---
 
@@ -64332,13 +62740,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The question asks for the number of years since the earliest concert if the &quot;Wide Awake&quot; themed concert was held three years earlier. However, the predicted SQL query only considers the &quot;Wide Awake&quot; themed concert and subtracts 3 from its year, then subtracts the minimum year from all concerts. This approach does not take into account the fact that the &quot;Wide Awake&quot; concert&#x27;s new year (three years earlier) should be considered in the context of all concerts, including the ones that were held before or after it.
-
-In contrast, the ground truth SQL query correctly addresses this by creating a temporary result set that includes all concert years, with the &quot;Wide Awake&quot; concert&#x27;s year adjusted to be three years earlier. It then calculates the difference between the current year and the minimum year in this adjusted result set, which accurately represents the number of years since the earliest concert under the given condition.
-
-The predicted result of &quot;-3&quot; also does not make sense in the context of the question, as it implies a negative number of years since the earliest concert, which is not possible. The ground truth result, while partially redacted, indicates a calculation that reflects a plausible number of years, supporting the correctness of the ground truth SQL query over the predicted one.</pre>
+<pre>No: the prediction subtracts the original earliest concert year from the adjusted “Wide Awake” year instead of computing the current year minus the earliest (adjusted) concert year, and omits the union and current‑year calculation required by the question.</pre>
 
 ---
 
@@ -64453,13 +62855,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query is incorrect because it does not accurately calculate the age of the singer on the 20th anniversary of the &quot;Home Visits&quot; concert. The ground truth SQL query calculates the target age by subtracting the current year from the year of the concert and adding the singer&#x27;s age plus 20. In contrast, the predicted SQL query simply adds 20 to the singer&#x27;s current age, which is not the correct interpretation of the question.
-
-The predicted result shows John Nizinik&#x27;s age as 63, which is 20 years more than his current age of 43 (not shown in the predicted result, but shown in the schema example values). However, the ground truth result shows John Nizinik&#x27;s target age as 52, which suggests that the concert took place in a year that is not the current year.
-
-Therefore, the predicted SQL query does not correctly answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction adds a flat 20 to the singer’s current Age, ignoring the concert’s Year and the required calculation for the 20th anniversary.</pre>
 
 ---
 
@@ -64566,22 +62962,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the total amount of money that can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars when all tickets are sold out. 
-
-The ground truth SQL query calculates this total by multiplying the capacity of the Balmoor stadium by 20 and adding the capacity of the Hampden Park stadium multiplied by 5.5. 
-
-In contrast, the predicted SQL query uses a UNION operator to return two separate results: the total amount of money that can be made from ticket sales at the Balmoor stadium and the total amount of money that can be made from ticket sales at the Hampden Park stadium. This does not provide the total amount of money that can be made from both stadiums as requested in the question. 
-
-Furthermore, the use of the SUM aggregation function in the predicted SQL query is unnecessary since the WHERE clause filters the results to a single row for each stadium. The predicted SQL query should be modified to calculate the total amount of money that can be made from both stadiums, similar to the ground truth SQL query. 
-
-For example, a corrected predicted SQL query could be:
-```sql
-SELECT (Capacity * 20) + (SELECT Capacity * 5.5 FROM stadium WHERE Name = &#x27;Hampden Park&#x27;) AS total 
-FROM stadium 
-WHERE Name = &#x27;Balmoor&#x27;
-```</pre>
+<pre>No: the prediction returns two separate rows (individual revenues) instead of the combined total revenue required by the question.</pre>
 
 ---
 
@@ -64702,15 +63083,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not correctly answer the natural language question. The question asks for the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, if all the singers who performed at concerts in Stark Park also took part in it. However, the predicted SQL query only selects singers who performed at concerts in Stark Park, without considering whether they also performed at the &quot;Home Visits&quot; concert.
-
-The predicted SQL query joins the singer, singer_in_concert, concert, and stadium tables, but it does not filter the results to include only singers who performed at the &quot;Home Visits&quot; concert. Additionally, the query does not account for the 20th anniversary of the &quot;Home Visits&quot; concert, which would require calculating the age of the singers 20 years after the concert took place.
-
-The ground truth SQL query, on the other hand, correctly answers the question by joining the concert, singer_in_concert, and singer tables, and filtering the results to include only singers who performed at the &quot;Home Visits&quot; concert or who performed at concerts in Stark Park. The query also calculates the age of the singers 20 years after the concert took place.
-
-The predicted result is also different from the ground truth result, which further indicates that the predicted SQL query is incorrect. Therefore, the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction selects singers from Stark Park concerts and adds 20 to their ages, but it never restricts to the “Home Visits” concert or ensures those singers also performed there, so it does not answer the asked query.</pre>
 
 ---
 
@@ -64832,15 +63205,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately answer the natural language question. The main issue lies in the condition used to determine the payment amount for each singer. The predicted SQL uses `T1.Age &gt; 25` to decide whether a singer earns $355 or $228 per concert, which is incorrect. 
-
-The correct condition should be based on the singer&#x27;s birth year, which can be estimated by subtracting the singer&#x27;s age from the current year. The ground truth SQL query uses `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &lt; 1980` and `strftime(&quot;%Y&quot;, &quot;now&quot;) - C.Age &gt;= 1980` to correctly determine the payment amount.
-
-Additionally, the predicted SQL query uses `SUM(CASE WHEN T1.Age &gt; 25 THEN 355 ELSE 228 END)`, which simply adds up the payment amounts for each singer without considering the actual number of concerts each singer performed in Somerset Park stadium. The ground truth SQL query correctly counts the number of concerts for each age group and multiplies it by the corresponding payment amount.
-
-Overall, the predicted SQL query does not accurately implement the payment logic and concert counting, resulting in an incorrect answer.</pre>
+<pre>No: the prediction uses `CASE WHEN T1.Age &gt; 25` to decide the rate, which does not correctly implement “born before 1980” (it should compare birth year, e.g., `strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - Age &lt; 1980`). This logic error leads to an incorrect total.</pre>
 
 ---
 
@@ -64946,15 +63311,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not accurately represent the relationship between the capacities of the two stadiums as described in the question. The question states that the capacity of the Hampden Park stadium is twice that of the Balmoor stadium. However, the predicted SQL query simply selects the capacity of each stadium and multiplies them by their respective ticket prices without establishing this relationship.
-
-In contrast, the ground truth SQL query correctly establishes this relationship by multiplying the capacity of the Balmoor stadium by 2 (to represent the capacity of the Hampden Park stadium) and then calculates the total revenue from ticket sales at both stadiums.
-
-The predicted result is also incorrect because it does not take into account the relationship between the capacities of the two stadiums. The predicted result is simply the sum of the revenue from the Balmoor stadium and the revenue from the Hampden Park stadium, without considering that the capacity of the Hampden Park stadium is twice that of the Balmoor stadium.
-
-Therefore, the predicted SQL query does not accurately answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction uses Hampden Park’s actual capacity instead of twice Balmoor’s capacity, ignoring the “twice that of the Balmoor stadium” condition.</pre>
 
 ---
 
@@ -65081,17 +63438,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL is incorrect because it does not correctly identify the stadiums with the lowest and highest average attendance rates, nor does it provide the total number of concerts held at each of these stadiums.
-
-The predicted SQL joins the `stadium` and `concert` tables and groups the results by `Stadium_ID`. It then filters the results to include only the stadiums with the minimum or maximum average attendance rate. However, this approach does not provide the total number of concerts held at each of these stadiums, which is part of the question.
-
-Additionally, the predicted SQL does not provide the names of the stadiums with the lowest and highest average attendance rates separately, but instead returns both stadiums in a single result set, ordered by average attendance rate.
-
-In contrast, the ground truth SQL uses subqueries to first identify the stadiums with the lowest and highest average attendance rates, and then joins these results with the `concert` table to count the number of concerts held at each stadium. This approach provides a more accurate answer to the question.
-
-Therefore, the predicted SQL does not correctly answer the question, and the verdict is &quot;No&quot;.</pre>
+<pre>No: the prediction uses `T1.Average` directly instead of the attendance **rate** (`Average/Capacity`) required, and therefore selects the wrong stadiums and miscounts concerts (e.g., excludes stadiums with zero concerts).</pre>
 
 ---
 
@@ -65134,7 +63481,7 @@ GROUP BY
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             907 |                 106 |           4799 |             23483.7 |              181.72 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             907 |                 106 |           4799 |             23483.7 |              181.72 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -65209,21 +63556,13 @@ Table: singer_in_concert
 Question: What are the names of the stadiums with the highest and lowest average attendance rates, and how many concerts have been held in each of them?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL query is a reasonable interpretation of the natural language question. Although it differs from the ground truth SQL, it still attempts to find the stadiums with the highest and lowest average attendance rates and count the number of concerts held in each.
-
-The predicted SQL joins the `stadium` and `concert` tables on the `Stadium_ID` column and filters the results to include only the stadiums with the maximum or minimum average attendance rate. It then groups the results by `Stadium_ID` and counts the number of concerts for each stadium.
-
-The predicted result shows two stadiums, &quot;Stark&#x27;s Park&quot; and &quot;Glebe Park&quot;, with one concert each. Although the result differs from the ground truth result, which shows only one stadium, &quot;Bayview Stadium&quot;, with zero concerts, the predicted SQL is still a valid interpretation of the question.
-
-The ground truth SQL uses subqueries to find the stadiums with the highest and lowest average attendance rates and then joins these results with the `concert` table to count the number of concerts. In contrast, the predicted SQL uses a single query with a join and a filter to achieve the same result. While the approaches differ, the predicted SQL is still a reasonable and valid interpretation of the question. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction filters on the raw Average column (MAX/MIN) instead of the average attendance rate (Average / Capacity) used by the question, and therefore returns the wrong stadiums and concert counts.</pre>
 
 ---
 
@@ -65264,7 +63603,7 @@ WHERE
 
 |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
 |---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             889 |                  76 |           3360 |             14513.1 |               221.4 |           1 |
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             889 |                  76 |           3360 |             14513.1 |               221.4 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -65342,19 +63681,13 @@ Table: singer_in_concert
 Question: What percentage of the concerts were held in the top three stadiums in terms of average attendance rate?</pre>
 
 ### 🤖 LLM Judge Assessment
-LLM judge score: `1.0`
+LLM judge score: `0.0`
 
 
 LLM judge explanation (if applicable):
 
 
-<pre>Yes
-
-The predicted SQL is correct. Although it differs from the ground truth SQL, it still accurately answers the natural language question. The key difference between the two SQL queries is the ordering of stadiums by average attendance rate. The ground truth SQL orders stadiums by the average attendance rate as a percentage of capacity (i.e., `100.0 * Average / Capacity DESC`), while the predicted SQL orders stadiums by the average attendance rate in descending order (`Average DESC`).
-
-However, since the question only asks for the top three stadiums in terms of average attendance rate, the predicted SQL&#x27;s simpler ordering is sufficient and equivalent to the ground truth SQL&#x27;s more complex ordering in this context. The results of both queries are also reasonable, given the potential ambiguity in the question and the schema.
-
-The predicted result (50) differs from the ground truth result (33.333333), but this discrepancy may be due to differences in the data or the specific interpretation of the question. Given the information provided, the predicted SQL is a reasonable interpretation of the natural language question, and its result is plausible. Therefore, the verdict is &quot;Yes&quot;.</pre>
+<pre>No: the prediction orders stadiums by Average alone instead of by average attendance rate (Average / Capacity) as defined, so it selects the wrong top three stadiums.</pre>
 
 ---
 
@@ -65471,15 +63804,7 @@ LLM judge score: `0.0`
 LLM judge explanation (if applicable):
 
 
-<pre>No
-
-The predicted SQL query does not fully address the question. It only selects singers who participated in the &quot;Home Visits&quot; concert and calculates their age 20 years from now. However, it does not consider the condition that all singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert.
-
-The ground truth SQL query takes into account the stadium location (&quot;Stark&#x27;s Park&quot;) and checks if the singers who performed there also performed in the &quot;Home Visits&quot; concert. The predicted SQL query does not include this condition, which is a crucial part of the question.
-
-Additionally, the predicted SQL query does not account for the year of the &quot;Home Visits&quot; concert, which is used in the ground truth query to calculate the target age. The predicted result only shows one singer, John Nizinik, with an age 20 years from now, but it does not provide the correct target age based on the concert year.
-
-Overall, the predicted SQL query is incomplete and does not accurately answer the question, resulting in a verdict of &quot;No&quot;.</pre>
+<pre>No – the prediction omits the Stark Park condition (and the correct age‑at‑20‑anniversary calculation) and therefore returns only one singer instead of the full set required.</pre>
 
 ---
 
