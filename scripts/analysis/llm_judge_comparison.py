@@ -29,9 +29,7 @@ load_dotenv(os.path.expanduser("~/.env"))
 # Paths to LLM judge configuration files
 llm_judge_config_paths = [
     "src/text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_default_config.yaml",
-    "src/text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_alt_config.yaml",
-    "src/text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_no_gt_v1.yaml",
-    "src/text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_no_gt_v2.yaml",
+    "src/text2sql_eval_toolkit/evaluation/llm_judge_config/llm_judge_no_gt.yaml",
 ]
 
 

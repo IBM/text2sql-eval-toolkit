@@ -23,9 +23,7 @@ from text2sql_eval_toolkit.metrics.text2sql_utils import (
 from text2sql_eval_toolkit.utils import (
     get_benchmark_info,
     parse_dataframe,
-    truncate_dataframe,
     get_gt_sqls,
-    get_question,
     get_default_eval_filename,
     add_summary_json_suffix,
     add_summary_csv_suffix,
@@ -34,6 +32,7 @@ from text2sql_eval_toolkit.evaluation.llm_as_judge import (
     evaluate_sql_prediction_with_llm,
     load_llm_judge_config,
 )
+from text2sql_eval_toolkit.evaluation.judge_inputs import build_llm_judge_inputs
 from text2sql_eval_toolkit.logging import get_logger
 
 logger = get_logger(__name__)
@@ -323,60 +322,13 @@ def evaluate_prediction(
                                 "N/A (did not use LLM due to subset match)"
                             )
                         else:
-                            question = get_question(record)
-                            ground_truth_sql = gold_sql
-                            ground_truth_df = truncate_dataframe(gold_df)
-                            predicted_sql = prediction["predicted_sql"]
-                            predicted_df = truncate_dataframe(pred_df)
-
-                            # Get context for LLM judge
-                            # For agentic pipelines: use agent_trace (full conversation history)
-                            # For standard baseline: use prompt
-                            if (
-                                "agent_trace" in prediction
-                                and prediction["agent_trace"]
-                            ):
-                                # Agentic pipeline - use full trace as context
-                                trace = prediction["agent_trace"]
-                                trace_text = "Agent Interaction Trace:\n\n"
-                                for i, interaction in enumerate(trace, 1):
-                                    if interaction is None:
-                                        continue
-                                    trace_text += f"Step {i}: {interaction.get('step', 'unknown')}\n"
-                                    if "messages" in interaction:
-                                        for msg in interaction["messages"]:
-                                            role = msg.get("role", "unknown")
-                                            content = msg.get("content", "")[
-                                                :500
-                                            ]  # Truncate long content
-                                            trace_text += f"  [{role}]: {content}...\n"
-                                    if "response" in interaction:
-                                        trace_text += f"  [response]: {interaction['response'][:500]}...\n"
-                                    trace_text += "\n"
-                                prompt = trace_text
-                            elif "agent_reasoning" in prediction:
-                                # Fallback to agent_reasoning if trace not available
-                                reasoning_list = prediction["agent_reasoning"]
-                                prompt = "Agent Reasoning:\n" + "\n".join(
-                                    f"- {r}" for r in reasoning_list
-                                )
-                            elif "prompt" in prediction:
-                                # Standard baseline - use prompt
-                                prompt = prediction["prompt"]
-                            else:
-                                # Fallback - construct minimal context
-                                schema_info = record.get("schema", {})
-                                db_type = record.get("db_type", "SQL")
-                                prompt = f"Question: {question}\n\nDatabase Type: {db_type}\n\nSchema: {schema_info}\n\nGenerate SQL to answer the question."
-
+                            # Built in one place so a judge calibration run
+                            # sends the judge exactly what this does.
                             llm_as_judge_response = evaluate_sql_prediction_with_llm(
-                                question,
-                                ground_truth_sql,
-                                ground_truth_df,
-                                predicted_sql,
-                                predicted_df,
-                                prompt,
-                                llm_judge_config,
+                                llm_judge_config=llm_judge_config,
+                                **build_llm_judge_inputs(
+                                    record, prediction, gold_sql, gold_df, pred_df
+                                ),
                             )
                             llm_score = float(llm_as_judge_response["score"])
                             llm_explanation = llm_as_judge_response["explanation"]

@@ -1,7 +1,7 @@
 model:
-  id: wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8
+  id: wxai:meta-llama/llama-3-3-70b-instruct  # "wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8"
   decoding_method: greedy
-  max_new_tokens: 256
+  max_new_tokens: 512
 
 prompt_template: |
   You are an expert SQL evaluator. Your task is to assess whether a predicted SQL query correctly answers a natural language question, given the database schema and the ground truth SQL and result.

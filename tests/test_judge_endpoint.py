@@ -436,7 +436,7 @@ def test_exhausted_budget_refuses_further_calls(client, fake_llm, monkeypatch):
         json={
             "record_id": "r1",
             "pipeline": PIPE,
-            "config_name": "llm_judge_alt_config",
+            "config_name": "llm_judge_no_gt",
         },
     )
     assert blocked.status_code == 429

@@ -29,6 +29,7 @@ from fastapi import (
 import text2sql_eval_toolkit.env_loader  # noqa: F401 — load .env (WATSONX_*, etc.) before eval/inference
 
 from text2sql_eval_toolkit.evaluation.llm_as_judge import (
+    RETIRED_JUDGE_CONFIGS,
     evaluate_sql_prediction_with_llm,
     load_llm_judge_config,
 )
@@ -122,7 +123,8 @@ def _resolve_judge_config_path(name: str) -> Path:
     shipped config through the dashboard takes effect without the packaged file
     ever being touched -- and deleting the copy restores the original. A name
     with no user copy resolves to the packaged path, whether or not that file
-    exists; the caller reports the miss.
+    exists; the caller reports the miss. A retired packaged name with no user
+    copy resolves to the config that replaced it.
 
     ``name`` arrives from a URL segment or request body. FastAPI will not match
     a raw ``/`` into a single path parameter, but percent-encoded separators and
@@ -133,7 +135,10 @@ def _resolve_judge_config_path(name: str) -> Path:
     override = _contained(_user_judge_config_dir(), name)
     if override.is_file():
         return override
-    return _contained(_judge_config_dir(), name)
+    packaged = _contained(_judge_config_dir(), name)
+    if not packaged.is_file() and name in RETIRED_JUDGE_CONFIGS:
+        return _contained(_judge_config_dir(), RETIRED_JUDGE_CONFIGS[name])
+    return packaged
 
 
 def _load_judge_config_by_name(name: str) -> Dict[str, Any]:

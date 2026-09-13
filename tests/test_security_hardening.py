@@ -66,9 +66,7 @@ def test_hostile_config_names_are_refused(name):
         routers_judge._resolve_judge_config_path(name)
 
 
-@pytest.mark.parametrize(
-    "name", ["llm_judge_default_config", "llm_judge_alt_config", "llm_judge_no_gt_v1"]
-)
+@pytest.mark.parametrize("name", ["llm_judge_default_config", "llm_judge_no_gt"])
 def test_real_config_names_still_resolve(name):
     path = routers_judge._resolve_judge_config_path(name)
     assert path.name == f"{name}.yaml"

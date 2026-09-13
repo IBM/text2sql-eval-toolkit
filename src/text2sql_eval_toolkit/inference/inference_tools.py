@@ -357,7 +357,28 @@ class WXAIClientChatAPI:
             # Try content first (normal case)
             sql = message.get("content", "").strip()
 
-            # Fall back to reasoning_content if content is empty
+            # A reasoning model that spends its whole token budget thinking
+            # returns empty content. For SQL generation the query is often
+            # recoverable from the reasoning, so fall back to it there.
+            #
+            # Never for text (postprocess=False is `ModelClient.generate_text`,
+            # which the LLM judge uses). A judge reply salvaged from reasoning is
+            # a fragment of thought, not an answer: gpt-oss-120b at 512 tokens
+            # produced "select month and consumption directly from yearmonth
+            # rows...", which has no verdict and so scored N/A -- the same score
+            # as a rejection, silently. Raising instead makes the judge record an
+            # error, which is visible and retried.
+            if not sql and not postprocess:
+                finish_reason = response["choices"][0].get("finish_reason")
+                error = ValueError(
+                    "The model returned no answer text"
+                    + (f" (finish_reason={finish_reason!r})" if finish_reason else "")
+                    + ". A reasoning model may have used its whole token budget "
+                    "before answering; raise max_new_tokens."
+                )
+                error.response = str(response)
+                raise error
+
             if not sql:
                 reasoning = message.get("reasoning_content", "").strip()
                 if reasoning:

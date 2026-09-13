@@ -98,9 +98,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"Judge again ignores the cache" had no space in it.** JSX drops a newline
   between an element and the text after it, so the sentence rendered as
   "Judge againignores the cache".
+- **The LLM judge was shown an agentic prediction without its schema or hints.**
+  The judge's context for an agentic pipeline is the agent's trace, and every
+  message in it was cut to 500 characters — including the first, which carries
+  the task: a 3,600- to 11,400-character prompt of schema, hints and question
+  reduced to its opening lines. The task the agent was given is now kept whole;
+  later messages and responses are still cut, and the messages each step
+  re-sends are shown once. Every batch verdict on an agentic prediction before
+  this was reached without the schema or the hints.
+- **A reasoning model that ran out of tokens no longer produces a verdict.**
+  gpt-oss-120b reasons before it answers, and at the judge configs' old budget of
+  512 tokens it often returned reasoning and no answer. The watsonx client fell
+  back to the reasoning text, as it does when extracting SQL, so the judge read
+  a verdict out of a fragment of thought — usually none, scored `N/A`, the same
+  score as a rejection. Text generation now raises, naming the finish reason and
+  saying to raise `max_new_tokens`; SQL generation still falls back.
 
 ### Changed
 
+- **The packaged LLM judges use gpt-oss-120b, and there are two of them.**
+  `llm_judge_default_config` compares a prediction with the ground truth and
+  `llm_judge_no_gt` judges without it. They replace four configs built on Llama
+  3.3 70B and Llama 4 Maverick, whose names still load: `llm_judge_alt_config`
+  loads the default, and `llm_judge_no_gt_v1` and `llm_judge_no_gt_v2` load
+  `llm_judge_no_gt`, unless a config of your own has that name. On 52 labelled
+  execution mismatches drawn after the prompts were written, the new default
+  accepts 2 of the 28 wrong predictions where the Llama config it replaces
+  accepts 7, with a mean absolute error of 0.18 against 0.27; it rejects 3 of the
+  14 correct ones against 2. Without the ground truth, gpt-oss-120b accepts 7 of
+  the 28 where Llama accepted 15. The labelled set and the script that scores a
+  config against it are in `data/judge_calibration/` and
+  `scripts/analysis/judge_calibration.py`.
+
+  **Published scores are unchanged.** Every `llm_score` in the published results
+  still comes from the Llama 3.3 70B judge, and the batch judge reuses a stored
+  score whichever config produced it: evaluating with the new default without
+  `force_rerun_llm_judge` keeps the Llama scores while recording the new config
+  in the summary.
 - **The Eval Playground's question and database are legible.** They were set
   smaller and dimmer than the body copy around them, with the database run onto
   the end of the question's line, which made the subject of the whole view the

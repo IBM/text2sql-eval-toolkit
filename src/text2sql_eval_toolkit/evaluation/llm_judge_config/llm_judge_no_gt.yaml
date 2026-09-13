@@ -1,0 +1,59 @@
+# The packaged judge without ground truth: sees the question, the context the
+# prediction was generated from, and the prediction with its result -- no
+# reference query and no reference result.
+#
+# Tuned in 1.6.0 against the same labelled set as the default judge
+# (data/judge_calibration/, scripts/analysis/judge_calibration.py). It replaced
+# llm_judge_no_gt_v1 and llm_judge_no_gt_v2, which used Llama 3.3 70B and
+# Llama 4 Maverick; both names load this file. Judging without a reference is a
+# much harder task, and this judge accepts far more wrong queries than the
+# default does: use it where there is no ground truth, not in place of one.
+model:
+  id: wxai:openai/gpt-oss-120b
+  # gpt-oss-120b reasons before it answers, and the reasoning counts against
+  # this budget; 512 left no room for the answer at all.
+  max_new_tokens: 8192
+  temperature: 0
+
+prompt_template: |
+  You are grading a text-to-SQL prediction without a reference answer: does the predicted SQL query correctly answer the question?
+
+  You are given the question; the context the prediction was generated from; and the predicted SQL query with its result. The context is either the generation prompt, which contains the database schema and sometimes hints that define terms used in the question, or an agent's interaction trace, which shows the task the agent was given in full and cuts later messages short -- so it may not show every table or column. The result table is rendered as text, and a long table is cut to its first and last rows.
+
+  Most predictions you will see are wrong in some way, and a wrong query usually looks reasonable at first sight. Answer Yes only when you have checked every requirement below and found nothing wrong.
+
+  How to judge:
+  1. Work out exactly what the question asks for, part by part. Where the context gives hints, they are the definition of the terms they explain: a prediction that departs from a threshold, formula, column or value a hint gives is incorrect, however reasonable its own choice.
+  2. Check that the query computes what the question names, not a nearby quantity:
+     - a derived measure (a rate, a share, a growth, a per-capita figure, an age at some past date) must be computed, not replaced by a raw column that sounds similar;
+     - a ratio, a multiple ("how many times"), a difference or a comparison must be computed, not just its inputs returned;
+     - a hypothetical ("if X were Y", "assuming") must be applied in the calculation, not used as a filter or a lookup key;
+     - a quantity must come from the column that holds it (money spent, not the number of items);
+     - an answer about a set of rows (how many patients, which members) must not be counted over the wrong rows or joined in a way that duplicates or drops them.
+  3. Check the joins, the filter conditions and their literal values. A literal must match how the data stores it, as far as the schema, sample values or hints show.
+  4. Use the result as evidence. An empty result or a NULL, where the question presumes an answer exists, almost always means a wrong literal, join or condition: answer No unless you can see the query is right and the data genuinely has no match. An impossible value -- a percentage above 100, a negative count -- means No. A plausible-looking result is not proof.
+  5. These do not make a query wrong: column names or order, extra columns that identify or explain the answer, row order when the question does not ask for an order, rounding or number formatting, and returning every tied row. Do not call a table or column missing only because the context does not show it.
+  6. A query that inspects the schema, samples rows or otherwise does not attempt the question is incorrect.
+
+  Verdicts:
+  - Yes: you checked the query against every part of the question and it answers it correctly.
+  - Maybe: the question's wording can reasonably be read more than one way, the hints do not settle it, and the prediction follows one reasonable reading. Do not use Maybe for a prediction with a logic error, and do not use it because you are unsure: decide.
+  - No: the predicted query does not correctly answer the question.
+
+  Reply with the verdict alone on the first line -- exactly one of Yes, Maybe or No -- then a short explanation that names the clause, column or value that decides it.
+
+  ### Question:
+  {question}
+
+  ### Context the prediction was generated from:
+  {generation_prompt}
+
+  ### Predicted SQL:
+  ```sql
+  {predicted_sql}
+  ```
+
+  ### Predicted result:
+  {predicted_df}
+
+  ### Verdict:
