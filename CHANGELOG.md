@@ -107,6 +107,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `rerun_metrics.py --preserve-llm-judge` still calls no judge for a stored
   verdict: it passes the new `llm_judge_reuse="any"`, and the verdicts it keeps
   keep their own digest. The dashboard's verdict cache keys on the same digest.
+- **A batch judge run is no longer refused by watsonx's rate limits before it
+  starts.** Every judge call built a new watsonx model handle, which requests the
+  project's details and an IAM token, and watsonx rate-limits both. Re-judging
+  the published results at a few calls a second had most calls refused with
+  "Exceeded limit of calls to endpoint" or a `/token` rate limit, none of them
+  reaching the model, and repeating the run could not get past it. A handle is
+  now built once per model, parameters and credentials, and shared; clients
+  holding different keys never share one.
 - **A prediction with several ground-truth queries is judged once.** The judge
   was asked about each query in turn and every answer but the last discarded;
   it is now asked once, about the query that decided the result, which is the
