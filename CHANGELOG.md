@@ -151,11 +151,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   config against it are in `data/judge_calibration/` and
   `scripts/analysis/judge_calibration.py`.
 
-  **Published scores are unchanged.** Every `llm_score` in the published results
-  still comes from the Llama 3.3 70B judge, and the batch judge reuses a stored
-  score whichever config produced it: evaluating with the new default without
-  `force_rerun_llm_judge` keeps the Llama scores while recording the new config
-  in the summary.
+  **The published results are re-judged with it**, in the `v1.6.0` results
+  snapshot: 9,132 judge calls across all six benchmarks, none failing. The judge
+  accepts far fewer predictions than the Llama judge did — which accepted many
+  wrong ones — so every pipeline's LLM score falls. gpt-oss-120b zero-shot goes
+  from 0.88 to 0.79 on BIRD SQLite, 0.86 to 0.73 on BIRD PostgreSQL, 0.98 to 0.94
+  on Spider Dev, 0.56 to 0.42 on Archer and 0.51 to 0.29 on Beaver. LLM scores
+  from before and after are not comparable.
+
+  Evaluating again also recomputed the other metrics under current code and
+  dependencies, for the five benchmarks last evaluated in August.
+  Syntactic-equivalence scores move with the sqlglot and sqlparse upgrades — on
+  Spider Dev, 1,915 of 10,340 predictions change `sqlglot_equivalence` — and 30
+  predictions that did not match their reference now subset-match (24 on BIRD
+  PostgreSQL, 5 on BIRD SQLite, 1 on Beaver), moving a pipeline's subset
+  execution accuracy by at most 0.008. Archer, last evaluated on 2026-09-01, has
+  no such changes.
 - **The Eval Playground's question and database are legible.** They were set
   smaller and dimmer than the body copy around them, with the database run onto
   the end of the question's line, which made the subject of the whole view the
