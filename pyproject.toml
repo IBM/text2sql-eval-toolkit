@@ -54,6 +54,7 @@ dependencies = [
     #
     # These are floors, not pins: a newer version always wins. Remove an entry
     # once the package that pulls it in has raised its own floor past this one.
+    "anyio>=4.14.2",          # via httpx, openai, google-genai; TLS host-name spoofing
     "cryptography>=50.0.0",   # via google-auth; encrypts stored provider keys
     "idna>=3.15",             # via requests, httpx
     "pillow>=12.3.0",         # via matplotlib

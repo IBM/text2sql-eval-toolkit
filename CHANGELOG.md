@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **`anyio` is floored at 4.14.2**, and the lockfile moved to 4.15.1. Versions
+  before 4.14.2 encode a TLS stream's host name with IDNA 2003, which can let a
+  certificate for a different host be accepted (GHSA-82r6-8w77-94w6, critical),
+  and can leave process-pool workers blocked on undrained stderr
+  (GHSA-5p39-cfhj-2xmp). It arrives through httpx, openai, google-genai and
+  Starlette, whose own floors allow the vulnerable versions, so it is named in
+  `pyproject.toml` with the other security floors — the lockfile alone does
+  nothing for `pip install text2sql-eval-toolkit`.
+
 ### Added
 
 - **A benchmark can keep its details behind sign-in, and Beaver does.** Beaver's
