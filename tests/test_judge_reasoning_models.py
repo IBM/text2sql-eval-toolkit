@@ -166,6 +166,31 @@ def test_the_task_is_kept_whole_but_not_without_limit():
     assert "s" * TRACE_TASK_CHARS + "..." in context
     assert "s" * (TRACE_TASK_CHARS + 1) not in context
 
+    # The budget is the whole task's, not each message's: three long messages
+    # in one step used to render 120,000 characters against a 40,000 limit.
+    crowded = build_llm_judge_inputs(
+        RECORD,
+        {
+            "predicted_sql": "SELECT 1",
+            "agent_trace": [
+                {
+                    "messages": [
+                        {"role": "system", "content": "s" * 60000},
+                        {"role": "user", "content": "u" * 60000},
+                        {"role": "assistant", "content": "a" * 60000},
+                    ]
+                }
+            ],
+        },
+        "SELECT 1",
+        GOLD,
+        PRED,
+    )["generation_prompt"]
+    assert len(crowded) < TRACE_TASK_CHARS + 2000
+    # What is left after the budget still says something, rather than nothing.
+    assert "[user]: " + "u" * 500 + "..." in crowded
+    assert "[assistant]: " + "a" * 500 + "..." in crowded
+
     fits = "t" * (TRACE_TASK_CHARS - 1)
     whole = build_llm_judge_inputs(
         RECORD,

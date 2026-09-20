@@ -235,6 +235,41 @@ def test_the_digest_ignores_key_order_and_changes_with_the_prompt():
     assert judge_config_digest(OLD) != judge_config_digest(NEW)
 
 
+def test_a_kept_verdict_is_counted_by_both_the_average_and_the_tally():
+    """
+    A verdict kept through a failed call is in the `llm_score` average, so it
+    has to be in the count printed beside it too, or a summary contradicts
+    itself: 1.00 average, "1 of 2 correct".
+    """
+    kept = {
+        "subset_non_empty_execution_accuracy": 0,
+        "llm_score": 1.0,
+        "llm_explanation": "stored yes",
+        JUDGE_DIGEST_KEY: judge_config_digest(OLD),
+        "llm_judge_error": "RuntimeError('refused')",
+    }
+    fresh = {
+        "subset_non_empty_execution_accuracy": 0,
+        "llm_score": 1.0,
+        "llm_explanation": "yes",
+        JUDGE_DIGEST_KEY: judge_config_digest(NEW),
+    }
+    summary = compute_summary({"p": [kept, fresh]}, NEW)["p"]
+    assert summary["llm_score"]["average"] == 1.0
+    assert summary["num_correct_llm"] == 2
+    assert summary["num_llm_judge_errors"] == 1
+
+
+def test_a_failure_with_no_verdict_is_counted_by_neither():
+    failed = {
+        "subset_non_empty_execution_accuracy": 0,
+        "llm_judge_error": "RuntimeError('refused')",
+    }
+    summary = compute_summary({"p": [failed]}, NEW)["p"]
+    assert summary["num_correct_llm"] == 0
+    assert summary["num_llm_judge_errors"] == 1
+
+
 def test_a_summary_is_not_confused_by_the_digest(judge):
     evaluation = evaluate_prediction(record(), mismatch(), llm_judge_config=NEW)
     summary = compute_summary({"p": [evaluation]}, NEW)

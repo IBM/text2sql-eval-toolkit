@@ -604,12 +604,15 @@ def compute_summary(metrics_by_model, llm_judge_config, token_usage_by_model=Non
         )
 
         if llm_judge_config:
+            # Counted from the score, not from the absence of an error: a call
+            # that failed can still carry the verdict a previous run stored,
+            # and that verdict is in the `llm_score` average beside this count.
+            # Requiring no error made the two disagree. A record whose judge
+            # failed with nothing stored has no score and is counted by neither.
             metric_stats["num_correct_llm"] = sum(
                 1
                 for r in records
-                if "llm_judge_error" not in r
-                and "eval_error_message" not in r
-                and r.get("llm_score") == 1
+                if "eval_error_message" not in r and r.get("llm_score") == 1
             )
             metric_stats["num_llm_judge_errors"] = sum(
                 1 for r in records if "llm_judge_error" in r

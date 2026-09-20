@@ -21,13 +21,14 @@ from text2sql_eval_toolkit.utils import get_question, truncate_dataframe
 #: Characters kept of each later message, and of every response, in a trace.
 TRACE_MESSAGE_CHARS = 500
 
-#: Characters kept of the task an agent was given -- the first step's messages.
-#: Enough for the schema and hints, which is what the judge needs from them: of
-#: the agentic predictions in ``data/judge_calibration/``, 99% of whole traces
-#: are shorter than this. Not unbounded, because the prompt is sent to a model
-#: with a context window: one Beaver trace reaches 160,000 characters, and a
-#: judge config on a smaller model would fail on exactly the records whose
-#: traces carry the most.
+#: Characters kept of the task an agent was given, shared by the whole first
+#: step: a budget, not a per-message limit, so a step carrying several long
+#: messages cannot grow the prompt without bound. Enough for the schema and
+#: hints, which is what the judge needs from them: of the agentic predictions in
+#: ``data/judge_calibration/``, 99% of whole traces are shorter than this. Not
+#: unbounded, because the prompt goes to a model with a context window -- one
+#: Beaver trace reaches 160,000 characters, and a judge config on a smaller
+#: model would fail on exactly the records whose traces carry the most.
 TRACE_TASK_CHARS = 40_000
 
 
@@ -61,6 +62,7 @@ def render_agent_trace(trace: List[Optional[Dict[str, Any]]]) -> str:
     text = "Agent Interaction Trace:\n\n"
     seen = set()
     task_shown = False
+    task_budget = TRACE_TASK_CHARS
     for i, interaction in enumerate(trace, 1):
         if interaction is None:
             continue
@@ -72,8 +74,17 @@ def render_agent_trace(trace: List[Optional[Dict[str, Any]]]) -> str:
             if (role, content) in seen:
                 continue
             seen.add((role, content))
-            limit = TRACE_MESSAGE_CHARS if task_shown else TRACE_TASK_CHARS
-            text += f"  [{role}]: {_cut(content, limit)}\n"
+            # Every message keeps at least `TRACE_MESSAGE_CHARS`, so the
+            # question -- short, and usually last -- survives a schema that
+            # spent the whole budget before it.
+            limit = (
+                TRACE_MESSAGE_CHARS
+                if task_shown
+                else max(task_budget, TRACE_MESSAGE_CHARS)
+            )
+            shown = _cut(content, limit)
+            task_budget -= len(shown)
+            text += f"  [{role}]: {shown}\n"
         task_shown = task_shown or bool(messages)
         if "response" in interaction:
             text += f"  [response]: {_cut(str(interaction['response'] or ''))}\n"
