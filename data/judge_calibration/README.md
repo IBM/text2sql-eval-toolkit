@@ -16,9 +16,10 @@ change to them.
   for the two packaged configs and the two retired ones they are compared with.
 - `configs/` — those retired Llama configs, kept as baselines.
 
-The stored `inputs` were built before an ellipsis fix: at the time, every later
-message in an agentic trace ended in `...` whether or not it had been cut. A
-`build` today produces those messages without the marker, which changes the set's
+The stored `inputs` were built before two fixes to how a trace is rendered:
+every later message ended in `...` whether or not it had been cut, and the task
+the agent was given was kept without an upper limit. A `build` today drops those
+markers and cuts a task longer than 40,000 characters, which changes the set's
 digest and so starts the runs afresh; the runs in `runs/` are the ones made on
 the inputs recorded here.
 

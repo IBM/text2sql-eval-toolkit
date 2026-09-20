@@ -123,6 +123,13 @@ const TEXT_DETAIL_KEYS = new Set([
 /** Shown under the LLM judge section instead of the metrics table or text-details table. */
 const LLM_EXPLANATION_KEY = "llm_explanation";
 
+/**
+ * Which judge config gave the verdict. Shown under the LLM judge section,
+ * shortened: it is a SHA-256, and a 64-character hex string in a table meant to
+ * be read says nothing to anyone.
+ */
+const JUDGE_DIGEST_KEY = "llm_judge_config_digest";
+
 /** Eval Playground defaults: record and pipeline to load and auto-run on first open. */
 const DEFAULT_PLAYGROUND_RECORD_ID = "1490";
 const DEFAULT_PLAYGROUND_PIPELINE =
@@ -836,7 +843,8 @@ export const RunEvaluationView: React.FC<Props> = ({
       if (
         d.name in ev &&
         !TEXT_DETAIL_KEYS.has(d.name) &&
-        d.name !== LLM_EXPLANATION_KEY
+        d.name !== LLM_EXPLANATION_KEY &&
+        d.name !== JUDGE_DIGEST_KEY
       ) {
         orderedNames.push(d.name);
       }
@@ -845,6 +853,7 @@ export const RunEvaluationView: React.FC<Props> = ({
       if (
         !TEXT_DETAIL_KEYS.has(k) &&
         k !== LLM_EXPLANATION_KEY &&
+        k !== JUDGE_DIGEST_KEY &&
         !orderedNames.includes(k)
       ) {
         orderedNames.push(k);
@@ -883,6 +892,14 @@ export const RunEvaluationView: React.FC<Props> = ({
       rows: byGroup.get(group)!,
     }));
   }, [metricRows, metricGroupsOrder]);
+
+  const judgeDigest = useMemo(() => {
+    const ev = playgroundResult?.evaluation as
+      | Record<string, unknown>
+      | undefined;
+    const v = ev?.[JUDGE_DIGEST_KEY];
+    return typeof v === "string" && v ? v : "";
+  }, [playgroundResult]);
 
   const llmExplanationText = useMemo(() => {
     if (!playgroundResult?.evaluation) return "";
@@ -1585,6 +1602,22 @@ export const RunEvaluationView: React.FC<Props> = ({
                     </TableBody>
                   </Table>
                 </TableContainer>
+                {group === "LLM judge" && judgeDigest ? (
+                  // Which judge gave this verdict. A stored verdict is reused
+                  // only under the same digest, so it is also what says whether
+                  // this score came from the config named above.
+                  <p
+                    title={judgeDigest}
+                    style={{
+                      margin: 0,
+                      fontSize: "0.75rem",
+                      color: "var(--cds-text-secondary)",
+                    }}
+                  >
+                    Judged by config digest{" "}
+                    <code>{judgeDigest.slice(0, 12)}</code>
+                  </p>
+                ) : null}
                 {group === "LLM judge" && llmExplanationText ? (
                   <div
                     style={{

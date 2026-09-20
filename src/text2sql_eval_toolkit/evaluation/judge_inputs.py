@@ -21,18 +21,27 @@ from text2sql_eval_toolkit.utils import get_question, truncate_dataframe
 #: Characters kept of each later message, and of every response, in a trace.
 TRACE_MESSAGE_CHARS = 500
 
+#: Characters kept of the task an agent was given -- the first step's messages.
+#: Enough for the schema and hints, which is what the judge needs from them: of
+#: the agentic predictions in ``data/judge_calibration/``, 99% of whole traces
+#: are shorter than this. Not unbounded, because the prompt is sent to a model
+#: with a context window: one Beaver trace reaches 160,000 characters, and a
+#: judge config on a smaller model would fail on exactly the records whose
+#: traces carry the most.
+TRACE_TASK_CHARS = 40_000
 
-def _cut(text: str) -> str:
+
+def _cut(text: str, limit: int = TRACE_MESSAGE_CHARS) -> str:
     """
-    *text* cut to `TRACE_MESSAGE_CHARS`, marked with an ellipsis only if cut.
+    *text* cut to *limit*, marked with an ellipsis only if it was cut.
 
     Marking every message said something was left out of messages that were
     shown whole -- and the judge reads that as evidence that it is not being
     shown everything.
     """
-    if len(text) <= TRACE_MESSAGE_CHARS:
+    if len(text) <= limit:
         return text
-    return text[:TRACE_MESSAGE_CHARS] + "..."
+    return text[:limit] + "..."
 
 
 def render_agent_trace(trace: List[Optional[Dict[str, Any]]]) -> str:
@@ -40,7 +49,8 @@ def render_agent_trace(trace: List[Optional[Dict[str, Any]]]) -> str:
     An agent's interaction trace as text for the judge.
 
     The first step's messages are the task the agent was given -- the schema,
-    any hints and the question -- and are kept whole. They used to be cut to 500
+    any hints and the question -- and are kept up to `TRACE_TASK_CHARS`, which
+    is long enough for all but a handful of traces. They used to be cut to 500
     characters like everything else, which removed the schema and hints from
     every agentic prediction: a judge with no reference query then had nothing
     to check a filter value or a hinted formula against, and accepted wrong
@@ -62,7 +72,8 @@ def render_agent_trace(trace: List[Optional[Dict[str, Any]]]) -> str:
             if (role, content) in seen:
                 continue
             seen.add((role, content))
-            text += f"  [{role}]: {content if not task_shown else _cut(content)}\n"
+            limit = TRACE_MESSAGE_CHARS if task_shown else TRACE_TASK_CHARS
+            text += f"  [{role}]: {_cut(content, limit)}\n"
         task_shown = task_shown or bool(messages)
         if "response" in interaction:
             text += f"  [response]: {_cut(str(interaction['response'] or ''))}\n"

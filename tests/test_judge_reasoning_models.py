@@ -145,6 +145,41 @@ def test_an_agentic_prediction_is_judged_with_its_whole_task_and_a_cut_trace():
     assert "unused" not in context
 
 
+def test_the_task_is_kept_whole_but_not_without_limit():
+    """
+    The schema and hints are what the judge needs from the task, but the prompt
+    still goes to a model with a context window: one Beaver trace reaches
+    160,000 characters.
+    """
+    from text2sql_eval_toolkit.evaluation.judge_inputs import TRACE_TASK_CHARS
+
+    huge = "s" * (TRACE_TASK_CHARS + 5000)
+    prediction = {
+        "predicted_sql": "SELECT 1",
+        "agent_trace": [
+            {"step": "generate", "messages": [{"role": "system", "content": huge}]}
+        ],
+    }
+    context = build_llm_judge_inputs(RECORD, prediction, "SELECT 1", GOLD, PRED)[
+        "generation_prompt"
+    ]
+    assert "s" * TRACE_TASK_CHARS + "..." in context
+    assert "s" * (TRACE_TASK_CHARS + 1) not in context
+
+    fits = "t" * (TRACE_TASK_CHARS - 1)
+    whole = build_llm_judge_inputs(
+        RECORD,
+        {
+            "predicted_sql": "SELECT 1",
+            "agent_trace": [{"messages": [{"role": "system", "content": fits}]}],
+        },
+        "SELECT 1",
+        GOLD,
+        PRED,
+    )["generation_prompt"]
+    assert f"[system]: {fits}\n" in whole
+
+
 def test_agent_reasoning_then_a_minimal_description_are_the_fallbacks():
     reasoning = build_llm_judge_inputs(
         RECORD,

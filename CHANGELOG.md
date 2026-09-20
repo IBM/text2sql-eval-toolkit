@@ -126,6 +126,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reaching the model, and repeating the run could not get past it. A handle is
   now built once per model, parameters and credentials, and shared; clients
   holding different keys never share one.
+- **A judge call that fails no longer erases the verdict already stored.**
+  Re-judging under a new config declines to reuse the stored verdict, so a call
+  the provider refused left the prediction with no `llm_score` at all — and a
+  summary averages a missing score as 0. A run interrupted by a rate limit
+  therefore published scores far below the ones the judge had given. The stored
+  verdict is now kept, under the digest of the config that gave it, alongside
+  the error; a run that had any judge errors says so.
+- **An agentic prediction's judge prompt is bounded again.** Keeping the task
+  whole put no limit on it: one Beaver trace runs to 160,000 characters, which a
+  judge config on a smaller-context model cannot take. The task is kept up to
+  40,000 characters — longer than 99% of the traces in `data/judge_calibration/`
+  — and cut with a marker beyond that.
 - **A trace message the judge was shown whole no longer claims to be cut.**
   Every later message and response in an agentic trace was suffixed with `...`,
   whether or not it had reached the 500-character limit, so the judge was told

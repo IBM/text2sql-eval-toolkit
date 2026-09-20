@@ -148,6 +148,37 @@ def test_a_stored_note_that_the_judge_was_not_asked_is_not_a_verdict(judge):
     assert len(judge) == 1 and result["llm_score"] == 0.0
 
 
+def test_a_failed_call_keeps_the_stored_verdict_rather_than_erasing_it(monkeypatch):
+    """
+    A refused call used to leave the prediction with no score at all, and a
+    summary counts a missing score as 0 -- so a run the provider rate-limited
+    published scores far below the ones the judge had given.
+    """
+
+    def refuse(**kwargs):
+        raise RuntimeError("Exceeded limit of calls to endpoint")
+
+    monkeypatch.setattr(evaluation_tools, "evaluate_sql_prediction_with_llm", refuse)
+    result = evaluate_prediction(
+        record(), mismatch(stored(OLD, score=1.0)), llm_judge_config=NEW
+    )
+    assert result["llm_score"] == 1.0
+    assert result["llm_explanation"] == "stored verdict"
+    # Kept under the digest of the judge that gave it, not this one.
+    assert result[JUDGE_DIGEST_KEY] == judge_config_digest(OLD)
+    assert "Exceeded limit" in result["llm_judge_error"]
+
+
+def test_a_failed_call_with_nothing_stored_records_only_the_error(monkeypatch):
+    def refuse(**kwargs):
+        raise RuntimeError("no")
+
+    monkeypatch.setattr(evaluation_tools, "evaluate_sql_prediction_with_llm", refuse)
+    result = evaluate_prediction(record(), mismatch(), llm_judge_config=NEW)
+    assert "llm_score" not in result
+    assert result["llm_judge_error"]
+
+
 def test_an_unknown_reuse_mode_is_refused():
     with pytest.raises(ValueError, match="llm_judge_reuse"):
         evaluate_prediction(

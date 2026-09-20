@@ -428,6 +428,17 @@ def evaluate_prediction(
             except Exception as e:
                 logger.error(f"LLM judge error: {repr(e)}")
                 result["llm_judge_error"] = repr(e)
+                # A failed call must not erase what is already known. Re-judging
+                # under a new config declines to reuse the stored verdict, and
+                # without this a call the provider refused left the prediction
+                # with no llm_score at all -- which `compute_summary` averages
+                # as 0. A run interrupted by a rate limit then published scores
+                # far below the ones the judge had actually given. The verdict
+                # kept here keeps the digest of the config that gave it, so it
+                # is still not reported as this config's work.
+                kept = _stored_verdict(prediction.get("evaluation"), "", "any")
+                if kept is not None:
+                    result.update(kept)
 
         if matched_gold is not None:
             result["gt_sql"], result["gt_df"] = matched_gold
@@ -937,6 +948,18 @@ async def async_evaluate_predictions(
             token_usage_by_model[model_name].append(token_usage)
 
     if llm_judge_config:
+        judge_errors = sum(1 for e in evaluations if "llm_judge_error" in e)
+        if judge_errors:
+            # Loud, because the summary written below counts a prediction with
+            # no verdict as 0: a run the provider refused half of looks like a
+            # much worse pipeline rather than a run to repeat.
+            logger.warning(
+                f"{judge_errors} LLM judge calls failed. Where a stored verdict "
+                "existed it was kept, with the digest of the config that gave "
+                "it; the rest have no llm_score, which a summary counts as 0. "
+                "Run again to judge them."
+            )
+
         # Only reachable with llm_judge_reuse="any". Said out loud, because the
         # summary records the current config either way.
         digest = judge_config_digest(llm_judge_config)
