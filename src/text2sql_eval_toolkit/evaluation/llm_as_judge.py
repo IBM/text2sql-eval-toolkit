@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+import hashlib
+import json
 from pathlib import Path
 import re
 import yaml
@@ -11,6 +13,56 @@ from typing import Callable, Dict, Any, Optional
 from text2sql_eval_toolkit.inference.model_clients import Credential, resolve_client
 
 logger = get_logger(__name__)
+
+#: Where the packaged judge configs live.
+PACKAGED_JUDGE_CONFIG_DIR = Path(__file__).parent / "llm_judge_config"
+
+#: Packaged configs retired in 1.6.0, when the judge moved from Llama to
+#: gpt-oss-120b, and the config each name now loads. Scripts, saved dashboard
+#: requests and notes written earlier name them; a name that silently loaded
+#: nothing would be worse than one that loads its replacement.
+RETIRED_JUDGE_CONFIGS = {
+    "llm_judge_alt_config": "llm_judge_default_config",
+    "llm_judge_no_gt_v1": "llm_judge_no_gt",
+    "llm_judge_no_gt_v2": "llm_judge_no_gt",
+}
+
+
+def judge_config_digest(llm_judge_config: Dict[str, Any]) -> str:
+    """
+    A digest of a judge config: its model, generation parameters and prompt.
+
+    Stored with every verdict the judge gives, so a later evaluation can tell a
+    verdict given under this config from one given under another -- and the
+    dashboard's verdict cache keys on the same value. Keys are sorted, so
+    reordering the YAML changes nothing; comments are not part of a loaded
+    config, so editing one changes nothing either.
+
+    Args:
+        llm_judge_config: A loaded judge config.
+
+    Returns:
+        str: A SHA-256 hex digest.
+    """
+    # default=str so an unexpected value cannot make the digest un-computable.
+    return hashlib.sha256(
+        json.dumps(llm_judge_config, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()
+
+
+def retired_judge_config_replacement(config_path: Path) -> Optional[Path]:
+    """
+    The packaged config that replaces *config_path*, if it names a retired one.
+
+    Only a path inside the packaged directory counts: a user's own file that
+    happens to share a retired name is theirs, and is never redirected.
+    """
+    replacement = RETIRED_JUDGE_CONFIGS.get(config_path.stem)
+    if replacement is None or config_path.suffix != ".yaml":
+        return None
+    if config_path.parent.resolve() != PACKAGED_JUDGE_CONFIG_DIR.resolve():
+        return None
+    return PACKAGED_JUDGE_CONFIG_DIR / f"{replacement}.yaml"
 
 
 def load_llm_judge_config(config_path: Optional[str] = None) -> Dict[str, Any]:
@@ -23,8 +75,10 @@ def load_llm_judge_config(config_path: Optional[str] = None) -> Dict[str, Any]:
 
     Args:
         config_path: Path to a judge YAML. ``None`` loads the packaged
-            ``llm_judge_default_config.yaml``. Other packaged configs sit
-            alongside it in ``evaluation/llm_judge_config/``.
+            ``llm_judge_default_config.yaml``, which compares the prediction
+            with the ground truth; ``llm_judge_no_gt.yaml`` alongside it judges
+            without one. A path to a retired packaged config loads its
+            replacement (see `RETIRED_JUDGE_CONFIGS`).
 
     Returns:
         dict: The parsed configuration.
@@ -36,17 +90,22 @@ def load_llm_judge_config(config_path: Optional[str] = None) -> Dict[str, Any]:
         ```python
         >>> config = load_llm_judge_config()
         >>> config["model"]["id"]
-        'wxai:meta-llama/llama-3-3-70b-instruct'
+        'wxai:openai/gpt-oss-120b'
         ```
     """
     if config_path is None:
-        config_path = (
-            Path(__file__).parent / "llm_judge_config" / "llm_judge_default_config.yaml"
-        )
+        config_path = PACKAGED_JUDGE_CONFIG_DIR / "llm_judge_default_config.yaml"
     else:
         config_path = Path(config_path)
     if not config_path.exists():
-        raise FileNotFoundError(f"LLM judge config file not found: {config_path}")
+        replacement = retired_judge_config_replacement(config_path)
+        if replacement is None:
+            raise FileNotFoundError(f"LLM judge config file not found: {config_path}")
+        logger.info(
+            f"LLM judge config {config_path.stem!r} was retired in 1.6.0; "
+            f"loading {replacement.stem!r} instead"
+        )
+        config_path = replacement
     with config_path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 

@@ -18,7 +18,8 @@
 # Drops and recreates the target database, so a failed load can be re-run.
 set -euo pipefail
 
-# No default; see load-beaver.sh.
+# No default: the dump is downloaded separately and there is no location every
+# operator shares. Failing here beats failing later against the wrong path.
 DUMP="${BIRD_DUMP:?set BIRD_DUMP to the BIRD_dev.sql from MINIDEV_postgresql}"
 DB="${BIRD_DB:-bird}"
 PGHOST="${PGHOST:-127.0.0.1}"

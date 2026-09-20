@@ -106,6 +106,12 @@ METRIC_DEFINITIONS: List[MetricDefinition] = [
     },
     {
         "group": "LLM judge",
+        "name": "llm_judge_config_digest",
+        "description": "Digest of the judge config (model, parameters and prompt) that gave the verdict; absent when the judge was not asked. A stored verdict is reused only under the same digest.",
+        "value_type": "text",
+    },
+    {
+        "group": "LLM judge",
         "name": "llm_judge_error",
         "description": "Present if the LLM judge call failed; contains error details.",
         "value_type": "text",

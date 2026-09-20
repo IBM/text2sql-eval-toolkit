@@ -30,8 +30,11 @@ Production benchmarks are defined in [`data/benchmarks.json`](../benchmarks.json
 - **Description:** Beaver benchmark for business intelligence queries
 - **Size:** 209 questions
 - **Database:** MySQL
-- **Source:** https://peterbaile.github.io/beaver/
-- **Setup Required:** MySQL database and `MYSQL_CONNECTION_STRING` environment variable
+- **Source:** https://beaverbench.github.io/
+- **Access:** Gated. Its questions, SQL and schema are not included in this
+  repository, and the public results carry its overall scores only.
+- **Setup Required:** Access from the Beaver project, a MySQL database and the
+  `MYSQL_CONNECTION_STRING` environment variable (see [dbs/README.md](dbs/README.md))
 
 ### Archer (English Dev)
 - **ID:** `archer_en_dev`
@@ -87,14 +90,6 @@ Test benchmarks are defined in [`data/test-benchmarks.json`](../test-benchmarks.
 - **Size:** 50 questions
 - **Database:** SQLite
 - **Data:** `benchmarks/test_benchmarks/spider_dev_test_50.json`
-- **Results:** `benchmarks/test_benchmarks/results/`
-
-### Beaver Test (10)
-- **ID:** `beaver_test_10`
-- **Description:** 10-question test sample from Beaver
-- **Size:** 10 questions
-- **Database:** MySQL
-- **Data:** `benchmarks/test_benchmarks/beaver_test_10.json`
 - **Results:** `benchmarks/test_benchmarks/results/`
 
 ### Archer English Dev Test (10)

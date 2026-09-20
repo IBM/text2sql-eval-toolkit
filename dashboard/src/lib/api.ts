@@ -11,6 +11,33 @@ export function apiUrl(path: string): string {
 }
 
 /**
+ * The server refused because the caller is not signed in, not because anything
+ * is missing or broken.
+ *
+ * A benchmark can be restricted to signed-in users, and every route that names
+ * one answers 401 with `sign_in_required` to an anonymous caller. Kept distinct
+ * from a plain `Error` so the UI can offer to sign in rather than report a
+ * failure -- a shared link that read "not found" would look dead.
+ */
+export class SignInRequiredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SignInRequiredError";
+  }
+}
+
+/** Whether a response is the server asking the caller to sign in. */
+export async function isSignInRequired(res: Response): Promise<boolean> {
+  if (res.status !== 401) return false;
+  try {
+    const body = await res.clone().json();
+    return body?.sign_in_required === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Fetch wrapper that throws a descriptive error on non-2xx responses.
  * Reads the FastAPI `detail` field from the response body so callers get
  * the actual server-side reason (e.g. "Summary not found") instead of just
@@ -30,6 +57,9 @@ export async function apiFetch(
       }
     } catch {
       // non-JSON body — keep the plain status message
+    }
+    if (await isSignInRequired(res)) {
+      throw new SignInRequiredError(message);
     }
     throw new Error(message);
   }

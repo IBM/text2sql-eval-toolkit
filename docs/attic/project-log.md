@@ -10,6 +10,199 @@ finished.
 
 ---
 
+## 2026-09-19 — 1.6.0 closed: the judge was the release
+
+The plan opened with five items: a release rehearsal that reaches every job, a
+file-descriptor leak, Archer's missing judge scores, gpt-oss-120b, and Beaver's
+gated data. Four were done by 2026-09-13. The fifth — "a very good gpt-oss-120b
+judge config, replacing all the llama-based configs" — turned out to be the
+release, and everything below came out of it.
+
+**A labelled set is the only thing that settles a prompt, and it can be spent.**
+202 predictions of the kind the judge is actually asked about — execution
+mismatches from BIRD, Spider, Spider Realistic and Archer — each labelled Yes,
+Maybe or No with a reason, split by question into `tune` (90), `test` (60) and,
+later, `holdout` (52). The tuned prompt scored 94.7% decisive accuracy on `tune`
+and 79.2% on `test`. Reading `test`'s errors produced a third prompt that did
+better on `test` and *worse* on a fresh holdout labelled before any judge saw
+it. That is the whole lesson: a split you read the errors of is a development
+set from then on, whatever it was called when you drew it. The holdout is the
+number that survived — the default judge accepts 2 of 28 wrong predictions where
+the Llama config it replaces accepted 7 — and the next prompt change needs a
+holdout of its own. The labels are Claude's, not a person's, and nobody has
+reviewed them; that caveat is recorded with the set.
+
+**The inputs were wrong before the prompt was.** Two defects, both found while
+reading judge replies rather than metrics:
+
+- An agentic prediction's context is its trace, and every message in it was cut
+  to 500 characters — including the first, which carries the schema, the hints
+  and the question, and runs to 11,400. Every batch verdict on an agentic
+  prediction, for as long as the judge has existed, was reached without the
+  schema. The judge could only compare two SQL strings and two result tables.
+- gpt-oss-120b reasons before it answers. At the old configs' 512-token budget
+  it routinely spent the budget thinking, and the watsonx client's SQL-extraction
+  fallback handed the judge a fragment of reasoning, which parsed to no verdict
+  and scored `N/A` — the same score as a rejection. A model that never answered
+  looked like a model that said no.
+
+Neither shows up as an error. Both produce a number.
+
+**A score has to carry the judge that gave it.** The batch judge reused any
+stored `llm_score` whatever config produced it, so evaluating Llama-judged
+results with a new config would have kept every Llama score and recorded the new
+config in the summary. Each verdict now stores a digest of the config that gave
+it and is reused only under that digest; `llm_judge_reuse="any"` keeps the old
+behaviour where it is wanted, and carries each verdict's own digest with it.
+
+**Re-judging is not only re-judging.** Running the judge again re-evaluates
+everything: five of the six benchmarks were last evaluated in August, and their
+other metrics moved under current code. 1,915 of Spider Dev's 10,340 predictions
+changed `sqlglot_equivalence` after the sqlglot and sqlparse upgrades, and 30
+predictions that had not matched their reference now subset-match. Kept, because
+the 1.6.0 snapshot should be what 1.6.0 computes — but an evaluation artifact is
+a function of the code that produced it, and touching any part of it re-runs all
+of it. The date an artifact was produced belongs next to its numbers.
+
+**A rate limit can belong to the client, not the workload.** Two benchmarks
+judged in parallel had most calls refused before reaching the model: every judge
+call built a new watsonx `ModelInference`, which fetches the project's details
+and an IAM token, and both are rate-limited. Repeating the run could not get past
+it, because the repeat made the same calls. The SDK's own error said what to do —
+"move the ModelInference initialization outside the loop" — and a handle cached
+per model, parameters and credentials did it. One stream had never failed, which
+is exactly why the cause looked like concurrency rather than construction.
+
+**Release mechanics for the record.** The published results were re-judged with
+the new default: 9,132 judge calls, none failing, every LLM score lower, in the
+`v1.6.0` results snapshot — the Hub tag was moved rather than minted, since
+1.6.0 was unreleased and only the deployment fetches it. Beaver's re-judged
+details never went to the Hub: they were copied to the deployment host directly,
+which is now the only place they exist outside the backups, and how they should
+be distributed is deliberately unsettled. The restart cron on the host stays,
+though the leak it guards is fixed: the descriptor count has been flat for
+thirteen twelve-hour periods. `anyio` was floored at 4.14.2 the morning the
+Dependabot alert arrived, the critical half of which is TLS certificate
+spoofing.
+
+The plan document is deleted, as `docs/attic/README.md` says it should be. What
+survived it is already elsewhere: the judge's behaviour and its measured quality
+in `docs/guide/llm-judge.md`, the set and how to score a config against it in
+`data/judge_calibration/README.md`, and the *why* here.
+
+---
+
+## 2026-09-12 — Beaver's gated data had been public from the first commit
+
+1.6.0's plan asked for Beaver to be visible only when signed in. That was built
+on 2026-09-11: a wall in the tier middleware, an allowlist-free refusal on every
+route that named Beaver, `noindex`. The question it left open was whether hiding
+the page was enough, and the answer was no. Beaver's dataset is gated on the Hub,
+and only its leaderboard's overall scores may be published. This repository had
+tracked the whole benchmark since `Initial commit`: every question and its SQL,
+the schema, a 10-question subset with full results, and a 60 MB errors report
+quoting both. The public results dataset carried another 3.3 GB of predictions,
+evaluation files and run logs. Every tag on both held them.
+
+**What changed in the design.** The wall inverted. Beaver's tile and overall
+scores became public again, and everything finer stayed behind sign-in. That
+turned the refusal from "every route naming Beaver" into "every route naming
+Beaver except an allowlist", which is the better shape anyway: a route added
+later is refused until someone decides otherwise. The breakdown by query category
+is *not* on the allowlist. It looks like a summary, but it is derived from the
+ground-truth SQL.
+
+**The purge.** Backups first, verified against the Hub's sha256 for every LFS
+object, because the Hub copies were about to be deleted permanently and the backup
+would be the only one left. Then:
+
+- **GitHub.** `git filter-repo` over a mirror removed the files and replaced four
+  distinctive database names. Verification looked for content, not paths. Seventy-
+  eight markers were sampled from the data itself — question texts, question ids,
+  table names — and searched for in every blob of every revision. Two of the first
+  candidates were table names Spider also uses, and were dropped before they could
+  report false hits. The search of commit messages found six still naming Beaver's
+  databases, which `--replace-text` does not touch; a second pass with
+  `--replace-message` fixed them.
+- **The first push failed twice without changing anything.** First on a
+  connection reset, then because the Bash tool runs zsh, which does not
+  word-split `$REFS_LIST`. The lease check caught the second before it sent a
+  byte. The push that worked used `--force-with-lease` against the SHAs recorded
+  in the backup mirror, with `main`'s lock lifted and restored by a trap.
+- **The Hub.** Branching from an old tag answered 500 however it was asked — by
+  name, by commit id, with retries — while branching from `main` worked. So the
+  rebuild ran the other way. `main` was cleaned and squashed first, then each tag's
+  snapshot was replayed onto it: server-side copies of unchanged LFS files, bytes
+  for small ones, deletions for the rest. Each tag was moved to its replayed
+  commit, and `main` was put back last. Every surviving file was checked against
+  the original trees, recorded before the first write.
+
+**What could not be done from here.** GitHub keeps pull-request refs and cached
+views that resolve old commits by id until its Support removes them, and nine
+forks and every clone hold the old history. The plan records both as open.
+
+**Worth keeping.** Hiding a page was never the same as not publishing data, and
+the plan said so before any code was written, as an open question rather than a
+decision. Asking it early is what kept the first day's work from being the whole
+answer.
+
+## 2026-09-11 — the dashboard ran out of files, and its healthcheck said it was fine
+
+The public dashboard listed all six benchmarks with no pipelines and loaded none
+of them. `/api/benchmarks` answered 200 about one time in five and a bare
+`Internal Server Error` otherwise; some requests got 502 from caddy, and a PNG was
+cut off mid-stream. `/api/me` answered 200 every time, and so did
+`/api/deployment` -- which was reporting `data_revision: null`, a value read from
+a file on the data volume. Recreating the app container fixed all of it, from the
+same volume.
+
+That last part was the clue. The files were fine; the process could not open
+them. The container's soft `nofile` limit was 1024, Docker's default, which
+Python does not raise the way caddy's Go runtime does. There was no OOM kill. The
+old container's logs went with it, so the error itself was never read. The
+healthcheck is `/api/me`, which for an anonymous caller opens nothing new per
+request, so it would have called the container healthy throughout.
+
+**The first diagnosis was wrong, and was fixed and unit-tested before that came
+out.** Counting descriptors on the restarted app showed six more per
+`/api/benchmarks` -- one per benchmark -- and `EvalIndex` keeps a list of every
+connection it opens, under a comment saying worker threads are long-lived. They
+are not; anyio retires idle ones. That story fit. A fix reaped connections whose
+thread had exited, and a test with fifty short-lived threads failed before it and
+passed after. Then a local server on the fixed code climbed six per request
+exactly as before -- with back-to-back requests, no idle gaps, and the thread
+count flat at six. Growth without new threads means new connections on old
+threads, which the list cannot explain.
+
+The cause was one line in `is_stale`:
+
+```python
+with sqlite3.connect(f"file:{index_path}?mode=ro", uri=True) as conn:
+```
+
+A connection's context manager commits or rolls back; it does not close. Nor does
+dropping the last reference, because a connection refers to itself through its
+statement cache, so it waits for the cyclic collector. `get_index()` calls
+`is_stale` on every cached lookup, and the landing page looks up all six. The
+sudden drops on both servers -- 73 to 29 on the host, 66 to 7 locally -- were
+collections. Twenty `is_stale` calls in a bare interpreter held twenty
+descriptors until `gc.collect()`. `JudgeStore` used the same idiom in every
+method, so `/api/me` from a signed-in caller left one more on the spend ledger.
+
+Two things worth keeping. `with sqlite3.connect(...)` reads as resource
+management and is not; the new tests spy on `sqlite3.connect` and require every
+connection to be closed on return, rather than counting descriptors, which a
+collector makes nondeterministic. And a unit test that reproduces a mechanism
+proves the mechanism exists, not that it is the one in production. The check that
+mattered was the same measurement, repeated against the fix, on a real server.
+
+The retired-thread fix was kept: that leak is real, only smaller. Compose now
+raises the limit to 65536 as headroom, not as the fix. Until this is deployed, the
+host restarts the app every twelve hours from root's crontab, logging the
+descriptor count first.
+
+---
+
 ## 2026-09-01 — the release automation failed on the release it was written for
 
 1.5.0's second plan item was automating the GitHub Release, because the page had

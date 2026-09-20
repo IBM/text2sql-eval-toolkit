@@ -28,6 +28,13 @@ class BenchmarkSummary(BaseModel):
     num_pipelines: int
     logo: Optional[str] = None
     eval_results_bytes: Optional[int] = None
+    # Its questions, SQL and per-record results require sign-in; its tile and
+    # overall scores do not. The same for every caller.
+    requires_sign_in: bool = False
+    # Whether *this* caller is locked out of those details: `requires_sign_in`
+    # and not signed in. The dashboard uses it to ask for sign-in up front
+    # rather than render views whose every request would be refused.
+    details_locked: bool = False
 
 
 class BenchmarksResponse(BaseModel):

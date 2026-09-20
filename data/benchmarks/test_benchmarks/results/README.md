@@ -5,7 +5,6 @@
 | [bird_mini_dev_sqlite_test_50](#benchmark-bird_mini_dev_sqlite_test_50) | Test sample of 50 BIRD-SQL Mini-Dev in SQLite https://github.com/bird-bench/mini_dev | sqlite | 50 | 10 |
 | [bird_mini_dev_postgres_test_50](#benchmark-bird_mini_dev_postgres_test_50) | Test sample of 50 BIRD-SQL Mini-Dev in PostgreSQL https://github.com/bird-bench/mini_dev | postgres | 50 | 10 |
 | [spider_dev_test_50](#benchmark-spider_dev_test_50) | Test sample of 50 Spider Dev questions https://yale-lily.github.io/spider | sqlite | 50 | 10 |
-| [beaver_test_10](#benchmark-beaver_test_10) | Test sample of 10 Beaver benchmark questions https://peterbaile.github.io/beaver/ | mysql | 10 | 10 |
 | [archer_en_dev_test_10](#benchmark-archer_en_dev_test_10) | Test sample of 10 Archer English Dev questions https://sig4kg.github.io/archer-bench/ | sqlite | 10 | 10 |
 | [bird_sqlite_test_benchmark](#benchmark-bird_sqlite_test_benchmark) | 3 records from BIRD mini-dev used for testing this code base | sqlite | 3 | 10 |
 
@@ -72,27 +71,6 @@ _Results sorted by default on `subset_non_empty_execution_accuracy` (higher is b
 | 10 | wxai:openai/gpt-oss-120b-agentic-baseline3-3attempts | 0.04 | 0.04 | 0.04 | 0.04 | 0.06 | 1.00 | 0.28 | 0.00 | 0.92 | 4158.52 | 26519.79 | N/A | 207926 | 1325989.26 | N/A | 50 | 50 | 50 | 2 | 2 | 3 |
 
 ![Chart for spider_dev_test_50](charts/spider_dev_test_50-predictions_eval_summary.png)
-
-### Benchmark: beaver_test_10
-
-_Results sorted by default on `subset_non_empty_execution_accuracy` (higher is better)_
-
-📄 [View In-Depth Summary Results Across Categories](beaver_test_10-predictions_eval_summary.md) - [View Examples of Errors for Error Analysis](beaver_test_10-predictions_eval_errors.md) - [View Full Results JSON](beaver_test_10-predictions_eval.json)
-
-| Rank | Model / Pipeline | Execution Acc | Non-Empty Exec Acc | Subset Non-Empty Exec Acc | BIRD Exec Acc | LLM Judge Score | Parsable SQL | SQL Syntactic Match | Eval Err | DF Err | Avg Tokens/Q | Avg Inference (ms) | Avg Execution (ms) | Total Tokens | Total Inference (ms) | Total Execution (ms) | #Records | #Predictions | #Evaluated | #Correct Non-Empty Exec Acc | #Correct Subset Non-Empty Exec Acc | #Correct As Per LLM Judge |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | wxai:meta-llama/llama-3-3-70b-instruct-greedy-zero-shot-chatapi | 0.00 | 0.00 | 0.10 | 0.00 | 0.20 | 1.00 | 0.00 | 0.00 | 0.70 | 48893.10 | 28217.68 | 303.90 | 488931 | 282176.83 | 3039.0 | 10 | 10 | 10 | 0 | 1 | 2 |
-| 2 | wxai:ibm/granite-4-h-small-greedy-zero-shot-chatapi | 0.00 | 0.00 | 0.10 | 0.00 | 0.10 | 0.90 | 0.00 | 0.00 | 0.80 | 42371.10 | 15198.26 | 274.02 | 423711 | 151982.57 | 2740.19 | 10 | 9 | 10 | 0 | 1 | 1 |
-| 3 | wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8-greedy-zero-shot-chatapi | 0.00 | 0.00 | 0.10 | 0.00 | 0.20 | 1.00 | 0.00 | 0.00 | 0.70 | 48827.90 | 6961.10 | 418.78 | 488279 | 69611.01 | 4187.81 | 10 | 10 | 10 | 0 | 1 | 2 |
-| 4 | wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi | 0.00 | 0.00 | 0.10 | 0.00 | 0.50 | 1.00 | 0.00 | 0.00 | 0.40 | 49433.50 | 11729.68 | 1107.51 | 494335 | 117296.75 | 11075.08 | 10 | 10 | 10 | 0 | 1 | 5 |
-| 5 | wxai:openai/gpt-oss-120b-agentic-baseline0-3attempts | 0.00 | 0.00 | 0.10 | 0.00 | 0.50 | 0.80 | 0.00 | 0.00 | 0.30 | 101342.00 | 64047.33 | N/A | 1013420 | 640473.35 | N/A | 10 | 10 | 10 | 0 | 1 | 5 |
-| 6 | wxai:openai/gpt-oss-120b-agentic-baseline1-3attempts | 0.00 | 0.00 | 0.10 | 0.00 | 0.80 | 1.00 | 0.10 | 0.00 | 0.10 | 71213.00 | 34144.94 | N/A | 712130 | 341449.45 | N/A | 10 | 10 | 10 | 0 | 1 | 8 |
-| 7 | wxai:openai/gpt-oss-120b-agentic-baseline2-3attempts | 0.00 | 0.00 | 0.10 | 0.00 | 0.70 | 1.00 | 0.00 | 0.00 | 0.10 | 73767.40 | 25216.78 | N/A | 737674 | 252167.85 | N/A | 10 | 10 | 10 | 0 | 1 | 7 |
-| 8 | wxai:openai/gpt-oss-120b-agentic-baseline5-3attempts | 0.00 | 0.00 | 0.10 | 0.00 | 0.20 | 0.20 | 0.00 | 0.00 | 0.00 | 35936.00 | 178808.32 | N/A | 359360 | 1788083.15 | N/A | 10 | 10 | 2 | 0 | 1 | 2 |
-| 9 | wxai:openai/gpt-oss-120b-agentic-baseline3-3attempts | 0.00 | 0.00 | 0.00 | 0.00 | 0.40 | 1.00 | 0.10 | 0.00 | 0.40 | 109440.80 | 92155.06 | N/A | 1094408 | 921550.65 | N/A | 10 | 10 | 10 | 0 | 0 | 4 |
-| 10 | wxai:openai/gpt-oss-120b-agentic-baseline4-3attempts | 0.00 | 0.00 | 0.00 | 0.00 | 0.20 | 0.40 | 0.00 | 0.00 | 0.20 | 87759.30 | 142662.67 | N/A | 877593 | 1426626.67 | N/A | 10 | 10 | 4 | 0 | 0 | 2 |
-
-![Chart for beaver_test_10](charts/beaver_test_10-predictions_eval_summary.png)
 
 ### Benchmark: archer_en_dev_test_10
 

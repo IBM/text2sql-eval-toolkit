@@ -10,17 +10,6 @@
         "predictions": "benchmarks/test_benchmarks/results/archer_en_dev_test_10-predictions.json",
         "schema": "benchmarks/archer-schema.json"
     },
-    "beaver_test_10": {
-        "data": "benchmarks/test_benchmarks/beaver_test_10.json",
-        "db_engine": {
-            "connection_string_env_var": "MYSQL_CONNECTION_STRING",
-            "db_type": "mysql"
-        },
-        "description": "Test sample of 10 Beaver benchmark questions https://peterbaile.github.io/beaver/",
-        "name": "beaver_test_10",
-        "predictions": "benchmarks/test_benchmarks/results/beaver_test_10-predictions.json",
-        "schema": "benchmarks/beaver-schema.json"
-    },
     "bird_mini_dev_postgres_test_50": {
         "data": "benchmarks/test_benchmarks/bird_mini_dev_postgres_test_50.json",
         "db_engine": {

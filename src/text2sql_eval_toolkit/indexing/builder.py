@@ -28,6 +28,7 @@ import os
 import sqlite3
 import tempfile
 import time
+from contextlib import closing
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
@@ -152,7 +153,13 @@ def is_stale(eval_path: Path, index_path: Optional[Path] = None) -> bool:
     if not index_path.is_file():
         return True
     try:
-        with sqlite3.connect(f"file:{index_path}?mode=ro", uri=True) as conn:
+        # closing(), not `with sqlite3.connect(...)`: a connection's own context
+        # manager commits or rolls back and leaves it open, and a connection
+        # refers to itself through its statement cache, so dropping it does not
+        # close it either -- only the cyclic collector does. This runs on every
+        # cached index lookup, so each request left a descriptor per benchmark
+        # until the deployment hit its limit of 1024.
+        with closing(sqlite3.connect(f"file:{index_path}?mode=ro", uri=True)) as conn:
             rows = dict(conn.execute("SELECT key, value FROM meta").fetchall())
     except sqlite3.Error:
         return True

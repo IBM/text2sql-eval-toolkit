@@ -86,7 +86,9 @@ class EvalIndex:
         # number of concurrent readers, so a connection per thread costs almost
         # nothing and removes the sharing entirely.
         self._local = threading.local()
-        self._open_connections: List[sqlite3.Connection] = []
+        # Every connection still open, with the thread that owns it: close()
+        # needs them all, and opening a new one reaps those whose thread exited.
+        self._open_connections: List[Tuple[threading.Thread, sqlite3.Connection]] = []
         self._connections_lock = threading.Lock()
 
     @property
@@ -102,11 +104,37 @@ class EvalIndex:
             # search used to be Python's str.lower() and matched it.
             conn.create_function("py_casefold", 1, _casefold, deterministic=True)
             self._local.conn = conn
-            # Tracked so close() can release them all; threadpool workers are
-            # long-lived, so this list stays as small as the pool.
             with self._connections_lock:
-                self._open_connections.append(conn)
+                self._reap_exited_threads()
+                self._open_connections.append((threading.current_thread(), conn))
         return conn
+
+    def _reap_exited_threads(self) -> None:
+        """
+        Close the connections of threads that have exited. Caller holds the lock.
+
+        Threadpool workers are not fixed: after a burst of concurrent requests
+        anyio retires the ones left idle for ten seconds, and the next burst
+        starts new ones. A retired thread's thread-local slot goes with it, but
+        this list kept its connection open until the whole index was dropped --
+        which, on a deployment nobody runs jobs on, is never.
+
+        Reaping here, when a connection is opened, bounds the list by the
+        threads alive at that moment, which is exactly when it would otherwise
+        grow. A thread that has exited cannot be mid-query, so closing its
+        connection from this one is safe; ``check_same_thread=False`` makes it
+        legal.
+        """
+        live = []
+        for thread, conn in self._open_connections:
+            if thread.is_alive():
+                live.append((thread, conn))
+                continue
+            try:
+                conn.close()
+            except sqlite3.Error:  # pragma: no cover - already closed
+                pass
+        self._open_connections = live
 
     @classmethod
     def for_benchmark(
@@ -134,7 +162,7 @@ class EvalIndex:
         thread would fail that read. See ui/indexes.py.
         """
         with self._connections_lock:
-            for conn in self._open_connections:
+            for _thread, conn in self._open_connections:
                 try:
                     conn.close()
                 except sqlite3.Error:  # pragma: no cover - already closed

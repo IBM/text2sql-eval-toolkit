@@ -11,7 +11,7 @@ centrally in middleware.
 
 | Tier | Who | Can do |
 |---|---|---|
-| `public` | Anonymous, or signed in with the `read_only` role (the default) | Every GET endpoint: browse benchmarks, summaries, error analysis, record detail |
+| `public` | Anonymous, or signed in with the `read_only` role (the default) | Every GET endpoint: browse benchmarks, summaries, error analysis, record detail — except the details of a [benchmark whose details require sign-in](#benchmarks-whose-details-require-sign-in), of which an anonymous caller gets the overall scores only |
 | `judge` | Signed in and granted the `judge` role | `public`, plus on-demand LLM-as-judge on a single record, billed to the user's own stored provider key when they have one and to the server's otherwise |
 | `full` | Local operator, loopback only | Everything: SQL execution, evaluation runs, registry writes |
 
@@ -102,6 +102,87 @@ Two details that are easy to get wrong and are enforced:
   break the `state` check.
 
 Logs carry a hash of the address, never the address.
+
+## Benchmarks whose details require sign-in
+
+A benchmark can publish its overall scores and nothing finer to anyone who is not
+signed in. Beaver does, from 1.6.0: its questions, SQL and schema are distributed
+under gated access, and only what its own leaderboard shows — overall scores —
+may be published.
+
+This is a check on **identity, not a tier**. An anonymous visitor and a signed-in
+`read_only` user are the same `public` tier, so no tier setting can tell them
+apart. Any signed-in caller passes, whatever their role — and anyone with a
+verified Google account can sign in, so this keeps a benchmark's details out of
+public view and out of search engines, not away from particular people. Signing
+in is not an access agreement. Limiting the details to named people would need a
+role check, which does not exist.
+
+| Caller | Tile and overall scores | Category breakdown, records, questions, SQL, playground, judge |
+|---|---|---|
+| Anonymous, on any shared deployment | Yes | No |
+| Signed in, any role | Yes | Yes |
+| The local operator (`full` on loopback) | Yes | Yes — they control the process and have the files |
+
+**Marking one.** Set `"requires_sign_in": true` on its registry entry, or list its
+id in `TEXT2SQL_SIGN_IN_BENCHMARKS` (comma-separated). The flag is honoured in
+*every* registry copy the server can see: the data root's `benchmarks.json` and
+`test-benchmarks.json`, and the copies packaged with the toolkit. That is
+deliberate. `provision.sh` seeds `benchmarks.json` into the data root once and
+never overwrites it, so a deployment provisioned before a flag was added would
+otherwise keep serving the details to anyone. The other side of that rule is
+that lifting a restriction means removing the flag from every copy, packaged ones
+included. Editing a benchmark in the dashboard keeps its flag.
+
+**What an anonymous caller gets.**
+
+- `/api/benchmarks` lists the benchmark with `"details_locked": true`, and its
+  tile says the details need sign-in.
+- `SUMMARY_ROUTES` in `ui/benchmark_access.py` — the overall summary, the
+  pipeline alias table and `/api/compare`, which compares two summaries — answer
+  as for any benchmark, and so does its logo. The summary page shows the overall
+  table and says what else needs sign-in.
+- Every other route that names it — the breakdown by query category, error
+  analysis, record detail, playground, insights, config, the judge — answers
+  `401` with `"sign_in_required": true`. The breakdown by category is withheld
+  because it is derived from the ground-truth SQL.
+- `SUMMARY_ROUTES` is an allowlist. A route added later is refused until someone
+  adds it there on purpose.
+- A link into any refused view shows a prompt to sign in, which returns to the
+  same address, and a way to the overall scores. Not "not found", which would
+  make a colleague's link look dead.
+
+**How that is enforced.** In the same middleware as the tiers, before them. It
+reads the *matched route's parameters*, not the URL text, so
+`/api/compare?left_id=beaver` is refused and a search for the word "beaver" in
+another benchmark is not. Which parameter names identify a benchmark is a table
+in `ui/benchmark_access.py`, and a test fails on any route parameter missing from
+it. Without that test, a new route taking a benchmark under a new name would slip
+past every other test and serve the data. The refusal tests are parametrized over
+the live route table, so a new route is covered without editing them.
+
+Two spellings reach a benchmark's files without being its id, and both are
+refused. On a case-insensitive filesystem, `BEAVER` opens Beaver's files, so ids
+are compared casefolded. And an id is also a filename fragment, so
+`charts/../beaver` reads Beaver's summary through a directory that exists. For a
+caller the check applies to, an id outside `[A-Za-z0-9_-]` is therefore refused
+with `400`.
+
+**Crawlers.** Every response for an address that mentions such a benchmark
+carries `X-Robots-Tag: noindex, nofollow`, whoever asks. That covers the API and
+the app shell for `/benchmark/beaver`, `/run/beaver/…` and
+`/errors?benchmark=beaver`: without the header, a crawler served a sign-in
+prompt could still index the address and the page title. There is no
+`robots.txt` entry. It is advisory, and it would publish the very paths it asks
+crawlers to skip.
+
+**Where the data is, and is not.** Beaver's questions, SQL, schema and per-record
+results are not in the repository or in the public results dataset. They were
+removed from both, history included, on 2026-09-12, and the public results carry
+Beaver's overall summary and overall chart only. A deployment that shows the
+details to signed-in users has to get them from Beaver's gated distribution
+separately; without them, a signed-in reader sees the same overall scores as
+everyone else.
 
 ## Spend
 

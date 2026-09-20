@@ -39,7 +39,8 @@
             "schema_name": "",
             "connection_string_env_var": "MYSQL_CONNECTION_STRING"
         },
-        "logo": "beaver.png"
+        "logo": "beaver.png",
+        "requires_sign_in": true
     },
     "archer_en_dev": {
         "name": "archer_en_dev",

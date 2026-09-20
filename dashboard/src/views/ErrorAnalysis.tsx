@@ -27,6 +27,7 @@ import { BenchmarkSelect } from "./BenchmarkSelect";
 import { highlightSql } from "../lib/sql";
 import { ResultTableView } from "./ResultTableView";
 import { resolveDetailPipeline } from "../lib/detailPipeline";
+import { OpenInPlaygroundButton } from "./OpenInPlaygroundButton";
 import {
   type MetricDefinitionsResponse,
   buildMetricInsightsSelectGroups,
@@ -39,6 +40,8 @@ interface Props {
   benchmarks?: BenchmarkSummary[];
   onSelectBenchmark?: (benchmarkId: string) => void;
   onBack?: () => void;
+  /** Single-page navigation for the link into the playground. */
+  onNavigate?: (href: string) => void;
   initialFilters?: Partial<ErrorAnalysisFilters>;
   /** Page, page size, and selected record, restored from the URL. */
   initialPage?: number;
@@ -146,6 +149,7 @@ export const ErrorAnalysis: React.FC<Props> = ({
   benchmarks,
   onSelectBenchmark,
   onBack,
+  onNavigate,
   initialFilters,
   initialPage,
   initialPageSize,
@@ -935,6 +939,14 @@ export const ErrorAnalysis: React.FC<Props> = ({
                   : `Record detail – ${selectedRecordId}${selectedRecordPipeline ? ` (${selectedRecordPipeline})` : ""}`}
               </h3>
               <div style={{ display: "flex", gap: "0.35rem" }}>
+                {detailViewMode === "detail" && (
+                  <OpenInPlaygroundButton
+                    benchmarkId={benchmarkId}
+                    recordId={selectedRecordId}
+                    pipeline={selectedRecordPipeline}
+                    onNavigate={onNavigate}
+                  />
+                )}
                 {detailViewMode !== "detail" && (
                   <Button kind="ghost" size="sm" onClick={() => setDetailViewMode("detail")}>
                     Back to detail

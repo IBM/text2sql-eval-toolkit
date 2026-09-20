@@ -1,35 +1,54 @@
+# The packaged judge: compares a prediction with the ground truth.
+#
+# Tuned in 1.6.0 against a labelled set of execution mismatches from BIRD,
+# Spider, Spider Realistic and Archer -- data/judge_calibration/, measured with
+# scripts/analysis/judge_calibration.py. It replaced llm_judge_default_config
+# and llm_judge_alt_config, which used Llama 3.3 70B and Llama 4 Maverick; both
+# names load this file. llm_judge_no_gt.yaml judges without the ground truth.
 model:
-  id: wxai:meta-llama/llama-3-3-70b-instruct  # "wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8"
-  decoding_method: greedy
-  max_new_tokens: 512
+  id: wxai:openai/gpt-oss-120b
+  # gpt-oss-120b reasons before it answers, and the reasoning counts against
+  # this budget; 512 left no room for the answer at all.
+  max_new_tokens: 8192
+  temperature: 0
 
 prompt_template: |
-  You are an expert SQL evaluator. Your task is to assess whether a predicted SQL query correctly answers a natural language question, given the database schema and the ground truth SQL and result.
+  You are grading a text-to-SQL prediction: does the predicted SQL query correctly answer the question?
 
-  Please consider the following:
-  - The predicted SQL may differ from the ground truth but still be valid.
-  - The result dataframes may differ due to ambiguity in the question or schema.
-  - Use your judgment to determine if the predicted SQL is a reasonable interpretation.
+  You are given the question; the prompt the prediction was generated from, which contains the database schema and sometimes hints that define terms used in the question; a reference SQL query with its result; and the predicted SQL query with its result. Result tables are rendered as text, and long tables are cut to their first and last rows.
 
-  Respond with one of the following verdicts:
-  - "Yes" if the predicted SQL is correct (score: 1)
-  - "Maybe" if the predicted SQL is possibly correct (score: 0.5)
-  - "No" if the predicted SQL is incorrect (score: 0)
+  How to judge:
+  1. Work out what the question asks. Where the generation prompt gives hints, they are the definition of the terms they explain: a prediction that departs from a threshold, formula, column or value a hint gives is incorrect, however reasonable its own choice.
+  2. Check the predicted query's logic against that: the tables and join keys, filter conditions and their literal values, aggregation and grouping, the calculation the question asks for, and any ordering or limit the question requires.
+  3. Use the two results as evidence. When the predicted result gives the same answer as the reference, these differences do not make it wrong:
+     - column names, column order, or extra columns that identify or explain the answer;
+     - row order, when the question does not ask for an order;
+     - duplicate rows, or duplicates the reference has and the prediction removes;
+     - a value that differs only in rounding, precision, casting or number formatting;
+     - returning every tied row where the reference keeps one of them arbitrarily.
+  4. The reference query can contain a mistake -- a missing join condition, the wrong aggregate, numbers compared as text, a literal value that does not occur in the data. If it does and the predicted query answers the question correctly, the prediction is correct. Reading an ambiguous phrase differently from the reference is not a mistake in either query; see Maybe.
+  5. A result that matches, or looks plausible, does not make a query correct when its logic answers a different question; results can coincide.
+  6. A query that inspects the schema, samples rows or otherwise does not attempt the question is incorrect. An empty result is correct only when the true answer is empty.
 
-  Start your response with the verdict ("Yes", "Maybe", "No") and then provide a detailed explanation for your decision.
+  Verdicts:
+  - Yes: the predicted query correctly answers the question.
+  - Maybe: the question's wording can reasonably be read more than one way, the hints do not settle it, and the prediction follows a reasonable reading different from the reference's. Answer Maybe even if you prefer one of the two readings. Do not use Maybe for a prediction that has a logic error or ignores a hint.
+  - No: the predicted query does not correctly answer the question.
+
+  Reply with the verdict alone on the first line -- exactly one of Yes, Maybe or No -- then a short explanation that names the clause, column or value that decides it.
 
   ### Question:
   {question}
 
-  ### Original Prompt Used for SQL Generation:
+  ### Generation prompt (schema and hints):
   {generation_prompt}
 
-  ### Ground Truth SQL:
+  ### Reference SQL:
   ```sql
   {ground_truth_sql}
   ```
 
-  ### Ground Truth Result:
+  ### Reference result:
   {ground_truth_df}
 
   ### Predicted SQL:
@@ -37,7 +56,7 @@ prompt_template: |
   {predicted_sql}
   ```
 
-  ### Predicted Result (if any):
+  ### Predicted result:
   {predicted_df}
 
-  ### Verdict and Explanation:
+  ### Verdict:

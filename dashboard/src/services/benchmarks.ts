@@ -1,4 +1,4 @@
-import { apiUrl } from "../lib/api";
+import { SignInRequiredError, apiUrl, isSignInRequired } from "../lib/api";
 import type {
   BenchmarkConfigInput,
   BenchmarkConfigResponse,
@@ -11,12 +11,15 @@ async function parseJsonResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
     try {
-      const body = await res.json();
+      const body = await res.clone().json();
       if (typeof body?.detail === "string") {
         detail = body.detail;
       }
     } catch {
       // No-op: fall back to HTTP status code.
+    }
+    if (await isSignInRequired(res)) {
+      throw new SignInRequiredError(detail);
     }
     throw new Error(detail);
   }

@@ -3,11 +3,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+import hashlib
+import json
 import os
 import re
+import threading
 import time
 import random
 import requests
+from collections import OrderedDict
 from typing import Any, Optional
 from ibm_watsonx_ai import Credentials
 from ibm_watsonx_ai.foundation_models import ModelInference
@@ -288,6 +292,58 @@ class WXAIClient:
         return sql
 
 
+#: watsonx model handles, shared by every client with the same model, parameters
+#: and credentials. Building one requests the project's details and an IAM
+#: token, and watsonx rate-limits both: the batch LLM judge built a handle per
+#: call, and re-judging the published results at a few calls a second had most
+#: of them refused with "Exceeded limit of calls to endpoint" or a /token rate
+#: limit -- before a single inference was attempted.
+_WATSONX_MODELS: "OrderedDict[str, Any]" = OrderedDict()
+_WATSONX_MODELS_LOCK = threading.Lock()
+#: Bounded, because the dashboard builds clients with per-user keys.
+_WATSONX_MODELS_MAX = 32
+
+
+def _shared_watsonx_model(model_name: str, params: dict, values: dict) -> Any:
+    """
+    The watsonx model handle for *model_name*, built once per configuration.
+
+    Keyed on a digest of the model, its parameters and every credential, so
+    clients holding different keys never share a handle. Built under the lock:
+    thirty-two evaluation threads starting together would otherwise each miss
+    the cache and make the rate-limited requests this exists to avoid. A build
+    that raises is not cached, and the next call tries again.
+    """
+    key = hashlib.sha256(
+        json.dumps(
+            [
+                model_name,
+                params,
+                values["api_key"],
+                values["url"],
+                values["project_id"],
+            ],
+            sort_keys=True,
+            default=str,
+        ).encode("utf-8")
+    ).hexdigest()
+    with _WATSONX_MODELS_LOCK:
+        model = _WATSONX_MODELS.get(key)
+        if model is None:
+            model = ModelInference(
+                model_id=model_name,
+                credentials=Credentials(api_key=values["api_key"], url=values["url"]),
+                project_id=values["project_id"],
+                params=params,
+            )
+            _WATSONX_MODELS[key] = model
+            while len(_WATSONX_MODELS) > _WATSONX_MODELS_MAX:
+                _WATSONX_MODELS.popitem(last=False)
+        else:
+            _WATSONX_MODELS.move_to_end(key)
+        return model
+
+
 class WXAIClientChatAPI:
     """
     LLM API client using IBM watsonx.ai Chat API.
@@ -296,7 +352,6 @@ class WXAIClientChatAPI:
     def __init__(self, model_name: str, model_parameters: dict):
         values = _watsonx_credentials()
 
-        creds = Credentials(api_key=values["api_key"], url=values["url"])
         # model_parameters can be a plain dict **or**
         # a TextChatParameters instance – both are accepted.
 
@@ -314,12 +369,7 @@ class WXAIClientChatAPI:
         for unsupported_param in ["decoding_method", "stop_sequences"]:
             filtered_params.pop(unsupported_param, None)
 
-        self.model = ModelInference(
-            model_id=model_name,
-            credentials=creds,
-            project_id=values["project_id"],
-            params=filtered_params,
-        )
+        self.model = _shared_watsonx_model(model_name, filtered_params, values)
 
     def _build_messages(self, prompt_text: str) -> list[dict]:
         """
@@ -357,7 +407,28 @@ class WXAIClientChatAPI:
             # Try content first (normal case)
             sql = message.get("content", "").strip()
 
-            # Fall back to reasoning_content if content is empty
+            # A reasoning model that spends its whole token budget thinking
+            # returns empty content. For SQL generation the query is often
+            # recoverable from the reasoning, so fall back to it there.
+            #
+            # Never for text (postprocess=False is `ModelClient.generate_text`,
+            # which the LLM judge uses). A judge reply salvaged from reasoning is
+            # a fragment of thought, not an answer: gpt-oss-120b at 512 tokens
+            # produced "select month and consumption directly from yearmonth
+            # rows...", which has no verdict and so scored N/A -- the same score
+            # as a rejection, silently. Raising instead makes the judge record an
+            # error, which is visible and retried.
+            if not sql and not postprocess:
+                finish_reason = response["choices"][0].get("finish_reason")
+                error = ValueError(
+                    "The model returned no answer text"
+                    + (f" (finish_reason={finish_reason!r})" if finish_reason else "")
+                    + ". A reasoning model may have used its whole token budget "
+                    "before answering; raise max_new_tokens."
+                )
+                error.response = str(response)
+                raise error
+
             if not sql:
                 reasoning = message.get("reasoning_content", "").strip()
                 if reasoning:

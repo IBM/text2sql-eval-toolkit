@@ -301,13 +301,18 @@ def test_cached_llm_judge_results_are_reused_without_calling_the_model(monkeypat
         lambda *a, **k: called.append(1)
         or {"verdict": "Yes", "score": 1.0, "explanation": ""},
     )
+    from text2sql_eval_toolkit.evaluation.llm_as_judge import judge_config_digest
+
+    config = {"model": {"id": "wxai:x"}}
     pred = prediction(
         df=DIFFERENT,
-        evaluation={"llm_score": 0.5, "llm_explanation": "cached verdict"},
+        evaluation={
+            "llm_score": 0.5,
+            "llm_explanation": "cached verdict",
+            "llm_judge_config_digest": judge_config_digest(config),
+        },
     )
-    result = evaluate_prediction(
-        record(), pred, llm_judge_config={"model": {"id": "wxai:x"}}
-    )
+    result = evaluate_prediction(record(), pred, llm_judge_config=config)
     assert result["llm_score"] == 0.5
     assert not called, "a cached verdict must not trigger a model call"
 

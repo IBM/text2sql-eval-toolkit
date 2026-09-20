@@ -268,6 +268,36 @@ To preview the notes a tag would produce:
 python scripts/ci/extract_changelog.py v1.5.0
 ```
 
+### Rehearsing a release
+
+Before tagging, dispatch the workflow from the branch you are about to tag:
+
+```bash
+gh workflow run release.yml --ref <branch> -f testpypi=true
+gh run watch
+```
+
+A rehearsal runs every job a tag runs:
+
+- **Build.** It builds and checks the wheel, and extracts the release notes for
+  the version in `pyproject.toml`, failing if `CHANGELOG.md` has no section for
+  it.
+- **Publish.** It publishes that version to TestPyPI. A version already there is
+  skipped, so a rehearsal can be re-run.
+- **Release.** It creates the GitHub Release as a draft named
+  `rehearsal-<run id>`, with the notes and artifacts attached, through the same
+  `gh release create` step a tag uses, and then deletes the draft.
+
+What it does not cover:
+
+- the check that the tag matches the packaged version, since there is no tag;
+- the `pypi` environment's required reviewer;
+- publishing to PyPI itself. TestPyPI is a different index with its own
+  trusted-publisher entry.
+
+Leave `testpypi` at its default: `-f testpypi=false` publishes the branch's
+version to PyPI for real, and PyPI never lets a version be replaced.
+
 ## Getting Help
 
 - **Documentation**: Check the [README](README.md) and inline documentation

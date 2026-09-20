@@ -5,6 +5,213 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-09-19
+
+### Security
+
+- **`anyio` is floored at 4.14.2**, and the lockfile moved to 4.15.1. Versions
+  before 4.14.2 encode a TLS stream's host name with IDNA 2003, which can let a
+  certificate for a different host be accepted (GHSA-82r6-8w77-94w6, critical),
+  and can leave process-pool workers blocked on undrained stderr
+  (GHSA-5p39-cfhj-2xmp). It arrives through httpx, openai, google-genai and
+  Starlette, whose own floors allow the vulnerable versions, so it is named in
+  `pyproject.toml` with the other security floors — the lockfile alone does
+  nothing for `pip install text2sql-eval-toolkit`.
+
+### Added
+
+- **A benchmark can keep its details behind sign-in, and Beaver does.** Beaver's
+  questions, SQL and schema are distributed under gated access, and only its
+  overall scores may be published. An anonymous visitor to a shared deployment
+  sees Beaver's tile and each pipeline's overall scores. Its breakdown by query
+  category, error analysis, record detail, playground, insights and judge answer
+  401 with `sign_in_required`, and the dashboard asks the reader to sign in and
+  returns them to the same address. Any signed-in user sees the details,
+  whatever their role, and the local operator tool is unaffected. The routes that
+  stay open are an allowlist, so a route added later is refused until it is added
+  on purpose, and a test fails on any route parameter not classified as naming a
+  benchmark or not. Mark a benchmark with `"requires_sign_in": true`, or list it
+  in `TEXT2SQL_SIGN_IN_BENCHMARKS`. The flag is honoured in every registry copy,
+  the packaged ones included, because provisioning never overwrites a data root's
+  registry.
+- **Addresses that mention such a benchmark carry `X-Robots-Tag: noindex,
+  nofollow`**, the dashboard's own pages as well as the API.
+- **A release can be rehearsed end to end.** A `workflow_dispatch` of
+  `release.yml` now runs the GitHub Release job as well, through the same
+  `gh release create` step a tag uses, as a draft that the run deletes again. On
+  1.5.0 that job was skipped on dispatch, so it first ran on the real tag and
+  failed there, after PyPI had published. A rehearsal's TestPyPI upload skips a
+  version already there, so it can be re-run. `CONTRIBUTING.md` says how to
+  rehearse and what a rehearsal does not cover.
+- **Archer has LLM-judge scores**, for 1,093 of its 1,144 predictions across all 11
+  pipelines, so its Metric Insights page shows the judge comparison instead of
+  *No evidence available*. Published in the `v1.6.0` results snapshot.
+
+- **The chosen judge's config is shown in the playground.** Picking a config by
+  name said nothing about what it would ask, and the only way to find out was to
+  leave for the config editor and come back. The box names the model and shows
+  the YAML behind a **Show prompt** toggle — collapsed by default, because the
+  prompt template runs to forty-odd lines and would otherwise push the run
+  controls and the verdict off the screen.
+- **Open in Eval Playground**, from a record's detail panel in both Error
+  Analysis and a pipeline's detail view. The panels show a record read-only;
+  the playground is where the same record can be edited and re-run, and getting
+  between them meant reading the record id off the address bar and assembling a
+  `/run/...` URL by hand. The link carries the benchmark, the record and the
+  pipeline you were looking at. It is an anchor rather than a button with a
+  click handler, so the address can be copied and the playground opened in a new
+  tab.
+
+### Removed
+
+- **Beaver's questions, SQL, schema and per-record results, from the repository,
+  its history and the public results dataset.** They are distributed under gated
+  access and should not have been published here. They are gone from every branch
+  and tag on GitHub, whose history was rewritten on 2026-09-12, so every commit id
+  changed and existing clones must be re-cloned. They are also gone from every
+  revision of `text2sql-eval-toolkit/text2sql-eval-results`, whose tags were
+  rebuilt; Beaver's overall summary and overall chart remain. The ten-question
+  `beaver_test_10` subset went with them, and so did `deploy/load-beaver.sh` and
+  the curation script that listed Beaver's tables. The MySQL read-only grant now
+  takes its databases from `MYSQL_READONLY_DATABASES` instead of naming them.
+
+- **`data/judge/usage.sqlite`, from git.** The dashboard's judge spend counters
+  and verdict cache are written at runtime, and `JudgeStore` creates the file
+  and its schema on first use, so the tracked copy seeded nothing -- it had gone
+  stale, missing the `user_caps` table a fresh database now creates. Tracking it
+  also meant every local use of the judge left a pending change carrying a user
+  hash, a model, a cost and a judge's explanation, one `git commit -a` away from
+  being published. `data/judge/` is now ignored. A deployment is unaffected: its
+  database lives in the `data` volume, not in the repository.
+
+### Fixed
+
+- **The dashboard left SQLite connections open until it could open nothing.**
+  Checking whether an index was stale opened it with `with sqlite3.connect(...)`,
+  which commits or rolls back on exit but does not close — and a connection
+  refers to itself through its statement cache, so it stayed open until the
+  cyclic garbage collector ran. That check runs on every cached index lookup,
+  six on each landing-page load, and the judge's spend ledger did the same on
+  every `/api/me` from a signed-in caller. On the public deployment this reached
+  Docker's default limit of 1024 open files: the landing page listed every
+  benchmark with no pipelines, `/api/benchmarks` alternated between 200 and 500,
+  and `/api/me` — the healthcheck — kept answering 200. Both now close what they
+  open.
+- **An index no longer keeps the connection of a worker thread that has
+  exited.** It held every connection it opened so that closing the index could
+  reach them all, and the server retires idle worker threads after a burst of
+  requests.
+- **The deployment's app container no longer runs with Docker's default
+  open-file limit.** `deploy/docker-compose.yml` raises it to 65536, and CI fails
+  a compose file that drops it.
+- **The results upload script no longer publishes what it should not.** It sent
+  everything under `results/` except logs, so run from a maintainer's checkout it
+  would have published the query indices in `results/.index/`, which carry every
+  record's raw bytes, along with backups and local copies of Beaver's gated
+  per-record files. It now uploads an explicit list of files, and a benchmark whose
+  details require sign-in contributes only its overall summary and overall chart.
+  The manifest lists only what is uploaded.
+- **No published summary lists a pipeline its own evaluation file does not
+  contain.** The summaries for `bird_mini_dev_postgres`, `bird_mini_dev_sqlite`,
+  `spider_dev` and `spider_realistic` listed a Gemini pipeline that none of those
+  benchmarks' results contain.
+- **"Judge again ignores the cache" had no space in it.** JSX drops a newline
+  between an element and the text after it, so the sentence rendered as
+  "Judge againignores the cache".
+- **Evaluating with a different judge config no longer keeps the old judge's
+  scores.** The batch judge reused any stored `llm_score`, whichever config had
+  given it, so evaluating Llama-judged results with another config kept every
+  Llama score and recorded the new config in the summary. Each verdict now
+  carries `llm_judge_config_digest` and is reused only under the same config;
+  verdicts stored before 1.6.0 carry none and are judged again.
+  `rerun_metrics.py --preserve-llm-judge` still calls no judge for a stored
+  verdict: it passes the new `llm_judge_reuse="any"`, and the verdicts it keeps
+  keep their own digest. The dashboard's verdict cache keys on the same digest.
+- **A batch judge run is no longer refused by watsonx's rate limits before it
+  starts.** Every judge call built a new watsonx model handle, which requests the
+  project's details and an IAM token, and watsonx rate-limits both. Re-judging
+  the published results at a few calls a second had most calls refused with
+  "Exceeded limit of calls to endpoint" or a `/token` rate limit, none of them
+  reaching the model, and repeating the run could not get past it. A handle is
+  now built once per model, parameters and credentials, and shared; clients
+  holding different keys never share one.
+- **A judge call that fails no longer erases the verdict already stored.**
+  Re-judging under a new config declines to reuse the stored verdict, so a call
+  the provider refused left the prediction with no `llm_score` at all — and a
+  summary averages a missing score as 0. A run interrupted by a rate limit
+  therefore published scores far below the ones the judge had given. The stored
+  verdict is now kept, under the digest of the config that gave it, alongside
+  the error; a run that had any judge errors says so.
+- **An agentic prediction's judge prompt is bounded again.** Keeping the task
+  whole put no limit on it: one Beaver trace runs to 160,000 characters, which a
+  judge config on a smaller-context model cannot take. The task is kept up to
+  40,000 characters — longer than 99% of the traces in `data/judge_calibration/`
+  — and cut with a marker beyond that.
+- **A trace message the judge was shown whole no longer claims to be cut.**
+  Every later message and response in an agentic trace was suffixed with `...`,
+  whether or not it had reached the 500-character limit, so the judge was told
+  that most of what it had been given was incomplete. The marker is now added
+  only where something was actually removed.
+- **A prediction with several ground-truth queries is judged once.** The judge
+  was asked about each query in turn and every answer but the last discarded;
+  it is now asked once, about the query that decided the result, which is the
+  answer that was kept.
+- **The LLM judge was shown an agentic prediction without its schema or hints.**
+  The judge's context for an agentic pipeline is the agent's trace, and every
+  message in it was cut to 500 characters — including the first, which carries
+  the task: a 3,600- to 11,400-character prompt of schema, hints and question
+  reduced to its opening lines. The task the agent was given is now kept whole;
+  later messages and responses are still cut, and the messages each step
+  re-sends are shown once. Every batch verdict on an agentic prediction before
+  this was reached without the schema or the hints.
+- **A reasoning model that ran out of tokens no longer produces a verdict.**
+  gpt-oss-120b reasons before it answers, and at the judge configs' old budget of
+  512 tokens it often returned reasoning and no answer. The watsonx client fell
+  back to the reasoning text, as it does when extracting SQL, so the judge read
+  a verdict out of a fragment of thought — usually none, scored `N/A`, the same
+  score as a rejection. Text generation now raises, naming the finish reason and
+  saying to raise `max_new_tokens`; SQL generation still falls back.
+
+### Changed
+
+- **The packaged LLM judges use gpt-oss-120b, and there are two of them.**
+  `llm_judge_default_config` compares a prediction with the ground truth and
+  `llm_judge_no_gt` judges without it. They replace four configs built on Llama
+  3.3 70B and Llama 4 Maverick, whose names still load: `llm_judge_alt_config`
+  loads the default, and `llm_judge_no_gt_v1` and `llm_judge_no_gt_v2` load
+  `llm_judge_no_gt`, unless a config of your own has that name. On 52 labelled
+  execution mismatches drawn after the prompts were written, the new default
+  accepts 2 of the 28 wrong predictions where the Llama config it replaces
+  accepts 7, with a mean absolute error of 0.18 against 0.27; it rejects 3 of the
+  14 correct ones against 2. Without the ground truth, gpt-oss-120b accepts 7 of
+  the 28 where Llama accepted 15. The labelled set and the script that scores a
+  config against it are in `data/judge_calibration/` and
+  `scripts/analysis/judge_calibration.py`.
+
+  **The published results are re-judged with it**, in the `v1.6.0` results
+  snapshot: 9,132 judge calls across all six benchmarks, none failing. The judge
+  accepts far fewer predictions than the Llama judge did — which accepted many
+  wrong ones — so every pipeline's LLM score falls. gpt-oss-120b zero-shot goes
+  from 0.88 to 0.79 on BIRD SQLite, 0.86 to 0.73 on BIRD PostgreSQL, 0.98 to 0.94
+  on Spider Dev, 0.56 to 0.42 on Archer and 0.51 to 0.29 on Beaver. LLM scores
+  from before and after are not comparable.
+
+  Evaluating again also recomputed the other metrics under current code and
+  dependencies, for the five benchmarks last evaluated in August.
+  Syntactic-equivalence scores move with the sqlglot and sqlparse upgrades — on
+  Spider Dev, 1,915 of 10,340 predictions change `sqlglot_equivalence` — and 30
+  predictions that did not match their reference now subset-match (24 on BIRD
+  PostgreSQL, 5 on BIRD SQLite, 1 on Beaver), moving a pipeline's subset
+  execution accuracy by at most 0.008. Archer, last evaluated on 2026-09-01, has
+  no such changes.
+- **The Eval Playground's question and database are legible.** They were set
+  smaller and dimmer than the body copy around them, with the database run onto
+  the end of the question's line, which made the subject of the whole view the
+  hardest thing on it to find. The question now has its own tinted block at
+  heading scale and the database is a labelled tag. Ground-truth and predicted
+  SQL each get a box, so two bare text areas side by side no longer read as one
+  undivided region.
+
 ## [1.5.0] - 2026-08-31
 
 ### Changed — breaking
@@ -504,6 +711,7 @@ which is enforced by a test rather than by intention.
 - Re-exported low-level SQL comparison and parsing helpers (`compare_result_dfs`, `sql_exact_match`, etc.) from toolkit-owned metrics utilities.
 - Library-focused README examples showing record-level, file-level, and benchmark-level usage.
 
+[1.6.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.6.0
 [1.5.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.5.0
 [1.4.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.4.0
 [1.3.0]: https://github.com/IBM/text2sql-eval-toolkit/releases/tag/v1.3.0

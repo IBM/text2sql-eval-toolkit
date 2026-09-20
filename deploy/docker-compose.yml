@@ -61,6 +61,16 @@ services:
     # whose parsed form costs several hundred more -- so a limit below about
     # 1 GB turns the first deploy into an OOM kill.
     mem_limit: ${MEM_LIMIT_APP:-1500m}
+    # Docker's default soft limit is 1024 open files, and Python -- unlike
+    # caddy's Go runtime -- does not raise it on startup. 1.5.0 left a SQLite
+    # connection open on every index lookup, and on the live host that reached
+    # 1024: the app could no longer open the results it serves, while /api/me
+    # kept answering 200. Headroom, not a substitute for closing what is
+    # opened: a leak still gets there, it just takes longer.
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     # Appended to the image's entrypoint. Needed only for
     # TEXT2SQL_DASHBOARD_MODE=full on a reachable host, and kept here rather than
     # in the Dockerfile so the image carries no capability decision.
@@ -97,6 +107,11 @@ services:
       TEXT2SQL_SESSION_SECRET: ${TEXT2SQL_SESSION_SECRET:-}
       TEXT2SQL_ADMIN_EMAILS: ${TEXT2SQL_ADMIN_EMAILS:-}
       TEXT2SQL_SECRET_KEY: ${TEXT2SQL_SECRET_KEY:-}
+
+      # Benchmarks hidden from anonymous visitors, in addition to those the
+      # registry flags `requires_sign_in`. It can only add restrictions: a
+      # registry flag is honoured whatever this says.
+      TEXT2SQL_SIGN_IN_BENCHMARKS: ${TEXT2SQL_SIGN_IN_BENCHMARKS:-}
 
       # Judge budget. Rates are an estimate until calibrated against a real
       # invoice; keep an independent budget alert on the watsonx account too.
@@ -186,6 +201,9 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-}
       # As above: sql/mysql-init refuses to initialise without it.
       MYSQL_READONLY_PASSWORD: ${MYSQL_READONLY_PASSWORD:-}
+      # The databases the read-only user may read. Not listed in the repository;
+      # sql/mysql-init refuses to initialise without it.
+      MYSQL_READONLY_DATABASES: ${MYSQL_READONLY_DATABASES:-}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./sql/mysql-init:/docker-entrypoint-initdb.d:ro

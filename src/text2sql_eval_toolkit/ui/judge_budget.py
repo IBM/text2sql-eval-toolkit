@@ -31,9 +31,12 @@ import os
 import sqlite3
 import threading
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
+
+from text2sql_eval_toolkit.evaluation.llm_as_judge import judge_config_digest
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterator, Optional, Tuple
 
 from text2sql_eval_toolkit.logging import get_logger
 
@@ -160,14 +163,10 @@ def verdict_cache_key(
     # JSON-encoded rather than space-joined: joining is not injective, so
     # (record="r1", pipeline="p1") and (record="r1 p1", pipeline="") collided
     # and could serve one record's verdict for another.
-    config_digest = ""
-    if config is not None:
-        # sort_keys so an unrelated reordering of the YAML does not invalidate
-        # every cached verdict; default=str so an unexpected value cannot make
-        # the key un-computable and take the whole endpoint down with it.
-        config_digest = hashlib.sha256(
-            json.dumps(config, sort_keys=True, default=str).encode("utf-8")
-        ).hexdigest()
+    # The same digest the batch judge stores with each verdict: sorted keys, so
+    # an unrelated reordering of the YAML does not invalidate every cached
+    # verdict, and computable whatever the config holds.
+    config_digest = judge_config_digest(config) if config is not None else ""
     payload = json.dumps(
         [benchmark_id, record_id, pipeline_id, config_name, model, config_digest],
         separators=(",", ":"),
@@ -229,10 +228,24 @@ class JudgeStore:
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """
+        A connection that commits or rolls back on exit, and is then closed.
+
+        ``with sqlite3.connect(...)`` does only the first half. A connection
+        refers to itself through its statement cache, so an unclosed one is not
+        freed when it goes out of scope either: it holds its file descriptor
+        until the cyclic collector runs. ``/api/me`` reads usage on every call
+        from a caller at judge tier, so each page load left one behind.
+        """
         conn = sqlite3.connect(self._path, timeout=10)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            with conn:
+                yield conn
+        finally:
+            conn.close()
 
     # -- spend ------------------------------------------------------------
 
@@ -282,23 +295,19 @@ class JudgeStore:
                 )
 
     def user_cap(self, user_hash: str) -> Optional[float]:
-        row = (
-            self._connect()
-            .execute("SELECT cap_usd FROM user_caps WHERE user_hash = ?", (user_hash,))
-            .fetchone()
-        )
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT cap_usd FROM user_caps WHERE user_hash = ?", (user_hash,)
+            ).fetchone()
         return None if row is None else float(row["cap_usd"])
 
     def user_spent(self, user_hash: str, month: Optional[str] = None) -> float:
-        row = (
-            self._connect()
-            .execute(
+        with self._connect() as conn:
+            row = conn.execute(
                 "SELECT COALESCE(SUM(cost_usd), 0) AS total FROM spend "
                 "WHERE user_hash = ? AND month = ?",
                 (user_hash, month or current_month()),
-            )
-            .fetchone()
-        )
+            ).fetchone()
         return float(row["total"] or 0.0)
 
     def reserve(self, user_hash: str, estimate_usd: float) -> bool:

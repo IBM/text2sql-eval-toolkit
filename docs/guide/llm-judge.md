@@ -78,10 +78,78 @@ Keys under `model` other than `id` are passed through as generation parameters.
 The model id follows the usual `provider:model` form — see
 [Models and providers](models.md) — so any supported provider can judge.
 
-Four configs ship with the package, differing in how much they are told and
-whether they see the ground truth at all. Judging *without* the ground truth is
-a genuinely different measurement: it asks whether the query answers the
-question, rather than whether it matches someone else's answer.
+Two configs ship with the package, both using `wxai:openai/gpt-oss-120b`:
+
+- **`llm_judge_default_config`** compares the prediction with the ground-truth
+  query and its result. It is what `load_llm_judge_config()` loads.
+- **`llm_judge_no_gt`** sees the question, the context the prediction was
+  generated from, and the prediction with its result — no ground truth. That is
+  a genuinely different measurement: it asks whether the query answers the
+  question, rather than whether it matches someone else's answer. It is also a
+  much harder one, and this judge accepts wrong queries several times as often
+  as the default does. Use it where there is no ground truth, not in place of
+  one.
+
+Until 1.6.0 there were four, using Llama 3.3 70B and Llama 4 Maverick. Their
+names still load: `llm_judge_alt_config` loads the default, and
+`llm_judge_no_gt_v1` and `llm_judge_no_gt_v2` load `llm_judge_no_gt` — unless
+you have a config of your own by that name, which is used as written.
+
+gpt-oss-120b reasons before it answers, and the reasoning counts against
+`max_new_tokens`. At the old configs' 512 it often used the whole budget before
+giving a verdict, so the packaged configs allow 8192, and a reply with no
+answer in it is an error rather than a verdict.
+
+### What the judge is shown
+
+The question; the context the prediction was generated from; for the default,
+the ground-truth SQL and its result; and the predicted SQL and its result.
+Result tables are cut to their first and last ten rows. For a baseline
+pipeline the context is its generation prompt. For an agentic pipeline it is
+the agent's trace: the task the agent was given — schema, hints and question —
+in full, and each later message and response cut to 500 characters.
+
+### How well they judge
+
+Both configs were chosen against a labelled set of the predictions the batch
+judge is actually asked about — execution mismatches from BIRD, Spider, Spider
+Realistic and Archer — kept with the scoring script in the repository under
+`data/judge_calibration/`. On its holdout, 52 items labelled before any judge
+saw them:
+
+| Config | Mean abs. error | Wrong accepted | Correct rejected |
+| --- | --- | --- | --- |
+| `llm_judge_default_config` (gpt-oss-120b) | 0.183 | 2 of 28 | 3 of 14 |
+| the Llama 3.3 70B config it replaced | 0.269 | 7 of 28 | 2 of 14 |
+| `llm_judge_no_gt` (gpt-oss-120b) | 0.250 | 7 of 28 | 1 of 14 |
+| the Llama 3.3 70B config it replaced | 0.423 | 15 of 28 | 2 of 14 |
+
+Fifty-two items is a small sample, and the labels were written by the
+assistant that developed the prompts. Read the numbers as a comparison between
+configs on the same items, not as a precise error rate.
+
+### Stored verdicts
+
+A verdict the judge gives is stored with `llm_judge_config_digest`, a digest of
+the config — model, parameters and prompt — that gave it. Evaluating again
+reuses a stored verdict only under the same digest, so changing the judge
+judges again, and a score is never reported under a judge that did not give it.
+Verdicts stored before 1.6.0 carry no digest and are judged again.
+
+- `force_rerun_llm_judge` calls the judge even where the digest matches.
+- `llm_judge_reuse="any"` — `rerun_metrics.py --preserve-llm-judge` — keeps
+  stored verdicts whichever config gave them, each with the digest it was
+  stored with, and the run warns that the summary records the current config.
+- A score decided without the judge — 1 for a result that already matches, 0
+  for a prediction with no result — carries no digest and is worked out afresh
+  each time.
+- A prediction with several ground-truth queries is judged once, about the
+  query that decided its result.
+
+!!! warning "Changed in 1.6.0"
+    Until 1.6.0 the batch judge reused any stored verdict. Evaluating
+    Llama-judged results with a different config kept every Llama score and
+    recorded the new config in the summary.
 
 ## Editing configs
 

@@ -102,7 +102,7 @@ def test_listing_merges_the_two_directories_without_duplicating(client):
     by_name = {c["name"]: c for c in items}
     assert by_name[PACKAGED]["user_defined"] is True
     assert by_name["llm_judge_claude"]["user_defined"] is True
-    assert by_name["llm_judge_alt_config"]["user_defined"] is False
+    assert by_name["llm_judge_no_gt"]["user_defined"] is False
 
 
 def test_deleting_an_edit_restores_the_packaged_config(client):

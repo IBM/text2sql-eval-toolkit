@@ -10,6 +10,20 @@ Hugging Face Hub dataset repo.
 End users should never run this script.  Run it after each release to
 upload the result artefacts that match the new toolkit tag.
 
+What is uploaded is an explicit list of files, not the folder.  Two things in a
+maintainer's results folder must never reach the public repo:
+
+* **The derived query indices** under ``results/.index/``, which hold the raw
+  bytes of every record -- and any other hidden directory, backups (``bak/``)
+  and logs.
+* **The details of a benchmark whose details require sign-in** (a registry entry
+  with ``"requires_sign_in": true``, such as Beaver).  Its questions, SQL and
+  per-record results are distributed under gated access; only its overall
+  summary and overall chart are published.  A local copy of its predictions,
+  evaluation file or errors report is left where it is and skipped, and an
+  upload whose summary report still breaks results down by query category is
+  refused.
+
 Usage
 -----
     export HF_TOKEN=<your_token>
@@ -40,15 +54,19 @@ CLI flags
 import argparse
 import json
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional
+from typing import Iterable, List, Optional, Set
 
 # Import only the version from the toolkit to avoid pulling in heavy deps.
 from text2sql_eval_toolkit import __version__ as _TOOLKIT_VERSION
 
 DEFAULT_REPO_ID = "text2sql-eval-toolkit/text2sql-eval-results"
+
+#: Top-level directories under results/ that are never published.
+_NEVER_PUBLISHED_DIRS = {"bak", "logs"}
 
 
 # ---------------------------------------------------------------------------
@@ -75,9 +93,141 @@ def _format_bytes(n: int) -> str:
     return f"{n / 1e3:.1f} KB"
 
 
-def _generate_manifest(results_dir: Path) -> dict:
+#: Benchmark ids the dashboard restricts without a registry flag
+#: (``ui/benchmark_access.py``). Named here rather than imported, because that
+#: module needs the dashboard extra and this script does not.
+SIGN_IN_BENCHMARKS_ENV = "TEXT2SQL_SIGN_IN_BENCHMARKS"
+
+
+def _restricted_benchmarks(data_root: Path) -> Set[str]:
+    """
+    Benchmarks whose details may not be published, casefolded.
+
+    Read from every registry copy -- the data root's and the ones packaged with
+    the toolkit -- for the reason the dashboard does the same: a data root's
+    registry can predate the flag, and a flag anywhere must hold. The
+    environment variable is read for the same reason: it is the other way a
+    deployment marks a benchmark's details restricted, and a benchmark marked
+    only that way would otherwise be published in full from that same host.
+
+    Casefolded at the source, as ``ui/benchmark_access.py`` does, so that every
+    comparison below is against one spelling. An id given in another case --
+    from the environment, or a registry key someone capitalised -- has to
+    restrict the same files, and a check that compared it verbatim against a
+    lowercase filename silently passed.
+    """
+    import importlib.resources as resources
+
+    candidates = [data_root / "benchmarks.json", data_root / "test-benchmarks.json"]
+    for name in ("benchmarks.json", "test-benchmarks.json"):
+        candidates.append(
+            Path(str(resources.files("text2sql_eval_toolkit.data").joinpath(name)))
+        )
+    restricted: Set[str] = set()
+    for path in candidates:
+        try:
+            entries = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(entries, dict):
+            continue
+        for benchmark_id, entry in entries.items():
+            flag = entry.get("requires_sign_in") if isinstance(entry, dict) else None
+            if flag is True or str(flag).strip().lower() in {"true", "1", "yes"}:
+                restricted.add(str(benchmark_id).casefold())
+    restricted |= {
+        part.strip().casefold()
+        for part in os.environ.get(SIGN_IN_BENCHMARKS_ENV, "").split(",")
+        if part.strip()
+    }
+    return restricted
+
+
+def _summary_files(benchmark_id: str) -> Set[str]:
+    """What a restricted benchmark publishes: overall summary and overall chart."""
+    stem = f"{benchmark_id}-predictions_eval_summary"
+    return {
+        f"{stem}.json",
+        f"{stem}.csv",
+        f"{stem}.md",
+        f"charts/{stem}.png",
+    }
+
+
+def _is_publishable(relative: str, restricted: Iterable[str]) -> bool:
+    """
+    Whether ``relative`` -- a path under results/, POSIX-style -- may be uploaded.
+    """
+    parts = relative.split("/")
+    if any(part.startswith(".") for part in parts):
+        return False  # .index/ and any other hidden directory or file
+    if parts[0] in _NEVER_PUBLISHED_DIRS or "logs" in parts[:-1]:
+        return False
+    if relative.endswith(".log"):
+        return False
+    name = parts[-1]
+    for benchmark_id in restricted:
+        # Compared without case, as the dashboard compares them: on a
+        # case-insensitive filesystem `BEAVER-…` opens Beaver's files, so an id
+        # given in another case must restrict them too.
+        folded = benchmark_id.casefold()
+        if parts[0].casefold() == folded:
+            return False  # nested layout: results/<benchmark>/...
+        if name.casefold().startswith(f"{folded}-"):
+            # Allowed against the file's own spelling, so the four summary
+            # files are still published whatever case the id was given in.
+            return relative in _summary_files(name[: len(folded)])
+    return True
+
+
+def _publishable_files(results_dir: Path, restricted: Iterable[str]) -> List[str]:
+    """Every file under ``results_dir`` that may be uploaded, as relative paths."""
+    restricted = set(restricted)
+    out = []
+    for path in sorted(results_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(results_dir).as_posix()
+        if _is_publishable(relative, restricted):
+            out.append(relative)
+    return out
+
+
+def _check_restricted_summaries(results_dir: Path, restricted: Iterable[str]) -> None:
+    """
+    Refuse to publish a restricted benchmark's summary report with its breakdown
+    by query category, which is derived from the ground-truth SQL.
+
+    The reports on disk are found and then matched, rather than a path being
+    built from each restricted id: `_is_publishable` decides what to upload by
+    the *file's* spelling, so a check that looked for the *id's* spelling asked
+    about a different file. Given ``TEXT2SQL_SIGN_IN_BENCHMARKS=Beaver`` on a
+    case-sensitive filesystem it found nothing, passed, and let the real
+    ``beaver-…md`` through with its categories -- and it is the one publishable
+    artifact that can still carry gated derived data.
+    """
+    folded = {benchmark_id.casefold() for benchmark_id in restricted}
+    if not folded:
+        return
+    for report in sorted(results_dir.glob("*-predictions_eval_summary.md")):
+        name = report.name.casefold()
+        match = next((f for f in folded if name.startswith(f"{f}-")), None)
+        if match is None:
+            continue
+        if "## Category:" in report.read_text(encoding="utf-8"):
+            raise SystemExit(
+                f"ERROR: {report} breaks results down by query category, and "
+                f"{match!r} publishes overall scores only. Cut the report "
+                "at its first '## Category:' heading before uploading."
+            )
+
+
+def _generate_manifest(results_dir: Path, restricted: Iterable[str] = ()) -> dict:
     """
     Walk results_dir and build a manifest.json describing every result file.
+
+    Only files that will actually be uploaded are listed -- a manifest naming a
+    file the repo does not have makes ``results fetch`` fail on it.
 
     Supported layouts
     -----------------
@@ -94,8 +244,7 @@ def _generate_manifest(results_dir: Path) -> dict:
         results/<benchmark>/<pipeline>/<model>/
             predictions.json  evaluation.json  summary.csv
     """
-    import re
-
+    restricted = set(restricted)
     ver = _TOOLKIT_VERSION
     major, minor = ver.split(".")[:2]
     compat = f">={major}.{minor}.0,<{int(major) + 1}.0.0"
@@ -108,7 +257,7 @@ def _generate_manifest(results_dir: Path) -> dict:
     # e.g. "bird_mini_dev_sqlite-predictions_eval.json" → bench "bird_mini_dev_sqlite"
     flat_groups: dict = {}
     for f in sorted(results_dir.iterdir()):
-        if not f.is_file():
+        if not f.is_file() or not _is_publishable(f.name, restricted):
             continue
         m = re.match(r"^(.+?)-predictions", f.name)
         if not m:
@@ -136,11 +285,14 @@ def _generate_manifest(results_dir: Path) -> dict:
     for bench_dir in sorted(results_dir.iterdir()):
         if not bench_dir.is_dir():
             continue
-        if bench_dir.name in known_non_bench:
+        if bench_dir.name in known_non_bench or bench_dir.name.startswith("."):
             continue
         bench_name = bench_dir.name
-        if bench_name in benchmarks:
-            continue  # already recorded as flat files above
+        # Casefolded against `restricted`, as `_is_publishable` compares: a
+        # directory the upload skips must not be named in the manifest, or
+        # `results fetch` fails on a file the repo does not have.
+        if bench_name in benchmarks or bench_name.casefold() in restricted:
+            continue  # already recorded as flat files above, or not published
 
         pipelines: dict = {}
         pipe_dirs = [p for p in bench_dir.iterdir() if p.is_dir()]
@@ -257,6 +409,16 @@ def main(argv: Optional[List[str]] = None) -> None:
         )
         sys.exit(1)
 
+    restricted = _restricted_benchmarks(data_root)
+    _check_restricted_summaries(results_dir, restricted)
+    publishable = _publishable_files(results_dir, restricted)
+    if restricted:
+        print(
+            "Details not published for: "
+            + ", ".join(sorted(restricted))
+            + " (overall summary and overall chart only)"
+        )
+
     # ── Step 2: Auth check ────────────────────────────────────────────────────
     if not args.dry_run:
         hf_token = os.getenv("HF_TOKEN")
@@ -287,7 +449,7 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     # ── Step 4: Generate manifest.json ────────────────────────────────────────
     print(f"Generating manifest.json from {results_dir} …")
-    manifest = _generate_manifest(results_dir)
+    manifest = _generate_manifest(results_dir, restricted)
     manifest_path = data_root / "manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False),
@@ -306,10 +468,11 @@ def main(argv: Optional[List[str]] = None) -> None:
         print("DRY RUN — the following steps would have been executed:")
         print(f"  upload_file  manifest.json → {args.repo_id}:manifest.json")
         print(
-            f"  upload_large_folder  {results_dir}/ → "
-            f"{args.repo_id}:results/  (workers={args.num_workers}, "
-            f"excluding logs and *.log files)"
+            f"  upload_large_folder  {len(publishable)} files under {results_dir}/ → "
+            f"{args.repo_id}:results/  (workers={args.num_workers})"
         )
+        for relative in publishable:
+            print(f"    results/{relative}")
         if not args.no_tag:
             print(f"  create_tag  {args.revision_tag} on " f"{args.repo_id} (dataset)")
         print()
@@ -332,10 +495,11 @@ def main(argv: Optional[List[str]] = None) -> None:
 
     # ── Step 6: Upload results/ ───────────────────────────────────────────────
     # upload_large_folder has no path_in_repo parameter — it maps folder_path/
-    # directly to the HF repo root.  By passing folder_path=data_root and
-    # allow_patterns=["results/**"] the files at data_root/results/...
-    # land at results/... in the repo, which is the correct layout.
-    print(f"Uploading {results_dir}/ → {args.repo_id}:results/ …")
+    # directly to the HF repo root.  By passing folder_path=data_root, files at
+    # data_root/results/... land at results/... in the repo.  The allow list is
+    # the exact set of publishable files, so nothing else in the folder -- the
+    # indices, backups, a gated benchmark's details -- can be swept up with it.
+    print(f"Uploading {len(publishable)} files → {args.repo_id}:results/ …")
     print("This may take a while for large result sets.")
     try:
         api.upload_large_folder(
@@ -343,14 +507,7 @@ def main(argv: Optional[List[str]] = None) -> None:
             repo_id=args.repo_id,
             repo_type="dataset",
             num_workers=args.num_workers,
-            allow_patterns=["results/**"],
-            ignore_patterns=[
-                "results/logs",
-                "results/logs/**",
-                "results/**/logs",
-                "results/**/logs/**",
-                "**/*.log",
-            ],
+            allow_patterns=[f"results/{relative}" for relative in publishable],
         )
     except Exception as exc:
         print(f"ERROR uploading results: {exc}", file=sys.stderr)

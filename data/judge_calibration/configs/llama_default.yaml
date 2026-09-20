@@ -1,0 +1,43 @@
+model:
+  id: wxai:meta-llama/llama-3-3-70b-instruct  # "wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8"
+  decoding_method: greedy
+  max_new_tokens: 512
+
+prompt_template: |
+  You are an expert SQL evaluator. Your task is to assess whether a predicted SQL query correctly answers a natural language question, given the database schema and the ground truth SQL and result.
+
+  Please consider the following:
+  - The predicted SQL may differ from the ground truth but still be valid.
+  - The result dataframes may differ due to ambiguity in the question or schema.
+  - Use your judgment to determine if the predicted SQL is a reasonable interpretation.
+
+  Respond with one of the following verdicts:
+  - "Yes" if the predicted SQL is correct (score: 1)
+  - "Maybe" if the predicted SQL is possibly correct (score: 0.5)
+  - "No" if the predicted SQL is incorrect (score: 0)
+
+  Start your response with the verdict ("Yes", "Maybe", "No") and then provide a detailed explanation for your decision.
+
+  ### Question:
+  {question}
+
+  ### Original Prompt Used for SQL Generation:
+  {generation_prompt}
+
+  ### Ground Truth SQL:
+  ```sql
+  {ground_truth_sql}
+  ```
+
+  ### Ground Truth Result:
+  {ground_truth_df}
+
+  ### Predicted SQL:
+  ```sql
+  {predicted_sql}
+  ```
+
+  ### Predicted Result (if any):
+  {predicted_df}
+
+  ### Verdict and Explanation:

@@ -26,9 +26,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             841 |                  23 |            864 |              845.02 |              201.81 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             841 |                  23 |            864 |              845.02 |              201.81 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -106,6 +106,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers of the release of the song &quot;Gentleman&quot;</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters singers by Song_Name = &#x27;Gentleman&#x27; and returns their current Age, whereas the question (as interpreted by the reference) requires ages at the time of the song’s release (computed from Song_release_year), not the current Age.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -130,9 +139,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             845 |                  23 |            868 |              892.51 |               218.5 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             845 |                  23 |            868 |              892.51 |               218.5 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -210,6 +219,15 @@ Table: singer_in_concert
 
 Question: List the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters to only the singer of “Gentleman” and returns the current Age, without calculating age at the song’s release or listing all singers as required.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -234,9 +252,9 @@ WHERE Song_Name = 'Gentleman' AND Song_release_year = '2001'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                  32 |            909 |             1369.51 |              175.79 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                  32 |            909 |             1369.51 |              175.79 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -313,6 +331,15 @@ Table: singer_in_concert
 
 Question: If the song &quot;Gentleman&quot; was released in the first year of the 21st century, list the name and age of each singer at the time of the song&#x27;s release.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters only singers with Song_Name=&#x27;Gentleman&#x27; and does not compute ages at the 2001 release (it returns current Age), whereas the question requires ages of all singers at the time of the song’s release.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -339,9 +366,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             849 |                  55 |            904 |             1542.31 |              151.84 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             849 |                  55 |            904 |             1542.31 |              151.84 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -418,6 +445,15 @@ Table: singer_in_concert
 
 Question: What are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns singers’ current ages, ignoring the concert year, whereas the question asks for ages “at that time,” which requires adjusting ages based on the concert’s year.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -444,9 +480,9 @@ WHERE c.Theme = 'Free choice' AND s.Age > 32
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                  62 |            947 |             1541.37 |              201.04 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                  62 |            947 |             1541.37 |              201.04 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -521,6 +557,15 @@ Table: singer_in_concert
 
 Question: If all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on `s.Age &gt; 32` instead of selecting singers born before 1985 (i.e., `strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - s.Age &lt; 1985`) and does not compute ages at the concert time, so it does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -547,9 +592,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             851 |                  55 |            906 |             1542.87 |              163.75 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             851 |                  55 |            906 |             1542.87 |              163.75 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -626,6 +671,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers who participated in the &quot;Free Choice&quot; themed concert at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers&#x27; current ages instead of calculating their ages at the time of the concert.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -650,9 +704,9 @@ WHERE Song_Name = 'Gentleman' AND Song_release_year = '2001'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             880 |                  32 |            912 |             2226.21 |              176.27 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             880 |                  32 |            912 |             2226.21 |              176.27 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -729,6 +783,15 @@ Table: singer_in_concert
 
 Question: Assuming that the song &quot;Gentleman&quot; was released in the first year of the 21st century, what were the names and ages of all its singers at the time of its release?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction only selects current ages and filters by a literal release year, returning no rows, and does not compute singers’ ages at the assumed 2001 release as required.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -755,9 +818,9 @@ WHERE c.Theme = 'Free choice' AND s.Age > 2014 - 1985
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             880 |                  67 |            947 |             2467.93 |              182.27 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             880 |                  67 |            947 |             2467.93 |              182.27 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -833,6 +896,15 @@ Table: singer_in_concert
 
 Question: Assuming that all the singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what were the names and ages of all the singers who took part at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on current age &gt; 29 (using 2014‑1985) instead of selecting singers born before 1985, doesn’t include those assumed participants who aren’t in the join, and returns the current age rather than the age at the concert.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -859,9 +931,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             859 |                  69 |            928 |             2618.78 |              211.02 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             859 |                  69 |            928 |             2618.78 |              211.02 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -934,6 +1006,15 @@ Table: singer_in_concert
 
 Question: What are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat 20 to the singer’s current age, ignoring the concert’s year; the correct age on the 20‑year anniversary should be Age + (concert_year + 20 − current_year). This missing term makes the answer incorrect.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `a8ebea4f507b`
@@ -958,9 +1039,9 @@ WHERE Theme = 'Wide Awake' AND CAST(REPLACE(YEAR, ' ', '') AS INT) = (SELECT MIN
 
 ### 📊 Evaluation Metrics
 
-| df_error_message                                                           |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |
-|:---------------------------------------------------------------------------|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|
-| Error running SQL: Error running query: misuse of aggregate function MIN() |                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          1 |             849 |                  89 |            938 |             2865.24 |
+| df_error_message                                                           |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   llm_score |
+|:---------------------------------------------------------------------------|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|------------:|
+| Error running SQL: Error running query: misuse of aggregate function MIN() |                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          1 |             849 |                  89 |            938 |             2865.24 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1029,6 +1110,15 @@ Table: singer_in_concert
 
 Question: If the &quot;Wide Awake&quot; themed concert was held three years earlier, how many years has it been since the earliest concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>N/A (did not use LLM due to missing prediction dataframe)</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -1055,9 +1145,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             853 |                  70 |            923 |             3192.55 |              253.86 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             853 |                  70 |            923 |             3192.55 |              253.86 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1130,6 +1220,15 @@ Table: singer_in_concert
 
 Question: What are the names of the &quot;Home Visits&quot; concert singer, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat 20 years to the singer’s current age (s.Age + 20) instead of calculating the age at the concert’s 20th anniversary using the concert year (as the reference query does). This ignores the required year offset.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `3d5fb64ec690`
@@ -1154,9 +1253,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             924 |                  46 |            970 |             2744.98 |               198.5 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             924 |                  46 |            970 |             2744.98 |               198.5 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1230,6 +1329,15 @@ Table: singer_in_concert
 
 Question: Assuming the ticket price for Balmoor stadium is $20 and for Hampden Park stadium is $5.5, and if the Hampden Park stadium has twice the capacity of the Balmoor stadium, what would be the total revenue generated from ticket sales if all tickets are sold out at both stadiums?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction ignores the “Hampden Park stadium has twice the capacity of the Balmoor stadium” condition, using Hampden’s actual capacity instead of 2 × Balmoor’s capacity.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `17fdaa3e6504`
@@ -1256,9 +1364,9 @@ WHERE Name IN ('Balmoor stadium', 'Hampden Park')
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             881 |                  58 |            939 |             2991.13 |              155.34 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             881 |                  58 |            939 |             2991.13 |              155.34 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1331,6 +1439,15 @@ Table: singer_in_concert
 
 Question: If the ticket price for Balmoor stadium is $20 and for Hampden Park stadium is $5.5, and all tickets are sold out, how much money can be generated from ticket sales?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query filters on the wrong stadium name (&#x27;Balmoor stadium&#x27; instead of &#x27;Balmoor&#x27;), so it only counts Hampden Park tickets and omits Balmoor’s revenue.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `07073735551b`
@@ -1364,9 +1481,9 @@ AND sic.Singer_ID IN (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             879 |                 132 |           1011 |             4196.66 |              179.92 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             879 |                 132 |           1011 |             4196.66 |              179.92 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1441,6 +1558,15 @@ Table: singer_in_concert
 
 Question: What will be the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, if all the singers who performed at concerts in Stark Park also took part in it?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat +20 to the current age and only returns singers who also performed at Stark’s Park, yielding a different calculation (e.g., John Nizinik 63 vs. reference 52) and omitting other required singers.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -1477,9 +1603,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 104 |            989 |             3677.87 |              209.48 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 104 |            989 |             3677.87 |              209.48 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1552,6 +1678,15 @@ Table: singer_in_concert
 
 Question: Singers born before 1980 earn $355 per concert, while singers born after 1980 earn $228 per concert. How much was spent on paying the singers for the concerts held in Somerset Park stadium?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses an incorrect age cutoff (Age &gt; 52) instead of calculating birth year from the current year, so it misclassifies singers and gives the wrong total.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `69fc296b5ee2`
@@ -1588,9 +1723,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 105 |            988 |             3670.01 |               168.9 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 105 |            988 |             3670.01 |               168.9 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1663,6 +1798,15 @@ Table: singer_in_concert
 
 Question: What was the total expenditure on paying singers for concerts held at Somerset Park stadium, given that singers born before 1980 earned $355 per concert and those born after 1980 earned $228 per concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the CASE logic reverses the rates (assigns $228 to older singers) and uses a fixed age cutoff (42) instead of computing birth year as in the question.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -1690,9 +1834,9 @@ LIMIT 1
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                  70 |            999 |              4846.8 |              164.34 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                  70 |            999 |              4846.8 |              164.34 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1765,6 +1909,15 @@ Table: singer_in_concert
 
 Question: If the capacity of the Hampden Park stadium is twice that of the Balmoor stadium, when all tickets sold out, how much money can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query returns separate revenues for each stadium instead of the combined total money asked for (the reference expects a single total value).</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -1799,9 +1952,9 @@ GROUP BY
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             841 |                 106 |            947 |             3584.17 |               85.74 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             841 |                 106 |            947 |             3584.17 |               85.74 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1875,6 +2028,15 @@ Table: singer_in_concert
 
 Question: Which stadiums have the lowest and highest average attendance rates respectively, and how many concerts have they each held?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction selects stadiums by the raw Average value, not by the attendance rate (Average / Capacity) that the question (and reference) require.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -1901,9 +2063,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             855 |                 144 |            999 |             4431.02 |              159.36 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             855 |                 144 |            999 |             4431.02 |              159.36 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -1976,6 +2138,15 @@ Table: singer_in_concert
 
 Question: What are the names of the stadiums with the highest and lowest average attendance rates, and how many concerts have been held in each of them?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) required by the question, leading to different stadiums and concert counts.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -2013,9 +2184,9 @@ JOIN stadium s ON c.Stadium_ID = s.Stadium_ID
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             837 |                  90 |            927 |             3865.53 |              170.58 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             837 |                  90 |            927 |             3865.53 |              170.58 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2100,6 +2271,15 @@ Table: singer_in_concert
 
 Question: What percentage of the concerts were held in the top three stadiums in terms of average attendance rate?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by raw Average instead of the average attendance rate (Average / Capacity) required by the question.</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:ibm/granite-4-h-small-greedy-zero-shot-chatapi`
@@ -2128,9 +2308,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             819 |                  23 |            842 |              936.81 |              193.76 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             819 |                  23 |            842 |              936.81 |              193.76 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2208,6 +2388,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers of the release of the song &quot;Gentleman&quot;</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction only returns current ages and filters by Song_Name, but the question asks for ages at the time of the song’s release (and should compute age = Age + Song_release_year − current year for singers of “Gentleman”). The predicted query omits this calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -2232,9 +2421,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             823 |                  23 |            846 |              756.44 |              221.75 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             823 |                  23 |            846 |              756.44 |              221.75 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2312,6 +2501,15 @@ Table: singer_in_concert
 
 Question: List the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters to singers whose Song_Name is &quot;Gentleman&quot; and returns their current Age, instead of computing each singer’s age at the release year of the song and listing all singers.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `4b3e0ccc5fde`
@@ -2337,9 +2535,9 @@ LIMIT 1
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             797 |                  47 |            844 |             1354.41 |              163.88 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             797 |                  47 |            844 |             1354.41 |              163.88 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2412,6 +2610,15 @@ Table: singer_in_concert
 
 Question: How many years ago did the first concert occur?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query miscalculates the year difference (using strftime on the Year text) and returns an incorrect value (6733) instead of the correct years‑ago count.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `c714e2557e06`
@@ -2437,9 +2644,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             855 |                  33 |            888 |             1641.86 |              169.56 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             855 |                  33 |            888 |             1641.86 |              169.56 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2517,6 +2724,15 @@ Table: singer_in_concert
 
 Question: If the song &quot;Gentleman&quot; was released in the first year of the 21st century, list the name and age of each singer at the time of the song&#x27;s release.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters only singers with Song_Name=&#x27;Gentleman&#x27; and returns their current Age, without adjusting for the assumed 2001 release year, and does not compute age at that time.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -2543,9 +2759,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  55 |            882 |             1585.69 |              225.44 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  55 |            882 |             1585.69 |              225.44 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2622,6 +2838,15 @@ Table: singer_in_concert
 
 Question: What are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, ignoring the required adjustment based on the concert year.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -2649,9 +2874,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                  77 |            940 |             10198.4 |              234.58 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                  77 |            940 |             10198.4 |              234.58 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2726,6 +2951,15 @@ Table: singer_in_concert
 
 Question: If all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages and filters incorrectly, while the question requires ages at the time of the “Free choice” concert (adjusted to the concert year). The query also omits singers that should be included.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `62376774b0fb`
@@ -2752,9 +2986,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             829 |                  55 |            884 |             1526.72 |               197.3 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             829 |                  55 |            884 |             1526.72 |               197.3 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2831,6 +3065,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers who participated in the &quot;Free Choice&quot; themed concert at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of calculating their ages at the time of the “Free Choice” concert. It omits the age‑at‑concert computation required by the question.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `c673bd256584`
@@ -2856,9 +3099,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             858 |                  33 |            891 |              3774.7 |              229.72 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             858 |                  33 |            891 |              3774.7 |              229.72 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -2935,6 +3178,15 @@ Table: singer_in_concert
 
 Question: Assuming that the song &quot;Gentleman&quot; was released in the first year of the 21st century, what were the names and ages of all its singers at the time of its release?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on Song_release_year = &#x27;2000&#x27; (the wrong year) and returns the stored Age unchanged instead of calculating each singer’s age in 2001, so it does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -2962,9 +3214,9 @@ WHERE LOWER(c.Theme) = 'free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             858 |                  66 |            924 |             5538.72 |              147.01 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             858 |                  66 |            924 |             5538.72 |              147.01 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3039,6 +3291,15 @@ Table: singer_in_concert
 
 Question: Assuming that all the singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what were the names and ages of all the singers who took part at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters by current age ≥ 40 and returns current ages, ignoring the “born before 1985” condition and not computing ages at the concert time.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -3066,9 +3327,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             837 |                  70 |            907 |             2566.58 |              110.07 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             837 |                  70 |            907 |             2566.58 |              110.07 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3141,6 +3402,15 @@ Table: singer_in_concert
 
 Question: What are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat +20 to the singer’s current Age, ignoring the concert’s year and thus not computing the age on the 20th anniversary as required.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `de42d05841d1`
@@ -3163,9 +3433,9 @@ SELECT CAST(strftime('%Y','now') AS INTEGER) - CAST((SELECT MIN(Year) FROM conce
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  45 |            872 |             5737.41 |              221.13 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  45 |            872 |             5737.41 |              221.13 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3238,6 +3508,15 @@ Table: singer_in_concert
 
 Question: How many years ago did the earliest concert occur if the concert with the theme &quot;Wide Awake&quot; took place three years earlier?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction only subtracts 3 from the minimum Year of the “Wide Awake” concert, ignoring other concerts, whereas the question (and reference) require adjusting the Wide Awake year by 3 years and then finding the earliest concert overall. This logical error changes the answer.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `a8ebea4f507b`
@@ -3269,9 +3548,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                 111 |            938 |              3525.7 |              237.84 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                 111 |            938 |              3525.7 |              237.84 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3344,6 +3623,15 @@ Table: singer_in_concert
 
 Question: If the &quot;Wide Awake&quot; themed concert was held three years earlier, how many years has it been since the earliest concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction subtracts 3 from the maximum concert year and compares it to the earliest year, never uses the current year or adjusts only the “Wide Awake” concert, so it does not compute “years since the earliest concert” as required.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -3370,9 +3658,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             831 |                  72 |            903 |             3367.51 |              223.01 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             831 |                  72 |            903 |             3367.51 |              223.01 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3445,6 +3733,15 @@ Table: singer_in_concert
 
 Question: What are the names of the &quot;Home Visits&quot; concert singer, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query adds a flat 20 to the singer’s current age and ignores the concert’s year, missing the required adjustment (concert year – current year) to compute the age on the 20th anniversary.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `3d5fb64ec690`
@@ -3469,9 +3766,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             902 |                  50 |            952 |             2687.81 |              145.45 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             902 |                  50 |            952 |             2687.81 |              145.45 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3544,6 +3841,15 @@ Table: singer_in_concert
 
 Question: Assuming the ticket price for Balmoor stadium is $20 and for Hampden Park stadium is $5.5, and if the Hampden Park stadium has twice the capacity of the Balmoor stadium, what would be the total revenue generated from ticket sales if all tickets are sold out at both stadiums?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the actual Hampden Park capacity instead of applying the given condition that its capacity is twice Balmoor’s, thus ignoring the required relationship.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `17fdaa3e6504`
@@ -3568,9 +3874,9 @@ WHERE Name IN ('Balmoor', 'Hampden Park')
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             859 |                  48 |            907 |             1912.95 |              173.58 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             859 |                  48 |            907 |             1912.95 |              173.58 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3644,6 +3950,15 @@ Table: singer_in_concert
 
 Question: If the ticket price for Balmoor stadium is $20 and for Hampden Park stadium is $5.5, and all tickets are sold out, how much money can be generated from ticket sales?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query returns separate revenues per stadium instead of the combined total revenue required by the question. It lacks the aggregation (SUM) to produce a single amount.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `07073735551b`
@@ -3684,9 +3999,9 @@ HAVING COUNT(DISTINCT sic.concert_ID) = (SELECT COUNT(*) FROM home_visits)
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             857 |                 183 |           1040 |             9008.02 |              184.91 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             857 |                 183 |           1040 |             9008.02 |              184.91 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3760,6 +4075,15 @@ Table: singer_in_concert
 
 Question: What will be the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, if all the singers who performed at concerts in Stark Park also took part in it?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query’s condition for the 20th anniversary (`CAST((strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) || substr(Year, -2)) AS INTEGER) = CAST(Year AS INTEGER) + 20`) never matches, making the CTE empty and returning no rows, so it fails to retrieve the required singers.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -3791,9 +4115,9 @@ FROM (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                 109 |            972 |             6428.73 |              161.82 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                 109 |            972 |             6428.73 |              161.82 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3866,6 +4190,15 @@ Table: singer_in_concert
 
 Question: Singers born before 1980 earn $355 per concert, while singers born after 1980 earn $228 per concert. How much was spent on paying the singers for the concerts held in Somerset Park stadium?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses `CASE WHEN s.Age &lt; 40` to decide the rate, ignoring the required birth‑year calculation (current year – Age vs 1980), so it applies the wrong $355/$228 thresholds.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `69fc296b5ee2`
@@ -3901,9 +4234,9 @@ FROM (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             861 |                 136 |            997 |             6403.57 |              206.75 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             861 |                 136 |            997 |             6403.57 |              206.75 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -3976,6 +4309,15 @@ Table: singer_in_concert
 
 Question: What was the total expenditure on paying singers for concerts held at Somerset Park stadium, given that singers born before 1980 earned $355 per concert and those born after 1980 earned $228 per concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses s.Age &lt; 40 instead of computing birth year (current year – Age) to distinguish singers born before/after 1980, violating the given hint.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -4000,9 +4342,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             907 |                  59 |            966 |             4934.99 |              127.31 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             907 |                  59 |            966 |             4934.99 |              127.31 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4075,6 +4417,15 @@ Table: singer_in_concert
 
 Question: If the capacity of the Hampden Park stadium is twice that of the Balmoor stadium, when all tickets sold out, how much money can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction ignores the “twice that of the Balmoor stadium” condition and uses Hampden’s actual capacity, and it returns separate revenues instead of the combined total required.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -4101,9 +4452,9 @@ WHERE Average = (SELECT MIN(Average) FROM stadium)
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             819 |                  57 |            876 |             2625.02 |              186.53 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             819 |                  57 |            876 |             2625.02 |              186.53 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4177,6 +4528,15 @@ Table: singer_in_concert
 
 Question: Which stadiums have the lowest and highest average attendance rates respectively, and how many concerts have they each held?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction selects stadiums by the raw Average value, not by the attendance rate (Average / Capacity) that the question (and reference) require. Consequently it returns the wrong stadiums and counts.</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:meta-llama/llama-4-maverick-17b-128e-instruct-fp8-greedy-zero-shot-chatapi`
@@ -4205,9 +4565,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             817 |                  22 |            839 |              504.17 |              202.97 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             817 |                  22 |            839 |              504.17 |              202.97 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4285,6 +4645,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers of the release of the song &quot;Gentleman&quot;</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: it returns only current ages and filters by Song_Name, but the question asks for ages at the time of the song’s release (as the reference query calculates), which the prediction does not compute.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -4309,9 +4678,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             821 |                  22 |            843 |              586.39 |              227.55 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             821 |                  22 |            843 |              586.39 |              227.55 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4389,6 +4758,15 @@ Table: singer_in_concert
 
 Question: List the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters to singers whose Song_Name is “Gentleman” and returns their current Age, instead of computing each singer’s age at the release year of “Gentleman” for all singers.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -4417,9 +4795,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             853 |                  53 |            906 |              899.84 |              159.25 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             853 |                  53 |            906 |              899.84 |              159.25 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4496,6 +4874,15 @@ Table: singer_in_concert
 
 Question: If the song &quot;Gentleman&quot; was released in the first year of the 21st century, list the name and age of each singer at the time of the song&#x27;s release.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters for Song_release_year = &#x27;2000&#x27; (the wrong first year) and uses an incorrect age calculation, resulting in an empty result instead of the singers’ ages at the 2001 release.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -4522,9 +4909,9 @@ WHERE T1.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  71 |            898 |             1009.31 |              159.46 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  71 |            898 |             1009.31 |              159.46 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4601,6 +4988,15 @@ Table: singer_in_concert
 
 Question: What are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers&#x27; current ages instead of their ages at the time of the &quot;Free choice&quot; concert, ignoring the required age‑at‑concert calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -4627,9 +5023,9 @@ WHERE T3.Theme = 'Free choice' AND (strftime('%Y', 'now') - T1.Age) < 1985
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                1024 |           1887 |             14129.1 |              204.55 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             863 |                1024 |           1887 |             14129.1 |              204.55 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4704,6 +5100,15 @@ Table: singer_in_concert
 
 Question: If all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the query returns the singers’ current Age and filters with an AND, whereas the question requires the ages at the time of the “Free choice” concert (i.e., age at concert) and the premise that all singers born before 1985 participated. The logic and calculated column do not match the required answer.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -4730,9 +5135,9 @@ WHERE T3.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             829 |                  71 |            900 |             1242.78 |              167.42 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             829 |                  71 |            900 |             1242.78 |              167.42 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4809,6 +5214,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers who participated in the &quot;Free Choice&quot; themed concert at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns singers&#x27; current ages instead of calculating their ages at the time of the “Free Choice” concert.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -4833,9 +5247,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             855 |                 919 |           1774 |               11321 |              200.71 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             855 |                 919 |           1774 |               11321 |              200.71 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -4913,6 +5327,15 @@ Table: singer_in_concert
 
 Question: Assuming that the song &quot;Gentleman&quot; was released in the first year of the 21st century, what were the names and ages of all its singers at the time of its release?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query only selects the song&#x27;s release year and does not return the singers&#x27; names and ages as required.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -4939,9 +5362,9 @@ WHERE T3.Theme = 'Free Choice' AND T1.Age + 1985 > 2024
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             857 |                  98 |            955 |             1373.65 |              143.23 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             857 |                  98 |            955 |             1373.65 |              143.23 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5015,6 +5438,15 @@ Table: singer_in_concert
 
 Question: Assuming that all the singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what were the names and ages of all the singers who took part at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query filters on `Theme = &#x27;Free Choice&#x27;` (capital C) which doesn’t match the stored value “Free choice”, yielding no rows, and it also computes the age at the concert with the wrong sign (subtracting instead of adding the year difference).</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -5041,9 +5473,9 @@ WHERE T3.concert_Name = 'Home Visits' AND T3.Year = '2014'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             837 |                  86 |            923 |             3350.79 |              133.67 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             837 |                  86 |            923 |             3350.79 |              133.67 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5115,6 +5547,15 @@ Table: singer_in_concert
 
 Question: What are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat +20 to the singer’s current age and unnecessarily filters on a specific Year, missing the required calculation that accounts for the time between now and the concert’s 20th anniversary, resulting in an empty/incorrect answer.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `de42d05841d1`
@@ -5139,9 +5580,9 @@ WHERE Theme = 'Wide Awake'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  39 |            866 |             1354.21 |              216.43 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  39 |            866 |             1354.21 |              216.43 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5214,6 +5655,15 @@ Table: singer_in_concert
 
 Question: How many years ago did the earliest concert occur if the concert with the theme &quot;Wide Awake&quot; took place three years earlier?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction only looks at “Wide Awake” concerts, adds 3 years instead of subtracting 3, and ignores other concerts, unlike the reference logic that adjusts the “Wide Awake” year by –3 and then finds the earliest overall year.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `a8ebea4f507b`
@@ -5237,9 +5687,9 @@ FROM concert
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  44 |            871 |              1182.7 |              216.59 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             827 |                  44 |            871 |              1182.7 |              216.59 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5312,6 +5762,15 @@ Table: singer_in_concert
 
 Question: If the &quot;Wide Awake&quot; themed concert was held three years earlier, how many years has it been since the earliest concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query computes the difference between the earliest concert year and the adjusted Wide Awake year, not the number of years from the current year to the earliest (adjusted) concert. This misinterprets the required calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -5338,9 +5797,9 @@ WHERE T3.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             831 |                  90 |            921 |              1876.3 |              189.03 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             831 |                  90 |            921 |              1876.3 |              189.03 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5413,6 +5872,15 @@ Table: singer_in_concert
 
 Question: What are the names of the &quot;Home Visits&quot; concert singer, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query miscalculates the age (uses 2023 - Year + 20 - Year instead of Year + 20 - current_year) resulting in an incorrect negative age.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `3d5fb64ec690`
@@ -5437,9 +5905,9 @@ WHERE Name IN ('Balmoor', 'Hampden Park')
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             907 |                 374 |           1281 |             6401.24 |              173.45 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             907 |                 374 |           1281 |             6401.24 |              173.45 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5513,6 +5981,15 @@ Table: singer_in_concert
 
 Question: Assuming the ticket price for Balmoor stadium is $20 and for Hampden Park stadium is $5.5, and if the Hampden Park stadium has twice the capacity of the Balmoor stadium, what would be the total revenue generated from ticket sales if all tickets are sold out at both stadiums?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction only returns capacities and does not compute revenue using the given ticket prices or the twice‑capacity relationship.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `07073735551b`
@@ -5546,9 +6023,9 @@ WHERE T2.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             857 |                 186 |           1043 |             3857.54 |              176.91 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             857 |                 186 |           1043 |             3857.54 |              176.91 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5623,6 +6100,15 @@ Table: singer_in_concert
 
 Question: What will be the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, if all the singers who performed at concerts in Stark Park also took part in it?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query incorrectly filters by stadium name for the Home Visits concert and simply adds 20 to each singer’s current age, rather than ensuring that all singers who performed at Stark Park concerts also performed at Home Visits and computing the age on the 20th anniversary.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -5650,9 +6136,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-| df_error_message                                                     |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |
-|:---------------------------------------------------------------------|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|
-| Error running SQL: Error running query: no such column: s.birth_year |                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          1 |             863 |                  85 |            948 |             1540.44 |
+| df_error_message                                                     |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   llm_score |
+|:---------------------------------------------------------------------|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|------------:|
+| Error running SQL: Error running query: no such column: s.birth_year |                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          1 |             863 |                  85 |            948 |             1540.44 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5721,6 +6207,15 @@ Table: singer_in_concert
 
 Question: Singers born before 1980 earn $355 per concert, while singers born after 1980 earn $228 per concert. How much was spent on paying the singers for the concerts held in Somerset Park stadium?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>N/A (did not use LLM due to missing prediction dataframe)</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -5745,9 +6240,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             911 |                  60 |            971 |             1451.44 |              138.55 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             911 |                  60 |            971 |             1451.44 |              138.55 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5820,6 +6315,15 @@ Table: singer_in_concert
 
 Question: If the capacity of the Hampden Park stadium is twice that of the Balmoor stadium, when all tickets sold out, how much money can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the actual Hampden Park capacity instead of twice the Balmoor capacity and does not compute the combined total revenue as required.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -5854,9 +6358,9 @@ WHERE Average = (SELECT MAX(Average) FROM stadium)
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             821 |                 146 |            967 |             3187.31 |              240.47 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             821 |                 146 |            967 |             3187.31 |              240.47 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -5930,6 +6434,15 @@ Table: singer_in_concert
 
 Question: Which stadiums have the lowest and highest average attendance rates respectively, and how many concerts have they each held?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (average divided by capacity) required by the question, so it answers a different metric.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -5984,9 +6497,9 @@ JOIN stadium_concert_count scc ON l.Name = scc.Name
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             835 |                 257 |           1092 |             4395.64 |              201.67 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             835 |                 257 |           1092 |             4395.64 |              201.67 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6060,6 +6573,15 @@ Table: singer_in_concert
 
 Question: What are the names of the stadiums with the highest and lowest average attendance rates, and how many concerts have been held in each of them?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column instead of the required Average/Capacity attendance rate and joins only stadiums that have at least one concert, so it omits the correct lowest‑rate stadium (which may have zero concerts) and returns wrong stadium names.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -6097,9 +6619,9 @@ SELECT (SELECT count FROM concerts_in_top_stadiums) * 100.0 / (SELECT count FROM
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             817 |                 124 |            941 |             4374.54 |              170.79 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             817 |                 124 |            941 |             4374.54 |              170.79 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6172,6 +6694,15 @@ Table: singer_in_concert
 
 Question: What percentage of the concerts were held in the top three stadiums in terms of average attendance rate?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by raw Average instead of the required average attendance rate (Average / Capacity), so it selects the wrong top‑three stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `76ad733465f5`
@@ -6206,9 +6737,9 @@ AND T3.Singer_ID IN (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 182 |           1065 |             2738.65 |              121.36 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 182 |           1065 |             2738.65 |              121.36 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6283,6 +6814,15 @@ Table: singer_in_concert
 
 Question: If all the singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert, what are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction restricts to singers who performed both at Stark Park and at “Home Visits” (using an IN subquery) instead of returning all singers in “Home Visits” as the reference does, and it also hard‑codes the current year. This does not satisfy the question’s requirement.</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:openai/gpt-oss-120b-greedy-zero-shot-chatapi`
@@ -6311,9 +6851,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 167 |           1040 |             1211.16 |              221.95 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 167 |           1040 |             1211.16 |              221.95 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6391,6 +6931,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers of the release of the song &quot;Gentleman&quot;</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>Yes: the predicted query correctly filters singers where Song_Name = &#x27;Gentleman&#x27; and returns their Name and Age, matching the intended interpretation of “singers of the release of the song ‘Gentleman’”.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -6415,9 +6964,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 199 |           1076 |             1341.99 |              191.03 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 199 |           1076 |             1341.99 |              191.03 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6495,6 +7044,15 @@ Table: singer_in_concert
 
 Question: List the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters to singers whose Song_Name is “Gentleman” and returns their current Age, ignoring the required calculation of age at the song’s release year.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -6520,9 +7078,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             909 |                 936 |           1845 |             6266.48 |              222.94 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             909 |                 936 |           1845 |             6266.48 |              222.94 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6599,6 +7157,15 @@ Table: singer_in_concert
 
 Question: If the song &quot;Gentleman&quot; was released in the first year of the 21st century, list the name and age of each singer at the time of the song&#x27;s release.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction wrongly filters on Song_release_year = &#x27;2001&#x27; and returns the stored Age unchanged, instead of computing each singer’s age for the assumed 2001 release of “Gentleman”.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -6625,9 +7192,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 305 |           1188 |             3231.45 |              182.63 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 305 |           1188 |             3231.45 |              182.63 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6704,6 +7271,15 @@ Table: singer_in_concert
 
 Question: What are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, ignoring the required year‑based age calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -6730,9 +7306,9 @@ WHERE LOWER(c.Theme) = LOWER('Free choice')
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 787 |           1706 |             6368.24 |              190.57 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 787 |           1706 |             6368.24 |              190.57 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6809,6 +7385,15 @@ Table: singer_in_concert
 
 Question: If all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns current ages and includes all singers in the concert, ignoring the “born before 1985” condition and not calculating ages at the concert time.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -6835,9 +7420,9 @@ WHERE LOWER(c.Theme) = LOWER('Free Choice')
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 375 |           1260 |             2471.07 |              195.92 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 375 |           1260 |             2471.07 |              195.92 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -6914,6 +7499,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers who participated in the &quot;Free Choice&quot; themed concert at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of calculating their ages at the time of the “Free Choice” concert.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -6939,9 +7533,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             912 |                 271 |           1183 |             2078.38 |              156.69 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             912 |                 271 |           1183 |             2078.38 |              156.69 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7018,6 +7612,15 @@ Table: singer_in_concert
 
 Question: Assuming that the song &quot;Gentleman&quot; was released in the first year of the 21st century, what were the names and ages of all its singers at the time of its release?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction does not calculate ages at the 2001 release (it returns the current Age unchanged) and therefore fails to answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -7045,9 +7648,9 @@ WHERE c.Theme = 'Free Choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             914 |                1024 |           1938 |             6034.83 |              167.06 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             914 |                1024 |           1938 |             6034.83 |              167.06 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7121,6 +7724,15 @@ Table: singer_in_concert
 
 Question: Assuming that all the singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what were the names and ages of all the singers who took part at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on current age (&gt;41) instead of birth year, ignores singers who would be assumed to participate, and does not compute age at the concert time. It also returns no rows, contrary to the expected result.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -7148,9 +7760,9 @@ WHERE  c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 416 |           1307 |             4115.89 |              150.27 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 416 |           1307 |             4115.89 |              150.27 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7223,6 +7835,15 @@ Table: singer_in_concert
 
 Question: What are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat 20 years to the singer’s current age instead of computing age at the concert’s 20th anniversary (it omits the concert Year – current year adjustment).</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `de42d05841d1`
@@ -7246,9 +7867,9 @@ FROM concert
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 704 |           1587 |             7665.48 |              194.56 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 704 |           1587 |             7665.48 |              194.56 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7321,6 +7942,15 @@ Table: singer_in_concert
 
 Question: How many years ago did the earliest concert occur if the concert with the theme &quot;Wide Awake&quot; took place three years earlier?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction ignores the required three‑year earlier adjustment for the “Wide Awake” concert, simply using the raw MIN(Year) instead of the adjusted earliest year.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -7353,9 +7983,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 515 |           1400 |             4887.75 |                 188 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 515 |           1400 |             4887.75 |                 188 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7428,6 +8058,15 @@ Table: singer_in_concert
 
 Question: What are the names of the &quot;Home Visits&quot; concert singer, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction adds a flat 20 to the singer’s current age (`s.Age + 20`) instead of calculating the age at the concert’s 20‑year anniversary using the concert year and the current year as required.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `3d5fb64ec690`
@@ -7453,9 +8092,9 @@ WHERE b.Name = 'Balmoor' AND h.Name = 'Hampden Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             956 |                 566 |           1522 |              4323.7 |              234.36 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             956 |                 566 |           1522 |              4323.7 |              234.36 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7527,6 +8166,15 @@ Table: singer_in_concert
 
 Question: Assuming the ticket price for Balmoor stadium is $20 and for Hampden Park stadium is $5.5, and if the Hampden Park stadium has twice the capacity of the Balmoor stadium, what would be the total revenue generated from ticket sales if all tickets are sold out at both stadiums?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a join condition `h.Capacity = 2 * b.Capacity`, forcing the data to satisfy the “twice capacity” relationship, which the question treats as an assumption, not a filter; this yields no rows and does not compute the intended revenue.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `07073735551b`
@@ -7549,9 +8197,9 @@ select singer.Name, singer.Age + 20 as Age_at_20th_anniversary from singer join 
 
 ### 📊 Evaluation Metrics
 
-| df_error_message                                               |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |
-|:---------------------------------------------------------------|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|
-| Error running SQL: Error running query: near "?": syntax error |                    0 |                              0 |                                     0 |                          0 |                         0 |                     0 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          1 |             911 |                1024 |           1935 |             9121.54 |
+| df_error_message                                               |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   llm_score |
+|:---------------------------------------------------------------|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|------------:|
+| Error running SQL: Error running query: near "?": syntax error |                    0 |                              0 |                                     0 |                          0 |                         0 |                     0 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          1 |             911 |                1024 |           1935 |             9121.54 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7622,6 +8270,15 @@ Table: singer_in_concert
 
 Question: What will be the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, if all the singers who performed at concerts in Stark Park also took part in it?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>N/A (did not use LLM due to missing prediction dataframe)</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -7650,9 +8307,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 723 |           1642 |             7207.13 |              143.53 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 723 |           1642 |             7207.13 |              143.53 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7725,6 +8382,15 @@ Table: singer_in_concert
 
 Question: Singers born before 1980 earn $355 per concert, while singers born after 1980 earn $228 per concert. How much was spent on paying the singers for the concerts held in Somerset Park stadium?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses `CASE WHEN s.Age &gt; 40` to decide the rate, which does not correctly implement “born before 1980” (the reference uses `strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - Age &lt; 1980`). This logical error leads to a different total (811 vs 684).</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `69fc296b5ee2`
@@ -7758,9 +8424,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 637 |           1554 |             7214.97 |              211.13 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 637 |           1554 |             7214.97 |              211.13 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7833,6 +8499,15 @@ Table: singer_in_concert
 
 Question: What was the total expenditure on paying singers for concerts held at Somerset Park stadium, given that singers born before 1980 earned $355 per concert and those born after 1980 earned $228 per concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction calculates birth year as `c.Year - s.Age` (using the concert year) instead of using the current year, so it applies the wrong rates.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -7858,9 +8533,9 @@ WHERE h.Capacity = 2 * b.Capacity
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 480 |           1439 |             4710.86 |              153.22 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 480 |           1439 |             4710.86 |              153.22 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -7932,6 +8607,15 @@ Table: singer_in_concert
 
 Question: If the capacity of the Hampden Park stadium is twice that of the Balmoor stadium, when all tickets sold out, how much money can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a `WHERE h.Capacity = 2 * b.Capacity` filter, which eliminates rows when the actual data doesn’t satisfy the “twice” condition, resulting in an empty result instead of computing the revenue under the hypothetical relationship.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -7972,9 +8656,9 @@ GROUP BY s.Stadium_ID, s.Name, s.Average
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 629 |           1506 |             9958.58 |              194.09 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 629 |           1506 |             9958.58 |              194.09 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -8048,6 +8732,15 @@ Table: singer_in_concert
 
 Question: Which stadiums have the lowest and highest average attendance rates respectively, and how many concerts have they each held?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>Yes: the prediction correctly selects the stadiums with the minimum and maximum Average values (the average attendance) and counts their concerts, matching the question’s intent.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -8078,9 +8771,9 @@ GROUP BY s.Stadium_ID, s.Name
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 354 |           1245 |             3463.94 |              187.68 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 354 |           1245 |             3463.94 |              187.68 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -8154,6 +8847,15 @@ Table: singer_in_concert
 
 Question: What are the names of the stadiums with the highest and lowest average attendance rates, and how many concerts have been held in each of them?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on the raw Average column (MAX/MIN) instead of the attendance rate (Average / Capacity) used in the question, so it selects the wrong stadiums and gives an incorrect answer.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -8184,9 +8886,9 @@ WHERE Stadium_ID IN (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 367 |           1240 |             5606.37 |              155.55 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 367 |           1240 |             5606.37 |              155.55 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -8259,6 +8961,15 @@ Table: singer_in_concert
 
 Question: What percentage of the concerts were held in the top three stadiums in terms of average attendance rate?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by raw Average instead of the average attendance rate (Average / Capacity) required by the question.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `76ad733465f5`
@@ -8291,9 +9002,9 @@ SELECT 1
 
 ### 📊 Evaluation Metrics
 
-| df_error_message                                               |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |
-|:---------------------------------------------------------------|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|
-| Error running SQL: Error running query: near ")": syntax error |                    0 |                              0 |                                     0 |                          0 |                         0 |                     0 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          1 |             935 |                1024 |           1959 |               10194 |
+| df_error_message                                               |   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   llm_score |
+|:---------------------------------------------------------------|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|------------:|
+| Error running SQL: Error running query: near ")": syntax error |                    0 |                              0 |                                     0 |                          0 |                         0 |                     0 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          1 |             935 |                1024 |           1959 |               10194 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -8364,6 +9075,15 @@ Table: singer_in_concert
 
 Question: If all the singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert, what are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>N/A (did not use LLM due to missing prediction dataframe)</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:openai/gpt-oss-120b-agentic-baseline0-3attempts`
@@ -8396,9 +9116,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             916 |                 110 |           1026 |              874.63 |              154.32 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             916 |                 110 |           1026 |              874.63 |              154.32 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -8539,6 +9259,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>Yes – the prediction correctly selects the singers whose Song_Name is “Gentleman” and returns their Name and Age, which matches the intended interpretation of the question.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -8567,9 +9296,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             918 |                 195 |           1113 |             1742.96 |              220.16 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             918 |                 195 |           1113 |             1742.96 |              220.16 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -8710,6 +9439,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction only returns singers whose Song_Name is “Gentleman” and uses their current Age, ignoring the required calculation of age at the song’s release year.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -8738,9 +9476,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             934 |                 569 |           1503 |             4133.64 |               161.4 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             934 |                 569 |           1503 |             4133.64 |               161.4 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -8881,6 +9619,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query filters to singers whose Song_Name is &#x27;Gentleman&#x27; and uses the stored Song_release_year instead of assuming the release year is 2001, so it omits most singers and does not follow the “first year of the 21st century” assumption.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -8915,9 +9662,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             921 |                 276 |           1197 |             2657.96 |              207.99 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             921 |                 276 |           1197 |             2657.96 |              207.99 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9069,6 +9816,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, omitting the required calculation using the concert year.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -9100,9 +9856,9 @@ WHERE c.Theme = 'Free choice'                     -- the required concert
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             939 |                 664 |           1603 |             6289.84 |              236.44 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             939 |                 664 |           1603 |             6289.84 |              236.44 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9246,6 +10002,15 @@ WHERE c.Theme = 'Free choice'                     -- the required concert
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the query computes birth year as concert year – age (and filters on that) instead of using the current year, so it does not correctly select singers born before 1985, and its result differs from the expected ages.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -9280,9 +10045,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             922 |                 316 |           1238 |             3211.13 |              241.66 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             922 |                 316 |           1238 |             3211.13 |              241.66 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9434,6 +10199,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of computing their ages at the time of the “Free Choice” concert (it lacks the age‑at‑concert calculation using the concert year).</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -9463,9 +10237,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             935 |                 300 |           1235 |             3094.06 |              189.85 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             935 |                 300 |           1235 |             3094.06 |              189.85 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9607,6 +10381,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction neither filters correctly for the “Gentleman” singers nor computes their ages at the 2001 release (it just returns current Age and yields no rows).</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -9637,9 +10420,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             936 |                 647 |           1583 |             6221.89 |              179.52 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             936 |                 647 |           1583 |             6221.89 |              179.52 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9780,6 +10563,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query uses the concert year to test birth‑year (&lt;1985) and returns the singers’ current Age instead of computing their age at the concert, so it does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -9810,9 +10602,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             925 |                 456 |           1381 |              4869.9 |              148.24 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             925 |                 456 |           1381 |              4869.9 |              148.24 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -9951,6 +10743,15 @@ WHERE c.concert_Name = 'Home Visits'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query adds a flat 20 years to the singer’s current age instead of computing the age at the concert’s 20th anniversary (it ignores the concert’s Year column).</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `de42d05841d1`
@@ -9982,9 +10783,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             921 |                 773 |           1694 |             10833.8 |              246.44 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             921 |                 773 |           1694 |             10833.8 |              246.44 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -10122,6 +10923,15 @@ SELECT
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>Yes – the prediction correctly computes “current year − (Year of the “Wide Awake” concert + 3)”, which matches the question’s requirement. The key clause is the `MIN(CAST(Year AS INTEGER)) FROM concert WHERE Theme = &#x27;Wide Awake&#x27;) + 3`.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -10152,9 +10962,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             922 |                 380 |           1302 |             5265.75 |              188.89 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             922 |                 380 |           1302 |             5265.75 |              188.89 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -10293,6 +11103,15 @@ WHERE c.concert_Name = 'Home Visits'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds 20 to the singer’s current age (s.Age + 20) and ignores the concert’s year, whereas the question requires the age at the concert’s 20th anniversary (which depends on the concert year).</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `3d5fb64ec690`
@@ -10330,9 +11149,9 @@ FROM bal
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     1 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             957 |                 797 |           1754 |             10694.8 |              172.17 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     1 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             957 |                 797 |           1754 |             10694.8 |              172.17 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -10476,6 +11295,15 @@ FROM bal
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>N/A (did not use LLM due to subset match)</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `07073735551b`
@@ -10512,9 +11340,9 @@ AND NOT EXISTS (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             935 |                1024 |           1959 |             8427.58 |              194.47 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             935 |                1024 |           1959 |             8427.58 |              194.47 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -10656,6 +11484,15 @@ AND NOT EXISTS (
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction only returns current ages (and none at that) and does not compute ages on the 20‑year anniversary; it also mis‑applies the “all singers from Stark Park” condition, leading to an empty result unlike the reference.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -10692,9 +11529,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             939 |                1014 |           1953 |             8871.41 |              120.49 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             939 |                1014 |           1953 |             8871.41 |              120.49 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -10838,6 +11675,15 @@ WHERE st.Name = 'Somerset Park'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the CASE expression reverses the rates (assigns $228 to singers born before 1980 and $355 to those born after), contradicting the question’s rates.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `69fc296b5ee2`
@@ -10872,9 +11718,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             938 |                 832 |           1770 |             10006.6 |              221.44 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             938 |                 832 |           1770 |             10006.6 |              221.44 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -11015,6 +11861,15 @@ WHERE st.Name = 'Somerset Park'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the query uses an arbitrary “Age &gt; 40” rule instead of the required birth‑year calculation (strftime‑now minus Age) and thus does not implement the given $355/$228 payment rule correctly.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -11044,9 +11899,9 @@ WHERE b.Name = 'Balmoor'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     1 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 628 |           1587 |             9723.24 |              139.89 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     1 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 628 |           1587 |             9723.24 |              139.89 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -11180,6 +12035,15 @@ WHERE b.Name = 'Balmoor'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>N/A (did not use LLM due to subset match)</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -11235,9 +12099,9 @@ ORDER BY rank_type
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             918 |                 749 |           1667 |             7118.81 |              172.45 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             918 |                 749 |           1667 |             7118.81 |              172.45 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -11399,6 +12263,15 @@ ORDER BY rank_type
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction uses the raw Average column, while the question’s “average attendance rate” requires the average divided by capacity (as used in the reference). This mismatch means the query does not answer the intended question.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -11429,9 +12302,9 @@ GROUP BY s.Stadium_ID, s.Name
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             925 |                 371 |           1296 |             6719.15 |              188.05 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             925 |                 371 |           1296 |             6719.15 |              188.05 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -11569,6 +12442,15 @@ GROUP BY s.Stadium_ID, s.Name
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on the raw Average column instead of the attendance rate (Average / Capacity) required by the question, so it returns the wrong stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -11606,9 +12488,9 @@ FROM concert_counts
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             916 |                 508 |           1424 |             6966.33 |              208.94 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             916 |                 508 |           1424 |             6966.33 |              208.94 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -11755,6 +12637,15 @@ FROM concert_counts
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by raw Average instead of by average attendance rate (Average / Capacity), so it selects the wrong top‑3 stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `76ad733465f5`
@@ -11797,9 +12688,9 @@ AND NOT EXISTS (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             947 |                1024 |           1971 |             10937.7 |              112.26 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             947 |                1024 |           1971 |             10937.7 |              112.26 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -11950,6 +12841,15 @@ AND NOT EXISTS (
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the predicted query returns only John Nizinik, omitting the other singers (e.g., Timbaland and Justin Brown) that should be listed as participants in “Home Visits.” The missing singers indicate the query does not correctly answer the question.</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:openai/gpt-oss-120b-agentic-baseline1-3attempts`
@@ -11978,9 +12878,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 122 |            995 |              971.06 |              239.41 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 122 |            995 |              971.06 |              239.41 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12099,6 +12999,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction only selects singers with Song_Name = &#x27;Gentleman&#x27; and returns their current Age, whereas the question (as interpreted by the reference) requires ages at the song’s release (Age + release_year − current_year) for all singers. The query lacks this calculation and the necessary rows.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -12123,9 +13032,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 167 |           1044 |             2088.61 |              166.82 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 167 |           1044 |             2088.61 |              166.82 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12244,6 +13153,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction just returns the current Age for singers whose Song_Name is “Gentleman” and does not compute the age at the song’s release (it omits the calculation using Song_release_year and the current year).</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -12269,9 +13187,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             909 |                 339 |           1248 |             3170.87 |              190.18 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             909 |                 339 |           1248 |             3170.87 |              190.18 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12391,6 +13309,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters singers by the song and uses their current Age instead of calculating age at 2001, and returns no rows, whereas the question requires the age of every singer at the year 2001.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -12417,9 +13344,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 299 |           1182 |             1912.59 |               177.2 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 299 |           1182 |             1912.59 |               177.2 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12541,6 +13468,15 @@ WHERE c.Theme = 'Free choice'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of computing their ages at the time of the “Free choice” concert, ignoring the required adjustment based on the concert year.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -12567,9 +13503,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 713 |           1632 |             5313.14 |              228.63 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 713 |           1632 |             5313.14 |              228.63 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12691,6 +13627,15 @@ WHERE c.Theme = 'Free choice'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query does not filter singers born before 1985 nor compute their ages at the concert time, unlike the reference logic.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -12717,9 +13662,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 337 |           1222 |             3159.27 |              186.55 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 337 |           1222 |             3159.27 |              186.55 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12841,6 +13786,15 @@ WHERE c.Theme = 'Free choice'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages, not their ages at the time of the “Free Choice” concert, missing the required age‑at‑concert calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -12866,9 +13820,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             912 |                 243 |           1155 |             1885.08 |              196.72 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             912 |                 243 |           1155 |             1885.08 |              196.72 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -12988,6 +13942,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction just returns the current Age (and filters on Song_release_year = &#x27;2001&#x27;, which yields no rows) instead of calculating each singer’s age at the 2001 release as required.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -13015,9 +13978,9 @@ WHERE LOWER(c.Theme) = 'free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             914 |                 467 |           1381 |             5436.78 |              201.86 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             914 |                 467 |           1381 |             5436.78 |              201.86 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -13140,6 +14103,15 @@ WHERE LOWER(c.Theme) = 'free choice'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction joins only singers actually linked to the concert, uses the wrong birth‑year condition (concert year instead of current year) and returns current ages instead of ages at the concert, missing singers that should be included.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -13172,9 +14144,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 381 |           1272 |             3949.71 |              143.42 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 381 |           1272 |             3949.71 |              143.42 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -13304,6 +14276,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query adds a flat 20 years to the singer’s current age and never uses the concert’s Year column, so it does not compute the age on the concert’s 20th anniversary.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `de42d05841d1`
@@ -13329,9 +14310,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 649 |           1532 |             6636.72 |              197.35 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 649 |           1532 |             6636.72 |              197.35 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -13447,6 +14428,15 @@ SELECT
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds 3 years to the “Wide Awake” concert year and ignores other concerts, whereas the question (and reference) require subtracting 3 years from that concert’s year and then finding the earliest concert overall.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -13474,9 +14464,9 @@ WHERE  c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 495 |           1380 |             8197.33 |              201.55 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 495 |           1380 |             8197.33 |              201.55 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -13596,6 +14586,15 @@ WHERE  c.concert_Name = 'Home Visits'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat 20 years to the singer’s current age instead of accounting for the concert’s original year (i.e., it ignores the concert Year column needed to compute the age at the 20th anniversary).</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `51804cf63939`
@@ -13625,9 +14624,9 @@ WHERE Name IN ('Balmoor', 'Hampden Park')
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             923 |                 458 |           1381 |             3755.43 |              216.53 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             923 |                 458 |           1381 |             3755.43 |              216.53 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -13752,6 +14751,15 @@ WHERE Name IN ('Balmoor', 'Hampden Park')
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns separate revenues per stadium instead of the combined total money asked for.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `07073735551b`
@@ -13790,9 +14798,9 @@ AND NOT EXISTS (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1835 |                2048 |           3883 |             19691.2 |              232.44 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1835 |                2048 |           3883 |             19691.2 |              232.44 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -14029,6 +15037,15 @@ AND NOT EXISTS (
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the query adds a flat +20 to the current age (ignoring the concert year vs. current year offset) and its NOT EXISTS condition yields no rows, whereas the question requires ages at the 20‑year anniversary of the “Home Visits” concert.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -14055,9 +15072,9 @@ WHERE b.Name = 'Balmoor'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 527 |           1486 |             25832.8 |              100.84 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 527 |           1486 |             25832.8 |              100.84 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -14174,6 +15191,15 @@ WHERE b.Name = 'Balmoor'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds the condition `h.Capacity = 2 * b.Capacity`, which filters out rows (resulting in an empty set) instead of using the hypothetical “twice” relationship as the reference query does. This extra clause makes the answer incorrect.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -14206,9 +15232,9 @@ ORDER BY s.Average ASC
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 425 |           1302 |             5479.17 |              185.08 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 425 |           1302 |             5479.17 |              185.08 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -14336,6 +15362,15 @@ ORDER BY s.Average ASC
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) that the question asks for, so it selects the wrong stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -14365,9 +15400,9 @@ GROUP BY s.Stadium_ID, s.Name
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 283 |           1174 |              5288.2 |              165.38 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 283 |           1174 |              5288.2 |              165.38 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -14491,6 +15526,15 @@ GROUP BY s.Stadium_ID, s.Name
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column to find highest/lowest stadiums, while the question’s “average attendance rates” require computing Average / Capacity (as the reference does), so it selects the wrong stadiums and gives incorrect counts.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -14521,9 +15565,9 @@ WHERE Stadium_ID IN (
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 333 |           1206 |             5433.66 |              212.76 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 333 |           1206 |             5433.66 |              212.76 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -14649,6 +15693,15 @@ WHERE Stadium_ID IN (
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by raw Average instead of the attendance rate (Average / Capacity) required by the question.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `76ad733465f5`
@@ -14675,9 +15728,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             935 |                1024 |           1959 |             7775.75 |              161.79 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             935 |                1024 |           1959 |             7775.75 |              161.79 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -14797,6 +15850,15 @@ WHERE c.concert_Name = 'Home Visits'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction omits the Stark Park condition and computes age as Age+20 instead of adjusting for the concert year, resulting in missing singers and an incorrect age calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `c5d56bbd8792`
@@ -14827,9 +15889,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             875 |                 358 |           1233 |             7131.86 |               215.9 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             875 |                 358 |           1233 |             7131.86 |               215.9 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -14953,6 +16015,15 @@ SELECT
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by Average only, ignoring the required attendance rate (Average / Capacity) used in the question, so it selects the wrong three stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `8f1ccff66cfb`
@@ -14984,9 +16055,9 @@ GROUP BY c.concert_ID, c.concert_Name
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                 557 |           1486 |             9637.78 |              183.64 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                 557 |           1486 |             9637.78 |              183.64 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -15113,6 +16184,15 @@ GROUP BY c.concert_ID, c.concert_Name
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query filters only concerts where the stadium name is “Somerset Park” and omits the “Week 2” concert that should be included by the “if … was held at Somerset Park” condition.</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:openai/gpt-oss-120b-agentic-baseline2-3attempts`
@@ -15141,9 +16221,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 191 |           1064 |             3025.64 |              166.09 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             873 |                 191 |           1064 |             3025.64 |              166.09 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -15262,6 +16342,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction only selects singers whose Song_Name is “Gentleman” and returns their current Age, ignoring the required calculation of age at the song’s release (and the need to include all singers).</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -15286,9 +16375,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 153 |           1030 |             1090.31 |              208.09 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 153 |           1030 |             1090.31 |              208.09 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -15407,6 +16496,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction just returns the current Age column and does not compute the singer’s age at the song’s release (i.e., it omits the calculation using Song_release_year and the current year).</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -15432,9 +16530,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             909 |                 266 |           1175 |              3687.6 |               222.5 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             909 |                 266 |           1175 |              3687.6 |               222.5 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -15554,6 +16652,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction just filters singers with Song_Name=&#x27;Gentleman&#x27; released in 2001 and returns their current Age, yielding no rows, instead of calculating each singer’s age at the 2001 release (as the reference does).</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -15580,9 +16687,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 253 |           1136 |             2769.76 |              230.29 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 253 |           1136 |             2769.76 |              230.29 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -15704,6 +16811,15 @@ WHERE c.Theme = 'Free choice'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, ignoring the required age‑at‑concert calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -15730,9 +16846,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 331 |           1250 |             3471.99 |              217.88 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 331 |           1250 |             3471.99 |              217.88 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -15854,6 +16970,15 @@ WHERE c.Theme = 'Free choice'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query omits the required filter for singers born before 1985 and does not calculate ages at the concert time, simply returning current ages for all singers in the “Free choice” concert.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -15880,9 +17005,9 @@ WHERE c.Theme = 'Free Choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 267 |           1152 |             3019.14 |              174.91 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 267 |           1152 |             3019.14 |              174.91 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -16001,6 +17126,15 @@ WHERE c.Theme = 'Free Choice'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: it filters on the wrong Theme string (&#x27;Free Choice&#x27; vs the actual &quot;Free choice&quot;) and returns the singers&#x27; current Age instead of calculating their age at the time of the concert.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -16026,9 +17160,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             912 |                 223 |           1135 |             1899.34 |              189.53 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             912 |                 223 |           1135 |             1899.34 |              189.53 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -16148,6 +17282,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on Song_release_year = &#x27;2001&#x27; and returns the current Age instead of computing each singer’s age at the 2001 release, contrary to the question’s requirement.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -16175,9 +17318,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             914 |                 616 |           1530 |             4607.82 |              187.87 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             914 |                 616 |           1530 |             4607.82 |              187.87 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -16300,6 +17443,15 @@ WHERE c.Theme = 'Free choice'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters with `s.Age &gt; (c.Year - 1985)` instead of selecting singers born before 1985, and it returns the current Age instead of the age at the concert, so it does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -16332,9 +17484,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 532 |           1423 |             4693.48 |               81.85 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 532 |           1423 |             4693.48 |               81.85 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -16464,6 +17616,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query adds a flat 20 years to the singer’s current age instead of calculating the age on the concert’s 20th anniversary using the concert year.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `de42d05841d1`
@@ -16489,9 +17650,9 @@ FROM concert
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                1024 |           1907 |             11672.8 |              193.94 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                1024 |           1907 |             11672.8 |              193.94 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -16607,6 +17768,15 @@ FROM concert
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds 3 to the “Wide Awake” year and compares it to the earliest concert year, whereas the question (and reference) require subtracting 3 from that concert’s year and measuring the earliest concert’s distance from the current year.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `a8ebea4f507b`
@@ -16635,9 +17805,9 @@ FROM concert
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 605 |           1488 |             26914.8 |              188.96 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 605 |           1488 |             26914.8 |              188.96 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -16758,6 +17928,15 @@ FROM concert
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction subtracts the earliest adjusted year from the latest concert year in the table, whereas the question (and reference) require subtracting the earliest adjusted year from the current year. The use of MAX(Year) instead of the current year makes the answer incorrect.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -16785,9 +17964,9 @@ WHERE  c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 438 |           1323 |             4695.98 |              179.93 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             885 |                 438 |           1323 |             4695.98 |              179.93 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -16907,6 +18086,15 @@ WHERE  c.concert_Name = 'Home Visits'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction simply adds 20 to the singer’s current Age and omits the required adjustment using the concert’s Year (as the reference query does), so it does not correctly compute the age on the 20‑year anniversary.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `3d5fb64ec690`
@@ -16931,9 +18119,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             956 |                 455 |           1411 |             4790.27 |              185.74 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             956 |                 455 |           1411 |             4790.27 |              185.74 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -17047,6 +18235,15 @@ SELECT
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the real Hampden Park capacity from the table instead of assuming it is twice Balmoor’s capacity, violating the condition that Hampden’s capacity = 2 × Balmoor’s.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `51804cf63939`
@@ -17075,9 +18272,9 @@ WHERE Name IN ('Balmoor', 'Hampden Park')
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             923 |                 524 |           1447 |             6289.17 |              198.19 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             923 |                 524 |           1447 |             6289.17 |              198.19 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -17199,6 +18396,15 @@ WHERE Name IN ('Balmoor', 'Hampden Park')
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query misses the Hampden Park row (due to a non‑breaking space in the name), so it only multiplies Balmoor’s capacity by 20 and returns 80000 instead of the correct total.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `07073735551b`
@@ -17237,9 +18443,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             911 |                 801 |           1712 |             9047.28 |              181.74 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             911 |                 801 |           1712 |             9047.28 |              181.74 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -17371,6 +18577,15 @@ WHERE c.concert_Name = 'Home Visits'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction filters the “Home Visits” concert to a year = its earliest year + 20 (which doesn’t exist) and thus returns no rows, whereas the question requires the singers (including those from Stark Park) for the 20th‑anniversary scenario, not an empty set.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -17398,9 +18613,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 959 |           1878 |             11872.8 |              131.83 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             919 |                 959 |           1878 |             11872.8 |              131.83 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -17519,6 +18734,15 @@ WHERE st.Name = 'Somerset Park'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses `s.Age &gt; 40` to decide the rate, ignoring the required birth‑year calculation (strftime‑based comparison to 1980), leading to a different total (811 vs the correct 684).</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `69fc296b5ee2`
@@ -17546,9 +18770,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 883 |           1800 |             9855.73 |              208.68 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 883 |           1800 |             9855.73 |              208.68 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -17667,6 +18891,15 @@ WHERE st.Name = 'Somerset Park'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses `s.Age &gt; 40` instead of the required birth‑year check (`strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - s.Age &lt; 1980`), violating the hint and yielding a different total.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -17695,9 +18928,9 @@ WHERE b.Name = 'Balmoor'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 641 |           1600 |             6660.84 |               62.38 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 641 |           1600 |             6660.84 |               62.38 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -17818,6 +19051,15 @@ WHERE b.Name = 'Balmoor'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a join condition `h.Capacity = 2 * b.Capacity`, which filters out all rows (resulting in an empty set) instead of applying the assumed “twice” relationship, so it does not compute the required revenue.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -17851,9 +19093,9 @@ ORDER BY s.Average ASC
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 465 |           1342 |             8907.82 |              182.76 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             877 |                 465 |           1342 |             8907.82 |              182.76 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -17982,6 +19224,15 @@ ORDER BY s.Average ASC
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) that the question asks for, so it returns the wrong stadiums and concert counts.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -18012,9 +19263,9 @@ GROUP BY s.Stadium_ID, s.Name
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 435 |           1326 |              6614.8 |              188.33 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             891 |                 435 |           1326 |              6614.8 |              188.33 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -18140,6 +19391,15 @@ GROUP BY s.Stadium_ID, s.Name
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on the raw Average column instead of the attendance rate (Average / Capacity) required, and therefore returns the wrong stadiums (e.g., “Glebe Park” which isn’t in the schema).</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:openai/gpt-oss-120b-agentic-baseline3-3attempts`
@@ -18168,9 +19428,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2985 |                 580 |           3565 |             34909.5 |              163.03 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2985 |                 580 |           3565 |             34909.5 |              163.03 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -18883,6 +20143,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>Yes – the prediction correctly selects Name and Age from singer where Song_Name = &#x27;Gentleman&#x27;, which directly answers “the names and ages of all singers of the release of the song ‘Gentleman’”. The reference query misinterprets the request by computing ages at the release year for all singers.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -18907,9 +20176,9 @@ WHERE s.Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2791 |                1014 |           3805 |             47739.4 |              162.18 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2791 |                1014 |           3805 |             47739.4 |              162.18 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -19622,6 +20891,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction only returns the current age of the singer whose Song_Name is “Gentleman” and omits the required calculation (Age + release_year − current_year) and the other singers, so it does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -19647,9 +20925,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1815 |                1232 |           3047 |             49781.8 |              166.81 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1815 |                1232 |           3047 |             49781.8 |              166.81 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -20032,6 +21310,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters by Song_Name = &#x27;Gentleman&#x27; and Song_release_year = 2001 and returns the current Age, instead of computing each singer’s age in 2001 (as the reference does), and thus yields an empty result.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -20058,9 +21345,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3099 |                1173 |           4272 |             39031.8 |              195.24 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3099 |                1173 |           4272 |             39031.8 |              195.24 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -20800,6 +22087,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction returns the singers’ current ages (s.Age) instead of their ages at the time of the “Free choice” concert, ignoring the required year‑based calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -20826,9 +22122,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3449 |                1816 |           5265 |               61135 |              211.85 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3449 |                1816 |           5265 |               61135 |              211.85 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -21570,6 +22866,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query omits the birth‑year filter (singers born before 1985) and returns current ages instead of ages at the concert, so it does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -21596,9 +22901,9 @@ WHERE LOWER(c.Theme) = LOWER('Free Choice')
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3511 |                1045 |           4556 |             43751.6 |              208.53 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3511 |                1045 |           4556 |             43751.6 |              208.53 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -22337,6 +23642,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query returns singers’ current Age column instead of calculating their age at the time of the concert, ignoring the required “at the time of the concert” adjustment.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -22362,9 +23676,9 @@ WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2981 |                1307 |           4288 |             48306.6 |              196.81 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2981 |                1307 |           4288 |             48306.6 |              196.81 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -22982,6 +24296,15 @@ WHERE Song_Name = 'Gentleman'
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query filters on Song_release_year = &#x27;2001&#x27; and returns the current Age column, without adjusting the age to the release year, and thus does not compute singers’ ages at the time of release (and returns no rows).</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -23009,9 +24332,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3121 |                1602 |           4723 |             50597.6 |              217.19 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3121 |                1602 |           4723 |             50597.6 |              217.19 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -23755,6 +25078,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query filters incorrectly (uses current age instead of birth year) and returns the stored Age rather than age at the concert, so it does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -23784,9 +25116,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3226 |                1383 |           4609 |             63469.9 |               89.86 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3226 |                1383 |           4609 |             63469.9 |               89.86 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -24548,6 +25880,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction adds a flat 20 to the singer’s current age, ignoring the years that have already passed since the concert; the reference query adjusts for the concert year, so the predicted ages (e.g., 63) are incorrect.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `de42d05841d1`
@@ -24573,9 +25914,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3114 |                1781 |           4895 |             35977.6 |              229.74 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3114 |                1781 |           4895 |             35977.6 |              229.74 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -25156,6 +26497,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>Yes – the query adds three years to the “Wide Awake” concert’s year (as required) and subtracts that from the current year, correctly computing “years ago” for the earliest concert.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `a8ebea4f507b`
@@ -25180,9 +26530,9 @@ SELECT
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 601 |           1484 |             16782.4 |               224.4 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             883 |                 601 |           1484 |             16782.4 |               224.4 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -25324,6 +26674,15 @@ SELECT
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction subtracts the adjusted Wide Awake year from the original earliest year instead of computing years since the earliest concert (using the current year and the adjusted earliest year). This logic does not match the question.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -25351,9 +26710,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3151 |                1274 |           4425 |             49869.1 |              171.16 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3151 |                1274 |           4425 |             49869.1 |              171.16 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -26093,6 +27452,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction adds 20 to the singer’s current age, ignoring the years already elapsed since the concert; the reference query correctly adjusts for the time passed (using concert year vs. current year). This mismatch means the answer is wrong.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `07073735551b`
@@ -26137,9 +27505,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3544 |                2408 |           5952 |             56441.3 |              196.14 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3544 |                2408 |           5952 |             56441.3 |              196.14 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -27000,6 +28368,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the query’s NOT EXISTS clause checks that Stark Park singers appear in any “Home Visits” concert instead of specifically the 20th‑anniversary concert, and the year filter mis‑matches, resulting in an empty result contrary to the expected answer.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -27032,9 +28409,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3084 |                2187 |           5271 |             47865.4 |              129.32 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3084 |                2187 |           5271 |             47865.4 |              129.32 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -27559,6 +28936,15 @@ WHERE st.Name = 'Somerset Park'
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query uses a hard‑coded year (2022) to compute birth year, causing a different classification of singers than the reference (which uses the current year), leading to a mismatched total (811 vs 684).</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `69fc296b5ee2`
@@ -27592,9 +28978,9 @@ WHERE st.Name = 'Somerset Park'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 712 |           1629 |             20663.2 |              222.11 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             917 |                 712 |           1629 |             20663.2 |              222.11 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -27751,6 +29137,15 @@ WHERE st.Name = 'Somerset Park'
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the WHERE clause uses a mismatched stadium name (and a hard‑coded year), resulting in no rows and a NULL sum instead of the correct total.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -27782,9 +29177,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 474 |           1433 |             13479.8 |               71.87 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             959 |                 474 |           1433 |             13479.8 |               71.87 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -27939,6 +29334,15 @@ WHERE
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a join and a filter `hamp.Capacity = 2 * bal.Capacity`, which eliminates rows (producing an empty result) instead of simply applying the “twice” relationship as a calculation, so it does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -27970,9 +29374,9 @@ ORDER BY s.Average ASC
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3234 |                1763 |           4997 |             49163.5 |              190.57 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3234 |                1763 |           4997 |             49163.5 |              190.57 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -28751,6 +30155,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on the raw Average column instead of the attendance rate (Average ÷ Capacity) that the question (and reference query) require, so it returns the wrong stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -28784,9 +30197,9 @@ GROUP BY
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3114 |                1621 |           4735 |             54370.5 |              211.88 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3114 |                1621 |           4735 |             54370.5 |              211.88 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -29592,6 +31005,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column to pick highest/lowest stadiums, while the question asks for the highest and lowest average attendance rates (average divided by capacity), so it selects the wrong stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -29626,9 +31048,9 @@ FROM concert c
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3174 |                1492 |           4666 |             47259.3 |               162.4 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3174 |                1492 |           4666 |             47259.3 |               162.4 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -30424,6 +31846,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by the raw Average column instead of the average attendance rate (Average / Capacity) required by the question, leading to a different percentage.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `76ad733465f5`
@@ -30465,9 +31896,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3082 |                3040 |           6122 |             46625.6 |              104.73 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3082 |                3040 |           6122 |             46625.6 |              104.73 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -31136,6 +32567,15 @@ REASONING:
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the query’s NOT EXISTS clause makes it return no rows (the condition fails) and it only adds 20 to the current age, not the age on the 20‑year anniversary as required, so it does not produce the expected singers or ages.</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:openai/gpt-oss-120b-agentic-baseline4-3attempts`
@@ -31162,9 +32602,9 @@ SELECT Name, Age FROM singer WHERE Song_Name = 'Gentleman';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2429 |                 396 |           2825 |              128081 |              173.17 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2429 |                 396 |           2825 |              128081 |              173.17 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -31432,6 +32872,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction only selects singers whose Song_Name is “Gentleman” and returns their current Age, ignoring the required calculation of age at the song’s release (and omitting other singers).</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -31454,9 +32903,9 @@ SELECT Name, Age FROM singer WHERE Song_Name = 'Gentleman';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3846 |                 804 |           4650 |              130469 |              267.99 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            3846 |                 804 |           4650 |              130469 |              267.99 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -31871,6 +33320,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters by Song_Name = &#x27;Gentleman&#x27; and returns the current Age, instead of calculating each singer’s age at the release year of the song as required.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -31896,9 +33354,9 @@ WHERE Song_Name = 'Gentleman';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4050 |                1729 |           5779 |              195990 |              190.73 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4050 |                1729 |           5779 |              195990 |              190.73 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -32314,6 +33772,16 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>Yes
+The prediction filters to singers of “Gentleman” and computes Age − (2023 − 2001), i.e., age at the 2001 release, which matches the intended interpretation; the reference query missed the Song_Name condition.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -32340,9 +33808,9 @@ WHERE c.Theme = 'Free choice';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2480 |                 540 |           3020 |              127376 |              147.62 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2480 |                 540 |           3020 |              127376 |              147.62 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -32609,6 +34077,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns singers&#x27; current ages, ignoring the required calculation of age at the concert year (“at that time”).</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -32636,9 +34113,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6050 |                2190 |           8240 |              195380 |              195.37 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6050 |                2190 |           8240 |              195380 |              195.37 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -33214,6 +34691,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction filters on current Age ≥ 41 (an approximation of birth year) and returns the singers’ current ages, not their ages at the “Free choice” concert, and it omits singers who meet the birth‑year condition but are younger than 41, yielding an incorrect answer.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -33240,9 +34726,9 @@ WHERE LOWER(c.Theme) = LOWER('Free Choice');
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2489 |                 718 |           3207 |              124824 |              151.14 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2489 |                 718 |           3207 |              124824 |              151.14 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -33510,6 +34996,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns singers&#x27; current ages, ignoring the required calculation of age at the time of the concert. The reference query adjusts age using the concert year, which the predicted query does not do.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -33532,9 +35027,9 @@ SELECT Name, Age, Song_release_year FROM singer WHERE Song_Name = 'Gentleman';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            5992 |                 954 |           6946 |              418789 |              189.13 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            5992 |                 954 |           6946 |              418789 |              189.13 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -34172,6 +35667,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction just selects current Age (and release year) for singers of “Gentleman” without adjusting the age to 2001, and it does not compute the age at the assumed release year as required.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -34199,9 +35703,9 @@ WHERE c.Theme = 'Free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6053 |                2254 |           8307 |              426780 |              217.49 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6053 |                2254 |           8307 |              426780 |              217.49 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -34864,6 +36368,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query uses the concert year to infer birth year and returns current ages instead of ages at the concert, deviating from the required calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -34891,9 +36404,9 @@ WHERE c.concert_Name = 'Home Visits';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4028 |                 927 |           4955 |              106933 |               95.88 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4028 |                 927 |           4955 |              106933 |               95.88 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -35300,6 +36813,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query simply adds 20 to the singer’s current Age, ignoring the concert’s year offset required to compute age on the 20‑year anniversary.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `de42d05841d1`
@@ -35327,9 +36849,9 @@ FROM concert;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2470 |                1787 |           4257 |              112170 |              223.94 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2470 |                1787 |           4257 |              112170 |              223.94 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -35591,6 +37113,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction fails to apply the “three years earlier” adjustment to the Wide Awake concert’s year, so it computes the wrong number of years ago.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `a8ebea4f507b`
@@ -35613,9 +37144,9 @@ SELECT (MAX(CAST(Year AS INT)) - MIN(CASE WHEN Theme = 'Wide Awake' THEN CAST(Ye
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2510 |                1173 |           3683 |              109624 |              185.41 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2510 |                1173 |           3683 |              109624 |              185.41 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -35877,6 +37408,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction subtracts the earliest adjusted year from the latest concert year (MAX‑MIN) instead of from the current year, unlike the reference which uses the current year minus the earliest adjusted year.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -35904,9 +37444,9 @@ WHERE c.concert_Name = 'Home Visits';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4057 |                1289 |           5346 |              103428 |              226.24 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4057 |                1289 |           5346 |              103428 |              226.24 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -36313,6 +37853,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat 20 to the singer’s current age, ignoring the concert’s year, whereas the question requires the age at the concert’s 20‑year anniversary (needs the A.Year ‑ current year adjustment).</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `3d5fb64ec690`
@@ -36335,9 +37884,9 @@ SELECT Stadium_ID, Name, Capacity FROM stadium WHERE Name = 'Balmoor' OR Name = 
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6169 |                1173 |           7342 |              373649 |              206.54 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6169 |                1173 |           7342 |              373649 |              206.54 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -36973,6 +38522,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query only retrieves stadium IDs, names, and capacities; it does not calculate the total revenue as required.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `51804cf63939`
@@ -37001,9 +38559,9 @@ WHERE Name IN ('Balmoor', 'Hampden Park');
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2534 |                 871 |           3405 |              114388 |               157.3 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2534 |                 871 |           3405 |              114388 |               157.3 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -37266,6 +38824,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query returns separate revenues per stadium instead of the combined total revenue requested.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `07073735551b`
@@ -37300,9 +38867,9 @@ WHERE c.concert_Name = 'Home Visits'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1162 |                1010 |           2172 |             70118.2 |              182.54 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1162 |                1010 |           2172 |             70118.2 |              182.54 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -37436,6 +39003,15 @@ Please help me write the SQL query to answer this question.</pre>
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses an IN subquery (intersection) instead of the OR condition required, so it omits singers like Timbaland and Justin Brown that should be included.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -37458,9 +39034,9 @@ SELECT Stadium_ID, Location, Name, Capacity FROM stadium ORDER BY Stadium_ID LIM
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6349 |                1220 |           7569 |              376985 |               133.3 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6349 |                1220 |           7569 |              376985 |               133.3 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -38103,6 +39679,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query only lists stadium rows and does not compute the required revenues based on capacities and ticket prices.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -38130,9 +39715,9 @@ WHERE s.Average = (SELECT MIN(Average) FROM stadium)
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2499 |                 893 |           3392 |             71177.6 |              222.39 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2499 |                 893 |           3392 |             71177.6 |              222.39 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -38395,6 +39980,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) required, and returns the wrong stadiums for lowest/highest rates.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -38423,9 +40017,9 @@ GROUP BY s.Stadium_ID, s.Name;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2515 |                 762 |           3277 |             67721.2 |              189.16 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2515 |                 762 |           3277 |             67721.2 |              189.16 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -38688,6 +40282,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction uses the raw Average column instead of the attendance rate (Average ÷ Capacity) that the question (and reference) require, and therefore returns the wrong stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -38717,9 +40320,9 @@ FROM concert c;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2525 |                1027 |           3552 |              129227 |              189.03 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            2525 |                1027 |           3552 |              129227 |              189.03 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -38982,6 +40585,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by raw Average instead of the required average attendance rate (Average / Capacity), so it selects the wrong top‑three stadiums and yields an incorrect percentage.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `76ad733465f5`
@@ -39009,9 +40621,9 @@ WHERE c.concert_Name = 'Home Visits';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1174 |                 773 |           1947 |             73376.6 |               99.05 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            1174 |                 773 |           1947 |             73376.6 |               99.05 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -39145,6 +40757,15 @@ Please help me write the SQL query to answer this question.</pre>
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the query only returns singers from “Home Visits” (and misses two such singers in the data), and it ignores the condition relating Stark Park concerts, so it does not produce the full correct answer.</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `wxai:openai/gpt-oss-120b-agentic-baseline5-3attempts`
@@ -39171,9 +40792,9 @@ SELECT Name, Age FROM singer WHERE Song_Name = 'Gentleman';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6852 |                 605 |           7457 |              160367 |              127.99 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6852 |                 605 |           7457 |              160367 |              127.99 |           1 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -39832,6 +41453,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `1.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>Yes – the predicted query correctly selects Name and Age from singer where Song_Name = &#x27;Gentleman&#x27;, matching the question; the reference query omits the filter and computes a derived “target_age”, which does not answer the asked‑for names and ages.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -39854,9 +41484,9 @@ SELECT Name, Age FROM singer WHERE Song_Name = 'Gentleman';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6899 |                1095 |           7994 |              164776 |              207.68 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6899 |                1095 |           7994 |              164776 |              207.68 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -40516,6 +42146,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction just returns the current Age (and only for singers whose Song_Name is “Gentleman”), whereas the question requires the age at the song’s release (i.e., Age adjusted by the release year), and for every singer, not just those who performed that song.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -40541,9 +42180,9 @@ WHERE Song_Name = 'Gentleman';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9876 |                2250 |          12126 |              158927 |              166.41 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9876 |                2250 |          12126 |              158927 |              166.41 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -41460,6 +43099,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction adds a WHERE Song_Name = &#x27;Gentleman&#x27; filter and computes age using each singer’s own Song_release_year, whereas the question (and reference) require the age of every singer at the fixed year 2001, not just those with that song. This mismatch makes the query incorrect.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -41486,9 +43134,9 @@ WHERE c.Theme = 'Free choice';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           12907 |                1296 |          14203 |              340557 |              228.93 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           12907 |                1296 |          14203 |              340557 |              228.93 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -42820,6 +44468,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers&#x27; current ages, ignoring the “at that time” requirement to compute ages at the concert year.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -42847,9 +44504,9 @@ WHERE LOWER(c.Theme) = 'free choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           13169 |                2611 |          15780 |              307694 |              213.44 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           13169 |                2611 |          15780 |              307694 |              213.44 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -44178,6 +45835,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction filters on current Age &gt; 38 and returns the current age, missing singers (e.g., Justin Brown, Timbaland) and not calculating age at the concert as required. The WHERE clause and selected column are therefore incorrect.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -44204,9 +45870,9 @@ WHERE c.Theme = 'Free choice';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           16049 |                1763 |          17812 |              357218 |              211.69 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           16049 |                1763 |          17812 |              357218 |              211.69 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -45886,6 +47552,16 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No
+The prediction returns the singers’ current Age column only, but the question asks for their ages at the time of the concert. It fails to adjust Age by the concert year (as the reference query does), so the ages are incorrect.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -45908,9 +47584,9 @@ SELECT Singer_ID, Name, Age, Song_release_year FROM singer WHERE Song_Name = 'Ge
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9703 |                2145 |          11848 |              196097 |              166.81 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9703 |                2145 |          11848 |              196097 |              166.81 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -46827,6 +48503,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query returns current Age and extra columns without calculating the singers&#x27; ages in 2001, and it does not match the required age-at-release computation.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -46854,9 +48539,9 @@ WHERE c.Theme = 'Free Choice'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           13177 |                3267 |          16444 |              260433 |              151.42 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           13177 |                3267 |          16444 |              260433 |              151.42 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -48100,6 +49785,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on current Age &gt; 38 and returns the current Age, not the age at the concert, and thus misses the singers shown in the reference (e.g., ages 31, 17, 20). This logic does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -48127,9 +49821,9 @@ WHERE c.concert_Name = 'Home Visits';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9832 |                1810 |          11642 |              214345 |               72.41 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9832 |                1810 |          11642 |              214345 |               72.41 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -49097,6 +50791,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat 20 years to the singer’s current age instead of accounting for the concert’s year (Age + concert.Year − current year + 20), so it gives the wrong age.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `a8ebea4f507b`
@@ -49120,9 +50823,9 @@ FROM concert;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            7000 |                2140 |           9140 |              168756 |              168.59 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            7000 |                2140 |           9140 |              168756 |              168.59 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -49778,6 +51481,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses MAX(Year) (latest concert) instead of the current year and thus computes a different interval than the required “years since the earliest concert”.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -49805,9 +51517,9 @@ WHERE c.concert_Name = 'Home Visits';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           13129 |                2122 |          15251 |              300524 |               204.1 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           13129 |                2122 |          15251 |              300524 |               204.1 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -51134,6 +52846,16 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No
+The prediction adds a flat 20 years to the singer’s current age, ignoring the concert’s year; the reference correctly adjusts for the time since the concert, so the predicted query does not answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `3d5fb64ec690`
@@ -51164,9 +52886,9 @@ WHERE hampden.Capacity = 2 * balmoor.Capacity;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4440 |                1292 |           5732 |              118580 |              162.29 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4440 |                1292 |           5732 |              118580 |              162.29 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -51582,6 +53304,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 1
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction adds a WHERE clause enforcing hampden.Capacity = 2 * balmoor.Capacity, which filters out rows (resulting in an empty set) instead of simply applying the assumed relationship as the reference query does.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `17fdaa3e6504`
@@ -51604,9 +53335,9 @@ SELECT Stadium_ID, Name, Location, Capacity FROM stadium WHERE Name LIKE '%Balmo
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9721 |                1918 |          11639 |              148898 |              199.81 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          1 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9721 |                1918 |          11639 |              148898 |              199.81 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -52520,6 +54251,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction only selects Balmoor’s stadium record and does not calculate revenue or include Hampden Park’s capacity and ticket price.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `51804cf63939`
@@ -52547,9 +54287,9 @@ WHERE Name IN ('Balmoor', 'Hampden Park');
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4378 |                1187 |           5565 |             10181.8 |              199.37 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            4378 |                1187 |           5565 |             10181.8 |              199.37 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -52939,6 +54679,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query returns separate revenues per stadium instead of the combined total revenue requested.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -52961,9 +54710,9 @@ SELECT sql FROM sqlite_master WHERE type='table' AND name='singer_in_concert';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           16068 |                1945 |          18013 |              323148 |                 100 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           16068 |                1945 |          18013 |              323148 |                 100 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -54645,6 +56394,16 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No
+The prediction only returns the table definition (`SELECT sql FROM sqlite_master …`) and does not compute any payment amount, so it fails to answer the question.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -54667,9 +56426,9 @@ SELECT Stadium_ID, Name, Location, Capacity FROM stadium ORDER BY Stadium_ID;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9857 |                1561 |          11418 |              156153 |               77.64 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9857 |                1561 |          11418 |              156153 |               77.64 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -55590,6 +57349,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the predicted query only lists stadium information and does not compute the ticket‑sale revenue (Balmoor capacity × 20 + Hampden capacity × 5.5) required by the question.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -55634,9 +57402,9 @@ ORDER BY average_attendance ASC;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9933 |                1935 |          11868 |              210678 |              180.25 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            9933 |                1935 |          11868 |              210678 |              180.25 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -56604,6 +58372,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses the raw Average column instead of the attendance rate (Average / Capacity) that the question (and reference) require. This changes which stadiums are identified as lowest and highest.</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -56638,9 +58415,9 @@ GROUP BY s.Name;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            7103 |                1532 |           8635 |              122431 |              182.77 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            7103 |                1532 |           8635 |              122431 |              182.77 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -57295,6 +59072,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – it selects stadiums by raw Average instead of the average attendance rate (Average / Capacity) required by the question. Consequently it returns the wrong stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -57323,9 +59109,9 @@ FROM concert c;
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6936 |                1555 |           8491 |              151447 |              204.31 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |            6936 |                1555 |           8491 |              151447 |              204.31 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -57979,6 +59765,15 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 2
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – it orders stadiums by raw Average instead of the average attendance rate (Average / Capacity) required by the question, so it computes the wrong percentage.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `e5f9cd370c76`
@@ -58001,9 +59796,9 @@ SELECT sql FROM sqlite_master WHERE type='table' AND name='singer_in_concert';
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           16173 |                1506 |          17679 |              293883 |              110.58 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |           16173 |                1506 |          17679 |              293883 |              110.58 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -59687,6 +61482,16 @@ What&#x27;s your next action?</pre>
 
 **Total Attempts:** 3
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No
+The prediction only queries the table definition (`SELECT sql FROM sqlite_master …`) and returns schema text, not the concert IDs, names, or female singer percentages required. Hence it does not answer the question.</pre>
+
 ---
 
 ## 🔍 Pipeline/Model ID: `gemini:gemini-3-flash-preview-greedy-zero-shot-chatapi`
@@ -59713,9 +61518,9 @@ SELECT Name, Age FROM singer WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             889 |                  20 |           1022 |             1727.67 |              123.46 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             889 |                  20 |           1022 |             1727.67 |              123.46 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -59793,6 +61598,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers of the release of the song &quot;Gentleman&quot;</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters by Song_Name = &#x27;Gentleman&#x27; and returns current Age, whereas the question requires the ages of all singers at the release year of the song “Gentleman” (as the reference query computes). The predicted query’s logic and result miss the required calculation and rows.</pre>
+
 ---
 
 ### ❓ Failed Question #2 (of 20 examples) - Question ID: `6627652a7532`
@@ -59815,9 +61629,9 @@ SELECT Name, Age FROM singer WHERE Song_Name = 'Gentleman'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             893 |                  20 |           1386 |             3650.99 |              163.85 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             893 |                  20 |           1386 |             3650.99 |              163.85 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -59895,6 +61709,15 @@ Table: singer_in_concert
 
 Question: List the name and age of each singer at the time of the release of the song &quot;Gentleman&quot;.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters to the singer of “Gentleman” and returns the current Age, ignoring the required calculation of age at the song’s release year and omitting the other singers.</pre>
+
 ---
 
 ### ❓ Failed Question #3 (of 20 examples) - Question ID: `c714e2557e06`
@@ -59917,9 +61740,9 @@ SELECT Name, Age FROM singer WHERE Song_release_year = '2014'
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                  24 |           8654 |             42446.1 |              202.24 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                  24 |           8654 |             42446.1 |              202.24 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -59997,6 +61820,15 @@ Table: singer_in_concert
 
 Question: If the song &quot;Gentleman&quot; was released in the first year of the 21st century, list the name and age of each singer at the time of the song&#x27;s release.</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on Song_release_year = &#x27;2014&#x27; and returns the current Age, ignoring the required 2001 release year and the age‑at‑release calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #4 (of 20 examples) - Question ID: `0276a4a8f662`
@@ -60028,9 +61860,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             901 |                  86 |           1419 |             3417.98 |              230.41 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             901 |                  86 |           1419 |             3417.98 |              230.41 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60107,6 +61939,15 @@ Table: singer_in_concert
 
 Question: What are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns the singers’ current ages instead of their ages at the time of the “Free choice” concert, ignoring the required age‑at‑concert calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #5 (of 20 examples) - Question ID: `b4645d1552ec`
@@ -60138,9 +61979,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             941 |                  86 |           2712 |             10751.3 |              196.12 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             941 |                  86 |           2712 |             10751.3 |              196.12 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60217,6 +62058,15 @@ Table: singer_in_concert
 
 Question: If all singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what are the names and ages of the participating singers in the concert with the theme of &quot;Free choice&quot; at that time?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction omits the birth‑year filter (singers born before 1985) and does not compute ages at the concert time, returning current ages for all linked singers instead of the required ages at the concert.</pre>
+
 ---
 
 ### ❓ Failed Question #6 (of 20 examples) - Question ID: `62376774b0fb`
@@ -60248,9 +62098,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             903 |                  86 |           1689 |             4701.62 |              182.12 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             903 |                  86 |           1689 |             4701.62 |              182.12 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60324,6 +62174,15 @@ Table: singer_in_concert
 
 Question: What were the names and ages of all singers who participated in the &quot;Free Choice&quot; themed concert at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction neither calculates the singers’ ages at the time of the concert nor matches the Theme value (“Free Choice” vs the stored “Free choice”), resulting in an empty result and missing the required age_at_concert calculation.</pre>
+
 ---
 
 ### ❓ Failed Question #7 (of 20 examples) - Question ID: `c673bd256584`
@@ -60351,9 +62210,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                  41 |           8671 |             43818.6 |              157.46 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             929 |                  41 |           8671 |             43818.6 |              157.46 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60431,6 +62290,15 @@ Table: singer_in_concert
 
 Question: Assuming that the song &quot;Gentleman&quot; was released in the first year of the 21st century, what were the names and ages of all its singers at the time of its release?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses `Age - Song_release_year + 2001` (and filters by Song_Name) instead of computing age at 2001 from the current year, so it miscalculates the singers’ ages.</pre>
+
 ---
 
 ### ❓ Failed Question #8 (of 20 examples) - Question ID: `037d0efed9e8`
@@ -60462,9 +62330,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             935 |                  86 |           4220 |             18882.5 |              192.62 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             935 |                  86 |           4220 |             18882.5 |              192.62 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60538,6 +62406,15 @@ Table: singer_in_concert
 
 Question: Assuming that all the singers born before 1985 participated in the &quot;Free Choice&quot; themed concert, what were the names and ages of all the singers who took part at the time of the concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the query omits the “born before 1985” condition, does not compute age at the concert, and uses a mismatched theme string, resulting in an empty result instead of the required names and ages.</pre>
+
 ---
 
 ### ❓ Failed Question #9 (of 20 examples) - Question ID: `5541e8ca5412`
@@ -60569,9 +62446,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             911 |                  92 |           2547 |             9594.43 |               74.12 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             911 |                  92 |           2547 |             9594.43 |               74.12 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60644,6 +62521,15 @@ Table: singer_in_concert
 
 Question: What are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat 20 years to the singer’s current age instead of accounting for the concert’s year (i.e., `concert.Year - current_year + 20`), so it does not compute the age on the 20th anniversary.</pre>
+
 ---
 
 ### ❓ Failed Question #10 (of 20 examples) - Question ID: `de42d05841d1`
@@ -60666,9 +62552,9 @@ SELECT Year + 3 - (SELECT MIN(Year) FROM concert) FROM concert WHERE Theme = 'Wi
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             901 |                  29 |           7684 |             34955.6 |              189.83 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             901 |                  29 |           7684 |             34955.6 |              189.83 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60741,6 +62627,15 @@ Table: singer_in_concert
 
 Question: How many years ago did the earliest concert occur if the concert with the theme &quot;Wide Awake&quot; took place three years earlier?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the predicted query adds 3 to the Wide Awake year and subtracts the overall minimum year, instead of adjusting the Wide Awake year by –3, recomputing the earliest year, and then measuring how many years ago that was from the current year.</pre>
+
 ---
 
 ### ❓ Failed Question #11 (of 20 examples) - Question ID: `a8ebea4f507b`
@@ -60763,9 +62658,9 @@ SELECT Year - 3 - (SELECT MIN(Year) FROM concert) FROM concert WHERE Theme = 'Wi
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             901 |                  29 |           2274 |             8449.83 |              154.77 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             901 |                  29 |           2274 |             8449.83 |              154.77 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60838,6 +62733,15 @@ Table: singer_in_concert
 
 Question: If the &quot;Wide Awake&quot; themed concert was held three years earlier, how many years has it been since the earliest concert?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction subtracts the original earliest concert year from the adjusted “Wide Awake” year instead of computing the current year minus the earliest (adjusted) concert year, and omits the union and current‑year calculation required by the question.</pre>
+
 ---
 
 ### ❓ Failed Question #12 (of 20 examples) - Question ID: `d1d5742e9501`
@@ -60869,9 +62773,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             905 |                  92 |           3760 |             14232.5 |              199.36 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             905 |                  92 |           3760 |             14232.5 |              199.36 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -60944,6 +62848,15 @@ Table: singer_in_concert
 
 Question: What are the names of the &quot;Home Visits&quot; concert singer, and how old will they be on its 20th anniversary?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction adds a flat 20 to the singer’s current Age, ignoring the concert’s Year and the required calculation for the 20th anniversary.</pre>
+
 ---
 
 ### ❓ Failed Question #13 (of 20 examples) - Question ID: `51804cf63939`
@@ -60966,9 +62879,9 @@ SELECT SUM(Capacity * 20) FROM stadium WHERE Name = 'Balmoor' UNION SELECT SUM(C
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             943 |                  45 |           5152 |             24310.7 |              165.43 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             943 |                  45 |           5152 |             24310.7 |              165.43 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61042,6 +62955,15 @@ Table: singer_in_concert
 
 Question: When all tickets sold out, how much money can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction returns two separate rows (individual revenues) instead of the combined total revenue required by the question.</pre>
+
 ---
 
 ### ❓ Failed Question #14 (of 20 examples) - Question ID: `07073735551b`
@@ -61075,9 +62997,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             931 |                 115 |           8748 |             43769.6 |              201.63 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             931 |                 115 |           8748 |             43769.6 |              201.63 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61154,6 +63076,15 @@ Table: singer_in_concert
 
 Question: What will be the ages and names of the &quot;Home Visits&quot; concert singers on its 20th anniversary, if all the singers who performed at concerts in Stark Park also took part in it?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction selects singers from Stark Park concerts and adds 20 to their ages, but it never restricts to the “Home Visits” concert or ensures those singers also performed there, so it does not answer the asked query.</pre>
+
 ---
 
 ### ❓ Failed Question #15 (of 20 examples) - Question ID: `6bcf0454f56d`
@@ -61189,9 +63120,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             952 |                 128 |           8780 |             41335.4 |                98.3 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             952 |                 128 |           8780 |             41335.4 |                98.3 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61267,6 +63198,15 @@ Table: singer_in_concert
 
 Question: Singers born before 1980 earn $355 per concert, while singers born after 1980 earn $228 per concert. How much was spent on paying the singers for the concerts held in Somerset Park stadium?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses `CASE WHEN T1.Age &gt; 25` to decide the rate, which does not correctly implement “born before 1980” (it should compare birth year, e.g., `strftime(&#x27;%Y&#x27;,&#x27;now&#x27;) - Age &lt; 1980`). This logic error leads to an incorrect total.</pre>
+
 ---
 
 ### ❓ Failed Question #16 (of 20 examples) - Question ID: `e9d63e6dd7c4`
@@ -61289,9 +63229,9 @@ SELECT (SELECT Capacity FROM stadium WHERE Name = 'Balmoor') * 20 + (SELECT Capa
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             979 |                  43 |           8724 |             44004.2 |                37.6 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             979 |                  43 |           8724 |             44004.2 |                37.6 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61364,6 +63304,15 @@ Table: singer_in_concert
 
 Question: If the capacity of the Hampden Park stadium is twice that of the Balmoor stadium, when all tickets sold out, how much money can be made from ticket sales at the Balmoor stadium with a ticket price of 20 dollars and the Hampden Park stadium with a ticket price of 5.5 dollars?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses Hampden Park’s actual capacity instead of twice Balmoor’s capacity, ignoring the “twice that of the Balmoor stadium” condition.</pre>
+
 ---
 
 ### ❓ Failed Question #17 (of 20 examples) - Question ID: `63d421b7ccca`
@@ -61406,9 +63355,9 @@ ORDER BY
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             893 |                 119 |           8714 |             43259.3 |              215.15 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             893 |                 119 |           8714 |             43259.3 |              215.15 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61482,6 +63431,15 @@ Table: singer_in_concert
 
 Question: Which stadiums have the lowest and highest average attendance rates respectively, and how many concerts have they each held?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction uses `T1.Average` directly instead of the attendance **rate** (`Average/Capacity`) required, and therefore selects the wrong stadiums and miscounts concerts (e.g., excludes stadiums with zero concerts).</pre>
+
 ---
 
 ### ❓ Failed Question #18 (of 20 examples) - Question ID: `3566f7a589ff`
@@ -61521,9 +63479,9 @@ GROUP BY
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             907 |                 106 |           4799 |             23483.7 |              181.72 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             907 |                 106 |           4799 |             23483.7 |              181.72 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61597,6 +63555,15 @@ Table: singer_in_concert
 
 Question: What are the names of the stadiums with the highest and lowest average attendance rates, and how many concerts have been held in each of them?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction filters on the raw Average column (MAX/MIN) instead of the average attendance rate (Average / Capacity) used by the question, and therefore returns the wrong stadiums and concert counts.</pre>
+
 ---
 
 ### ❓ Failed Question #19 (of 20 examples) - Question ID: `ca0b2d7bb52f`
@@ -61634,9 +63601,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             889 |                  76 |           3360 |             14513.1 |               221.4 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             889 |                  76 |           3360 |             14513.1 |               221.4 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61713,6 +63680,15 @@ Table: singer_in_concert
 
 Question: What percentage of the concerts were held in the top three stadiums in terms of average attendance rate?</pre>
 
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No: the prediction orders stadiums by Average alone instead of by average attendance rate (Average / Capacity) as defined, so it selects the wrong top three stadiums.</pre>
+
 ---
 
 ### ❓ Failed Question #20 (of 20 examples) - Question ID: `76ad733465f5`
@@ -61744,9 +63720,9 @@ WHERE
 
 ### 📊 Evaluation Metrics
 
-|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |
-|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|
-|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             955 |                  92 |           8746 |               43445 |               97.61 |
+|   execution_accuracy |   non_empty_execution_accuracy |   subset_non_empty_execution_accuracy |   logic_execution_accuracy |   bird_execution_accuracy |   is_sqlglot_parsable |   is_sqlparse_parsable |   sqlglot_equivalence |   sqlglot_optimized_equivalence |   sqlparse_equivalence |   sql_exact_match |   sql_syntactic_equivalence |   eval_error |   df_error |   prompt_tokens |   completion_tokens |   total_tokens |   inference_time_ms |   execution_time_ms |   llm_score |
+|---------------------:|-------------------------------:|--------------------------------------:|---------------------------:|--------------------------:|----------------------:|-----------------------:|----------------------:|--------------------------------:|-----------------------:|------------------:|----------------------------:|-------------:|-----------:|----------------:|--------------------:|---------------:|--------------------:|--------------------:|------------:|
+|                    0 |                              0 |                                     0 |                          0 |                         0 |                     1 |                      1 |                     0 |                               0 |                      0 |                 0 |                           0 |            0 |          0 |             955 |                  92 |           8746 |               43445 |               97.61 |           0 |
 
 ### 📘 Ground Truth Result(s)
 
@@ -61820,6 +63796,15 @@ Table: singer_in_concert
 - Your output must start with ```sql and end with ```.
 
 Question: If all the singers who participated in concerts held in Stark Park also participated in the &quot;Home Visits&quot; concert, what are the names of the singer participating in the &quot;Home Visits&quot; concert, and how old will they be on its 20th anniversary?</pre>
+
+### 🤖 LLM Judge Assessment
+LLM judge score: `0.0`
+
+
+LLM judge explanation (if applicable):
+
+
+<pre>No – the prediction omits the Stark Park condition (and the correct age‑at‑20‑anniversary calculation) and therefore returns only one singer instead of the full set required.</pre>
 
 ---
 
