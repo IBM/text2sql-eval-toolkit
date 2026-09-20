@@ -75,6 +75,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the curation script that listed Beaver's tables. The MySQL read-only grant now
   takes its databases from `MYSQL_READONLY_DATABASES` instead of naming them.
 
+- **`data/judge/usage.sqlite`, from git.** The dashboard's judge spend counters
+  and verdict cache are written at runtime, and `JudgeStore` creates the file
+  and its schema on first use, so the tracked copy seeded nothing -- it had gone
+  stale, missing the `user_caps` table a fresh database now creates. Tracking it
+  also meant every local use of the judge left a pending change carrying a user
+  hash, a model, a cost and a judge's explanation, one `git commit -a` away from
+  being published. `data/judge/` is now ignored. A deployment is unaffected: its
+  database lives in the `data` volume, not in the repository.
+
 ### Fixed
 
 - **The dashboard left SQLite connections open until it could open nothing.**

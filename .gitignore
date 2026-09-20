@@ -227,6 +227,14 @@ data/manifest.json
 data/results/.index/
 **/.index/
 
+# The dashboard's LLM-judge spend counters and verdict cache, written at
+# runtime. `JudgeStore` creates the file and its schema on first use, so
+# nothing needs a copy in git -- and a tracked one turns every local use of the
+# judge into a pending change, carrying a user hash, a model, a cost and a
+# judge's explanation into whatever commit picks it up next. A deployment keeps
+# its own in the `data` volume; see docs/dashboard/deployment.md.
+data/judge/
+
 # Local editor/agent launch config
 .claude/
 
