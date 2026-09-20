@@ -151,6 +151,50 @@ def test_a_summary_report_with_categories_is_refused(upload, data_root):
         upload._check_restricted_summaries(data_root / "results", {"gated"})
 
 
+def test_a_summary_report_with_categories_is_refused_whatever_case_the_id_is(
+    upload, data_root
+):
+    """
+    The check matches the file's spelling, as `_is_publishable` does.
+
+    Building the path from the id's spelling instead asked about
+    `GATED-…md`, which on a case-sensitive filesystem does not exist -- so the
+    check passed and the real report was published, categories and all.
+    """
+    _touch(
+        data_root / "results",
+        "gated-predictions_eval_summary.md",
+        "# Summary\n\n## Overall\n\n## Category: `has_join`\n",
+    )
+    assert "gated-predictions_eval_summary.md" in upload._publishable_files(
+        data_root / "results", {"GATED"}
+    )
+    with pytest.raises(SystemExit, match="query category") as refusal:
+        upload._check_restricted_summaries(data_root / "results", {"GATED"})
+    # The report that would actually be uploaded, named as it is on disk. A
+    # case-insensitive filesystem resolves the id's spelling to the same file,
+    # so this -- not the refusal itself -- is what the test can check anywhere.
+    assert "gated-predictions_eval_summary.md" in str(refusal.value)
+
+
+def test_a_restricted_id_is_casefolded_at_the_source(upload, data_root, monkeypatch):
+    """Every comparison downstream is then against one spelling."""
+    monkeypatch.setenv(upload.SIGN_IN_BENCHMARKS_ENV, "OPEN")
+    assert "open" in upload._restricted_benchmarks(data_root)
+
+
+def test_the_manifest_skips_a_nested_dir_spelled_in_another_case(upload, tmp_path):
+    """
+    `_is_publishable` casefolds, so the manifest has to as well: naming a
+    directory the upload then skips makes `results fetch` fail on it.
+    """
+    results = tmp_path / "results"
+    _touch(results, "Secret/pipeline/model/predictions.json")
+    assert upload._publishable_files(results, {"secret"}) == []
+    manifest = upload._generate_manifest(results, {"secret"})
+    assert manifest["benchmarks"] == {}
+
+
 def test_the_dry_run_lists_no_gated_detail(upload, data_root, capsys):
     upload.main(["--data-root", str(data_root), "--dry-run"])
     out = capsys.readouterr().out

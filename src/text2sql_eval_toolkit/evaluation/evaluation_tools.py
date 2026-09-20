@@ -52,17 +52,36 @@ LLM_JUDGE_REUSE_MODES = ("matching", "any")
 _NOT_JUDGED = "N/A (did not use LLM"
 
 
-def _is_judge_verdict(evaluation: Dict[str, Any]) -> bool:
-    """Whether *evaluation* carries a verdict the judge itself gave."""
+def _is_judge_verdict(
+    evaluation: Dict[str, Any], *, past_failure: bool = False
+) -> bool:
+    """
+    Whether *evaluation* carries a verdict the judge itself gave.
+
+    A stored ``llm_judge_error`` records that the *last* call failed. It does
+    not mean there is no verdict: a run that fails keeps the one an earlier run
+    stored, beside the error. The two questions are therefore different, and
+    conflating them lost that verdict on the second failure in a row.
+
+    By default the answer is no, which is what the reuse path wants: a
+    prediction whose judge failed is asked again rather than settled from what
+    is stored. ``past_failure=True`` asks only whether a verdict is there --
+    what the handler for a failed call needs, and what counting verdicts by the
+    config that gave them needs.
+    """
     return (
         "llm_score" in evaluation
-        and "llm_judge_error" not in evaluation
+        and (past_failure or "llm_judge_error" not in evaluation)
         and not str(evaluation.get("llm_explanation", "")).startswith(_NOT_JUDGED)
     )
 
 
 def _stored_verdict(
-    evaluation: Optional[Dict[str, Any]], digest: str, reuse: str
+    evaluation: Optional[Dict[str, Any]],
+    digest: str,
+    reuse: str,
+    *,
+    past_failure: bool = False,
 ) -> Optional[Dict[str, Any]]:
     """
     A stored verdict that may stand in for calling the judge, or ``None``.
@@ -73,8 +92,12 @@ def _stored_verdict(
     results with a different config kept every Llama score and recorded the new
     config in the summary. Under ``"any"`` a verdict from any config qualifies,
     and keeps the digest it was stored with -- or none, if it predates them.
+
+    ``past_failure`` passes through to `_is_judge_verdict`: set it only where
+    the judge has just failed and the question is what is already known, not
+    whether to skip a call.
     """
-    if not evaluation or not _is_judge_verdict(evaluation):
+    if not evaluation or not _is_judge_verdict(evaluation, past_failure=past_failure):
         return None
     if "llm_explanation" not in evaluation:
         return None
@@ -436,7 +459,16 @@ def evaluate_prediction(
                 # far below the ones the judge had actually given. The verdict
                 # kept here keeps the digest of the config that gave it, so it
                 # is still not reported as this config's work.
-                kept = _stored_verdict(prediction.get("evaluation"), "", "any")
+                #
+                # past_failure, because the stored evaluation may itself be the
+                # output of a run that failed -- which is exactly what the
+                # warning above tells the operator to retry. Without it the
+                # second refusal in a row dropped the verdict the first one had
+                # kept, and the data loss this exists to prevent came back on
+                # the retry.
+                kept = _stored_verdict(
+                    prediction.get("evaluation"), "", "any", past_failure=True
+                )
                 if kept is not None:
                     result.update(kept)
 
@@ -963,13 +995,15 @@ async def async_evaluate_predictions(
                 "Run again to judge them."
             )
 
-        # Only reachable with llm_judge_reuse="any". Said out loud, because the
-        # summary records the current config either way.
+        # Reached two ways: llm_judge_reuse="any", and a failed call that kept
+        # what an earlier config had stored -- which happens under the default
+        # "matching" too, so past_failure here. Said out loud either way,
+        # because the summary records the current config regardless.
         digest = judge_config_digest(llm_judge_config)
         foreign = sum(
             1
             for evaluation in evaluations
-            if _is_judge_verdict(evaluation)
+            if _is_judge_verdict(evaluation, past_failure=True)
             and evaluation.get(JUDGE_DIGEST_KEY) != digest
         )
         if foreign:

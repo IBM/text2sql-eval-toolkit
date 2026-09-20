@@ -17,6 +17,7 @@ in which case the stored digest travels with it and nothing is relabelled.
 
 import asyncio
 import json
+import logging
 
 import pandas as pd
 import pytest
@@ -167,6 +168,80 @@ def test_a_failed_call_keeps_the_stored_verdict_rather_than_erasing_it(monkeypat
     # Kept under the digest of the judge that gave it, not this one.
     assert result[JUDGE_DIGEST_KEY] == judge_config_digest(OLD)
     assert "Exceeded limit" in result["llm_judge_error"]
+
+
+def test_a_second_failed_call_in_a_row_still_keeps_the_verdict(monkeypatch):
+    """
+    Retrying is what the run tells the operator to do, so the retry must not be
+    the thing that loses the score.
+
+    The first refusal stores the verdict beside an `llm_judge_error`. Treating
+    that error as "no verdict here" made the second refusal drop it, and the
+    prediction ended with no `llm_score` at all -- which a summary counts as 0,
+    the exact collapse the first refusal's handler exists to prevent.
+    """
+
+    def refuse(**kwargs):
+        raise RuntimeError("Exceeded limit of calls to endpoint")
+
+    monkeypatch.setattr(evaluation_tools, "evaluate_sql_prediction_with_llm", refuse)
+
+    first = evaluate_prediction(
+        record(), mismatch(stored(OLD, score=1.0)), llm_judge_config=NEW
+    )
+    assert first["llm_score"] == 1.0
+
+    # The stored evaluation is now the output of a run that failed.
+    second = evaluate_prediction(record(), mismatch(first), llm_judge_config=NEW)
+    assert second["llm_score"] == 1.0
+    assert second["llm_explanation"] == "stored verdict"
+    assert second[JUDGE_DIGEST_KEY] == judge_config_digest(OLD)
+    assert "Exceeded limit" in second["llm_judge_error"]
+
+
+def test_a_verdict_kept_through_a_failure_is_still_retried(judge):
+    """Keeping it must not turn into settling for it: the next run asks again."""
+    kept = {**stored(OLD), "llm_judge_error": "RuntimeError('refused')"}
+    result = evaluate_prediction(record(), mismatch(kept), llm_judge_config=NEW)
+    assert len(judge) == 1
+    assert result["llm_explanation"] == "fresh verdict"
+    assert result[JUDGE_DIGEST_KEY] == judge_config_digest(NEW)
+    assert "llm_judge_error" not in result
+
+
+def test_a_verdict_kept_through_a_failure_is_reported_as_foreign(
+    tmp_path, monkeypatch, caplog
+):
+    """
+    The warning that says scores are recorded under a config that did not give
+    them has to cover this route into it. It counted only verdicts with no
+    error beside them, which is never how one of these is stored -- so under
+    the default "matching" mode it never fired, and a run whose judge the
+    provider refused published Llama scores labelled gpt-oss without a word.
+    """
+
+    def refuse(**kwargs):
+        raise RuntimeError("refused")
+
+    monkeypatch.setattr(evaluation_tools, "evaluate_sql_prediction_with_llm", refuse)
+    predictions = tmp_path / "demo-predictions.json"
+    predictions.write_text(
+        json.dumps(
+            [{**record(), "predictions": {"p": mismatch(stored(OLD, score=1.0))}}]
+        ),
+        encoding="utf-8",
+    )
+
+    with caplog.at_level(logging.WARNING):
+        asyncio.run(
+            async_evaluate_predictions(
+                str(predictions),
+                str(tmp_path / "demo-predictions_eval.json"),
+                llm_judge_config=NEW,
+            )
+        )
+
+    assert "1 LLM judge verdicts were kept from a different judge config" in caplog.text
 
 
 def test_a_failed_call_with_nothing_stored_records_only_the_error(monkeypatch):

@@ -101,7 +101,7 @@ SIGN_IN_BENCHMARKS_ENV = "TEXT2SQL_SIGN_IN_BENCHMARKS"
 
 def _restricted_benchmarks(data_root: Path) -> Set[str]:
     """
-    Benchmarks whose details may not be published.
+    Benchmarks whose details may not be published, casefolded.
 
     Read from every registry copy -- the data root's and the ones packaged with
     the toolkit -- for the reason the dashboard does the same: a data root's
@@ -109,6 +109,12 @@ def _restricted_benchmarks(data_root: Path) -> Set[str]:
     environment variable is read for the same reason: it is the other way a
     deployment marks a benchmark's details restricted, and a benchmark marked
     only that way would otherwise be published in full from that same host.
+
+    Casefolded at the source, as ``ui/benchmark_access.py`` does, so that every
+    comparison below is against one spelling. An id given in another case --
+    from the environment, or a registry key someone capitalised -- has to
+    restrict the same files, and a check that compared it verbatim against a
+    lowercase filename silently passed.
     """
     import importlib.resources as resources
 
@@ -128,9 +134,9 @@ def _restricted_benchmarks(data_root: Path) -> Set[str]:
         for benchmark_id, entry in entries.items():
             flag = entry.get("requires_sign_in") if isinstance(entry, dict) else None
             if flag is True or str(flag).strip().lower() in {"true", "1", "yes"}:
-                restricted.add(benchmark_id)
+                restricted.add(str(benchmark_id).casefold())
     restricted |= {
-        part.strip()
+        part.strip().casefold()
         for part in os.environ.get(SIGN_IN_BENCHMARKS_ENV, "").split(",")
         if part.strip()
     }
@@ -191,13 +197,27 @@ def _check_restricted_summaries(results_dir: Path, restricted: Iterable[str]) ->
     """
     Refuse to publish a restricted benchmark's summary report with its breakdown
     by query category, which is derived from the ground-truth SQL.
+
+    The reports on disk are found and then matched, rather than a path being
+    built from each restricted id: `_is_publishable` decides what to upload by
+    the *file's* spelling, so a check that looked for the *id's* spelling asked
+    about a different file. Given ``TEXT2SQL_SIGN_IN_BENCHMARKS=Beaver`` on a
+    case-sensitive filesystem it found nothing, passed, and let the real
+    ``beaver-…md`` through with its categories -- and it is the one publishable
+    artifact that can still carry gated derived data.
     """
-    for benchmark_id in sorted(restricted):
-        report = results_dir / f"{benchmark_id}-predictions_eval_summary.md"
-        if report.is_file() and "## Category:" in report.read_text(encoding="utf-8"):
+    folded = {benchmark_id.casefold() for benchmark_id in restricted}
+    if not folded:
+        return
+    for report in sorted(results_dir.glob("*-predictions_eval_summary.md")):
+        name = report.name.casefold()
+        match = next((f for f in folded if name.startswith(f"{f}-")), None)
+        if match is None:
+            continue
+        if "## Category:" in report.read_text(encoding="utf-8"):
             raise SystemExit(
                 f"ERROR: {report} breaks results down by query category, and "
-                f"{benchmark_id!r} publishes overall scores only. Cut the report "
+                f"{match!r} publishes overall scores only. Cut the report "
                 "at its first '## Category:' heading before uploading."
             )
 
@@ -268,7 +288,10 @@ def _generate_manifest(results_dir: Path, restricted: Iterable[str] = ()) -> dic
         if bench_dir.name in known_non_bench or bench_dir.name.startswith("."):
             continue
         bench_name = bench_dir.name
-        if bench_name in benchmarks or bench_name in restricted:
+        # Casefolded against `restricted`, as `_is_publishable` compares: a
+        # directory the upload skips must not be named in the manifest, or
+        # `results fetch` fails on a file the repo does not have.
+        if bench_name in benchmarks or bench_name.casefold() in restricted:
             continue  # already recorded as flat files above, or not published
 
         pipelines: dict = {}
