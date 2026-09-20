@@ -122,7 +122,11 @@ def test_an_agentic_prediction_is_judged_with_its_whole_task_and_a_cut_trace():
             {"step": "generate", "messages": task, "response": "r" * 900},
             {
                 # A later step re-sends the conversation so far.
-                "messages": task + [{"role": "user", "content": "f" * 900}],
+                "messages": task
+                + [
+                    {"role": "user", "content": "f" * 900},
+                    {"role": "assistant", "content": "short enough to keep"},
+                ],
                 "response": "y" * 900,
             },
         ],
@@ -136,6 +140,8 @@ def test_an_agentic_prediction_is_judged_with_its_whole_task_and_a_cut_trace():
     assert context.count("How many?") == 1
     for later in ("r", "f", "y"):
         assert later * 500 + "..." in context and later * 501 not in context
+    # A message that fits is shown whole, and says nothing about being cut.
+    assert "[assistant]: short enough to keep\n" in context
     assert "unused" not in context
 
 

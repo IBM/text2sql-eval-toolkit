@@ -41,8 +41,29 @@ if [ -z "${DATABASES// /}" ]; then
   exit 1
 fi
 
+# Both values are interpolated into SQL below, so both are made safe first
+# rather than trusted. A password is a string literal: a single quote would end
+# it and a backslash escapes whatever follows, so each is doubled. A database
+# name is an identifier, and there is no escaping to do -- a name outside the
+# characters MySQL allows unquoted is refused, because a backtick in one would
+# end the quoted identifier and the rest would be parsed as SQL.
+escaped_password=$(
+  printf '%s' "${MYSQL_READONLY_PASSWORD}" | sed -e 's/\\/\\\\/g' -e "s/'/''/g"
+)
+
+for db in $DATABASES; do
+  case "$db" in
+    *[!A-Za-z0-9_$]*)
+      echo "[init] MYSQL_READONLY_DATABASES names a database that is not a" >&2
+      echo "[init] plain identifier: '${db}'. Letters, digits, underscore and" >&2
+      echo "[init] \$ only; refusing rather than emitting SQL it would break." >&2
+      exit 1
+      ;;
+  esac
+done
+
 {
-  echo "CREATE USER IF NOT EXISTS 'readonly'@'%' IDENTIFIED BY '${MYSQL_READONLY_PASSWORD}';"
+  echo "CREATE USER IF NOT EXISTS 'readonly'@'%' IDENTIFIED BY '${escaped_password}';"
   for db in $DATABASES; do
     # SELECT only, and named individually. Never *.*, which would include
     # mysql, performance_schema and sys.

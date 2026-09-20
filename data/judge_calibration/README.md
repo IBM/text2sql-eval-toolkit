@@ -16,6 +16,12 @@ change to them.
   for the two packaged configs and the two retired ones they are compared with.
 - `configs/` — those retired Llama configs, kept as baselines.
 
+The stored `inputs` were built before an ellipsis fix: at the time, every later
+message in an agentic trace ended in `...` whether or not it had been cut. A
+`build` today produces those messages without the marker, which changes the set's
+digest and so starts the runs afresh; the runs in `runs/` are the ones made on
+the inputs recorded here.
+
 The labels were written by Claude Code, the assistant that also developed the
 prompts, and have not been independently reviewed. Reviewing them — above all
 the Maybes — is the most useful thing a person can do with this set.

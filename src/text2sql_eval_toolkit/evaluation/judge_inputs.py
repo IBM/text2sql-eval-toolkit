@@ -22,6 +22,19 @@ from text2sql_eval_toolkit.utils import get_question, truncate_dataframe
 TRACE_MESSAGE_CHARS = 500
 
 
+def _cut(text: str) -> str:
+    """
+    *text* cut to `TRACE_MESSAGE_CHARS`, marked with an ellipsis only if cut.
+
+    Marking every message said something was left out of messages that were
+    shown whole -- and the judge reads that as evidence that it is not being
+    shown everything.
+    """
+    if len(text) <= TRACE_MESSAGE_CHARS:
+        return text
+    return text[:TRACE_MESSAGE_CHARS] + "..."
+
+
 def render_agent_trace(trace: List[Optional[Dict[str, Any]]]) -> str:
     """
     An agent's interaction trace as text for the judge.
@@ -49,14 +62,10 @@ def render_agent_trace(trace: List[Optional[Dict[str, Any]]]) -> str:
             if (role, content) in seen:
                 continue
             seen.add((role, content))
-            if task_shown:
-                text += f"  [{role}]: {content[:TRACE_MESSAGE_CHARS]}...\n"
-            else:
-                text += f"  [{role}]: {content}\n"
+            text += f"  [{role}]: {content if not task_shown else _cut(content)}\n"
         task_shown = task_shown or bool(messages)
         if "response" in interaction:
-            response = str(interaction["response"] or "")
-            text += f"  [response]: {response[:TRACE_MESSAGE_CHARS]}...\n"
+            text += f"  [response]: {_cut(str(interaction['response'] or ''))}\n"
         text += "\n"
     return text
 

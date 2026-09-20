@@ -201,10 +201,11 @@ export MYSQL_CONNECTION_STRING="mysql://user:password@127.0.0.1:3306/<default-da
 With the `databases` profile in `deploy/docker-compose.yml`, list the databases in
 `MYSQL_READONLY_DATABASES` so the read-only user can read them.
 
-**194 of 209 questions (93%) are executable** with the dumps currently
-available; all 194 gold queries have been verified to run against a loaded
-server. The remaining 15 fail with an unknown-database error until upstream
-publishes those three dumps — a data gap, not a configuration mistake.
+**194 of 209 questions (93%) are executable** once the gated databases are
+loaded; all 194 gold queries have been verified to run against a loaded server.
+The remaining 15 fail with an unknown-database error, because three of the
+databases their questions name are not among those the project distributes — a
+data gap, not a configuration mistake.
 
 ---
 

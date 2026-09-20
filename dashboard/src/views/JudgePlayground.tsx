@@ -182,6 +182,12 @@ export const JudgePlayground: React.FC<Props> = ({
   useEffect(() => {
     if (!configName) return;
     let cancelled = false;
+    // Cleared before the request, not after it: leaving the previous config's
+    // YAML and model on screen shows them under the new config's name for as
+    // long as the request takes, which is the one reading nobody should get
+    // from a panel whose whole purpose is to say what this judge will ask.
+    setConfigYaml(null);
+    setConfigModel(null);
     setConfigError(null);
     void (async () => {
       try {

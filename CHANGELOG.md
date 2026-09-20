@@ -126,6 +126,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reaching the model, and repeating the run could not get past it. A handle is
   now built once per model, parameters and credentials, and shared; clients
   holding different keys never share one.
+- **A trace message the judge was shown whole no longer claims to be cut.**
+  Every later message and response in an agentic trace was suffixed with `...`,
+  whether or not it had reached the 500-character limit, so the judge was told
+  that most of what it had been given was incomplete. The marker is now added
+  only where something was actually removed.
 - **A prediction with several ground-truth queries is judged once.** The judge
   was asked about each query in turn and every answer but the last discarded;
   it is now asked once, about the query that decided the result, which is the
