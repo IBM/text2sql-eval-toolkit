@@ -85,6 +85,32 @@ describe("SignInRequired", () => {
     expect(screen.queryByRole("link", { name: "Sign in" })).toBeNull();
   });
 
+  it("says nothing about sign-in while it is still asking", async () => {
+    // A request that never settles: the reader must not be told there is no
+    // way in before the server has said so.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+    at("/run/beaver");
+
+    expect(screen.getByText("Sign in to view this")).toBeTruthy();
+    expect(screen.queryByText(/does not offer sign-in/)).toBeNull();
+  });
+
+  it("still offers sign-in when the deployment cannot be read", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("offline");
+      }),
+    );
+    at("/errors?benchmark=beaver");
+
+    expect(await screen.findByRole("link", { name: "Sign in" })).toBeTruthy();
+    expect(screen.queryByText(/does not offer sign-in/)).toBeNull();
+  });
+
   it("points at the public overall scores when there are some", async () => {
     stubDeployment(deployment());
     at("/errors?benchmark=beaver", "/benchmark/beaver");

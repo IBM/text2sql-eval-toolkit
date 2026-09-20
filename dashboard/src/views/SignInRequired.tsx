@@ -27,15 +27,28 @@ export const SignInRequired: React.FC<{
   const location = useLocation();
   const navigate = useNavigate();
   const [deployment, setDeployment] = useState<DeploymentInfo | null>(null);
+  // Three states, not two: "we have not asked yet" is not "the server has no
+  // sign-in". Collapsing them told every reader, for as long as the request
+  // took, that there was no way in -- and left them there for good if the
+  // request failed.
+  const [status, setStatus] = useState<"asking" | "answered" | "failed">(
+    "asking",
+  );
 
   useEffect(() => {
     let cancelled = false;
     fetchDeployment()
       .then((d) => {
-        if (!cancelled) setDeployment(d);
+        if (cancelled) return;
+        setDeployment(d);
+        setStatus("answered");
       })
       .catch(() => {
-        /* Without it there is no sign-in to offer; the message still stands. */
+        if (cancelled) return;
+        // Offer sign-in anyway: a deployment that has it is far likelier than
+        // one that does not, and a link that cannot be followed is the worse
+        // of the two wrong answers.
+        setStatus("failed");
       });
     return () => {
       cancelled = true;
@@ -43,7 +56,10 @@ export const SignInRequired: React.FC<{
   }, []);
 
   const returnTo = `${location.pathname}${location.search}` || "/";
-  const canSignIn = !!deployment?.sign_in_available;
+  const canSignIn =
+    status === "failed" ? true : !!deployment?.sign_in_available;
+  const knownUnavailable =
+    status === "answered" && !deployment?.sign_in_available;
   const what = summaryHref
     ? `"${benchmarkId}" publishes its overall scores; its questions, SQL and per-record results are only available to signed-in users`
     : `"${benchmarkId}" is only available to signed-in users`;
@@ -54,9 +70,9 @@ export const SignInRequired: React.FC<{
         kind="info"
         title="Sign in to view this"
         subtitle={
-          canSignIn
-            ? `${what}.`
-            : `${what}, and this server does not offer sign-in.`
+          knownUnavailable
+            ? `${what}, and this server does not offer sign-in.`
+            : `${what}.`
         }
         lowContrast
         hideCloseButton

@@ -93,13 +93,22 @@ def _format_bytes(n: int) -> str:
     return f"{n / 1e3:.1f} KB"
 
 
+#: Benchmark ids the dashboard restricts without a registry flag
+#: (``ui/benchmark_access.py``). Named here rather than imported, because that
+#: module needs the dashboard extra and this script does not.
+SIGN_IN_BENCHMARKS_ENV = "TEXT2SQL_SIGN_IN_BENCHMARKS"
+
+
 def _restricted_benchmarks(data_root: Path) -> Set[str]:
     """
     Benchmarks whose details may not be published.
 
     Read from every registry copy -- the data root's and the ones packaged with
     the toolkit -- for the reason the dashboard does the same: a data root's
-    registry can predate the flag, and a flag anywhere must hold.
+    registry can predate the flag, and a flag anywhere must hold. The
+    environment variable is read for the same reason: it is the other way a
+    deployment marks a benchmark's details restricted, and a benchmark marked
+    only that way would otherwise be published in full from that same host.
     """
     import importlib.resources as resources
 
@@ -120,6 +129,11 @@ def _restricted_benchmarks(data_root: Path) -> Set[str]:
             flag = entry.get("requires_sign_in") if isinstance(entry, dict) else None
             if flag is True or str(flag).strip().lower() in {"true", "1", "yes"}:
                 restricted.add(benchmark_id)
+    restricted |= {
+        part.strip()
+        for part in os.environ.get(SIGN_IN_BENCHMARKS_ENV, "").split(",")
+        if part.strip()
+    }
     return restricted
 
 
@@ -147,10 +161,16 @@ def _is_publishable(relative: str, restricted: Iterable[str]) -> bool:
         return False
     name = parts[-1]
     for benchmark_id in restricted:
-        if parts[0] == benchmark_id:
+        # Compared without case, as the dashboard compares them: on a
+        # case-insensitive filesystem `BEAVER-…` opens Beaver's files, so an id
+        # given in another case must restrict them too.
+        folded = benchmark_id.casefold()
+        if parts[0].casefold() == folded:
             return False  # nested layout: results/<benchmark>/...
-        if name.startswith(f"{benchmark_id}-"):
-            return relative in _summary_files(benchmark_id)
+        if name.casefold().startswith(f"{folded}-"):
+            # Allowed against the file's own spelling, so the four summary
+            # files are still published whatever case the id was given in.
+            return relative in _summary_files(name[: len(folded)])
     return True
 
 

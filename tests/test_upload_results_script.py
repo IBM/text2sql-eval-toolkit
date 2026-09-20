@@ -96,6 +96,32 @@ def test_only_publishable_files_are_listed(upload, data_root):
     ]
 
 
+def test_the_environment_restricts_a_benchmark_no_registry_flags(
+    upload, data_root, monkeypatch
+):
+    """
+    `TEXT2SQL_SIGN_IN_BENCHMARKS` is the other way a deployment marks details
+    restricted. A benchmark marked only that way was published in full.
+    """
+    monkeypatch.setenv(upload.SIGN_IN_BENCHMARKS_ENV, " open , ")
+    assert upload._restricted_benchmarks(data_root) >= {"gated", "open"}
+
+    files = upload._publishable_files(
+        data_root / "results", upload._restricted_benchmarks(data_root)
+    )
+    assert "open-predictions.json" not in files
+    assert "open-predictions_eval.json" not in files
+    assert "charts/open-predictions_eval_summary-has_join.png" not in files
+    assert "open-predictions_eval_summary.json" in files
+
+
+def test_a_restricted_id_in_another_case_still_restricts(upload, data_root):
+    """`BEAVER-…` opens Beaver's files on a case-insensitive filesystem."""
+    files = upload._publishable_files(data_root / "results", {"OPEN"})
+    assert "open-predictions_eval.json" not in files
+    assert "open-predictions_eval_summary.json" in files
+
+
 def test_a_prefix_is_not_a_benchmark(upload, data_root):
     """`gated_other-…` is not `gated`'s file."""
     _touch(data_root / "results", "gated_other-predictions_eval.json")
