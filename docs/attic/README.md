@@ -12,5 +12,5 @@ Plans for work in flight live in [`../plan/`](../plan/), not here, and are
 deleted once their release ships — a plan stops being true the moment it is
 carried out. What survives a plan moves to where it will be met: the *why* into
 this log, ongoing rules into `CONTRIBUTING.md`, and anything a user needs into
-the guides. The 1.4.0 and 1.5.0 plans were both retired that way;
-`plan/1.6.0.md` is the one currently open.
+the guides. The 1.4.0, 1.5.0 and 1.6.0 plans were all retired that way. No plan
+is open; `../plan/` fills again when the next release is scoped.

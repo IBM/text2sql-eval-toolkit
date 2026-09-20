@@ -10,6 +10,88 @@ finished.
 
 ---
 
+## 2026-09-19 — 1.6.0 closed: the judge was the release
+
+The plan opened with five items: a release rehearsal that reaches every job, a
+file-descriptor leak, Archer's missing judge scores, gpt-oss-120b, and Beaver's
+gated data. Four were done by 2026-09-13. The fifth — "a very good gpt-oss-120b
+judge config, replacing all the llama-based configs" — turned out to be the
+release, and everything below came out of it.
+
+**A labelled set is the only thing that settles a prompt, and it can be spent.**
+202 predictions of the kind the judge is actually asked about — execution
+mismatches from BIRD, Spider, Spider Realistic and Archer — each labelled Yes,
+Maybe or No with a reason, split by question into `tune` (90), `test` (60) and,
+later, `holdout` (52). The tuned prompt scored 94.7% decisive accuracy on `tune`
+and 79.2% on `test`. Reading `test`'s errors produced a third prompt that did
+better on `test` and *worse* on a fresh holdout labelled before any judge saw
+it. That is the whole lesson: a split you read the errors of is a development
+set from then on, whatever it was called when you drew it. The holdout is the
+number that survived — the default judge accepts 2 of 28 wrong predictions where
+the Llama config it replaces accepted 7 — and the next prompt change needs a
+holdout of its own. The labels are Claude's, not a person's, and nobody has
+reviewed them; that caveat is recorded with the set.
+
+**The inputs were wrong before the prompt was.** Two defects, both found while
+reading judge replies rather than metrics:
+
+- An agentic prediction's context is its trace, and every message in it was cut
+  to 500 characters — including the first, which carries the schema, the hints
+  and the question, and runs to 11,400. Every batch verdict on an agentic
+  prediction, for as long as the judge has existed, was reached without the
+  schema. The judge could only compare two SQL strings and two result tables.
+- gpt-oss-120b reasons before it answers. At the old configs' 512-token budget
+  it routinely spent the budget thinking, and the watsonx client's SQL-extraction
+  fallback handed the judge a fragment of reasoning, which parsed to no verdict
+  and scored `N/A` — the same score as a rejection. A model that never answered
+  looked like a model that said no.
+
+Neither shows up as an error. Both produce a number.
+
+**A score has to carry the judge that gave it.** The batch judge reused any
+stored `llm_score` whatever config produced it, so evaluating Llama-judged
+results with a new config would have kept every Llama score and recorded the new
+config in the summary. Each verdict now stores a digest of the config that gave
+it and is reused only under that digest; `llm_judge_reuse="any"` keeps the old
+behaviour where it is wanted, and carries each verdict's own digest with it.
+
+**Re-judging is not only re-judging.** Running the judge again re-evaluates
+everything: five of the six benchmarks were last evaluated in August, and their
+other metrics moved under current code. 1,915 of Spider Dev's 10,340 predictions
+changed `sqlglot_equivalence` after the sqlglot and sqlparse upgrades, and 30
+predictions that had not matched their reference now subset-match. Kept, because
+the 1.6.0 snapshot should be what 1.6.0 computes — but an evaluation artifact is
+a function of the code that produced it, and touching any part of it re-runs all
+of it. The date an artifact was produced belongs next to its numbers.
+
+**A rate limit can belong to the client, not the workload.** Two benchmarks
+judged in parallel had most calls refused before reaching the model: every judge
+call built a new watsonx `ModelInference`, which fetches the project's details
+and an IAM token, and both are rate-limited. Repeating the run could not get past
+it, because the repeat made the same calls. The SDK's own error said what to do —
+"move the ModelInference initialization outside the loop" — and a handle cached
+per model, parameters and credentials did it. One stream had never failed, which
+is exactly why the cause looked like concurrency rather than construction.
+
+**Release mechanics for the record.** The published results were re-judged with
+the new default: 9,132 judge calls, none failing, every LLM score lower, in the
+`v1.6.0` results snapshot — the Hub tag was moved rather than minted, since
+1.6.0 was unreleased and only the deployment fetches it. Beaver's re-judged
+details never went to the Hub: they were copied to the deployment host directly,
+which is now the only place they exist outside the backups, and how they should
+be distributed is deliberately unsettled. The restart cron on the host stays,
+though the leak it guards is fixed: the descriptor count has been flat for
+thirteen twelve-hour periods. `anyio` was floored at 4.14.2 the morning the
+Dependabot alert arrived, the critical half of which is TLS certificate
+spoofing.
+
+The plan document is deleted, as `docs/attic/README.md` says it should be. What
+survived it is already elsewhere: the judge's behaviour and its measured quality
+in `docs/guide/llm-judge.md`, the set and how to score a config against it in
+`data/judge_calibration/README.md`, and the *why* here.
+
+---
+
 ## 2026-09-12 — Beaver's gated data had been public from the first commit
 
 1.6.0's plan asked for Beaver to be visible only when signed in. That was built
