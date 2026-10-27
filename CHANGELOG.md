@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Resolved all open Dependabot alerts.** Security floors in `pyproject.toml`
   are raised to `pillow>=13.0.0` (heap overflows and DoS across JPEG, TIFF,
-  PDF, GIF and other decoders), `urllib3>=2.8.0`, `setuptools>=84.1.0`, and in
+  PDF, GIF and other decoders), `urllib3>=2.8.0`, `setuptools>=84.1.0` (also in
+  `[build-system].requires`, so isolated source builds get it), and in
   the extras `nbconvert>=7.17.2`, `jupyterlab>=4.6.4`, `notebook>=7.6.3` and
   `black>=26.10.1`. The lockfile also moves aiohttp to 3.14.5, filelock to
   4.2.4, fsspec to 2026.9.0, multidict to 7.2.1 and tornado to 6.6.
