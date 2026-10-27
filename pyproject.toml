@@ -27,7 +27,7 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "sqlglot>=27.0.0",
     "asyncpg>=0.30.0",
-    "setuptools>=83.0.0",
+    "setuptools>=84.1.0",
     "loguru>=0.7.3",
     "func-timeout>=4.3.5",
     "tqdm>=4.67.1",
@@ -57,9 +57,9 @@ dependencies = [
     "anyio>=4.14.2",          # via httpx, openai, google-genai; TLS host-name spoofing
     "cryptography>=50.0.0",   # via google-auth; encrypts stored provider keys
     "idna>=3.15",             # via requests, httpx
-    "pillow>=12.3.0",         # via matplotlib
+    "pillow>=13.0.0",         # via matplotlib
     "pyasn1>=0.6.4",          # via pyasn1-modules <- google-auth
-    "urllib3>=2.7.0",         # via requests, ibm-watsonx-ai
+    "urllib3>=2.8.0",         # via requests, ibm-watsonx-ai
 ]
 
 [project.optional-dependencies]
@@ -98,13 +98,13 @@ presto = [
 # it, and nothing else in the chain would stop that.
 notebook = [
   "jupyter>=1.1.1",
-  "nbconvert>=7.17.1",
+  "nbconvert>=7.17.2",
   # nbconvert's own floors on these are wide; both carry XSS and ReDoS fixes.
   "mistune>=3.3.0",
   "bleach>=6.4.0",
   "jupyter-server>=2.21.0",
-  "jupyterlab>=4.6.0",
-  "notebook>=7.6.0",
+  "jupyterlab>=4.6.4",
+  "notebook>=7.6.3",
 ]
 dashboard = [
   # Floored at the first FastAPI that accepts Starlette 1.x: the 0.x Starlette
@@ -129,7 +129,7 @@ dev = [
   "pytest-cov>=5.0.0",
   "pytest-asyncio>=0.24.0",
   "ruff>=0.6.0",
-  "black>=24.0.0",
+  "black>=26.10.1",
   "mypy>=1.11.0",
   "types-PyYAML>=6.0",
   "types-requests>=2.32"

@@ -19,6 +19,12 @@ export default defineConfig({
     // of the same library in the output.
     dedupe: ["katex"]
   },
+  // Escape non-ASCII characters in the bundle. KaTeX's lexer has a regex range
+  // that starts at U+202A, a bidi control character, and written raw it trips
+  // Trojan Source scanners on every commit of dist/.
+  esbuild: {
+    charset: "ascii"
+  },
   build: {
     outDir: "dist"
   }
