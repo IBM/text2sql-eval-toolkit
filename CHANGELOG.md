@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   emitting ASCII-only output so KaTeX's U+202A regex bound no longer reads as a
   Trojan Source bidi character.
 
+### Fixed
+
+- **`sqlglot_optimized_equivalence` works with sqlglot 29+.** Newer sqlglot
+  raises when it can't resolve a column without a schema, so every comparison
+  returned 0. Column validation is now turned off for this schema-less check.
+
 ## [1.6.0] - 2026-09-19
 
 ### Security

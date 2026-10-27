@@ -662,11 +662,14 @@ def sqlglot_optimized_equivalence(
     from sqlglot import parse_one
     from sqlglot.optimizer import optimize
 
+    # No schema is available here, so columns can't be resolved against tables.
+    # sqlglot 29+ raises on that unless validation is turned off, which made
+    # every comparison return 0.
+    def _optimize(sql: str):
+        return optimize(parse_one(sql, read=dialect), validate_qualify_columns=False)
+
     try:
-        return int(
-            optimize(parse_one(expected, read=dialect))
-            == optimize(parse_one(generated, read=dialect))
-        )
+        return int(_optimize(expected) == _optimize(generated))
     except Exception as e:
         logger.debug(f"Error parsing SQL for comparison: {e}")
         return 0
