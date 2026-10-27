@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+
+- **Resolved all open Dependabot alerts.** Security floors in `pyproject.toml`
+  are raised to `pillow>=13.0.0` (heap overflows and DoS across JPEG, TIFF,
+  PDF, GIF and other decoders), `urllib3>=2.8.0`, `setuptools>=84.1.0` (also in
+  `[build-system].requires`, so isolated source builds get it), and in
+  the extras `nbconvert>=7.17.2`, `jupyterlab>=4.6.4`, `notebook>=7.6.3` and
+  `black>=26.10.1`. The lockfile also moves aiohttp to 3.14.5, filelock to
+  4.2.4, fsspec to 2026.9.0, multidict to 7.2.1 and tornado to 6.6.
+- **Dashboard dependencies.** DOMPurify 3.4.17, Vite 6.4.5, Vitest 4.1.12,
+  undici 8.12.3, brace-expansion, source-map-js and zod are updated in
+  `package-lock.json`. Mermaid's nested KaTeX 0.16 is overridden onto the
+  top-level KaTeX 0.18 so a single patched copy ships. `npm audit` reports no
+  vulnerabilities, and `dashboard/dist` is rebuilt, with Vite now
+  emitting ASCII-only output so KaTeX's U+202A regex bound no longer reads as a
+  Trojan Source bidi character.
+
+### Fixed
+
+- **`sqlglot_optimized_equivalence` works with sqlglot 29+.** Newer sqlglot
+  raises when it can't resolve a column without a schema, so every comparison
+  returned 0. Column validation is now turned off for this schema-less check.
+
 ## [1.6.0] - 2026-09-19
 
 ### Security
