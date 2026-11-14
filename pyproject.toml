@@ -245,6 +245,7 @@ files = [
     "src/text2sql_eval_toolkit/utils.py",
     "src/text2sql_eval_toolkit/env_loader.py",
     "src/text2sql_eval_toolkit/config_args.py",
+    "src/text2sql_eval_toolkit/safe_paths.py",
 ]
 ignore_missing_imports = true
 warn_unused_configs = true

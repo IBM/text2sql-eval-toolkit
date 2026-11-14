@@ -14,6 +14,7 @@ no database -- so it is safe on a host that holds no database credentials at all
 """
 
 import asyncio
+import os
 import re
 import threading
 from pathlib import Path
@@ -50,6 +51,7 @@ from text2sql_eval_toolkit.ui.indexes import get_index
 from text2sql_eval_toolkit.ui.paths import get_data_root
 from text2sql_eval_toolkit.ui.runtime import current_user_email
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.safe_paths import safe_join
 
 logger = get_logger(__name__)
 
@@ -88,7 +90,7 @@ def _validate_config_name(name: str) -> str:
     Accept a config name, or raise ``FileNotFoundError``.
 
     A plain stem cannot traverse, cannot name a dotfile, and cannot be empty.
-    Callers still assert containment on the resolved path, so this stays the
+    Callers still assert containment on the normalized path, so this stays the
     first line of defence rather than the only one.
     """
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", name or ""):
@@ -100,11 +102,10 @@ def _contained(base: Path, name: str) -> Path:
     """
     ``base/name.yaml``, asserted to still be directly inside *base*.
     """
-    base = base.resolve()
-    candidate = (base / f"{name}.yaml").resolve()
-    if candidate.parent != base:
-        raise FileNotFoundError(name)
-    return candidate
+    try:
+        return safe_join(base, f"{name}.yaml")
+    except ValueError:
+        raise FileNotFoundError(name) from None
 
 
 def _judge_config_write_path(name: str) -> Path:
@@ -129,7 +130,7 @@ def _resolve_judge_config_path(name: str) -> Path:
     ``name`` arrives from a URL segment or request body. FastAPI will not match
     a raw ``/`` into a single path parameter, but percent-encoded separators and
     ``..`` segments are decoded before they reach here, so containment is
-    asserted on the resolved path rather than assumed from the routing.
+    asserted on the normalized path rather than assumed from the routing.
     """
     _validate_config_name(name)
     override = _contained(_user_judge_config_dir(), name)
@@ -139,6 +140,47 @@ def _resolve_judge_config_path(name: str) -> Path:
     if not packaged.is_file() and name in RETIRED_JUDGE_CONFIGS:
         return _contained(_judge_config_dir(), RETIRED_JUDGE_CONFIGS[name])
     return packaged
+
+
+def judge_config_path_from_request(value: Optional[str]) -> Optional[str]:
+    """
+    The judge config a request asks for, as a path the judge may load.
+
+    The playground and the evaluation job take ``llm_judge_config_path``, and
+    the dashboard fills it with a path from the config list. Only a config in
+    one of the two judge config folders is accepted, given either by that path
+    or by its bare name. Any other path is refused, so a request cannot make the
+    server parse an arbitrary file.
+
+    Args:
+        value: The requested path or name. Empty means the default config.
+
+    Returns:
+        The path to load, or ``None`` for the default config.
+
+    Raises:
+        FileNotFoundError: If *value* is not a config in either folder.
+    """
+    if value is None or not value.strip():
+        return None
+    value = value.strip()
+    name = os.path.basename(value)
+    if name.endswith(".yaml"):
+        name = name[: -len(".yaml")]
+    refusal = FileNotFoundError(
+        f"Not a judge config: {value}. Pick one from the judge config list."
+    )
+    try:
+        _validate_config_name(name)
+    except FileNotFoundError:
+        raise refusal from None
+    folder = os.path.dirname(value)
+    if not folder:
+        return str(_resolve_judge_config_path(name))
+    for base in (_user_judge_config_dir(), _judge_config_dir()):
+        if os.path.abspath(folder) == os.path.abspath(base):
+            return str(_contained(base, name))
+    raise refusal
 
 
 def _load_judge_config_by_name(name: str) -> Dict[str, Any]:

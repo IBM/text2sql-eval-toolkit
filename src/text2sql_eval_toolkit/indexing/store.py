@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Sequence, Tuple
 
 from text2sql_eval_toolkit.indexing.builder import build_index, index_path_for, is_stale
+from text2sql_eval_toolkit.safe_paths import safe_join
 
 # Comparison operators the dashboard exposes, mapped to SQL.
 OPERATORS: Dict[str, str] = {
@@ -140,7 +141,12 @@ class EvalIndex:
     def for_benchmark(
         cls, benchmark_id: str, results_dir: Path, auto_build: bool = True
     ) -> "EvalIndex":
-        source = Path(results_dir) / f"{benchmark_id}-predictions_eval.json"
+        try:
+            source = safe_join(results_dir, f"{benchmark_id}-predictions_eval.json")
+        except ValueError:
+            raise FileNotFoundError(
+                f"Not a valid benchmark id: {benchmark_id!r}"
+            ) from None
         if not source.is_file():
             raise FileNotFoundError(f"Evaluation artifact not found: {source}")
         path = index_path_for(source)

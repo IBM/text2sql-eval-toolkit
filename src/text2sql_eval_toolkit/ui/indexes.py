@@ -23,6 +23,7 @@ from fastapi import HTTPException
 from text2sql_eval_toolkit.indexing import is_stale as is_index_stale
 from text2sql_eval_toolkit.indexing.store import EvalIndex
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.safe_paths import safe_join
 from text2sql_eval_toolkit.ui.capabilities import Tier
 from text2sql_eval_toolkit.ui.paths import _eval_not_found_detail, get_results_dir
 from text2sql_eval_toolkit.ui.runtime import get_mode
@@ -48,7 +49,14 @@ def get_index(benchmark_id: str) -> EvalIndex:
     cached and reused; a source file that changed on disk invalidates its index,
     so a re-run is picked up without restarting the server.
     """
-    eval_path = get_results_dir() / f"{benchmark_id}-predictions_eval.json"
+    try:
+        eval_path = safe_join(
+            get_results_dir(), f"{benchmark_id}-predictions_eval.json"
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=404, detail=_eval_not_found_detail(benchmark_id)
+        ) from None
     if not eval_path.exists():
         raise HTTPException(
             status_code=404, detail=_eval_not_found_detail(benchmark_id)

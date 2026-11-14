@@ -1008,7 +1008,10 @@ async def sqlite_run_execution_async(
     return query_count
 
 
-_LIMIT_RE = re.compile(r"(?is)\s+LIMIT\s+(\d+)\s*$")
+# Starts at the word LIMIT rather than at the whitespace before it. A leading
+# \s+ made search() rescan a long run of spaces from every position in it,
+# which is quadratic on a query padded with whitespace.
+_LIMIT_RE = re.compile(r"(?i)(?<=\s)LIMIT\s+(\d+)$")
 
 
 def _parse_db2_dsn(dsn: str) -> dict:
@@ -1022,11 +1025,10 @@ def _parse_db2_dsn(dsn: str) -> dict:
 
 
 def _normalize_sql_for_db2(sql: str) -> str:
-    s = (sql or "").rstrip().rstrip(";")
+    s = (sql or "").rstrip().rstrip(";").rstrip()
     m = _LIMIT_RE.search(s)
     if m:
-        n = m.group(1)
-        s = _LIMIT_RE.sub(f" FETCH FIRST {n} ROWS ONLY", s)
+        s = f"{s[: m.start()].rstrip()} FETCH FIRST {m.group(1)} ROWS ONLY"
     return s
 
 

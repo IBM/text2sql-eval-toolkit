@@ -14,7 +14,7 @@ an unprivileged server process, and is discarded by the next pip upgrade even
 where the permissions allow it.
 
 The write endpoint is ``full`` tier. Names are validated as a plain stem with
-containment asserted on the resolved path -- belt and braces, because the first
+containment asserted on the normalized path -- belt and braces, because the first
 version of this interpolated a URL segment straight into a path.
 """
 
