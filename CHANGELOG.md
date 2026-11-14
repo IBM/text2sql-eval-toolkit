@@ -23,6 +23,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   vulnerabilities, and `dashboard/dist` is rebuilt, with Vite now
   emitting ASCII-only output so KaTeX's U+202A regex bound no longer reads as a
   Trojan Source bidi character.
+- **Second round of Dependabot alerts.** New floors: `certifi>=2026.10.18`
+  (drops the compromised emSign roots), `pyasn1>=0.6.5`, and in the extras
+  `authlib>=1.9.1` and `joserfc>=1.7.6` (dashboard), `litellm>=1.100.4`, and
+  `soupsieve>=4.0` and `tornado>=6.6.1` (notebook). The soupsieve floor only
+  applies on Python 3.11.5 and later, because no fixed soupsieve supports older
+  3.11 releases. For the same reason `uv.lock` now covers Python 3.11.5+ only
+  (`[tool.uv] environments`); the package still installs on any 3.11. In the
+  dashboard, typescript-eslint's `minimatch` is overridden to 11.x.
+- **File paths built from request values stay in their folder.** Benchmark
+  ids, judge config names, SQLite `db_id`s and logo file names now go through
+  one helper, `safe_paths.safe_join`, which refuses anything that is not a
+  plain name. Before this, a `db_id` such as `../../x` could open any
+  `x.sqlite` on the host, and a benchmark id sent in a request body could
+  point the index at a file outside `data/results`. Judge configs also keep
+  their symlink check: a config file that links outside its folder is refused,
+  and the config list skips it instead of failing.
+- **`llm_judge_config_path` only accepts judge configs.** The playground and
+  the evaluation job used to load any YAML path a full-tier caller sent. They
+  now accept only a config from the two judge config folders, by the path the
+  config list shows or by name, and answer 400 for anything else.
+- **The DB2 `LIMIT` rewrite no longer slows down on long whitespace.** The old
+  pattern rescanned runs of spaces from every position, which took about a
+  second on a query with 20,000 spaces. Output is unchanged.
+- **Workflows run with a read-only token.** `ci.yml` and `release.yml` now set
+  `permissions: contents: read`; the publish and release jobs keep their own
+  narrower grants.
 
 ### Fixed
 

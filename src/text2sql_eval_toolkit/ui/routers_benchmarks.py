@@ -58,6 +58,7 @@ from text2sql_eval_toolkit.ui.registry import (
     write_json_atomic,
 )
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.safe_paths import safe_join
 from text2sql_eval_toolkit.ui.models import (
     CreateBenchmarkRequest,
     UpdateBenchmarkRequest,
@@ -244,13 +245,14 @@ def upload_benchmark_logo(req: BenchmarkLogoUploadRequest):
 
     stored_name = f"{benchmark_id}{ext}"
     relative_path = Path("benchmarks") / "logos" / stored_name
-    abs_path = get_data_root() / relative_path
+    logo_dir = get_data_root() / "benchmarks" / "logos"
+    abs_path = safe_join(logo_dir, stored_name)
     abs_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Keep only one logo per benchmark regardless of extension.
     for existing_ext in ALLOWED_LOGO_EXTENSIONS:
-        existing = abs_path.parent / f"{benchmark_id}{existing_ext}"
-        if existing.resolve() == abs_path.resolve():
+        existing = safe_join(logo_dir, f"{benchmark_id}{existing_ext}")
+        if existing == abs_path:
             continue
         if existing.exists():
             try:

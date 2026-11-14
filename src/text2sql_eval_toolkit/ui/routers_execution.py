@@ -66,12 +66,14 @@ from text2sql_eval_toolkit.ui.models import (
 )
 
 from text2sql_eval_toolkit.ui.indexes import get_index
+from text2sql_eval_toolkit.ui.routers_judge import judge_config_path_from_request
 from text2sql_eval_toolkit.ui.paths import (
     get_data_root,
     get_results_dir,
     load_json,
 )
 from text2sql_eval_toolkit.logging import get_logger
+from text2sql_eval_toolkit.safe_paths import safe_join
 from text2sql_eval_toolkit.ui.dataframes import truncate_dataframe
 from text2sql_eval_toolkit.utils import get_gt_sqls, get_question
 
@@ -94,17 +96,25 @@ def _resolve_sqlite_db_path(db_folder: str, db_id: str) -> Path:
     db_filename = f"{db_id}.sqlite"
     folder_path = Path(db_folder)
 
+    # db_id can come from the request, so it must stay a plain name: a db_id of
+    # "../x" would otherwise open x.sqlite anywhere on the host.
+    def under(base: Path) -> Path:
+        try:
+            return safe_join(base, db_id, db_filename)
+        except ValueError:
+            raise ValueError(f"Invalid db_id: {db_id!r}") from None
+
     # Support both absolute db_folder and relative layouts.
     if folder_path.is_absolute():
-        candidate = folder_path / db_id / db_filename
+        candidate = under(folder_path)
         if candidate.exists():
             return candidate
 
     candidates = [
-        get_data_root() / folder_path / db_id / db_filename,
-        get_data_root() / db_id / db_filename,
-        Path(BENCHMARKS_FILE).parent / folder_path / db_id / db_filename,
-        Path.cwd() / "data" / folder_path / db_id / db_filename,
+        under(get_data_root() / folder_path),
+        under(get_data_root()),
+        under(Path(BENCHMARKS_FILE).parent / folder_path),
+        under(Path.cwd() / "data" / folder_path),
     ]
     for candidate in candidates:
         if candidate.exists():
@@ -740,7 +750,9 @@ async def playground_evaluate(
     llm_cfg = None
     if req.use_llm:
         try:
-            llm_cfg = load_llm_judge_config(req.llm_judge_config_path)
+            llm_cfg = load_llm_judge_config(
+                judge_config_path_from_request(req.llm_judge_config_path)
+            )
         except FileNotFoundError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
 

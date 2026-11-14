@@ -26,6 +26,7 @@ from text2sql_eval_toolkit.ui.models import (
 )
 
 from text2sql_eval_toolkit.ui.indexes import invalidate_index_cache
+from text2sql_eval_toolkit.ui.routers_judge import judge_config_path_from_request
 from text2sql_eval_toolkit.logging import get_logger
 from text2sql_eval_toolkit.ui.jobs import JOBS, JOBS_LOCK, update_job
 
@@ -40,6 +41,11 @@ def evaluate_benchmark(benchmark_id: str, req: EvaluateRequest):
     Trigger an evaluation run for a benchmark.
     The evaluation runs in a background thread; this endpoint returns a job id.
     """
+    try:
+        judge_config_path = judge_config_path_from_request(req.llm_judge_config_path)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from None
+
     job_id = str(uuid.uuid4())
     job = JobStatus(
         job_id=job_id,
@@ -56,7 +62,7 @@ def evaluate_benchmark(benchmark_id: str, req: EvaluateRequest):
             run_evaluation(
                 benchmark_id,
                 use_llm=req.use_llm,
-                llm_judge_config_path=req.llm_judge_config_path,
+                llm_judge_config_path=judge_config_path,
                 force_rerun_llm_judge=req.force_rerun_llm_judge or req.force_rerun,
                 force_rerun=req.force_rerun,
             )

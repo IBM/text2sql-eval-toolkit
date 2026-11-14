@@ -14,7 +14,7 @@ an unprivileged server process, and is discarded by the next pip upgrade even
 where the permissions allow it.
 
 The write endpoint is ``full`` tier. Names are validated as a plain stem with
-containment asserted on the resolved path -- belt and braces, because the first
+containment asserted on the normalized path -- belt and braces, because the first
 version of this interpolated a URL segment straight into a path.
 """
 
@@ -99,7 +99,14 @@ def list_llm_judge_configs() -> LLMJudgeConfigListResponse:
 
     items: List[LLMJudgeConfigInfo] = []
     for name in sorted(user_names | packaged_names):
-        path = _resolve_judge_config_path(name)
+        try:
+            path = _resolve_judge_config_path(name)
+        except FileNotFoundError:
+            # A file the other endpoints would refuse (a symlink out of the
+            # folder, or a name that isn't a plain stem). Leave it out rather
+            # than fail the whole list.
+            logger.warning("Skipping judge config %r: not usable", name)
+            continue
         items.append(
             LLMJudgeConfigInfo(
                 name=name,

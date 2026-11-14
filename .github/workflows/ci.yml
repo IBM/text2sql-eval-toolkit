@@ -19,6 +19,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Every job only reads the repository. Without this, the token gets the
+# repository's default permissions, which can include write access.
+permissions:
+  contents: read
+
 env:
   # Keep every job hermetic: no .env discovery, no credential-dependent paths.
   TEXT2SQL_DATA_ROOT: ${{ github.workspace }}/data
