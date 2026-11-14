@@ -55,10 +55,11 @@ dependencies = [
     # These are floors, not pins: a newer version always wins. Remove an entry
     # once the package that pulls it in has raised its own floor past this one.
     "anyio>=4.14.2",          # via httpx, openai, google-genai; TLS host-name spoofing
+    "certifi>=2026.10.18",    # via requests, httpx; drops the compromised emSign roots
     "cryptography>=50.0.0",   # via google-auth; encrypts stored provider keys
     "idna>=3.15",             # via requests, httpx
     "pillow>=13.0.0",         # via matplotlib
-    "pyasn1>=0.6.4",          # via pyasn1-modules <- google-auth
+    "pyasn1>=0.6.5",          # via pyasn1-modules <- google-auth
     "urllib3>=2.8.0",         # via requests, ibm-watsonx-ai
 ]
 
@@ -68,7 +69,7 @@ dependencies = [
 # boto3, and narrows the openai pin, which is a lot to impose on everyone who
 # installs the library when the built-in prefixes already reach six providers.
 litellm = [
-  "litellm>=1.50",
+  "litellm>=1.100.4",
 ]
 # Building the documentation site. Not needed to use the toolkit.
 docs = [
@@ -105,6 +106,12 @@ notebook = [
   "jupyter-server>=2.21.0",
   "jupyterlab>=4.6.4",
   "notebook>=7.6.3",
+  # Further down the same stack: beautifulsoup4 (via nbconvert) and the
+  # Jupyter server and kernel accept versions without ReDoS and open-redirect
+  # fixes. Every fixed soupsieve needs Python 3.11.5+, so older 3.11 releases
+  # keep what beautifulsoup4 picks; see [tool.uv] below.
+  "soupsieve>=4.0; python_full_version >= '3.11.5'",
+  "tornado>=6.6.1",
 ]
 dashboard = [
   # Floored at the first FastAPI that accepts Starlette 1.x: the 0.x Starlette
@@ -116,7 +123,9 @@ dashboard = [
   "starlette>=1.3.1",
   "uvicorn[standard]>=0.30.0",
   # Google OIDC sign-in for shared deployments; unused in local (full) mode.
-  "authlib>=1.3",
+  # 1.9.1 fixes JWS/JWT signature forgery; joserfc comes in through it.
+  "authlib>=1.9.1",
+  "joserfc>=1.7.6",
   "itsdangerous>=2.1",
   # MySQL async driver (Beaver benchmark); execution_tools uses mysql+aiomysql://
   "pymysql>=1.1.1",
@@ -147,6 +156,13 @@ Documentation = "https://text2sql-eval-toolkit.readthedocs.io/"
 Repository = "https://github.com/IBM/text2sql-eval-toolkit"
 Changelog = "https://github.com/IBM/text2sql-eval-toolkit/blob/main/CHANGELOG.md"
 Issues = "https://github.com/IBM/text2sql-eval-toolkit/issues"
+
+[tool.uv]
+# The lockfile covers Python 3.11.5 and later. Below that no patched soupsieve
+# exists (it comes in with the notebook extra), and resolving for those versions
+# put a 2018 beautifulsoup4 and an unpatched soupsieve in the lock. The
+# package itself still installs on any 3.11.
+environments = ["python_full_version >= '3.11.5'"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }
