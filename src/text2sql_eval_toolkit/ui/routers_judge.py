@@ -101,11 +101,21 @@ def _validate_config_name(name: str) -> str:
 def _contained(base: Path, name: str) -> Path:
     """
     ``base/name.yaml``, asserted to still be directly inside *base*.
+
+    `safe_join` compares paths as text, so the symlink check is done here too:
+    a ``name.yaml`` that links outside *base* would otherwise let the config
+    endpoints read or overwrite the file it points to. A symlinked *base* is
+    fine, since both sides are resolved.
     """
     try:
-        return safe_join(base, f"{name}.yaml")
-    except ValueError:
+        candidate = safe_join(base, f"{name}.yaml")
+        inside = candidate.resolve().parent == Path(base).resolve()
+    except (ValueError, OSError, RuntimeError):
+        # RuntimeError: a symlink loop, on Python versions before 3.13.
         raise FileNotFoundError(name) from None
+    if not inside:
+        raise FileNotFoundError(name)
+    return candidate
 
 
 def _judge_config_write_path(name: str) -> Path:
@@ -177,8 +187,10 @@ def judge_config_path_from_request(value: Optional[str]) -> Optional[str]:
     folder = os.path.dirname(value)
     if not folder:
         return str(_resolve_judge_config_path(name))
+    # realpath, so the folder matches whether it is given with or without
+    # symlinks resolved; the config list used to show resolved paths.
     for base in (_user_judge_config_dir(), _judge_config_dir()):
-        if os.path.abspath(folder) == os.path.abspath(base):
+        if os.path.realpath(folder) == os.path.realpath(base):
             return str(_contained(base, name))
     raise refusal
 

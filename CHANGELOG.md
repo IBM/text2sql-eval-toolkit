@@ -36,7 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one helper, `safe_paths.safe_join`, which refuses anything that is not a
   plain name. Before this, a `db_id` such as `../../x` could open any
   `x.sqlite` on the host, and a benchmark id sent in a request body could
-  point the index at a file outside `data/results`.
+  point the index at a file outside `data/results`. Judge configs also keep
+  their symlink check: a config file that links outside its folder is refused,
+  and the config list skips it instead of failing.
 - **`llm_judge_config_path` only accepts judge configs.** The playground and
   the evaluation job used to load any YAML path a full-tier caller sent. They
   now accept only a config from the two judge config folders, by the path the

@@ -151,6 +151,101 @@ def test_a_judge_config_outside_both_folders_is_refused(judge_dirs, tmp_path):
             routers_judge.judge_config_path_from_request(value)
 
 
+@pytest.fixture
+def judge_client(judge_dirs, monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from text2sql_eval_toolkit.ui import server
+    from text2sql_eval_toolkit.ui.capabilities import Tier
+
+    original = server.get_mode()
+    server.set_mode(Tier.FULL)
+    try:
+        yield TestClient(server.app)
+    finally:
+        server.set_mode(original)
+
+
+def test_a_judge_config_symlinked_outside_its_folder_is_refused(judge_dirs, tmp_path):
+    routers_judge, user_dir = judge_dirs
+    outside = tmp_path / "outside.yaml"
+    outside.write_text("secret: 1\n", encoding="utf-8")
+    (user_dir / "linked.yaml").symlink_to(outside)
+
+    with pytest.raises(FileNotFoundError):
+        routers_judge._resolve_judge_config_path("linked")
+    with pytest.raises(FileNotFoundError):
+        routers_judge._judge_config_write_path("linked")
+    with pytest.raises(FileNotFoundError):
+        routers_judge.judge_config_path_from_request(str(user_dir / "linked.yaml"))
+    with pytest.raises(FileNotFoundError):
+        routers_judge.judge_config_path_from_request("linked")
+
+
+def test_a_dangling_symlink_cannot_be_used_to_write_outside(judge_dirs, tmp_path):
+    routers_judge, user_dir = judge_dirs
+    (user_dir / "linked.yaml").symlink_to(tmp_path / "not-yet.yaml")
+    with pytest.raises(FileNotFoundError):
+        routers_judge._judge_config_write_path("linked")
+
+
+def test_the_config_endpoints_do_not_follow_a_symlink_outside(
+    judge_client, judge_dirs, tmp_path
+):
+    _, user_dir = judge_dirs
+    outside = tmp_path / "outside.yaml"
+    outside.write_text("secret: 1\n", encoding="utf-8")
+    (user_dir / "linked.yaml").symlink_to(outside)
+
+    assert judge_client.get("/api/llm-judge/configs/linked").status_code == 404
+    resp = judge_client.put(
+        "/api/llm-judge/configs/linked",
+        json={"model": {"id": "wxai:x"}, "prompt_template": "p"},
+    )
+    assert resp.status_code == 400
+    assert outside.read_text(encoding="utf-8") == "secret: 1\n"
+
+    # The rest of the list still loads; only the bad entry is left out.
+    listed = judge_client.get("/api/llm-judge/configs")
+    assert listed.status_code == 200
+    names = {c["name"] for c in listed.json()["items"]}
+    assert "mine" in names and "linked" not in names
+
+
+def test_a_symlink_to_another_config_in_the_same_folder_still_works(judge_dirs):
+    routers_judge, user_dir = judge_dirs
+    (user_dir / "alias.yaml").symlink_to(user_dir / "mine.yaml")
+    path = routers_judge._resolve_judge_config_path("alias")
+    assert path.read_text(encoding="utf-8").startswith("model:")
+
+
+def test_a_symlinked_judge_config_folder_still_works(tmp_path, monkeypatch):
+    pytest.importorskip("fastapi")
+    from text2sql_eval_toolkit.ui import routers_judge
+
+    real = tmp_path / "elsewhere" / "configs"
+    real.mkdir(parents=True)
+    (real / "mine.yaml").write_text("model: {id: 'wxai:x'}\n", encoding="utf-8")
+    root = tmp_path / "root"
+    root.mkdir()
+    (root / "llm_judge_config").symlink_to(real, target_is_directory=True)
+    monkeypatch.setenv("TEXT2SQL_DATA_ROOT", str(root))
+
+    assert routers_judge._resolve_judge_config_path("mine").is_file()
+    assert routers_judge._judge_config_write_path("new").parent.resolve() == real
+    # Either spelling of the folder is accepted in a request.
+    for folder in (root / "llm_judge_config", real):
+        loaded = routers_judge.judge_config_path_from_request(str(folder / "mine.yaml"))
+        assert os.path.samefile(loaded, real / "mine.yaml")
+
+
+def test_a_symlink_loop_is_not_found_rather_than_an_error(judge_client, judge_dirs):
+    _, user_dir = judge_dirs
+    (user_dir / "loop.yaml").symlink_to(user_dir / "loop.yaml")
+    assert judge_client.get("/api/llm-judge/configs/loop").status_code == 404
+    assert judge_client.get("/api/llm-judge/configs").status_code == 200
+
+
 def test_evaluation_job_with_an_outside_judge_config_is_400(tmp_path, monkeypatch):
     pytest.importorskip("fastapi")
     from fastapi.testclient import TestClient

@@ -99,7 +99,14 @@ def list_llm_judge_configs() -> LLMJudgeConfigListResponse:
 
     items: List[LLMJudgeConfigInfo] = []
     for name in sorted(user_names | packaged_names):
-        path = _resolve_judge_config_path(name)
+        try:
+            path = _resolve_judge_config_path(name)
+        except FileNotFoundError:
+            # A file the other endpoints would refuse (a symlink out of the
+            # folder, or a name that isn't a plain stem). Leave it out rather
+            # than fail the whole list.
+            logger.warning("Skipping judge config %r: not usable", name)
+            continue
         items.append(
             LLMJudgeConfigInfo(
                 name=name,
