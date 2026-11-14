@@ -47,6 +47,11 @@ on:
         type: boolean
         default: true
 
+# Read-only by default. The two jobs that need more (publish, github-release)
+# ask for exactly that at job level.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Build and verify
