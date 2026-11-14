@@ -301,7 +301,12 @@ class TestJudgeConfig:
         assert result["verdict"] == "Yes"
         assert seen["model"] == "claude-sonnet-4-5"  # prefix stripped for the provider
 
-    def test_an_unknown_prefix_is_still_refused(self):
+    def test_an_unknown_prefix_is_still_refused(self, monkeypatch):
+        from text2sql_eval_toolkit.inference import model_clients
+
+        # With the litellm extra installed, an unknown prefix goes to LiteLLM
+        # instead, so this checks the install without it.
+        monkeypatch.setattr(model_clients, "litellm_available", lambda: False)
         config = {"model": {"id": "nosuchprovider:x"}, "prompt_template": "{question}"}
         with pytest.raises(NotImplementedError):
             evaluate_sql_prediction_with_llm(

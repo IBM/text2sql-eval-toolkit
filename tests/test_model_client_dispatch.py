@@ -66,7 +66,10 @@ class TestPrefixCoverage:
         resolve_client("wxai:x", {"max_new_tokens": 512})
         assert FakeClient.last["params"] == {"max_new_tokens": 512}
 
-    def test_an_unknown_prefix_is_refused_with_the_known_ones_listed(self):
+    def test_an_unknown_prefix_is_refused_with_the_known_ones_listed(self, monkeypatch):
+        # With the litellm extra installed, an unknown prefix goes to LiteLLM
+        # instead, so this checks the install without it.
+        monkeypatch.setattr(model_clients, "litellm_available", lambda: False)
         with pytest.raises(UnsupportedModel) as excinfo:
             resolve_client("nosuchprovider:x", {})
         assert "wxai:" in str(excinfo.value)
