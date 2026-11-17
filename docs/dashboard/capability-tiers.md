@@ -180,8 +180,8 @@ crawlers to skip.
 results are not in the repository or in the public results dataset. They were
 removed from both, history included, on 2026-09-12, and the public results carry
 Beaver's overall summary and overall chart only. A deployment that shows the
-details to signed-in users has to get them from Beaver's gated distribution
-separately; without them, a signed-in reader sees the same overall scores as
+details to signed-in users has to produce or copy them into its data root
+separately (`data/benchmarks/dbs/README.md` says where Beaver's data comes from); without them, a signed-in reader sees the same overall scores as
 everyone else.
 
 ## Spend

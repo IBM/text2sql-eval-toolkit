@@ -29,7 +29,7 @@
     },
     "beaver": {
         "name": "beaver",
-        "description": "Beaver benchmark https://peterbaile.github.io/beaver/",
+        "description": "Beaver BEAVER-MAY-2025 release - 209 questions https://github.com/peterbaile/beaver-may-2025",
         "data": "benchmarks/beaver.json",
         "schema": "benchmarks/beaver-schema.json",
         "predictions": "results/beaver-predictions.json",

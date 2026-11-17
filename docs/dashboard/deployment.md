@@ -354,8 +354,9 @@ The init scripts run **once**, on first initialisation of the volume. Changing
 recreating the volume.
 
 **Beaver's data is not in this repository or the public results.** Its questions,
-SQL, schema and databases come from the Beaver project under gated access;
-`data/benchmarks/dbs/README.md` says what to request. The `mysql` service, the
+SQL, schema and databases come from the Beaver project's `BEAVER-MAY-2025`
+release; `data/benchmarks/dbs/README.md` says where to get them and how to load
+them. The `mysql` service, the
 read-only grant and the execution path are in place. Set
 `MYSQL_READONLY_DATABASES` before the volume is first initialised: the grant names
 each database, and the list is not kept here.
@@ -376,7 +377,7 @@ each database, and the list is not kept here.
 | Startup fails: session secret | Shorter than 32 characters. Regenerate. |
 | Startup fails: `--mode full` refuses to bind | Correct behaviour on a non-loopback interface. Use `--mode public` or `judge`. |
 | A benchmark's summary opens, but links into its records ask the reader to sign in | Intended: its details require sign-in (Beaver's do, from 1.6.0). The flag is read from every registry copy, packaged ones included, and from `TEXT2SQL_SIGN_IN_BENCHMARKS`. Removing it from the data root's `benchmarks.json` alone lifts nothing. See [Capability tiers](capability-tiers.md#benchmarks-whose-details-require-sign-in). |
-| Signed in, Beaver still shows only its overall scores, or its views say no results are available | The public results snapshot carries Beaver's overall summary only. Its per-record results come from its gated distribution and have to be placed in the data root separately, then indexed. |
+| Signed in, Beaver still shows only its overall scores, or its views say no results are available | The public results snapshot carries Beaver's overall summary only. Its per-record results are not published: produce them or copy them into the data root separately, then index them. |
 | Landing page shows 0 pipelines, `/api/benchmarks` alternates 200 and 500, some 502s, yet `/api/me` is 200 | The app has run out of file descriptors, so it cannot open results files or accept every connection. Compare `docker compose exec app sh -c 'ls /proc/1/fd \| wc -l; ulimit -n'`. `docker compose restart app` recovers. Before 1.6.0, SQLite connections left open on every index lookup caused this, under Docker's default limit of 1024. |
 
 Logs:

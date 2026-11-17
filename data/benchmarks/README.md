@@ -27,14 +27,18 @@ Production benchmarks are defined in [`data/benchmarks.json`](../benchmarks.json
 
 ### Beaver
 - **ID:** `beaver`
-- **Description:** Beaver benchmark for business intelligence queries
-- **Size:** 209 questions
+- **Description:** Beaver enterprise text-to-SQL benchmark, the `BEAVER-MAY-2025` release
+- **Size:** 209 questions across 6 databases
 - **Database:** MySQL
-- **Source:** https://beaverbench.github.io/
-- **Access:** Gated. Its questions, SQL and schema are not included in this
-  repository, and the public results carry its overall scores only.
-- **Setup Required:** Access from the Beaver project, a MySQL database and the
-  `MYSQL_CONNECTION_STRING` environment variable (see [dbs/README.md](dbs/README.md))
+- **Source:** https://github.com/peterbaile/beaver-may-2025 (archived)
+- **Not supported yet:** the current Beaver release at https://beaverbench.github.io/
+  (about 8,000 public questions, retrieval-based settings, its own leaderboard).
+  Scores from this toolkit are not comparable with that leaderboard. Support is
+  tracked in [#37](https://github.com/IBM/text2sql-eval-toolkit/issues/37).
+- **Redistribution:** none. Beaver's questions, SQL and schema are not included in
+  this repository, and the public results carry its overall scores only.
+- **Setup Required:** The release's files and MySQL dumps, a MySQL database and the
+  `MYSQL_CONNECTION_STRING` environment variable (see [dbs/README.md](dbs/README.md#beaver))
 
 ### Archer (English Dev)
 - **ID:** `archer_en_dev`

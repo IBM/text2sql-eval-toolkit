@@ -12,7 +12,7 @@ The following databases are required for the benchmarks:
 | **BIRD Mini-Dev (PostgreSQL)** | `bird_mini_dev_postgres`, `bird_mini_dev_postgres_test_50` | PostgreSQL | PostgreSQL server + import SQL dump + connection string |
 | **Spider 1.0** | `spider_dev`, `spider_realistic`, `spider_dev_test_50` | SQLite | Download `database` folder |
 | **Archer** | `archer_en_dev`, `archer_en_dev_test_10` | SQLite | Download database files |
-| **Beaver** | `beaver` | MySQL | Gated access from the Beaver project, MySQL server + connection string |
+| **Beaver (`BEAVER-MAY-2025`)** | `beaver` | MySQL | Download the release's MySQL dumps, MySQL server + connection string |
 
 **Note:** Test benchmarks (e.g., `bird_mini_dev_sqlite_test_50`) use the same databases as their full counterparts but with smaller question subsets.
 
@@ -183,29 +183,56 @@ All 500 gold queries have been verified against a loaded server.
 
 **Used by:** `beaver`
 
-Beaver's questions, SQL, schema and databases are distributed by the Beaver
-project under gated access. None of them are published in this repository or in
-the toolkit's public results, which carry Beaver's overall scores only. Request
-access from the project (https://beaverbench.github.io/) and load its MySQL
-databases as it describes, with the question and schema files placed at the
-paths `data/benchmarks.json` names.
+### Which release
 
-Beaver selects a database per record by substituting `db_id` into the
-connection string, so the database named in `MYSQL_CONNECTION_STRING` is only a
-default:
+The toolkit's `beaver` benchmark is the **`BEAVER-MAY-2025`** release: 209
+questions over 6 databases. The Beaver project archived it at
+https://github.com/peterbaile/beaver-may-2025 when it published a larger release
+at https://beaverbench.github.io/ in May 2026. That newer release has about 8,000
+public questions in four datasets, gated on Hugging Face, and is evaluated with
+table retrieval and three hint settings. The toolkit does not support it yet, and
+its scores on `beaver` are not comparable with the newer leaderboard. Support is
+tracked in [#37](https://github.com/IBM/text2sql-eval-toolkit/issues/37).
 
-```bash
-export MYSQL_CONNECTION_STRING="mysql://user:password@127.0.0.1:3306/<default-database>"
-```
+The toolkit does not redistribute any Beaver data — questions, SQL, schema or
+per-record results — and its public results carry Beaver's overall scores only.
 
-With the `databases` profile in `deploy/docker-compose.yml`, list the databases in
-`MYSQL_READONLY_DATABASES` so the read-only user can read them.
+### Steps
 
-**194 of 209 questions (93%) are executable** once the gated databases are
+1. **Get the release.** From the archived repository, take `dev_dw.json` and
+   `dev_nw.json` (questions and gold SQL), `dev_tables.json` (schema) and
+   `dw_join_keys.json`. Its README links a Google Drive folder with the MySQL
+   dumps.
+
+2. **Load the dumps.** Import each dump into MySQL under the database name its
+   questions use — the `db_id` field — which is not always the name inside the
+   dump. Some dump files name their database after the source system, so rename
+   the `CREATE DATABASE` / `USE` statements before importing.
+
+3. **Convert to the toolkit's format.** The toolkit reads
+   `data/benchmarks/beaver.json` and `data/benchmarks/beaver-schema.json`, which
+   use its own record and schema format rather than the release's. There is no
+   published converter yet. The toolkit's copy of the gold SQL has also been
+   edited from the release, so scores computed on the release's SQL can differ
+   from the published ones. Both are tracked in
+   [#37](https://github.com/IBM/text2sql-eval-toolkit/issues/37).
+
+4. **Set the connection string.** Beaver selects a database per record by
+   substituting `db_id` into the connection string, so the database named in
+   `MYSQL_CONNECTION_STRING` is only a default:
+
+   ```bash
+   export MYSQL_CONNECTION_STRING="mysql://user:password@127.0.0.1:3306/<default-database>"
+   ```
+
+   With the `databases` profile in `deploy/docker-compose.yml`, list the databases
+   in `MYSQL_READONLY_DATABASES` so the read-only user can read them.
+
+**194 of 209 questions (93%) are executable** once the release's dumps are
 loaded; all 194 gold queries have been verified to run against a loaded server.
 The remaining 15 fail with an unknown-database error, because three of the
-databases their questions name are not among those the project distributes — a
-data gap, not a configuration mistake.
+databases their questions name have no dump in the release — a data gap, not a
+configuration mistake.
 
 ---
 
