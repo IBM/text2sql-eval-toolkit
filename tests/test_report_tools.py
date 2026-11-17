@@ -19,6 +19,7 @@ import pytest
 from text2sql_eval_toolkit.analysis.report_tools import (
     abbreviate,
     collect_results,
+    export_summary_results_by_category_to_markdown,
     generate_markdown_table,
     generate_toc_section,
     get_benchmark_statistics,
@@ -292,3 +293,59 @@ def test_a_metric_of_an_unexpected_type_falls_back_rather_than_raising(tmp_path)
     table = table_for({PIPE_A: metrics(), PIPE_B: odd}, tmp_path)
     assert PIPE_B in table
     assert "N/A" in table
+
+
+# --- The per-benchmark summary written next to each eval file ----------------
+
+
+def prediction(exec_acc, inference_failed=False):
+    pred = {"evaluation": {"execution_accuracy": exec_acc}}
+    if inference_failed:
+        pred["inference_error"] = "TimeoutError"
+    return pred
+
+
+def summary_rows(records, tmp_path):
+    """Write the category summary and return its overall table, row by pipeline."""
+    path = tmp_path / "bench-predictions_eval_summary.md"
+    export_summary_results_by_category_to_markdown(records, path)
+    overall = path.read_text().split("## Category:")[0]
+    return {
+        cells[1]: cells
+        for line in overall.splitlines()
+        if line.startswith("| ")
+        and (cells := [c.strip() for c in line.strip("|").split("|")])[0].isdigit()
+    }
+
+
+def test_summary_counts_predictions_and_leaves_out_failed_inferences(tmp_path):
+    """
+    "Predictions #" read a count nothing computed, so every published summary
+    showed 0 predictions. It counts a record's prediction unless its inference
+    failed, which is how compute_summary counts them too.
+    """
+    records = [
+        {
+            "meta": {"categories": ["join"]},
+            "predictions": {
+                PIPE_A: prediction(1),
+                PIPE_B: prediction(0, inference_failed=True),
+            },
+        },
+        {
+            "meta": {"categories": ["join"]},
+            "predictions": {PIPE_A: prediction(0), PIPE_B: prediction(1)},
+        },
+        {"predictions": {PIPE_A: prediction(1), PIPE_B: prediction(1)}},
+    ]
+    rows = summary_rows(records, tmp_path)
+    # Rank | Pipeline | Records # | Predictions # | ...
+    assert rows[PIPE_A][2:4] == ["3", "3"]
+    assert rows[PIPE_B][2:4] == ["3", "2"]
+    # The category breakdown counts the same way.
+    category = (
+        (tmp_path / "bench-predictions_eval_summary.md")
+        .read_text()
+        .split("### Pipeline: `" + PIPE_B + "`")[1]
+    )
+    assert "| join | 2 | 1 |" in category

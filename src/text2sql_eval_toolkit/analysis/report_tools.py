@@ -576,16 +576,26 @@ def export_summary_results_by_category_to_markdown(
                                 metric_value
                             )
 
-                # Count one record per example
+                # Count one record per example, and one prediction unless its
+                # inference failed (the same rule as compute_summary)
+                has_prediction = 0 if "inference_error" in pred_info else 1
                 all_metrics[pipeline]["num_records"].append(1)
+                all_metrics[pipeline]["num_predictions"].append(has_prediction)
                 for cat in categories:
                     category_metrics[cat][pipeline]["num_records"].append(1)
+                    category_metrics[cat][pipeline]["num_predictions"].append(
+                        has_prediction
+                    )
 
         def avg_metrics(metrics_dict):
             """Return dict[pipeline][metric_name] = average OR count"""
             return {
                 pipeline: {
-                    metric: (sum(values) if metric == "num_records" else mean(values))
+                    metric: (
+                        sum(values)
+                        if metric in ("num_records", "num_predictions")
+                        else mean(values)
+                    )
                     for metric, values in metric_dict.items()
                 }
                 for pipeline, metric_dict in metrics_dict.items()

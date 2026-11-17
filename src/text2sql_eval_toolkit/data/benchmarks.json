@@ -21,7 +21,7 @@
             "db_type": "mysql",
             "schema_name": ""
         },
-        "description": "Beaver benchmark https://peterbaile.github.io/beaver/",
+        "description": "Beaver BEAVER-MAY-2025 release - 209 questions https://github.com/peterbaile/beaver-may-2025",
         "logo": "beaver.png",
         "name": "beaver",
         "predictions": "results/beaver-predictions.json",

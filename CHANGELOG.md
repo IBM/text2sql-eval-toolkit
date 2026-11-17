@@ -55,6 +55,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`sqlglot_optimized_equivalence` works with sqlglot 29+.** Newer sqlglot
   raises when it can't resolve a column without a schema, so every comparison
   returned 0. Column validation is now turned off for this schema-less check.
+- **"Predictions #" in the per-benchmark summary reports was always 0.** The
+  `*_eval_summary.md` reports read a count that nothing computed. They now
+  count each record's prediction unless its inference failed, the same way the
+  summary JSON and CSV count them. The six published reports are corrected;
+  no scores change.
+- **Beaver's docs name the release it uses.** The `beaver` benchmark is the
+  209-question `BEAVER-MAY-2025` release, archived at
+  https://github.com/peterbaile/beaver-may-2025, but its docs linked
+  beaverbench.github.io. That site now hosts a newer, larger release the
+  toolkit does not support yet, and the registry's link returned 404. Both
+  registry copies, the benchmark and database setup docs, and the dashboard
+  deployment docs now point at the archived release and say where to get its
+  files and dumps. They also note what's still missing: a converter to the
+  toolkit's format, and the toolkit's edited copy of the gold SQL
+  ([#37](https://github.com/IBM/text2sql-eval-toolkit/issues/37)).
 
 ## [1.6.0] - 2026-09-19
 
