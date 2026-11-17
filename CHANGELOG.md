@@ -55,6 +55,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`sqlglot_optimized_equivalence` works with sqlglot 29+.** Newer sqlglot
   raises when it can't resolve a column without a schema, so every comparison
   returned 0. Column validation is now turned off for this schema-less check.
+- **"Predictions #" in the per-benchmark summary reports was always 0.** The
+  `*_eval_summary.md` reports read a count that nothing computed. They now
+  count each record's prediction unless its inference failed, the same way the
+  summary JSON and CSV count them. The six published reports are corrected;
+  no scores change.
 
 ## [1.6.0] - 2026-09-19
 
