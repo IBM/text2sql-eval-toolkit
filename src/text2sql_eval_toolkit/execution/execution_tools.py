@@ -254,6 +254,14 @@ async def _connect_requiring_tls(**kwargs):
         from pymysql.constants import CLIENT
         from pymysql.err import OperationalError
 
+        # The guard overrides a private method. Should a release rename it, the
+        # override would silently stop running, so refuse to connect instead.
+        if not callable(getattr(Connection, "_request_authentication", None)):
+            raise RuntimeError(
+                "This aiomysql version has no Connection._request_authentication, "
+                "so the toolkit cannot refuse a server that does not offer TLS."
+            )
+
         class TlsOnlyConnection(Connection):
             async def _request_authentication(self):
                 if not self.server_capabilities & CLIENT.SSL:

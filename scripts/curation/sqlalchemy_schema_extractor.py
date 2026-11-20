@@ -72,6 +72,14 @@ def _connect_requiring_tls(dialect, connection_record, cargs, cparams):
     from pymysql.constants import CLIENT
     from pymysql.err import OperationalError
 
+    # The guard overrides a private method; if a release renames it, the
+    # override would silently stop running, so refuse to connect instead.
+    if not callable(getattr(Connection, "_request_authentication", None)):
+        raise RuntimeError(
+            "This PyMySQL version has no Connection._request_authentication, so "
+            "the extractor cannot refuse a server that does not offer TLS."
+        )
+
     class TlsOnlyConnection(Connection):
         def _request_authentication(self):
             if not self.server_capabilities & CLIENT.SSL:

@@ -254,3 +254,12 @@ class TestTlsCannotBeStripped:
         client_flags = struct.unpack("<I", received[4:8])[0]
         assert client_flags & 0x800
         assert b"reader" not in received
+
+
+def test_the_guard_refuses_to_run_without_the_hook_it_overrides(monkeypatch):
+    """A driver release that renamed the hook must fail loudly, not fall back."""
+    aiomysql_connection = pytest.importorskip("aiomysql.connection")
+    monkeypatch.setattr(execution_tools, "_tls_only_aiomysql_connection", None)
+    monkeypatch.delattr(aiomysql_connection.Connection, "_request_authentication")
+    with pytest.raises(RuntimeError, match="cannot refuse a server"):
+        asyncio.run(_connect_requiring_tls(host="127.0.0.1", port=1))
