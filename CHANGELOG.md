@@ -66,6 +66,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it, they log in unencrypted. Anyone who could rewrite that handshake could
   strip the offer and collect the login. With TLS on, the library and the schema
   extractor now refuse to log in to a server that does not offer TLS.
+- **`RemoteDatabaseConnector` verifies the API's certificate.** It sent
+  `SQL_API_KEY` as a bearer token with `verify=False`, so anyone between the
+  toolkit and the API could present any certificate and read the key. For a
+  private CA, set `REQUESTS_CA_BUNDLE`.
 - **Connection strings are logged without their password.** MySQL execution
   logged its connection string at DEBUG level. That is the toolkit's default
   level, so every MySQL run printed the database password to the console and,

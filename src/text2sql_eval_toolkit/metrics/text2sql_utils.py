@@ -370,7 +370,6 @@ def execute_query_remote(
                 f"{api_url}/sql",
                 headers=headers,
                 json={"sql": query, "dataSourceId": database_id},
-                verify=False,
                 timeout=timeout,
             )
             response.raise_for_status()
@@ -421,7 +420,12 @@ def execute_query_remote(
 
 
 class RemoteDatabaseConnector(DatabaseConnector):
-    """Database connector for remote databases accessed via HTTP."""
+    """Database connector for remote databases accessed via HTTP.
+
+    The API key travels as a bearer token, so the server's TLS certificate is
+    always verified. For a server whose certificate comes from a private CA,
+    point ``REQUESTS_CA_BUNDLE`` at that CA's certificate.
+    """
 
     def __init__(self, db_config: SQLDatabase):
         super().__init__(db_config)
@@ -456,7 +460,6 @@ class RemoteDatabaseConnector(DatabaseConnector):
         response = requests.get(
             cur_api_url,
             headers=self.headers,
-            verify=False,
             timeout=self.timeout,
         )
         if response.status_code == 200:

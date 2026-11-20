@@ -63,6 +63,10 @@ than reached unencrypted. `ssl_capath` names a folder of CAs instead of a single
 file, and `ssl_cert` (with `ssl_key` if the key is a separate file) adds a
 client certificate. `sslMode=DISABLED` or `ssl=false` turns TLS off.
 
+`RemoteDatabaseConnector` sends `SQL_API_KEY` to its HTTP API as a bearer token
+and always verifies the API's certificate. For a private CA, point
+`REQUESTS_CA_BUNDLE` at that CA's certificate.
+
 SQLite benchmarks read a local folder instead, given by `db_engine.db_folder`.
 
 ## Dashboard
