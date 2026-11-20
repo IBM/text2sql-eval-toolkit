@@ -49,6 +49,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workflows run with a read-only token.** `ci.yml` and `release.yml` now set
   `permissions: contents: read`; the publish and release jobs keep their own
   narrower grants.
+- **MySQL connections over TLS verify the server's certificate.** Whenever TLS
+  was on, which is always for IBM Cloud Databases hosts, certificate and host
+  name checks were turned off. Anyone between the toolkit and the server could
+  then present any certificate and read the MySQL credentials. TLS now always
+  checks that the certificate chains to a trusted CA and names the host, and
+  `sslMode=REQUIRED` and `VERIFY_CA` are treated as `VERIFY_IDENTITY`. For a
+  private CA, add `ssl_ca=/path/to/ca.pem` to the connection string. The
+  `sslMode` parameter was also dropped before it was read, so a
+  `sslMode=VERIFY_IDENTITY` string for any other host connected without TLS.
+  It now turns TLS on. Unknown `ssl*` options are refused rather than ignored,
+  and the two Beaver curation scripts, which had their own copies of the old
+  code, now share the library's.
 
 ### Fixed
 

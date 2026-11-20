@@ -42,6 +42,26 @@ Execution uses SQLAlchemy's asyncio engine, so a connection string must name an
 in the string is translated where the toolkit can do so unambiguously, but
 naming the async driver is clearer.
 
+### MySQL over TLS
+
+TLS is on when the connection string asks for it, with `sslMode=REQUIRED`,
+`VERIFY_CA` or `VERIFY_IDENTITY`, with `ssl=true`, or by naming a CA or a client
+certificate. It is always on for IBM Cloud Databases hosts. Whenever TLS is on,
+the server's certificate must chain to a trusted CA and name the host in the
+URL. `REQUIRED` and `VERIFY_CA` are treated as `VERIFY_IDENTITY`, and there is
+no option to skip the check. If a private CA signs the server's certificate (IBM
+Cloud Databases includes its CA with the service credentials), give that CA's
+path with `ssl_ca`:
+
+```bash
+MYSQL_CONNECTION_STRING="mysql://user:password@host:port/db?sslMode=VERIFY_IDENTITY&ssl_ca=/path/to/ca.pem"
+```
+
+Connect by the host name the certificate names, not by its IP address.
+`ssl_capath` names a folder of CAs instead of a single file, and `ssl_cert` (with
+`ssl_key` if the key is a separate file) adds a client certificate.
+`sslMode=DISABLED` or `ssl=false` turns TLS off.
+
 SQLite benchmarks read a local folder instead, given by `db_engine.db_folder`.
 
 ## Dashboard

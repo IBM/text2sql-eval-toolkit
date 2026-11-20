@@ -14,14 +14,15 @@ import asyncio
 import importlib
 import json
 import logging
-import re
-import ssl
 from pathlib import Path
-from urllib.parse import urlparse, urlunparse
 
 import pandas as pd
 from sqlglot import exp, parse_one
 from tqdm.asyncio import tqdm as tqdm_asyncio
+
+from text2sql_eval_toolkit.execution.execution_tools import (
+    normalize_mysql_connection_string,
+)
 
 _sqlalchemy_mod = None
 _aiomysql_mod = None
@@ -53,63 +54,6 @@ def _require_mysql_deps():
             "MySQL support is optional and not installed. "
             "Install extras with: pip install sqlalchemy[asyncio] aiomysql"
         ) from e
-
-
-def normalize_mysql_connection_string(
-    connection_string: str, db_id: str = None
-) -> tuple[str, dict]:
-    """
-    Normalize MySQL connection string and return connect_args.
-    Based on your working normalize_connection_string function.
-    """
-    connect_args = {}
-
-    # Handle mysql:// with SSL parameters like your example
-    if connection_string.startswith("mysql://"):
-        # For async, we'll try aiomysql first, then fall back to asyncio-mysql
-        # But follow your SSL handling pattern
-        connection_string = connection_string.replace(
-            "mysql://", "mysql+aiomysql://", 1
-        )
-
-        # Parse the URL to modify the database part only if db_id is provided
-        if db_id:
-            parsed = urlparse(connection_string)
-            # Replace the database part (path) with the db_id
-            # Remove leading slash and any existing database name
-            new_path = f"/{db_id}"
-            # Rebuild the URL with the new database name
-            connection_string = urlunparse(
-                (
-                    parsed.scheme,
-                    parsed.netloc,
-                    new_path,
-                    parsed.params,
-                    parsed.query,
-                    parsed.fragment,
-                )
-            )
-
-        # Handle SSL mode parameter conversion - remove problematic SSL params
-        if "sslMode=" in connection_string:
-            # Remove the sslMode parameter entirely and let driver handle SSL automatically
-            connection_string = re.sub(r"[&?]sslMode=[^&]*", "", connection_string)
-
-        # Determine if this is an IBM Cloud or other SSL-required connection
-        ssl_required = any(
-            domain in connection_string
-            for domain in ["databases.appdomain.cloud", "ssl=true", "sslMode="]
-        )
-
-        if ssl_required:
-            # For aiomysql, let's try a simpler SSL approach
-            # Just enable SSL without complex verification for IBM Cloud
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            connect_args = {"ssl": ssl_context}
-
-    return connection_string, connect_args
 
 
 def quote_mysql_identifiers(sql: str) -> str:
@@ -170,13 +114,13 @@ async def run_sql_and_get_dataframe_mysql_async(
     """Execute SQL query on MySQL using SQLAlchemy async engine."""
     sqlalchemy_async, text = _require_mysql_deps()
 
-    # If db_id is provided, create a new connection string for that specific database
+    # Only the database changes per record: the TLS context is already in
+    # connect_args, and the URL no longer carries the options it came from.
+    final_conn_str = normalized_conn_str
     if db_id:
-        final_conn_str, final_connect_args = normalize_mysql_connection_string(
-            normalized_conn_str.replace("mysql+aiomysql://", "mysql://"), db_id
+        final_conn_str, _ = normalize_mysql_connection_string(
+            normalized_conn_str, db_id
         )
-    else:
-        final_conn_str, final_connect_args = normalized_conn_str, connect_args
 
     engine = sqlalchemy_async.create_async_engine(
         final_conn_str,
@@ -185,7 +129,7 @@ async def run_sql_and_get_dataframe_mysql_async(
         pool_pre_ping=True,
         pool_recycle=3600,
         echo=False,
-        connect_args=final_connect_args,
+        connect_args=connect_args,
     )
 
     try:

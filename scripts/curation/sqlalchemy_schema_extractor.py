@@ -23,73 +23,44 @@ import json
 import sys
 from typing import Dict, List, Any
 import argparse
-import re
 
 from sqlalchemy import create_engine, MetaData, Table, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from text2sql_eval_toolkit.execution.execution_tools import mysql_tls_from_url
 
-def normalize_connection_string(connection_string: str) -> str:
+
+def normalize_connection_string(connection_string: str) -> tuple[str, dict]:
     """
-    Normalize connection string for SQLAlchemy.
-    Handles various formats and adds appropriate drivers.
+    Normalize connection string for SQLAlchemy and build its connect_args.
+    Handles various formats and adds appropriate drivers. For MySQL, the TLS
+    options move out of the URL into a context that verifies the server's
+    certificate; see `mysql_tls_from_url`.
     """
-    # Handle mysql:// with SSL parameters like your example
+    connect_args = {}
     if connection_string.startswith("mysql://"):
-        # Replace mysql:// with mysql+pymysql:// for better SSL support
-        connection_string = connection_string.replace("mysql://", "mysql+pymysql://")
-
-        # Handle SSL mode parameter conversion - remove problematic SSL params for now
-        # PyMySQL has issues with certain SSL parameter formats from IBM Cloud
-        if "sslMode=" in connection_string:
-            # Remove the sslMode parameter entirely and let PyMySQL handle SSL automatically
-            connection_string = re.sub(r"[&?]sslMode=[^&]*", "", connection_string)
-            # Add ssl_disabled=false to ensure SSL is used
-            if "?" in connection_string:
-                connection_string += "&ssl_disabled=false"
-            else:
-                connection_string += "?ssl_disabled=false"
-
-    # Handle postgresql://
+        connection_string = connection_string.replace("mysql://", "mysql+pymysql://", 1)
     elif connection_string.startswith("postgresql://"):
         connection_string = connection_string.replace(
             "postgresql://", "postgresql+psycopg2://"
         )
 
-    # Handle other database types
-    elif connection_string.startswith("sqlite://"):
-        pass  # SQLite works as-is
+    if connection_string.startswith("mysql"):
+        connection_string, ssl_context = mysql_tls_from_url(connection_string)
+        if ssl_context is not None:
+            # PyMySQL takes the context as is. Its dict form would not do: with
+            # no CA named in it, PyMySQL skips the certificate check entirely.
+            connect_args["ssl"] = ssl_context
 
-    return connection_string
+    return connection_string, connect_args
 
 
 def get_database_engine(connection_string: str) -> Engine:
     """Create SQLAlchemy engine from connection string."""
-    normalized_conn_str = normalize_connection_string(connection_string)
-
-    # Debug: Print connection string details
-    print(f"Original connection string: {connection_string}")
-    print(f"Normalized connection string: {normalized_conn_str}")
-
-    # Determine if this is an IBM Cloud or other SSL-required connection
-    ssl_required = any(
-        domain in connection_string
-        for domain in ["databases.appdomain.cloud", "ssl=true", "sslMode="]
-    )
+    normalized_conn_str, connect_args = normalize_connection_string(connection_string)
 
     try:
-        # Create engine with SSL configuration for cloud databases
-        connect_args = {}
-        if ssl_required:
-            connect_args = {
-                "ssl": {
-                    "check_hostname": False,
-                    "verify_mode": "CERT_NONE",  # Less strict for IBM Cloud
-                },
-                "ssl_disabled": False,
-            }
-
         engine = create_engine(
             normalized_conn_str,
             pool_pre_ping=True,
@@ -108,8 +79,7 @@ def get_database_engine(connection_string: str) -> Engine:
         print(f"  Port: {url.port}")
         print(f"  Database: {url.database}")
         print(f"  Query params: {dict(url.query)}")
-        print(f"  SSL required: {ssl_required}")
-        print(f"  Connect args: {connect_args}")
+        print(f"  TLS: {'on, certificate verified' if connect_args else 'off'}")
 
         # Test the connection
         print("Testing connection...")
@@ -120,32 +90,6 @@ def get_database_engine(connection_string: str) -> Engine:
         return engine
     except SQLAlchemyError as err:
         print(f"Error connecting to database: {err}")
-
-        # Try alternative SSL configuration if the first attempt fails
-        if ssl_required:
-            print("Trying alternative SSL configuration...")
-            try:
-                alt_connect_args = {
-                    "ssl_ca": "",  # Empty CA for IBM Cloud
-                    "ssl_disabled": False,
-                }
-
-                engine = create_engine(
-                    normalized_conn_str,
-                    pool_pre_ping=True,
-                    pool_recycle=3600,
-                    echo=False,
-                    connect_args=alt_connect_args,
-                )
-
-                with engine.connect() as conn:
-                    result = conn.execute(text("SELECT 1"))
-                    print(f"Alternative SSL connection successful: {result.fetchone()}")
-
-                return engine
-            except SQLAlchemyError as alt_err:
-                print(f"Alternative SSL configuration also failed: {alt_err}")
-
         sys.exit(1)
 
 
@@ -344,6 +288,7 @@ Examples:
 
 IBM Cloud MySQL:
   {script_name} 'mysql://user:pass@host.databases.appdomain.cloud:31618/db?sslMode=VERIFY_IDENTITY' dbname
+  (add &ssl_ca=/path/to/ca.pem when the service's CA is not one this machine trusts)
 
 Supported databases: MySQL, PostgreSQL, SQLite, SQL Server, Oracle
         """,
