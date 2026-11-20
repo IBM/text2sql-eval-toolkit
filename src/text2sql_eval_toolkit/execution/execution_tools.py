@@ -47,6 +47,7 @@ import json
 import pandas as pd
 import re
 import sqlite3
+import ssl
 import urllib.parse
 import time
 from func_timeout import func_timeout, FunctionTimedOut
@@ -65,7 +66,16 @@ from text2sql_eval_toolkit.execution.replace_select_tool import (
     replace_select_for_logic_ex,
 )
 from text2sql_eval_toolkit.logging import get_logger
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import (
+    parse_qs,
+    parse_qsl,
+    unquote,
+    urlencode,
+    urlparse,
+    urlsplit,
+    urlunparse,
+    urlunsplit,
+)
 
 _ibm_db_mod = None
 _sqlalchemy_mod = None
@@ -99,18 +109,222 @@ def _require_mysql_deps():
         ) from e
 
 
+# TLS for MySQL is set through these query-string keys. They are taken out of
+# the URL and built into an `ssl.SSLContext` for `connect_args`, because that is
+# the only form aiomysql accepts: left in the URL, SQLAlchemy hands them to the
+# driver as a dict or as stray keyword arguments, and neither works. `sslMode`
+# is MySQL Connector/J's spelling, and the one IBM Cloud Databases writes in the
+# connection strings it hands out; `ssl-mode` and `ssl_mode` are MySQL's own.
+# Keys match case-insensitively.
+_MYSQL_SSL_MODE_KEYS = frozenset({"sslmode", "ssl-mode", "ssl_mode"})
+_MYSQL_SSL_FILE_KEYS = frozenset({"ssl_ca", "ssl_capath", "ssl_cert", "ssl_key"})
+_MYSQL_SSL_MODES = ("DISABLED", "PREFERRED", "REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY")
+# Hosts that refuse unencrypted connections, so TLS is on for them even when the
+# connection string does not ask for it.
+_MYSQL_TLS_ONLY_HOST_SUFFIXES = (".databases.appdomain.cloud",)
+
+
+def mysql_tls_from_url(connection_string: str) -> tuple[str, ssl.SSLContext | None]:
+    """Take the TLS options out of a MySQL URL and build the context they ask for.
+
+    Whenever TLS is on, the server's certificate must chain to a trusted CA and
+    name the host connected to, whatever ``sslMode`` says. ``REQUIRED`` and
+    ``VERIFY_CA`` are read as ``VERIFY_IDENTITY``, because a certificate that
+    goes unchecked is one a man in the middle can present while collecting the
+    password. A server whose certificate comes from a private CA is reached by
+    naming that CA with ``ssl_ca``; there is deliberately no option to switch
+    the check off.
+
+    TLS is on when the URL sets ``sslMode`` to ``REQUIRED``, ``VERIFY_CA`` or
+    ``VERIFY_IDENTITY``, sets ``ssl=true``, names a CA or a client certificate,
+    or points at a host that accepts nothing else (IBM Cloud Databases).
+    ``sslMode=DISABLED`` or ``ssl=false`` turns it off, and ``PREFERRED``, which
+    is MySQL's default, changes nothing.
+
+    Args:
+        connection_string: A MySQL SQLAlchemy URL, naming any driver.
+
+    Returns:
+        The URL without its TLS options, and the context to pass as
+        ``connect_args["ssl"]``, or None when TLS is off. aiomysql and PyMySQL
+        both treat the context as a preference and log in without TLS when
+        the server does not offer it, so the caller must also refuse that
+        case. `normalize_mysql_connection_string` does this for aiomysql.
+
+    Raises:
+        ValueError: If the URL has a TLS option this function does not
+            support, or a value MySQL does not define for one.
+    """
+    parsed = urlparse(connection_string)
+    kept, options = [], {}
+    for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+        if key.lower().startswith("ssl"):
+            options[key.lower()] = value
+        else:
+            kept.append((key, value))
+    if not options and not (parsed.hostname or "").endswith(
+        _MYSQL_TLS_ONLY_HOST_SUFFIXES
+    ):
+        return connection_string, None
+    if options:
+        connection_string = urlunparse(parsed._replace(query=urlencode(kept)))
+
+    unknown = sorted(
+        set(options) - _MYSQL_SSL_MODE_KEYS - _MYSQL_SSL_FILE_KEYS - {"ssl"}
+    )
+    if unknown:
+        raise ValueError(
+            f"Unsupported MySQL TLS option(s) in the connection string: "
+            f"{', '.join(unknown)}. TLS is set with sslMode, ssl, ssl_ca, "
+            "ssl_capath, ssl_cert and ssl_key, and the server's certificate is "
+            "always verified."
+        )
+    mode = next((v for k, v in options.items() if k in _MYSQL_SSL_MODE_KEYS), "")
+    mode = mode.upper()
+    if mode and mode not in _MYSQL_SSL_MODES:
+        raise ValueError(
+            f"sslMode={mode} is not a MySQL SSL mode; use one of "
+            f"{', '.join(_MYSQL_SSL_MODES)}."
+        )
+    flag = options.get("ssl", "").lower()
+    if flag not in ("", "true", "false"):
+        raise ValueError(f"ssl={flag} in the connection string must be true or false.")
+    files = {
+        key[len("ssl_") :]: os.path.expanduser(options[key])
+        for key in _MYSQL_SSL_FILE_KEYS
+        if options.get(key)
+    }
+    if "key" in files and "cert" not in files:
+        raise ValueError("ssl_key needs ssl_cert, the certificate the key belongs to.")
+
+    if mode == "DISABLED" or flag == "false":
+        return connection_string, None
+    if not (
+        mode in ("REQUIRED", "VERIFY_CA", "VERIFY_IDENTITY")
+        or flag == "true"
+        or files
+        or (parsed.hostname or "").endswith(_MYSQL_TLS_ONLY_HOST_SUFFIXES)
+    ):
+        return connection_string, None
+
+    # The default context verifies the chain and the host name. Nothing here
+    # may loosen either; a private CA is trusted by loading it, not by skipping
+    # the check.
+    context = ssl.create_default_context(
+        cafile=files.get("ca"), capath=files.get("capath")
+    )
+    if "cert" in files:
+        context.load_cert_chain(files["cert"], files.get("key"))
+    return connection_string, context
+
+
+def _is_certificate_failure(exc: BaseException | None) -> bool:
+    """Whether ``exc`` was caused, at any depth, by a failed certificate check."""
+    seen = set()
+    while exc is not None and id(exc) not in seen:
+        if isinstance(exc, ssl.SSLCertVerificationError):
+            return True
+        seen.add(id(exc))
+        exc = exc.__cause__ or exc.__context__
+    return False
+
+
+# CR_SSL_CONNECTION_ERROR among MySQL's client error codes.
+MYSQL_TLS_ERROR_CODE = 2026
+MYSQL_TLS_NOT_OFFERED = (
+    "TLS was requested, but the MySQL server at {host!r} did not offer it, so "
+    "the login was not sent. Either TLS is off on the server, or something "
+    "between here and the server removed the offer."
+)
+_tls_only_aiomysql_connection = None
+
+
+async def _connect_requiring_tls(**kwargs):
+    """Open an aiomysql connection that will not log in without TLS.
+
+    aiomysql treats an SSL context as a preference. If the server's handshake
+    does not offer TLS, it carries on unencrypted and sends the login anyway,
+    so anyone who can rewrite that handshake can strip the offer and collect
+    the credentials. SQLAlchemy calls this in place of ``aiomysql.connect``,
+    through ``connect_args["async_creator_fn"]``, with the same arguments.
+    """
+    global _tls_only_aiomysql_connection
+    if _tls_only_aiomysql_connection is None:
+        from aiomysql.connection import Connection
+        from pymysql.constants import CLIENT
+        from pymysql.err import OperationalError
+
+        # The guard overrides a private method. Should a release rename it, the
+        # override would silently stop running, so refuse to connect instead.
+        if not callable(getattr(Connection, "_request_authentication", None)):
+            raise RuntimeError(
+                "This aiomysql version has no Connection._request_authentication, "
+                "so the toolkit cannot refuse a server that does not offer TLS."
+            )
+
+        class TlsOnlyConnection(Connection):
+            async def _request_authentication(self):
+                if not self.server_capabilities & CLIENT.SSL:
+                    raise OperationalError(
+                        MYSQL_TLS_ERROR_CODE,
+                        MYSQL_TLS_NOT_OFFERED.format(host=self._host),
+                    )
+                await super()._request_authentication()
+
+        _tls_only_aiomysql_connection = TlsOnlyConnection
+
+    connection = _tls_only_aiomysql_connection(**kwargs)
+    await connection._connect()
+    return connection
+
+
+def redact_url_password(url: str) -> str:
+    """Return a connection URL with its password, if it has one, shown as ``***``.
+
+    For logging: the toolkit's loggers default to DEBUG and, in a source
+    checkout, also write to a file, so a URL logged as is leaves the database
+    password on the console and on disk.
+
+    Args:
+        url: A URL such as ``mysql://user:password@host:3306/db``.
+
+    Returns:
+        The same URL with ``user:***@`` in place of ``user:password@``.
+    """
+    parsed = urlsplit(url)
+    if parsed.password is None:
+        return url
+    userinfo, _, host = parsed.netloc.rpartition("@")
+    user = userinfo.split(":", 1)[0]
+    return urlunsplit(parsed._replace(netloc=f"{user}:***@{host}"))
+
+
+def _with_mysql_database(connection_string: str, db_id: str) -> str:
+    """Point a MySQL URL at ``db_id`` instead of the database it names."""
+    return urlunparse(urlparse(connection_string)._replace(path=f"/{db_id}"))
+
+
 def normalize_mysql_connection_string(
-    connection_string: str, db_id: str = None
+    connection_string: str, db_id: str | None = None
 ) -> tuple[str, dict]:
-    """
-    Normalize MySQL connection string and return connect_args.
-    Based on your working normalize_connection_string function.
-    """
-    import re
-    from urllib.parse import urlparse, urlunparse
+    """Rewrite a MySQL URL for the async engine and build its ``connect_args``.
 
-    connect_args = {}
+    The driver becomes aiomysql, ``db_id`` (when given) replaces the database
+    the URL names, and the TLS options move out of the query string into
+    ``connect_args["ssl"]`` as a verifying context; see `mysql_tls_from_url`.
+    When TLS is on, ``connect_args["async_creator_fn"]`` also makes the
+    connection refuse to log in if the server does not offer TLS.
 
+    Args:
+        connection_string: A MySQL URL naming any MySQL driver, or none.
+        db_id: Database to connect to instead of the one in the URL.
+
+    Returns:
+        The normalized URL and the ``connect_args`` for ``create_async_engine``.
+
+    Raises:
+        ValueError: If the URL's TLS options are not ones MySQL defines.
+    """
     # Execution is asyncio, so the URL has to name an async driver. Only
     # `mysql://` used to be rewritten, which meant a connection string written
     # as `mysql+pymysql://` -- the form most MySQL documentation shows, and a
@@ -134,56 +348,20 @@ def normalize_mysql_connection_string(
             )
             break
 
-    # Handle mysql:// with SSL parameters like your example
     if connection_string.startswith("mysql://"):
-        # For async, we'll try aiomysql first, then fall back to asyncio-mysql
-        # But follow your SSL handling pattern
-        connection_string = connection_string.replace(
-            "mysql://", "mysql+aiomysql://", 1
-        )
+        connection_string = "mysql+aiomysql://" + connection_string[len("mysql://") :]
 
-    if connection_string.startswith("mysql+aiomysql://"):
-        # Parse the URL to modify the database part only if db_id is provided
-        if db_id:
-            parsed = urlparse(connection_string)
-            # Replace the database part (path) with the db_id
-            # Remove leading slash and any existing database name
-            new_path = f"/{db_id}"
-            # Rebuild the URL with the new database name
-            connection_string = urlunparse(
-                (
-                    parsed.scheme,
-                    parsed.netloc,
-                    new_path,
-                    parsed.params,
-                    parsed.query,
-                    parsed.fragment,
-                )
-            )
-
-        # Handle SSL mode parameter conversion - remove problematic SSL params
-        if "sslMode=" in connection_string:
-            # Remove the sslMode parameter entirely and let driver handle SSL automatically
-            connection_string = re.sub(r"[&?]sslMode=[^&]*", "", connection_string)
-
-        # Determine if this is an IBM Cloud or other SSL-required connection
-        ssl_required = any(
-            domain in connection_string
-            for domain in ["databases.appdomain.cloud", "ssl=true", "sslMode="]
-        )
-
-        if ssl_required:
-            # For aiomysql, let's try a simpler SSL approach
-            # Just enable SSL without complex verification for IBM Cloud
-            import ssl
-
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-
-            connect_args = {"ssl": ssl_context}
-
-    return connection_string, connect_args
+    if not connection_string.startswith("mysql+aiomysql://"):
+        return connection_string, {}
+    if db_id:
+        connection_string = _with_mysql_database(connection_string, db_id)
+    connection_string, ssl_context = mysql_tls_from_url(connection_string)
+    if ssl_context is None:
+        return connection_string, {}
+    return connection_string, {
+        "ssl": ssl_context,
+        "async_creator_fn": _connect_requiring_tls,
+    }
 
 
 def quote_mysql_identifiers(sql: str) -> str:
@@ -249,9 +427,9 @@ async def run_sql_and_get_dataframe_mysql_async(
     Execute SQL query on MySQL using SQLAlchemy async engine with timeout.
 
     Args:
-        normalized_conn_str: MySQL connection string
-        connect_args: Connection arguments
-        db_id: Database ID to connect to
+        normalized_conn_str: URL from `normalize_mysql_connection_string`
+        connect_args: The connect_args it returned, which carry the TLS context
+        db_id: Database to connect to instead of the one in the URL
         sql: SQL query to execute
         timeout: Query timeout in seconds (default: 90)
 
@@ -263,13 +441,14 @@ async def run_sql_and_get_dataframe_mysql_async(
     """
     sqlalchemy_async, text = _require_mysql_deps()
 
-    # If db_id is provided, create a new connection string for that specific database
-    if db_id:
-        final_conn_str, final_connect_args = normalize_mysql_connection_string(
-            normalized_conn_str.replace("mysql+aiomysql://", "mysql://"), db_id
-        )
-    else:
-        final_conn_str, final_connect_args = normalized_conn_str, connect_args
+    # Only the database changes per record. The TLS options left the URL when
+    # it was normalized and live in connect_args now, so normalizing it again
+    # would find none and connect without TLS.
+    final_conn_str = (
+        _with_mysql_database(normalized_conn_str, db_id)
+        if db_id
+        else normalized_conn_str
+    )
 
     engine = sqlalchemy_async.create_async_engine(
         final_conn_str,
@@ -278,7 +457,7 @@ async def run_sql_and_get_dataframe_mysql_async(
         pool_pre_ping=True,
         pool_recycle=3600,
         echo=False,
-        connect_args=final_connect_args,
+        connect_args=connect_args,
     )
 
     # Log query execution start
@@ -336,14 +515,19 @@ async def mysql_run_execution_async(
     with open(predictions_path, "r") as pf:
         predictions_data = json.load(pf)
 
-    logger.debug(f"Original MySQL connection string: {connection_string}")
+    logger.debug(
+        f"Original MySQL connection string: {redact_url_password(connection_string)}"
+    )
 
     # Test the base connection first
     try:
         normalized_conn_str, connect_args = normalize_mysql_connection_string(
             connection_string
         )
-        logger.debug(f"Normalized MySQL connection string: {normalized_conn_str}")
+        logger.debug(
+            "Normalized MySQL connection string: "
+            f"{redact_url_password(normalized_conn_str)}"
+        )
         logger.debug(f"MySQL connect_args: {connect_args}")
 
         # Create a test engine to verify base connection
@@ -368,7 +552,16 @@ async def mysql_run_execution_async(
 
     except Exception as e:
         logger.error(f"Error connecting to MySQL database: {e}")
-        raise RuntimeError(f"Failed to connect to MySQL database: {e}") from e
+        hint = ""
+        if _is_certificate_failure(e):
+            hint = (
+                ". The server's TLS certificate did not verify: either it does not "
+                "name the host in the connection string, or it is signed by a CA "
+                "this machine does not trust. For a private CA (IBM Cloud "
+                "Databases includes one with the service credentials), add "
+                "ssl_ca=/path/to/ca.pem to the connection string."
+            )
+        raise RuntimeError(f"Failed to connect to MySQL database: {e}{hint}") from e
 
     semaphore = asyncio.Semaphore(max_concurrent_tasks)
 

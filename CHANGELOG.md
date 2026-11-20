@@ -49,6 +49,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Workflows run with a read-only token.** `ci.yml` and `release.yml` now set
   `permissions: contents: read`; the publish and release jobs keep their own
   narrower grants.
+- **MySQL connections over TLS verify the server's certificate.** Whenever TLS
+  was on, which is always for IBM Cloud Databases hosts, certificate and host
+  name checks were turned off. Anyone between the toolkit and the server could
+  then present any certificate and read the MySQL credentials. TLS now always
+  checks that the certificate chains to a trusted CA and names the host, and
+  `sslMode=REQUIRED` and `VERIFY_CA` are treated as `VERIFY_IDENTITY`. For a
+  private CA, add `ssl_ca=/path/to/ca.pem` to the connection string. The
+  `sslMode` parameter was also dropped before it was read, so a
+  `sslMode=VERIFY_IDENTITY` string for any other host connected without TLS.
+  It now turns TLS on. Unknown `ssl*` options are refused rather than ignored,
+  and the two Beaver curation scripts, which had their own copies of the old
+  code, now share the library's.
+- **TLS can no longer be stripped from a MySQL connection.** aiomysql and
+  PyMySQL treat TLS as a preference: when the server's handshake does not offer
+  it, they log in unencrypted. Anyone who could rewrite that handshake could
+  strip the offer and collect the login. With TLS on, the library and the schema
+  extractor now refuse to log in to a server that does not offer TLS.
+- **`RemoteDatabaseConnector` verifies the API's certificate.** It sent
+  `SQL_API_KEY` as a bearer token with `verify=False`, so anyone between the
+  toolkit and the API could present any certificate and read the key. For a
+  private CA, set `REQUESTS_CA_BUNDLE`.
+- **Connection strings are logged without their password.** MySQL execution
+  logged its connection string at DEBUG level. That is the toolkit's default
+  level, so every MySQL run printed the database password to the console and,
+  in a source checkout, to `data/results/bak/log.txt`. The new helper
+  `redact_url_password` now shows it as `***`. The Beaver curation runner gets
+  the same fix, and the BIRD Postgres schema converter no longer logs its
+  connection string at all. That converter also used to fail both with and
+  without `--pg_conn_str`, because an `else` was indented under the wrong `if`.
 
 ### Fixed
 
