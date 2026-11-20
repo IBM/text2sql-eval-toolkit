@@ -61,6 +61,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It now turns TLS on. Unknown `ssl*` options are refused rather than ignored,
   and the two Beaver curation scripts, which had their own copies of the old
   code, now share the library's.
+- **Connection strings are logged without their password.** MySQL execution
+  logged its connection string at DEBUG level. That is the toolkit's default
+  level, so every MySQL run printed the database password to the console and,
+  in a source checkout, to `data/results/bak/log.txt`. The new helper
+  `redact_url_password` now shows it as `***`. The Beaver curation runner gets
+  the same fix, and the BIRD Postgres schema converter no longer logs its
+  connection string at all. That converter also used to fail both with and
+  without `--pg_conn_str`, because an `else` was indented under the wrong `if`.
 
 ### Fixed
 

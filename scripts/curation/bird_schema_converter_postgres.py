@@ -231,16 +231,17 @@ if __name__ == "__main__":
     with open(args.dev_tables_filepath, "r") as f:
         dev_tables_json = json.load(f)
 
+    # The string itself is never logged: it carries the database password.
     if args.pg_conn_str is None:
         pg_conn_str = os.getenv("POSTGRES_CONNECTION_STRING")
         if not pg_conn_str:
             logger.error("POSTGRES_CONNECTION_STRING is not set")
             raise RuntimeError("Missing POSTGRES_CONNECTION_STRING")
-        else:
-            pg_conn_str = args.pg_conn_str
-            logger.info(
-                f"Using Postgres connection string from environment variable: {pg_conn_str}"
-            )
+        logger.info(
+            "Using the Postgres connection string in POSTGRES_CONNECTION_STRING"
+        )
+    else:
+        pg_conn_str = args.pg_conn_str
 
     schema = get_bird_pg_schema_dict(dev_tables_json, pg_conn_str)
 

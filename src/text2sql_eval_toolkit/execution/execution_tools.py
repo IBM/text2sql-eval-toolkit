@@ -72,7 +72,9 @@ from urllib.parse import (
     unquote,
     urlencode,
     urlparse,
+    urlsplit,
     urlunparse,
+    urlunsplit,
 )
 
 _ibm_db_mod = None
@@ -222,6 +224,27 @@ def _is_certificate_failure(exc: BaseException | None) -> bool:
         seen.add(id(exc))
         exc = exc.__cause__ or exc.__context__
     return False
+
+
+def redact_url_password(url: str) -> str:
+    """Return a connection URL with its password, if it has one, shown as ``***``.
+
+    For logging: the toolkit's loggers default to DEBUG and, in a source
+    checkout, also write to a file, so a URL logged as is leaves the database
+    password on the console and on disk.
+
+    Args:
+        url: A URL such as ``mysql://user:password@host:3306/db``.
+
+    Returns:
+        The same URL with ``user:***@`` in place of ``user:password@``.
+    """
+    parsed = urlsplit(url)
+    if parsed.password is None:
+        return url
+    userinfo, _, host = parsed.netloc.rpartition("@")
+    user = userinfo.split(":", 1)[0]
+    return urlunsplit(parsed._replace(netloc=f"{user}:***@{host}"))
 
 
 def _with_mysql_database(connection_string: str, db_id: str) -> str:
@@ -433,14 +456,19 @@ async def mysql_run_execution_async(
     with open(predictions_path, "r") as pf:
         predictions_data = json.load(pf)
 
-    logger.debug(f"Original MySQL connection string: {connection_string}")
+    logger.debug(
+        f"Original MySQL connection string: {redact_url_password(connection_string)}"
+    )
 
     # Test the base connection first
     try:
         normalized_conn_str, connect_args = normalize_mysql_connection_string(
             connection_string
         )
-        logger.debug(f"Normalized MySQL connection string: {normalized_conn_str}")
+        logger.debug(
+            "Normalized MySQL connection string: "
+            f"{redact_url_password(normalized_conn_str)}"
+        )
         logger.debug(f"MySQL connect_args: {connect_args}")
 
         # Create a test engine to verify base connection

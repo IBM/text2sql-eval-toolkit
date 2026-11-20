@@ -22,6 +22,7 @@ from tqdm.asyncio import tqdm as tqdm_asyncio
 
 from text2sql_eval_toolkit.execution.execution_tools import (
     normalize_mysql_connection_string,
+    redact_url_password,
 )
 
 _sqlalchemy_mod = None
@@ -178,7 +179,10 @@ async def run_sql_queries(
         normalized_conn_str, connect_args = normalize_mysql_connection_string(
             connection_string
         )
-        logger.debug(f"Normalized MySQL connection string: {normalized_conn_str}")
+        logger.debug(
+            "Normalized MySQL connection string: "
+            f"{redact_url_password(normalized_conn_str)}"
+        )
 
         # Create a test engine to verify base connection
         sqlalchemy_async, text = _require_mysql_deps()
