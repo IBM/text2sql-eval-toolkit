@@ -146,7 +146,10 @@ def mysql_tls_from_url(connection_string: str) -> tuple[str, ssl.SSLContext | No
 
     Returns:
         The URL without its TLS options, and the context to pass as
-        ``connect_args["ssl"]``, or None when TLS is off.
+        ``connect_args["ssl"]``, or None when TLS is off. aiomysql and PyMySQL
+        both treat the context as a preference and log in without TLS when
+        the server does not offer it, so the caller must also refuse that
+        case. `normalize_mysql_connection_string` does this for aiomysql.
 
     Raises:
         ValueError: If the URL has a TLS option this function does not
@@ -226,6 +229,47 @@ def _is_certificate_failure(exc: BaseException | None) -> bool:
     return False
 
 
+# CR_SSL_CONNECTION_ERROR among MySQL's client error codes.
+MYSQL_TLS_ERROR_CODE = 2026
+MYSQL_TLS_NOT_OFFERED = (
+    "TLS was requested, but the MySQL server at {host!r} did not offer it, so "
+    "the login was not sent. Either TLS is off on the server, or something "
+    "between here and the server removed the offer."
+)
+_tls_only_aiomysql_connection = None
+
+
+async def _connect_requiring_tls(**kwargs):
+    """Open an aiomysql connection that will not log in without TLS.
+
+    aiomysql treats an SSL context as a preference. If the server's handshake
+    does not offer TLS, it carries on unencrypted and sends the login anyway,
+    so anyone who can rewrite that handshake can strip the offer and collect
+    the credentials. SQLAlchemy calls this in place of ``aiomysql.connect``,
+    through ``connect_args["async_creator_fn"]``, with the same arguments.
+    """
+    global _tls_only_aiomysql_connection
+    if _tls_only_aiomysql_connection is None:
+        from aiomysql.connection import Connection
+        from pymysql.constants import CLIENT
+        from pymysql.err import OperationalError
+
+        class TlsOnlyConnection(Connection):
+            async def _request_authentication(self):
+                if not self.server_capabilities & CLIENT.SSL:
+                    raise OperationalError(
+                        MYSQL_TLS_ERROR_CODE,
+                        MYSQL_TLS_NOT_OFFERED.format(host=self._host),
+                    )
+                await super()._request_authentication()
+
+        _tls_only_aiomysql_connection = TlsOnlyConnection
+
+    connection = _tls_only_aiomysql_connection(**kwargs)
+    await connection._connect()
+    return connection
+
+
 def redact_url_password(url: str) -> str:
     """Return a connection URL with its password, if it has one, shown as ``***``.
 
@@ -260,6 +304,8 @@ def normalize_mysql_connection_string(
     The driver becomes aiomysql, ``db_id`` (when given) replaces the database
     the URL names, and the TLS options move out of the query string into
     ``connect_args["ssl"]`` as a verifying context; see `mysql_tls_from_url`.
+    When TLS is on, ``connect_args["async_creator_fn"]`` also makes the
+    connection refuse to log in if the server does not offer TLS.
 
     Args:
         connection_string: A MySQL URL naming any MySQL driver, or none.
@@ -302,7 +348,12 @@ def normalize_mysql_connection_string(
     if db_id:
         connection_string = _with_mysql_database(connection_string, db_id)
     connection_string, ssl_context = mysql_tls_from_url(connection_string)
-    return connection_string, {} if ssl_context is None else {"ssl": ssl_context}
+    if ssl_context is None:
+        return connection_string, {}
+    return connection_string, {
+        "ssl": ssl_context,
+        "async_creator_fn": _connect_requiring_tls,
+    }
 
 
 def quote_mysql_identifiers(sql: str) -> str:

@@ -10,11 +10,14 @@ The connection string used to switch certificate checks off whenever TLS was on
 toolkit and the server could present any certificate and read the credentials.
 It also stripped `sslMode` before testing for it, which left a
 `sslMode=VERIFY_IDENTITY` string on any host but IBM Cloud connecting without
-TLS at all.
+TLS at all. And the driver treats TLS as a preference: when the server's
+handshake does not offer it, aiomysql logs in unencrypted, so whoever can
+rewrite that handshake gets the credentials.
 """
 
 import asyncio
 import ssl
+import struct
 from types import SimpleNamespace
 
 import certifi
@@ -22,6 +25,7 @@ import pytest
 
 from text2sql_eval_toolkit.execution import execution_tools
 from text2sql_eval_toolkit.execution.execution_tools import (
+    _connect_requiring_tls,
     _is_certificate_failure,
     mysql_tls_from_url,
     normalize_mysql_connection_string,
@@ -51,6 +55,12 @@ class TestTlsIsOnWhenAskedFor:
             "mysql://u:p@db.example.com:3306/base?ssl=true"
         )
         _assert_verifies(args["ssl"])
+
+    def test_tls_connections_go_through_the_tls_only_connector(self):
+        _, args = normalize_mysql_connection_string(
+            "mysql://u:p@db.example.com:3306/base?sslMode=REQUIRED"
+        )
+        assert args["async_creator_fn"] is _connect_requiring_tls
 
     def test_ibm_cloud_hosts_get_tls_unasked(self):
         url = "mysql://u:p@abc.databases.appdomain.cloud:31618/base"
@@ -182,3 +192,65 @@ def test_a_certificate_failure_is_recognized_through_wrapping():
     except OSError as outer:
         assert _is_certificate_failure(outer)
     assert not _is_certificate_failure(OSError("Connection refused"))
+
+
+# A MySQL server's first packet: protocol 10, with or without CLIENT_SSL among
+# its capabilities. Everything else is the minimum aiomysql parses.
+def _handshake(offer_tls):
+    caps = 0x1 | 0x8 | 0x200 | 0x8000 | 0x80000 | (0x800 if offer_tls else 0)
+    payload = (
+        b"\x0a8.0.0-fake\x00"
+        + struct.pack("<I", 1)
+        + b"abcdefgh\x00"
+        + struct.pack("<HBHH", caps & 0xFFFF, 45, 2, caps >> 16)
+        + bytes([21])
+        + b"\x00" * 10
+        + b"ijklmnopqrst\x00mysql_native_password\x00"
+    )
+    return struct.pack("<I", len(payload))[:3] + b"\x00" + payload
+
+
+async def _login_attempt(offer_tls):
+    """Connect with TLS requested; return the error and what the server got."""
+    received, done = [], asyncio.Event()
+
+    async def handle(reader, writer):
+        writer.write(_handshake(offer_tls))
+        await writer.drain()
+        try:
+            received.append(await asyncio.wait_for(reader.read(4096), 2))
+        finally:
+            writer.close()
+            done.set()
+
+    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    url, connect_args = normalize_mysql_connection_string(
+        f"mysql://reader:s3cret@127.0.0.1:{port}/db?sslMode=VERIFY_IDENTITY"
+    )
+    async with server:
+        with pytest.raises(Exception) as caught:
+            await run_sql_and_get_dataframe_mysql_async(
+                url, connect_args, None, "SELECT 1", timeout=5
+            )
+        await asyncio.wait_for(done.wait(), 5)
+    return caught.value, received[0]
+
+
+class TestTlsCannotBeStripped:
+    """Through SQLAlchemy and aiomysql, against a fake server on localhost."""
+
+    def test_a_server_that_does_not_offer_tls_never_gets_the_login(self):
+        pytest.importorskip("aiomysql")
+        error, received = asyncio.run(_login_attempt(offer_tls=False))
+        assert "did not offer it, so the login was not sent" in str(error)
+        assert received == b""
+
+    def test_a_server_that_offers_tls_is_asked_to_switch_to_it(self):
+        """The first reply is the 32-byte SSL request, not the login."""
+        pytest.importorskip("aiomysql")
+        _, received = asyncio.run(_login_attempt(offer_tls=True))
+        assert int.from_bytes(received[:3], "little") == 32
+        client_flags = struct.unpack("<I", received[4:8])[0]
+        assert client_flags & 0x800
+        assert b"reader" not in received

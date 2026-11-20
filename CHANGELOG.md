@@ -61,6 +61,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It now turns TLS on. Unknown `ssl*` options are refused rather than ignored,
   and the two Beaver curation scripts, which had their own copies of the old
   code, now share the library's.
+- **TLS can no longer be stripped from a MySQL connection.** aiomysql and
+  PyMySQL treat TLS as a preference: when the server's handshake does not offer
+  it, they log in unencrypted. Anyone who could rewrite that handshake could
+  strip the offer and collect the login. With TLS on, the library and the schema
+  extractor now refuse to log in to a server that does not offer TLS.
 - **Connection strings are logged without their password.** MySQL execution
   logged its connection string at DEBUG level. That is the toolkit's default
   level, so every MySQL run printed the database password to the console and,

@@ -57,10 +57,11 @@ path with `ssl_ca`:
 MYSQL_CONNECTION_STRING="mysql://user:password@host:port/db?sslMode=VERIFY_IDENTITY&ssl_ca=/path/to/ca.pem"
 ```
 
-Connect by the host name the certificate names, not by its IP address.
-`ssl_capath` names a folder of CAs instead of a single file, and `ssl_cert` (with
-`ssl_key` if the key is a separate file) adds a client certificate.
-`sslMode=DISABLED` or `ssl=false` turns TLS off.
+Connect by the host name the certificate names, not by its IP address. With TLS
+on, a server that does not offer TLS is refused before the login is sent, rather
+than reached unencrypted. `ssl_capath` names a folder of CAs instead of a single
+file, and `ssl_cert` (with `ssl_key` if the key is a separate file) adds a
+client certificate. `sslMode=DISABLED` or `ssl=false` turns TLS off.
 
 SQLite benchmarks read a local folder instead, given by `db_engine.db_folder`.
 

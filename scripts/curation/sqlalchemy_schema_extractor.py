@@ -24,11 +24,15 @@ import sys
 from typing import Dict, List, Any
 import argparse
 
-from sqlalchemy import create_engine, MetaData, Table, inspect, text
+from sqlalchemy import MetaData, Table, create_engine, event, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
-from text2sql_eval_toolkit.execution.execution_tools import mysql_tls_from_url
+from text2sql_eval_toolkit.execution.execution_tools import (
+    MYSQL_TLS_ERROR_CODE,
+    MYSQL_TLS_NOT_OFFERED,
+    mysql_tls_from_url,
+)
 
 
 def normalize_connection_string(connection_string: str) -> tuple[str, dict]:
@@ -56,6 +60,29 @@ def normalize_connection_string(connection_string: str) -> tuple[str, dict]:
     return connection_string, connect_args
 
 
+def _connect_requiring_tls(dialect, connection_record, cargs, cparams):
+    """Open a PyMySQL connection that will not log in without TLS.
+
+    PyMySQL treats an SSL context as a preference: if the server's handshake
+    does not offer TLS, it logs in unencrypted, so anyone who can rewrite that
+    handshake can collect the credentials. The engine uses this as its
+    ``do_connect`` handler whenever TLS is on.
+    """
+    from pymysql.connections import Connection
+    from pymysql.constants import CLIENT
+    from pymysql.err import OperationalError
+
+    class TlsOnlyConnection(Connection):
+        def _request_authentication(self):
+            if not self.server_capabilities & CLIENT.SSL:
+                raise OperationalError(
+                    MYSQL_TLS_ERROR_CODE, MYSQL_TLS_NOT_OFFERED.format(host=self.host)
+                )
+            super()._request_authentication()
+
+    return TlsOnlyConnection(*cargs, **cparams)
+
+
 def get_database_engine(connection_string: str) -> Engine:
     """Create SQLAlchemy engine from connection string."""
     normalized_conn_str, connect_args = normalize_connection_string(connection_string)
@@ -68,6 +95,11 @@ def get_database_engine(connection_string: str) -> Engine:
             echo=False,
             connect_args=connect_args,
         )
+        if connect_args:
+            if engine.dialect.driver != "pymysql":
+                print("TLS needs the PyMySQL driver: use mysql:// or mysql+pymysql://")
+                sys.exit(1)
+            event.listen(engine, "do_connect", _connect_requiring_tls)
 
         # Debug: Print parsed URL components
         url = engine.url
